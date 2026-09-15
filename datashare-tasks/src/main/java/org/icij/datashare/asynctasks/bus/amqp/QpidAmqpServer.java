@@ -3,7 +3,6 @@ package org.icij.datashare.asynctasks.bus.amqp;
 import org.apache.qpid.server.SystemLauncher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URL;
@@ -46,7 +45,8 @@ public class QpidAmqpServer implements Closeable {
     private Map<String, Object> createSystemConfig(final String configFileName) {
         Map<String, Object> attributes = new HashMap<>();
         URL initialConfig = QpidAmqpServer.class.getClassLoader().getResource(configFileName);
-        logger.info("initial config : {}", Objects.requireNonNull(initialConfig," initialConfig cannot be null").toExternalForm());
+        logger.info("initial config : {}",
+                    Objects.requireNonNull(initialConfig, " initialConfig cannot be null").toExternalForm());
         attributes.put("type", "Memory");
         attributes.put("initialConfigurationLocation", initialConfig.toExternalForm());
         attributes.put("startupLoggedToSystemOut", true);

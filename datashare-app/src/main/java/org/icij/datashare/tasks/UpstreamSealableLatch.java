@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import org.icij.concurrent.SealableLatch;
-
 import java.util.function.BooleanSupplier;
 
 /**
@@ -21,7 +20,8 @@ class UpstreamSealableLatch implements SealableLatch {
 
     /** Nothing to wake up: the drainer re-polls on its own once {@link #await()} returns. */
     @Override
-    public void signal() {}
+    public void signal() {
+    }
 
     @Override
     public void await() throws InterruptedException {

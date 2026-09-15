@@ -17,5 +17,7 @@ public class ValidationException extends Exception {
         this.field = field;
     }
 
-    public String field() { return field; }
+    public String field() {
+        return field;
+    }
 }

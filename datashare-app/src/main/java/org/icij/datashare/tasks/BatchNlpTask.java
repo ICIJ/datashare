@@ -2,7 +2,6 @@ package org.icij.datashare.tasks;
 
 import static java.util.Optional.ofNullable;
 import org.icij.datashare.asynctasks.TaskGroupType;
-
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import java.io.IOException;
@@ -40,10 +39,10 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
     private final int maxLength;
 
     @Inject
-    public BatchNlpTask(Indexer indexer, PipelineRegistry registry, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progress) {
+    public BatchNlpTask(Indexer indexer, PipelineRegistry registry, @Assisted Task<Long> taskView,
+                        @Assisted final Function<Double, Void> progress) {
         this(indexer, registry.get(Pipeline.Type.parse((String) taskView.args.get("pipeline"))), taskView, progress);
     }
-
 
     BatchNlpTask(Indexer indexer, Pipeline pipeline, Task<Long> taskView, final Function<Double, Void> progress) {
         this.user = taskView.getUser();
@@ -78,8 +77,7 @@ public class BatchNlpTask extends DefaultTask<Long> implements UserTask, Cancell
             } else {
                 int nbChunks = indexDoc.getContentTextLength() / this.maxLength + 1;
                 for (int chunkIndex = 0; chunkIndex < nbChunks; chunkIndex++) {
-                    List<NamedEntity> namedEntities =
-                        pipeline.process(indexDoc, maxLength, chunkIndex * maxLength);
+                    List<NamedEntity> namedEntities = pipeline.process(indexDoc, maxLength, chunkIndex * maxLength);
                     if (chunkIndex < nbChunks - 1) {
                         indexer.bulkAdd(project, namedEntities);
                     } else {

@@ -5,7 +5,6 @@ import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.text.Project;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,7 +34,8 @@ public class PostLoginEnroller {
 
         held.forEach((projectId, roles) -> {
             if (!granted.contains(projectId)) {
-                roles.forEach(role -> authorizer.deleteRoleForUserInProject(user, role, Domain.DEFAULT, new Project(projectId)));
+                roles.forEach(role -> authorizer.deleteRoleForUserInProject(user, role, Domain.DEFAULT,
+                                                                            new Project(projectId)));
             }
         });
         granted.stream().filter(projectId -> !held.containsKey(projectId)).forEach(projectId -> {
@@ -47,9 +47,10 @@ public class PostLoginEnroller {
 
     private Map<String, List<Role>> heldProjectRoles(DatashareUser user) {
         return authorizer.getGroupPermissions(user, Domain.DEFAULT).stream()
-                .filter(rule -> rule.getV2().startsWith(PROJECT_PREFIX) && !rule.getV2().endsWith(SEPARATOR + "*"))
-                .collect(Collectors.groupingBy(
-                        rule -> rule.getV2().substring(PROJECT_PREFIX.length()),
-                        Collectors.mapping(rule -> Role.valueOf(rule.getV1()), Collectors.toList())));
+                         .filter(rule -> rule.getV2().startsWith(PROJECT_PREFIX) &&
+                                         !rule.getV2().endsWith(SEPARATOR + "*")).collect(
+                        Collectors.groupingBy(rule -> rule.getV2().substring(PROJECT_PREFIX.length()),
+                                              Collectors.mapping(rule -> Role.valueOf(rule.getV1()),
+                                                                 Collectors.toList())));
     }
 }

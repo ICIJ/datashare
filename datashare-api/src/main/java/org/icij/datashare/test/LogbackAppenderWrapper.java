@@ -10,7 +10,6 @@ import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,7 +25,8 @@ public class LogbackAppenderWrapper {
     }
 
     List<String> logs(Level level) {
-        return appender.events.stream().filter(e -> e.getLevel() == level).map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList());
+        return appender.events.stream().filter(e -> e.getLevel() == level).map(ILoggingEvent::getFormattedMessage)
+                              .collect(Collectors.toList());
     }
 
     public List<String> logs(org.slf4j.event.Level level) {
@@ -74,6 +74,7 @@ public class LogbackAppenderWrapper {
         protected void append(ILoggingEvent iLoggingEvent) {
             events.add(iLoggingEvent);
         }
+
         void reset() {
             events.clear();
         }

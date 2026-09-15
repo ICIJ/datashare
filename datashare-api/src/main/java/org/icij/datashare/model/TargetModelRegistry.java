@@ -1,7 +1,6 @@
 package org.icij.datashare.model;
 
 import org.icij.datashare.model.ftm.FtmTargetModel;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;

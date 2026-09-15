@@ -2,9 +2,7 @@ package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
-
 import java.util.Map;
-
 import static org.icij.datashare.cli.DatashareCliOptions.OCR_OPT;
 
 /** A derived representation of a document, produced alongside it and stored under its artifact dir.

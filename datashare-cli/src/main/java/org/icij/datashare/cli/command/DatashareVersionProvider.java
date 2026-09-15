@@ -1,7 +1,6 @@
 package org.icij.datashare.cli.command;
 
 import picocli.CommandLine;
-
 import java.io.InputStream;
 import java.util.Properties;
 
@@ -16,6 +15,6 @@ public class DatashareVersionProvider implements CommandLine.IVersionProvider {
             }
         }
         String version = versions.getProperty("git.build.version", "unknown");
-        return new String[]{"datashare " + version};
+        return new String[] {"datashare " + version};
     }
 }

@@ -12,8 +12,7 @@ import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
  * Task manager back by a queueing system and a persistent storay
  */
 abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager {
-
-     // For test
+    // For test
     abstract protected Group getTaskGroup(String taskId) throws IOException;
 
     /**
@@ -27,8 +26,8 @@ abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager 
      * @throws TaskAlreadyExists when the task has already been started
      */
     @Override
-    public <V extends Serializable> String startTask(Task<V> taskView, Group group)
-        throws IOException, TaskAlreadyExists {
+    public <V extends Serializable> String startTask(Task<V> taskView, Group group) throws IOException,
+            TaskAlreadyExists {
         insert(taskView, group);
         taskView.queue();
         enqueue(taskView);

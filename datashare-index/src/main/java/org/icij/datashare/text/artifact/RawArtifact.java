@@ -1,14 +1,12 @@
 package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.text.Document;
-
 import java.util.Map;
 
 /** The raw/source-bytes artifact. extract-lib still writes the raw/raw.json bytes via
  *  SourceExtractor.extractEmbeddedSources; this class orchestrates that and records the entry. */
 public class RawArtifact implements Artifact {
     private static final ArtifactType TYPE = ArtifactType.RAW;
-
     // Bump this when the raw extraction logic changes, so already-cached entries are
     // recognised as stale (skip-if-current compares the whole task input by value).
     private static final int VERSION = 1;
@@ -36,8 +34,7 @@ public class RawArtifact implements Artifact {
                 // document's own bytes already written: those bytes are the artifact, and classifying
                 // another node's failure onto this one records "no payload" over a payload that is there,
                 // permanently. A root advertises no payload of its own, so nothing on disk answers for it.
-                if (document.isRootDocument()
-                        || ArtifactPayload.isMissing(context.docArtifactDir(), TYPE, entry)) {
+                if (document.isRootDocument() || ArtifactPayload.isMissing(context.docArtifactDir(), TYPE, entry)) {
                     throw extractionFailure;
                 }
                 return entry;

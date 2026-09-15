@@ -10,7 +10,6 @@ import com.optimaize.langdetect.text.CommonTextObjectFactories;
 import com.optimaize.langdetect.text.TextObjectFactory;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.LanguageGuesser;
-
 import java.io.IOException;
 
 @Singleton
@@ -22,19 +21,19 @@ public class OptimaizeLanguageGuesser implements LanguageGuesser {
     // fully filtered text, so a document whose first 10k chars are dominated by URLs/emails may
     // detect less accurately. Acceptable: real documents carry detectable text within 10k chars.
     static final int MAX_DETECTION_LENGTH = 10_000;
-
     private final LanguageDetector languageDetector;
     private final TextObjectFactory textObjectFactory = CommonTextObjectFactories.forDetectingOnLargeText();
 
     public OptimaizeLanguageGuesser() throws IOException {
         this.languageDetector = LanguageDetectorBuilder.create(NgramExtractors.standard())
-                        .withProfiles(new LanguageProfileReader().readAllBuiltIn())
-                        .build();
+                                                       .withProfiles(new LanguageProfileReader().readAllBuiltIn())
+                                                       .build();
     }
 
     @Override
     public Language guess(String text) {
         String sample = text.length() > MAX_DETECTION_LENGTH ? text.substring(0, MAX_DETECTION_LENGTH) : text;
-        return Language.parse(languageDetector.detect(textObjectFactory.forText(sample)).or(LdLocale.fromString("en")).getLanguage());
+        return Language.parse(
+                languageDetector.detect(textObjectFactory.forText(sample)).or(LdLocale.fromString("en")).getLanguage());
     }
 }

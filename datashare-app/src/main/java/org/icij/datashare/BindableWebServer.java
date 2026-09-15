@@ -10,7 +10,6 @@ import org.simpleframework.http.socket.service.DirectRouter;
 import org.simpleframework.http.socket.service.RouterContainer;
 import org.simpleframework.http.socket.service.Service;
 import org.simpleframework.transport.connect.SocketConnection;
-
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -37,8 +36,8 @@ class BindableWebServer extends WebServer {
         private final int webSocketThreads;
         private SocketConnection socketConnection;
 
-        HostAwareServerWrapper(HttpServerWrapper delegate, String host,
-                int threadCount, int selectThreads, int webSocketThreads) {
+        HostAwareServerWrapper(HttpServerWrapper delegate, String host, int threadCount, int selectThreads,
+                               int webSocketThreads) {
             this.container = (Container) delegate;
             this.service = (Service) delegate;
             this.host = host;
@@ -51,10 +50,11 @@ class BindableWebServer extends WebServer {
         public int start(int port, SSLContext sslContext, boolean requiresClientAuth) throws IOException {
             DirectRouter router = new DirectRouter(service);
             RouterContainer routerContainer = new RouterContainer(container, router, webSocketThreads);
-            ContainerSocketProcessor processor = new ContainerSocketProcessor(routerContainer, threadCount, selectThreads);
+            ContainerSocketProcessor processor =
+                    new ContainerSocketProcessor(routerContainer, threadCount, selectThreads);
             socketConnection = new SocketConnection(processor);
-            InetSocketAddress boundAddress = (InetSocketAddress) socketConnection.connect(
-                    new InetSocketAddress(host, port), sslContext);
+            InetSocketAddress boundAddress =
+                    (InetSocketAddress) socketConnection.connect(new InetSocketAddress(host, port), sslContext);
             return boundAddress.getPort();
         }
 

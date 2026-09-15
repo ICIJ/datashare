@@ -5,11 +5,7 @@ import picocli.CommandLine.ITypeConverter;
 import picocli.CommandLine.TypeConversionException;
 
 public enum DigestAlgorithm {
-    MD5(),
-    SHA_1(),
-    SHA_256(),
-    SHA_384(),
-    SHA_512();
+    MD5(), SHA_1(), SHA_256(), SHA_384(), SHA_512();
     public final String algorithm = this.name().replace("_", "");
 
     static DigestAlgorithm fromString(String s) {
@@ -38,7 +34,6 @@ public enum DigestAlgorithm {
     }
 
     public static class DigestAlgorithmConverter implements ValueConverter<DigestAlgorithm> {
-
         @Override
         public DigestAlgorithm convert(String s) {
             return fromString(s);

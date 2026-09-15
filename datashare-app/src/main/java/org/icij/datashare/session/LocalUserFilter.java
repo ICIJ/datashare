@@ -9,7 +9,6 @@ import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-
 import static org.icij.datashare.session.DatashareUser.*;
 
 public class LocalUserFilter extends CookieAuthFilter {
@@ -19,17 +18,17 @@ public class LocalUserFilter extends CookieAuthFilter {
     @Inject
     public LocalUserFilter(final PropertiesProvider propertiesProvider, final Repository repository) {
         super(propertiesProvider.get("protectedUrPrefix").orElse("/"),
-                singleUser(propertiesProvider.get("defaultUserName").orElse("local")),
-                SessionIdStore.inMemory());
+              singleUser(propertiesProvider.get("defaultUserName").orElse("local")), SessionIdStore.inMemory());
         this.userName = propertiesProvider.get("defaultUserName").orElse("local");
         this.repository = repository;
     }
 
     //for tests
-    public LocalUserFilter(final PropertiesProvider propertiesProvider, final Repository repository, String ...projectNames) {
+    public LocalUserFilter(final PropertiesProvider propertiesProvider, final Repository repository,
+                           String... projectNames) {
         super(propertiesProvider.get("protectedUrPrefix").orElse("/"),
-                singleUser(propertiesProvider.get("defaultUserName").orElse("local"), projectNames),
-                SessionIdStore.inMemory());
+              singleUser(propertiesProvider.get("defaultUserName").orElse("local"), projectNames),
+              SessionIdStore.inMemory());
         this.userName = propertiesProvider.get("defaultUserName").orElse("local");
         this.repository = repository;
     }
@@ -39,8 +38,7 @@ public class LocalUserFilter extends CookieAuthFilter {
         String sessionId = readSessionIdInCookie(context);
         context.setCurrentUser(getUserWithEveryProjects());
         if (sessionId == null) {
-            return nextFilter.get()
-                    .withCookie(this.authCookie(this.buildCookie(users.find("local"), "/")));
+            return nextFilter.get().withCookie(this.authCookie(this.buildCookie(users.find("local"), "/")));
         } else {
             return nextFilter.get();
         }
@@ -54,11 +52,22 @@ public class LocalUserFilter extends CookieAuthFilter {
         return super.matches(uri, context);
     }
 
-    @Override protected String cookieName() { return "_ds_session_id"; }
-    @Override protected int expiry() { return Integer.MAX_VALUE; }
-    @Override protected boolean redirectToLogin(String uri) { return false; }
+    @Override
+    protected String cookieName() {
+        return "_ds_session_id";
+    }
 
-    protected User getUserWithEveryProjects () {
+    @Override
+    protected int expiry() {
+        return Integer.MAX_VALUE;
+    }
+
+    @Override
+    protected boolean redirectToLogin(String uri) {
+        return false;
+    }
+
+    protected User getUserWithEveryProjects() {
         // We must cast back to DatashareUser to be able to use the `setProjects` method
         DatashareUser datashareUser = (DatashareUser) users.find(userName);
         datashareUser.setProjects(repository.getProjects());

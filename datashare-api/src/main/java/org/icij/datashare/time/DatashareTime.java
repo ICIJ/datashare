@@ -2,7 +2,6 @@ package org.icij.datashare.time;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.security.AccessControlException;
 import java.util.Date;
 
@@ -16,7 +15,6 @@ import java.util.Date;
  * to be able to override its behaviour for test purpose.</p>
  */
 public class DatashareTime implements Time {
-
     private static final Logger logger = LoggerFactory.getLogger(DatashareTime.class);
     /** property key for "org.icij.datashare.time.class" */
     public static final String DATASHARE_TIME_CLASS_PROPERTY = "datashare.time";
@@ -26,7 +24,9 @@ public class DatashareTime implements Time {
     static {
         defaultInstance = new DatashareTime();
     }
-    private DatashareTime() {}
+
+    private DatashareTime() {
+    }
 
     /**
      * Singleton instance method.
@@ -51,10 +51,9 @@ public class DatashareTime implements Time {
         }
         if (datashareTimeClassName != null) {
             try {
-                @SuppressWarnings("rawtypes")
-				Class datashareMockTimeClass = Class.forName(datashareTimeClassName);
-                if (systemPropertyInstance == null
-                        || !datashareTimeClassName.equals(systemPropertyInstance.getClass().getName())) {
+                @SuppressWarnings("rawtypes") Class datashareMockTimeClass = Class.forName(datashareTimeClassName);
+                if (systemPropertyInstance == null ||
+                    !datashareTimeClassName.equals(systemPropertyInstance.getClass().getName())) {
                     systemPropertyInstance = (Time) datashareMockTimeClass.newInstance();
                     if (logger.isDebugEnabled()) {
                         logger.debug("time instance for datashare : <" + datashareTimeClassName + ">");
@@ -74,8 +73,9 @@ public class DatashareTime implements Time {
     public Date now() {
         return new Date();
     }
+
     public static Date getNow() {
-    	return getInstance().now();
+        return getInstance().now();
     }
 
     /**
@@ -97,14 +97,14 @@ public class DatashareTime implements Time {
 
     public void setMockDate(String dateTime) {
         throw new UnsupportedOperationException("DatashareTime is in real time mode");
-	}
+    }
 
-	public void addMilliseconds(int toBeAddedInMilliseconds) {
+    public void addMilliseconds(int toBeAddedInMilliseconds) {
         throw new UnsupportedOperationException("DatashareTime is in real time mode");
-	}
+    }
 
     private static void logErrorInstance(String datashareTimeClassName) {
-        logger.error("Cannot instantiate class : <" + datashareTimeClassName+ "> returning default instance");
+        logger.error("Cannot instantiate class : <" + datashareTimeClassName + "> returning default instance");
     }
 
     public static void setMockTime(boolean mockTime) {
@@ -119,8 +119,8 @@ public class DatashareTime implements Time {
         return System.getProperty(DATASHARE_TIME_CLASS_PROPERTY) != null;
     }
 
-	public Date itIsNow(String date) {
-		throw new UnsupportedOperationException("DatashareTime is in real time mode");
-	}
+    public Date itIsNow(String date) {
+        throw new UnsupportedOperationException("DatashareTime is in real time mode");
+    }
 
 }

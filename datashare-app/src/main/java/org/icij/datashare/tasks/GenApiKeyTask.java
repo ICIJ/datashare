@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.asynctasks.TaskGroupType;
-
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.asynctasks.TaskGroup;
@@ -14,7 +13,6 @@ import org.icij.datashare.user.UserTask;
 import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.crypto.SecretKey;
 
 @TemporalSingleActivityWorkflow(name = "generate-api-key", activityOptions = @ActivityOpts(timeout = "P1D"))
@@ -29,6 +27,7 @@ public class GenApiKeyTask extends DefaultTask<String> implements UserTask {
         this.apiKeyRepository = apiKeyRepository;
         this.user = user;
     }
+
     @Override
     public String call() throws Exception {
         SecretKey secretKey = DatashareApiKey.generateSecretKey();

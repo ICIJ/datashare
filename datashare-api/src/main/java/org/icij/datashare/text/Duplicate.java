@@ -8,7 +8,6 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
-
 import java.nio.file.Path;
 
 @IndexType("Duplicate")
@@ -30,14 +29,15 @@ public class Duplicate implements Entity {
     }
 
     @JsonCreator
-    private Duplicate(@JsonProperty("id") final String id,
-                     @JsonProperty("path") final Path path,
-                     @JsonProperty("documentId") final String docId) {
+    private Duplicate(@JsonProperty("id") final String id, @JsonProperty("path") final Path path,
+                      @JsonProperty("documentId") final String docId) {
         this.id = id;
         this.path = path;
         this.documentId = docId;
     }
 
     @Override
-    public String getId() { return id;}
+    public String getId() {
+        return id;
+    }
 }

@@ -8,7 +8,11 @@ public enum Mode {
         this.webServer = webServer;
     }
 
-    public boolean isWebServer() { return webServer;}
+    public boolean isWebServer() {
+        return webServer;
+    }
 
-    public boolean isLocal() { return this == LOCAL || this == EMBEDDED;}
+    public boolean isLocal() {
+        return this == LOCAL || this == EMBEDDED;
+    }
 }

@@ -5,7 +5,6 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 
 public class JsonPayload extends Payload {
@@ -41,7 +40,8 @@ public class JsonPayload extends Payload {
 
     private static String toJson(Object content) {
         try {
-            if (content == null) return "{}";
+            if (content == null)
+                return "{}";
             return JsonObjectMapper.writeValueAsString(content);
         } catch (JsonProcessingException e) {
             LOGGER.error("error serializing {}, returning empty object", content, e);

@@ -1,11 +1,9 @@
 package org.icij.datashare.text;
 
 import org.icij.datashare.text.nlp.Pipeline;
-
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
-
 import static java.nio.file.Paths.get;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.text.Language.ENGLISH;
@@ -36,45 +34,39 @@ public class DocumentBuilder {
     private Integer pstUnrecovered = null;
     private Integer nbChildrenEmitted = null;
 
-    private DocumentBuilder() {}
+    private DocumentBuilder() {
+    }
+
     public static DocumentBuilder createDoc() {
         return new DocumentBuilder();
     }
+
     public static DocumentBuilder createDoc(String id) {
         return new DocumentBuilder().withDefaultValues(id);
     }
+
     public static DocumentBuilder createDoc(Project project, Path path) {
-        return new DocumentBuilder().withDefaultValues(Document.getHash(project,path)).with(project).with(path);
-    }
-    public static DocumentBuilder from(Document doc){
-        if(doc == null) {
-            return new DocumentBuilder();
-        }
-        return new DocumentBuilder()
-                .with(doc.getProject())
-                .withId(doc.getId())
-                .with(doc.getPath())
-                .with(doc.getContentEncoding())
-                .with(doc.getContent())
-                .with(doc.getContentTranslated())
-                .with(doc.getLanguage())
-                .extractedAt(doc.getExtractionDate())
-                .ofContentType(doc.getContentType())
-                .withExtractionLevel(doc.getExtractionLevel())
-                .with(doc.getMetadata())
-                .with(doc.getStatus())
-                .withPipelines(doc.getNerTags())
-                .withParentId(doc.getParentDocument())
-                .withRootId(doc.getRootDocument())
-                .withContentLength(doc.getContentLength())
-                .withTags(doc.getTags())
-                .with(doc.getContentTypeCategory())
-                .with(doc.getRecoveryStatus())
-                .withPstCounts(doc.getPstExpected(), doc.getPstEmitted(), doc.getPstUnrecovered())
-                .withNbChildrenEmitted(doc.getNbChildrenEmitted());
+        return new DocumentBuilder().withDefaultValues(Document.getHash(project, path)).with(project).with(path);
     }
 
-    public DocumentBuilder withDefaultValues(String id){
+    public static DocumentBuilder from(Document doc) {
+        if (doc == null) {
+            return new DocumentBuilder();
+        }
+        return new DocumentBuilder().with(doc.getProject()).withId(doc.getId()).with(doc.getPath())
+                                    .with(doc.getContentEncoding()).with(doc.getContent())
+                                    .with(doc.getContentTranslated()).with(doc.getLanguage())
+                                    .extractedAt(doc.getExtractionDate()).ofContentType(doc.getContentType())
+                                    .withExtractionLevel(doc.getExtractionLevel()).with(doc.getMetadata())
+                                    .with(doc.getStatus()).withPipelines(doc.getNerTags())
+                                    .withParentId(doc.getParentDocument()).withRootId(doc.getRootDocument())
+                                    .withContentLength(doc.getContentLength()).withTags(doc.getTags())
+                                    .with(doc.getContentTypeCategory()).with(doc.getRecoveryStatus())
+                                    .withPstCounts(doc.getPstExpected(), doc.getPstEmitted(), doc.getPstUnrecovered())
+                                    .withNbChildrenEmitted(doc.getNbChildrenEmitted());
+    }
+
+    public DocumentBuilder withDefaultValues(String id) {
         this.id = id;
         this.charset = Charset.defaultCharset();
         this.content = id;
@@ -94,6 +86,7 @@ public class DocumentBuilder {
         this.id = id;
         return this;
     }
+
     public DocumentBuilder with(String content) {
         this.content = content;
         return this;
@@ -139,7 +132,7 @@ public class DocumentBuilder {
         return this;
     }
 
-    public DocumentBuilder withPipelines(Set<Pipeline.Type> pipelines){
+    public DocumentBuilder withPipelines(Set<Pipeline.Type> pipelines) {
         this.pipelines = pipelines;
         return this;
     }
@@ -148,14 +141,17 @@ public class DocumentBuilder {
         this.documentStatus = documentStatus;
         return this;
     }
+
     public DocumentBuilder with(Project project) {
         this.project = project;
         return this;
     }
+
     public DocumentBuilder with(Tag... tags) {
         this.tags = Arrays.stream(tags).collect(toSet());
         return this;
     }
+
     public DocumentBuilder withTags(Set<Tag> tags) {
         this.tags = tags;
         return this;
@@ -165,6 +161,7 @@ public class DocumentBuilder {
         this.extractionLevel = extractionLevel;
         return this;
     }
+
     public DocumentBuilder withContentLength(long contentLength) {
         this.contentLength = contentLength;
         return this;
@@ -174,10 +171,12 @@ public class DocumentBuilder {
         this.rootId = rootId;
         return this;
     }
+
     public DocumentBuilder withParentId(String parentId) {
         this.parentId = parentId;
         return this;
     }
+
     public DocumentBuilder withOcrParser(String ocrParser) {
         this.metadata = new HashMap<>(this.metadata);
         this.metadata.put("ocr_parser", ocrParser);
@@ -207,14 +206,13 @@ public class DocumentBuilder {
     }
 
     public Document build() {
-        if(id == null && project == null && path == null && content == null){
+        if (id == null && project == null && path == null && content == null) {
             throw new NullPointerException("Id, Project, Path or content are missing.");
         }
-        return new Document(project, id, path, content, content_translated, language,
-                charset, contentType, metadata, documentStatus,
-                pipelines, extractionDate, parentId, rootId, extractionLevel,
-                contentLength, tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered,
-                nbChildrenEmitted);
+        return new Document(project, id, path, content, content_translated, language, charset, contentType, metadata,
+                            documentStatus, pipelines, extractionDate, parentId, rootId, extractionLevel, contentLength,
+                            tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered,
+                            nbChildrenEmitted);
     }
 
 }

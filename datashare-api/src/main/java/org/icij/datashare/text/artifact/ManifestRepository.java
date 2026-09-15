@@ -8,9 +8,15 @@ import java.nio.file.Path;
  *  implement it without depending on datashare-index. */
 public interface ManifestRepository {
     ManifestEntry get(Path docArtifactDir, String type) throws IOException;
+
     void put(Path docArtifactDir, String type, ManifestEntry entry) throws IOException;
+
     // Runs `action` while holding the per-doc write lock, so payload production and the
     // manifest update are one atomic critical section (prevents manifest/FS divergence).
     <T> T inLock(Path docArtifactDir, ManifestAction<T> action) throws IOException;
-    @FunctionalInterface interface ManifestAction<T> { T run() throws IOException; }
+
+    @FunctionalInterface
+    interface ManifestAction<T> {
+        T run() throws IOException;
+    }
 }

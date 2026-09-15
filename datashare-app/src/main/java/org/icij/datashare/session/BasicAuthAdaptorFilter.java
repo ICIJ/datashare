@@ -8,7 +8,6 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
-
 import javax.annotation.Nullable;
 
 public class BasicAuthAdaptorFilter extends BasicAuthFilter {

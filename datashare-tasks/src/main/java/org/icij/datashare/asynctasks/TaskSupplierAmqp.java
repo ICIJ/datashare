@@ -11,14 +11,12 @@ import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
 
 public class TaskSupplierAmqp implements TaskSupplier {
     final AmqpConsumer<Task, Consumer<Task>> consumer;
@@ -32,10 +30,10 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     public TaskSupplierAmqp(AmqpInterlocutor amqp, String routingKey) throws IOException {
         this.amqp = amqp;
-        this.consumer = routingKey == null ?
-                new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class):
-                new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class, routingKey);
-        this.eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, Event.class).consumeEvents();
+        this.consumer = routingKey == null ? new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class) :
+                        new AmqpConsumer<>(amqp, null, AmqpQueue.TASK, Task.class, routingKey);
+        this.eventConsumer =
+                new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.WORKER_EVENT, Event.class).consumeEvents();
     }
 
     @Override
@@ -84,7 +82,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
     @Override
     public void error(String taskId, TaskError taskError) {
         try {
-            amqp.publish(AmqpQueue.MANAGER_EVENT,new ErrorEvent(taskId, taskError));
+            amqp.publish(AmqpQueue.MANAGER_EVENT, new ErrorEvent(taskId, taskError));
         } catch (IOException e) {
             LoggerFactory.getLogger(getClass()).warn("cannot publish error for task {}", taskId);
         }

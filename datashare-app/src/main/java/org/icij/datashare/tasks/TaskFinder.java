@@ -8,25 +8,20 @@ import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.user.User;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
-
 import static java.util.stream.Collectors.toMap;
 
 @Singleton
 public class TaskFinder {
-
     private final TaskManager taskManager;
     private final BatchSearchRepository batchSearchRepository;
+    private static final Map<BatchSearchRecord.State, Task.State> STATE_MAP = new EnumMap<>(
+            Map.of(BatchSearchRecord.State.QUEUED, Task.State.QUEUED, BatchSearchRecord.State.RUNNING,
+                   Task.State.RUNNING, BatchSearchRecord.State.SUCCESS, Task.State.DONE,
+                   BatchSearchRecord.State.FAILURE, Task.State.ERROR));
 
-    private static final Map<BatchSearchRecord.State, Task.State> STATE_MAP = new EnumMap<>(Map.of(
-            BatchSearchRecord.State.QUEUED,  Task.State.QUEUED,
-            BatchSearchRecord.State.RUNNING, Task.State.RUNNING,
-            BatchSearchRecord.State.SUCCESS, Task.State.DONE,
-            BatchSearchRecord.State.FAILURE, Task.State.ERROR
-    ));
     @Inject
     public TaskFinder(TaskManager taskManager, BatchSearchRepository batchSearchRepository) {
         this.taskManager = taskManager;
@@ -42,9 +37,8 @@ public class TaskFinder {
      * @return
      * @throws IOException
      */
-    public Stream<Task<?>> findVisibleTasksFor(User user, TaskFilters filters) throws
-            IOException {
-        if(user == null) {
+    public Stream<Task<?>> findVisibleTasksFor(User user, TaskFilters filters) throws IOException {
+        if (user == null) {
             throw new IllegalArgumentException("Cannot retrieve Tasks of a null user");
         }
         filters = filters.with(user); //Ensure only the tasks of the user are returned
@@ -56,22 +50,14 @@ public class TaskFinder {
         Stream<Task<Integer>> batchSearchTasks =
                 batchSearchRecords.stream().map(TaskFinder::taskify).filter(filtersWithoutUser::filter);
         // Merge the list of tasks and deduplicate them by id
-        return Stream.concat(userTasks, batchSearchTasks)
-                .collect(toMap(
-                        // We deduplicate tasks by id
-                        Entity::getId,
-                        task -> task,
-                        // Get the first in priority
-                        (first, second) -> first,
-                        LinkedHashMap::new
-                ))
-                .values()
-                .stream()
-                .map(t -> (Task<?>) t);
+        return Stream.concat(userTasks, batchSearchTasks).collect(toMap(
+                // We deduplicate tasks by id
+                Entity::getId, task -> task,
+                // Get the first in priority
+                (first, second) -> first, LinkedHashMap::new)).values().stream().map(t -> (Task<?>) t);
 
     }
 
-    
     /**
      * Retrieves a task by id.
      * First looks in the task repository, then falls back to the user's batch search records,
@@ -89,11 +75,9 @@ public class TaskFinder {
         if (managed.filter(t -> Objects.equals(t.getUser(), user)).isPresent()) {
             return managed.get();
         }
-        return batchSearchRepository.getRecords(user, user.getProjectNames()).stream()
-                .filter(r -> r.uuid.equals(id))
-                .findFirst()
-                .map(TaskFinder::taskify)
-                .orElseThrow(() -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
+        return batchSearchRepository.getRecords(user, user.getProjectNames()).stream().filter(r -> r.uuid.equals(id))
+                                    .findFirst().map(TaskFinder::taskify).orElseThrow(
+                        () -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
     }
 
     private Optional<Task<?>> getTaskFromManager(String id) throws IOException {

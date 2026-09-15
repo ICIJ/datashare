@@ -7,7 +7,6 @@ import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
@@ -16,10 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import static java.lang.Integer.parseInt;
 import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
-
 
 public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements TaskSupplier {
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
@@ -36,14 +33,19 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
         this(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(), new CountDownLatch(1));
     }
 
-    public TaskManagerMemory(TaskFactory taskFactory, TaskRepository tasks, PropertiesProvider propertiesProvider, CountDownLatch latch) {
+    public TaskManagerMemory(TaskFactory taskFactory, TaskRepository tasks, PropertiesProvider propertiesProvider,
+                             CountDownLatch latch) {
         this.taskQueue = new LinkedBlockingQueue<>();
         int parallelism = parseInt(propertiesProvider.get("taskWorkers").orElse("1"));
         pollingInterval = Integer.parseInt(propertiesProvider.get("pollingInterval").orElse("60"));
-        taskPollingIntervalMs = Integer.parseInt(propertiesProvider.get("taskManagerPollingIntervalMilliseconds").orElse(String.valueOf(DEFAULT_TASK_POLLING_INTERVAL_MS)));
+        taskPollingIntervalMs = Integer.parseInt(propertiesProvider.get("taskManagerPollingIntervalMilliseconds")
+                                                                   .orElse(String.valueOf(
+                                                                           DEFAULT_TASK_POLLING_INTERVAL_MS)));
         logger.info("running TaskManager {} with {} workers", this, parallelism);
         executor = Executors.newFixedThreadPool(parallelism);
-        loops = IntStream.range(0, parallelism).mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch, pollingInterval)).collect(Collectors.toList());
+        loops = IntStream.range(0, parallelism)
+                         .mapToObj(i -> new TaskWorkerLoop(taskFactory, this, latch, pollingInterval))
+                         .collect(Collectors.toList());
         loops.forEach(executor::submit);
         this.tasks = tasks;
     }
@@ -94,9 +96,9 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
     public void canceled(Task<?> task, boolean requeue) {
         Task<?> taskView;
         try {
-             taskView = getTask(task.id);
-             taskView.cancel();
-             update(taskView);
+            taskView = getTask(task.id);
+            taskView.cancel();
+            update(taskView);
         } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for cancel={} call", task.id, requeue);
         } catch (IOException e) {
@@ -146,14 +148,13 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
     public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
         synchronized (tasks) {
             // Require tasks to be in final state and apply user filters
-            Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
-                .map(t -> {
-                    try {
-                        return tasks.delete(t.id);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+            Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES)).map(t -> {
+                try {
+                    return tasks.delete(t.id);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
             return taskStream.toList();
         }
     }
@@ -247,5 +248,6 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
     }
 
     @Override
-    public void waitForConsumer() {}
+    public void waitForConsumer() {
+    }
 }

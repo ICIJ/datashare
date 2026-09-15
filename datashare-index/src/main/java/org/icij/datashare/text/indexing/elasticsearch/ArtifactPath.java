@@ -14,7 +14,8 @@ public class ArtifactPath {
     public static final String PAGES_DIR = "pages";
     public static final String PAGES_CONTENT_FILE = "content.txt";
 
-    private ArtifactPath() {}
+    private ArtifactPath() {
+    }
 
     /** The per-project artifact root under artifactDir. Single home for the dir+project join so the
      *  INDEX stage, the ARTIFACT stage, and the source-extraction read path cannot drift. */

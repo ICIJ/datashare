@@ -23,26 +23,21 @@ public class PoiNoiseTurboFilter extends TurboFilter {
             return FilterReply.NEUTRAL;
         }
         return switch (logger.getName()) {
-            case "org.apache.poi.hwmf.record.HwmfText" ->
-                    deny(format.startsWith("META_EXTTEXTOUT"));
+            case "org.apache.poi.hwmf.record.HwmfText" -> deny(format.startsWith("META_EXTTEXTOUT"));
             case "org.apache.poi.hslf.usermodel.HSLFTextParagraph" ->
-                    deny(format.startsWith("MasterSheet is not available")
-                            || format.startsWith("bytes nor chars atom doesn't exist"));
+                    deny(format.startsWith("MasterSheet is not available") ||
+                         format.startsWith("bytes nor chars atom doesn't exist"));
             case "org.apache.poi.hslf.record.Record" ->
-                    deny(format.startsWith("Problem reading paragraph style runs")
-                            || format.startsWith("Problem reading character style runs"));
-            case "org.apache.poi.hdgf.chunks.Chunk" ->
-                    deny(format.startsWith("Command offset"));
+                    deny(format.startsWith("Problem reading paragraph style runs") ||
+                         format.startsWith("Problem reading character style runs"));
+            case "org.apache.poi.hdgf.chunks.Chunk" -> deny(format.startsWith("Command offset"));
             case "org.apache.poi.hslf.model.textproperties.BitMaskTextProp" ->
                     deny(format.startsWith("Style properties of"));
-            case "org.apache.poi.hwpf.model.PAPBinTable" ->
-                    deny(format.startsWith("Paragraph ["));
+            case "org.apache.poi.hwpf.model.PAPBinTable" -> deny(format.startsWith("Paragraph ["));
             case "org.apache.poi.hsmf.datatypes.AttachmentChunks" ->
                     deny(format.startsWith("Currently unsupported attachment chunk property"));
-            case "org.apache.poi.hpsf.CodePageString" ->
-                    deny(format.startsWith("CodePageString started at offset"));
-            case "org.apache.poi.ss.usermodel.DataFormatter" ->
-                    deny(format.startsWith("Formatting failed for format"));
+            case "org.apache.poi.hpsf.CodePageString" -> deny(format.startsWith("CodePageString started at offset"));
+            case "org.apache.poi.ss.usermodel.DataFormatter" -> deny(format.startsWith("Formatting failed for format"));
             default -> FilterReply.NEUTRAL;
         };
     }

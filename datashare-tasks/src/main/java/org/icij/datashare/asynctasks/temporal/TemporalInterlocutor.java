@@ -42,7 +42,6 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.reflections.Reflections;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
@@ -54,7 +53,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import static io.grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING;
 import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
@@ -71,38 +69,35 @@ public class TemporalInterlocutor {
     private static final Duration DEFAULT_WORKFLOW_TASK_TIMEOUT = Duration.ofDays(7);
     private static final String TERMINATION_MSG = "terminated_by_user";
     static WorkflowImplementationOptions WF_IMPLEMENTATION_DEFAULT_OPTIONS = WorkflowImplementationOptions.newBuilder()
-            .setFailWorkflowExceptionTypes(Error.class) // Unregistered workflows
-            .build();
+                                                                                                          .setFailWorkflowExceptionTypes(
+                                                                                                                  Error.class) // Unregistered workflows
+                                                                                                          .build();
     // TODO: in-memory hack for strong consistence, maybe a repository would be a better implem
     private final ConcurrentHashMap.KeySetView<String, Boolean> executions = ConcurrentHashMap.newKeySet();
-
     public static final String DEFAULT_NAMESPACE = "datashare-default";
     public static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance()
-            .withPayloadConverterOverrides(new JacksonJsonPayloadConverter(JsonObjectMapper.getMapper()));
+                                                                                        .withPayloadConverterOverrides(
+                                                                                                new JacksonJsonPayloadConverter(
+                                                                                                        JsonObjectMapper.getMapper()));
     private final WorkflowClient client;
-
     // See https://docs.temporal.io/list-filter#supported-operators
     public static final SearchAttributeKey<String> WORKFLOW_TYPE_ATTRIBUTE =
-        SearchAttributeKey.forKeyword("WorkflowType");
+            SearchAttributeKey.forKeyword("WorkflowType");
     public static final SearchAttributeKey<String> EXECUTION_STATUS_ATTRIBUTE =
-        SearchAttributeKey.forKeyword("ExecutionStatus");
+            SearchAttributeKey.forKeyword("ExecutionStatus");
     public static final SearchAttributeKey<String> USER_CUSTOM_ATTRIBUTE = SearchAttributeKey.forKeyword("UserId");
     public static final SearchAttributeKey<Double> MAX_PROGRESS_CUSTOM_ATTRIBUTE =
-        SearchAttributeKey.forDouble("MaxProgress");
+            SearchAttributeKey.forDouble("MaxProgress");
     public static final SearchAttributeKey<Double> PROGRESS_CUSTOM_ATTRIBUTE = SearchAttributeKey.forDouble("Progress");
-
-    public static final Map<String, IndexedValueType> CUSTOM_SEARCH_ATTRIBUTES = Map.of(
-        MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
-        PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
-        USER_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD
-    );
+    public static final Map<String, IndexedValueType> CUSTOM_SEARCH_ATTRIBUTES =
+            Map.of(MAX_PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
+                   PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
+                   USER_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD);
     public static final Duration DEFAULT_NAMESPACE_POLL_INTERVAL = Duration.of(50, ChronoUnit.MILLIS);
-
     private static final Set<Status.Code> NAMESPACE_EXISTS = Set.of(Status.ALREADY_EXISTS.getCode());
     private static final NamespaceConfig DEFAULT_NAMESPACE_CONFIG =
-        NamespaceConfig.newBuilder().setWorkflowExecutionRetentionTtl(Durations.fromDays(365)).build();
+            NamespaceConfig.newBuilder().setWorkflowExecutionRetentionTtl(Durations.fromDays(365)).build();
     private final WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceStubs;
-
 
     public TemporalInterlocutor(String target, String namespace) throws InterruptedException {
         this.client = buildClient(target, namespace);
@@ -111,8 +106,9 @@ public class TemporalInterlocutor {
     }
 
     public TemporalInterlocutor(PropertiesProvider propertiesProvider) throws InterruptedException {
-        this(propertiesProvider.get(TEMPORAL_ADDRESS_OPT).orElse(EnvUtils.resolveUri("temporalAddress", "temporal:7233")),
-            propertiesProvider.get(TEMPORAL_NAMESPACE_OPT).orElse(DEFAULT_NAMESPACE));
+        this(propertiesProvider.get(TEMPORAL_ADDRESS_OPT)
+                               .orElse(EnvUtils.resolveUri("temporalAddress", "temporal:7233")),
+             propertiesProvider.get(TEMPORAL_NAMESPACE_OPT).orElse(DEFAULT_NAMESPACE));
     }
 
     // for tests
@@ -122,20 +118,19 @@ public class TemporalInterlocutor {
     }
 
     // for TaskManagerTemporal tests
-    public TemporalInterlocutor(WorkflowClient client, WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub) {
+    public TemporalInterlocutor(WorkflowClient client,
+                                WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub) {
         this.client = client;
         this.workflowServiceStubs = workflowServiceBlockingStub;
     }
 
-    public <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactory(
-        Class<A> activityCls,
-        TaskFactory taskFactory,
-        TaskRepository taskRepository,
-        double progressWeight
-    ) {
-        return () -> activityCls
-            .getConstructor(TaskFactory.class, WorkflowClient.class, TaskRepository.class, Double.class)
-            .newInstance(taskFactory, client, taskRepository, progressWeight);
+    public <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactory(Class<A> activityCls,
+                                                                                      TaskFactory taskFactory,
+                                                                                      TaskRepository taskRepository,
+                                                                                      double progressWeight) {
+        return () -> activityCls.getConstructor(TaskFactory.class, WorkflowClient.class, TaskRepository.class,
+                                                Double.class)
+                                .newInstance(taskFactory, client, taskRepository, progressWeight);
     }
 
     public void setupNamespace(Duration timeout) throws InterruptedException {
@@ -143,20 +138,20 @@ public class TemporalInterlocutor {
         long timeoutMillis = timeout.toMillis();
         String namespace = getNamespace();
         WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub =
-            client.getWorkflowServiceStubs().blockingStub();
+                client.getWorkflowServiceStubs().blockingStub();
         OperatorServiceGrpc.OperatorServiceBlockingStub operatorServiceBlockingStub =
-            OperatorServiceStubs.newServiceStubs(
-                OperatorServiceStubsOptions.newBuilder()
-                    .setChannel(client.getWorkflowServiceStubs().getRawChannel())
-                    .validateAndBuildWithDefaults()).blockingStub();
+                OperatorServiceStubs.newServiceStubs(OperatorServiceStubsOptions.newBuilder().setChannel(
+                                            client.getWorkflowServiceStubs().getRawChannel()).validateAndBuildWithDefaults())
+                                    .blockingStub();
         synchronized (this) {
             boolean createNamespace = !hasNamespace(workflowServiceBlockingStub, client.getOptions().getNamespace());
             if (createNamespace) {
                 try {
                     RegisterNamespaceRequest registerNamespaceRequest = RegisterNamespaceRequest.newBuilder()
-                        .setWorkflowExecutionRetentionPeriod(
-                            DEFAULT_NAMESPACE_CONFIG.getWorkflowExecutionRetentionTtl())
-                        .setNamespace(namespace).build();
+                                                                                                .setWorkflowExecutionRetentionPeriod(
+                                                                                                        DEFAULT_NAMESPACE_CONFIG.getWorkflowExecutionRetentionTtl())
+                                                                                                .setNamespace(namespace)
+                                                                                                .build();
                     workflowServiceBlockingStub.registerNamespace(registerNamespaceRequest);
                 } catch (StatusRuntimeException ex) {
                     if (!NAMESPACE_EXISTS.contains(ex.getStatus().getCode())) {
@@ -168,20 +163,19 @@ public class TemporalInterlocutor {
                 while (true) {
                     if ((System.currentTimeMillis() - start >= timeoutMillis)) {
                         throw new RuntimeException(
-                            "failed to setup namespace search attribute in less than " + timeout);
+                                "failed to setup namespace search attribute in less than " + timeout);
                     }
                     try {
                         operatorServiceBlockingStub.addSearchAttributes(
-                            AddSearchAttributesRequest.newBuilder().setNamespace(namespace)
-                                .putAllSearchAttributes(CUSTOM_SEARCH_ATTRIBUTES).build()
-                        );
+                                AddSearchAttributesRequest.newBuilder().setNamespace(namespace)
+                                                          .putAllSearchAttributes(CUSTOM_SEARCH_ATTRIBUTES).build());
                         break;
                     } catch (StatusRuntimeException ex) {
                         if (ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
                             continue;
                         }
-                        if (ex.getStatus().getCode().equals(Status.Code.FAILED_PRECONDITION)
-                            && ex.getMessage().contains("Namespace has invalid state")) {
+                        if (ex.getStatus().getCode().equals(Status.Code.FAILED_PRECONDITION) &&
+                            ex.getMessage().contains("Namespace has invalid state")) {
                             continue;
                         }
                         Thread.sleep(DEFAULT_NAMESPACE_POLL_INTERVAL.toMillis());
@@ -200,21 +194,23 @@ public class TemporalInterlocutor {
     public void deleteNamespace(Duration timeout) {
         String namespace = client.getOptions().getNamespace();
         OperatorServiceStubs.newServiceStubs(
-                OperatorServiceStubsOptions.newBuilder()
-                    .setChannel(client.getWorkflowServiceStubs().getRawChannel())
-                    .validateAndBuildWithDefaults())
-            .blockingStub()
-            .deleteNamespace(DeleteNamespaceRequest.newBuilder().setNamespace(namespace).build());
+                                    OperatorServiceStubsOptions.newBuilder().setChannel(client.getWorkflowServiceStubs().getRawChannel())
+                                                               .validateAndBuildWithDefaults()).blockingStub()
+                            .deleteNamespace(DeleteNamespaceRequest.newBuilder().setNamespace(namespace).build());
         awaitNamespaceDeleted(client.getWorkflowServiceStubs().blockingStub(), namespace, timeout);
     }
 
-    public void createWorkflow(String taskId, String name, String queueName, SearchAttributes searchAttributes, Map<String, Object> args) {
+    public void createWorkflow(String taskId, String name, String queueName, SearchAttributes searchAttributes,
+                               Map<String, Object> args) {
         WorkflowOptions.Builder optionBuilder = WorkflowOptions.newBuilder().setWorkflowId(taskId)
-                .setWorkflowTaskTimeout(DEFAULT_WORKFLOW_TASK_TIMEOUT) // TODO: set this per task
-                .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE)
-                .setWorkflowIdConflictPolicy(WorkflowIdConflictPolicy.WORKFLOW_ID_CONFLICT_POLICY_FAIL)
-                .setTypedSearchAttributes(searchAttributes)
-                .setTaskQueue(queueName);
+                                                               .setWorkflowTaskTimeout(
+                                                                       DEFAULT_WORKFLOW_TASK_TIMEOUT) // TODO: set this per task
+                                                               .setWorkflowIdReusePolicy(
+                                                                       WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE)
+                                                               .setWorkflowIdConflictPolicy(
+                                                                       WorkflowIdConflictPolicy.WORKFLOW_ID_CONFLICT_POLICY_FAIL)
+                                                               .setTypedSearchAttributes(searchAttributes)
+                                                               .setTaskQueue(queueName);
         WorkflowStub workflowStub = client.newUntypedWorkflowStub(name, optionBuilder.build());
         WorkflowExecution exec = workflowStub.start(new TemporalInputPayload(args));
         // Super important force description to refresh the cache and make the task visible
@@ -234,7 +230,7 @@ public class TemporalInterlocutor {
         // TODO: add support for cancellation rather than termination, update the TaskManager API accordingly
         return unknownIfNotFound(tId -> {
             WorkflowStub workflowStub = createWorkflowStub(tId);
-            if(workflowStub.describe().getStatus() != WORKFLOW_EXECUTION_STATUS_RUNNING) {
+            if (workflowStub.describe().getStatus() != WORKFLOW_EXECUTION_STATUS_RUNNING) {
                 return false;
             }
             try {
@@ -256,13 +252,13 @@ public class TemporalInterlocutor {
         Map<String, Object> args = null;
         WorkflowExecution execution = workflowExecutionInfo.getExecution();
         Payloads payloads = client.fetchHistory(execution.getWorkflowId(), execution.getRunId()).getEvents().get(0)
-            .getWorkflowExecutionStartedEventAttributes().getInput();
+                                  .getWorkflowExecutionStartedEventAttributes().getInput();
         if (payloads.getPayloadsCount() > 1) {
             throw new RuntimeException("invalid payload count, expected exactly 1 payload");
         }
         TemporalInputPayload payload =
-            defaultDataConverter.fromPayload(payloads.getPayloads(0), TemporalInputPayload.class,
-                TemporalInputPayload.class);
+                defaultDataConverter.fromPayload(payloads.getPayloads(0), TemporalInputPayload.class,
+                                                 TemporalInputPayload.class);
         if (payload != null) {
             args = payload.args();
             args.computeIfPresent(USER_KEY, (k, v) -> JsonObjectMapper.convertValue(v, User.class));
@@ -273,7 +269,8 @@ public class TemporalInterlocutor {
     public PageFetcher<WorkflowExecutionInfo> getWorkflowExecutionFetcher(String query) {
         return (ByteString nextPageToken) -> {
             ListWorkflowExecutionsRequest.Builder requestBuilder =
-                ListWorkflowExecutionsRequest.newBuilder().setNamespace(getNamespace()).setPageSize(DEFAULT_PAGE_SIZE);
+                    ListWorkflowExecutionsRequest.newBuilder().setNamespace(getNamespace())
+                                                 .setPageSize(DEFAULT_PAGE_SIZE);
             if (nextPageToken != null) {
                 requestBuilder.setNextPageToken(nextPageToken);
             }
@@ -282,18 +279,17 @@ public class TemporalInterlocutor {
                     requestBuilder.setQuery(q);
                 }
             });
-            ListWorkflowExecutionsResponse response = workflowServiceStubs
-                .listWorkflowExecutions(requestBuilder.build());
+            ListWorkflowExecutionsResponse response =
+                    workflowServiceStubs.listWorkflowExecutions(requestBuilder.build());
             return new Page<>(response.getExecutionsList(), response.getNextPageToken());
         };
     }
 
     public void deleteExecution(String workflowId) {
         try {
-            DeleteWorkflowExecutionRequest deleteWorkflowExecutionRequest = DeleteWorkflowExecutionRequest.newBuilder()
-                .setNamespace(getNamespace())
-                .setWorkflowExecution(WorkflowExecution.newBuilder().setWorkflowId(workflowId))
-                .build();
+            DeleteWorkflowExecutionRequest deleteWorkflowExecutionRequest =
+                    DeleteWorkflowExecutionRequest.newBuilder().setNamespace(getNamespace()).setWorkflowExecution(
+                            WorkflowExecution.newBuilder().setWorkflowId(workflowId)).build();
             workflowServiceStubs.deleteWorkflowExecution(deleteWorkflowExecutionRequest);
             // Try to refresh the cache
             client.newUntypedWorkflowStub(workflowId).describe();
@@ -309,75 +305,76 @@ public class TemporalInterlocutor {
     public Stream<String> getWorkflowsIds(TaskFilters filters) {
         Stream<WorkflowExecutionInfo> execs = eventuallyConsistentListExecutions(filters);
         Iterator<WorkflowExecutionInfo> iterator =
-                new TemporalInterlocutor.StronglyConsistentExecutionIterator(execs, executions, this::fetchExecByIdsIfExist, filters);
-        execs = StreamSupport.stream(
-                Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
-                false // not parallel
+                new TemporalInterlocutor.StronglyConsistentExecutionIterator(execs, executions,
+                                                                             this::fetchExecByIdsIfExist, filters);
+        execs = StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
+                                     false // not parallel
         );
         // Temporal doesn't allow to search by args we have to post filter task retrieved with other filters
         if (filters.hasArgs()) {
             TaskFilters byArgs = new TaskFilters().with(filters.getArgs().toArray(TaskFilters.ArgsFilter[]::new));
-            execs = execs.map(e -> new Pair<>(e, getArgs(e)))
-                    .filter(p -> byArgs.filter(p._2()))
-                    .map(Pair::_1);
+            execs = execs.map(e -> new Pair<>(e, getArgs(e))).filter(p -> byArgs.filter(p._2())).map(Pair::_1);
         }
         return execs.map(e -> e.getExecution().getWorkflowId());
     }
 
     public Stream<WorkflowExecutionInfo> eventuallyConsistentListExecutions(TaskFilters filters) {
         PageFetcher<WorkflowExecutionInfo> fetcher =
-            getWorkflowExecutionFetcher(TemporalQueryBuilder.buildFromFilters(filters));
+                getWorkflowExecutionFetcher(TemporalQueryBuilder.buildFromFilters(filters));
         return StreamSupport.stream(
-            Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
+                Spliterators.spliteratorUnknownSize(new TemporalPageIterator<>(fetcher), Spliterator.ORDERED), false);
     }
 
     public WorkflowExecutionDescription getWorkflowExecution(String taskId) throws UnknownTask {
         return unknownIfNotFound(t -> createWorkflowStub(taskId).describe(), taskId);
     }
 
-    List<RegisteredWorkflow> discoverWorkflows(String packageName, TaskFactory taskFactory, TaskRepository taskRepository, RoutingStrategy routingStrategy, Group group) {
+    List<RegisteredWorkflow> discoverWorkflows(String packageName, TaskFactory taskFactory,
+                                               TaskRepository taskRepository, RoutingStrategy routingStrategy,
+                                               Group group) {
         Reflections reflections = new Reflections(packageName);
         Predicate<Class<?>> workflowFilter = makeWorkflowFilter(routingStrategy, group);
         // We rely on naming convention rather than on inspection, that's OK as code is generated
         try {
-            return reflections.getTypesAnnotatedWith(WorkflowInterface.class)
-                    .stream()
-                    .filter(workflowFilter)
-                    .map(rethrowFunction(c -> {
-                        String workflowKey = parseWorkflowKey(c);
-                        String workflowClassName = c.getName();
-                        String baseName = workflowClassName.replace("Workflow", "");
-                        Class<TemporalWorkflowImpl> wfImplClass = (Class<TemporalWorkflowImpl>) Class.forName(workflowClassName + "Impl");
-                        Class<TemporalActivityImpl<?, ?>> actImplCls = (Class<TemporalActivityImpl<?, ?>>) Class.forName(baseName + "ActivityImpl");
-                        String taskQueue = resolveWfTaskQueue(routingStrategy, workflowKey, group);
-                        List<RegisteredActivity> activities = List.of(new RegisteredActivity(activityFactory(actImplCls, taskFactory, taskRepository, 1d), taskQueue));
-                        return new RegisteredWorkflow(wfImplClass, taskQueue, activities);
-                    }))
-                    .toList();
+            return reflections.getTypesAnnotatedWith(WorkflowInterface.class).stream().filter(workflowFilter)
+                              .map(rethrowFunction(c -> {
+                                  String workflowKey = parseWorkflowKey(c);
+                                  String workflowClassName = c.getName();
+                                  String baseName = workflowClassName.replace("Workflow", "");
+                                  Class<TemporalWorkflowImpl> wfImplClass =
+                                          (Class<TemporalWorkflowImpl>) Class.forName(workflowClassName + "Impl");
+                                  Class<TemporalActivityImpl<?, ?>> actImplCls =
+                                          (Class<TemporalActivityImpl<?, ?>>) Class.forName(baseName + "ActivityImpl");
+                                  String taskQueue = resolveWfTaskQueue(routingStrategy, workflowKey, group);
+                                  List<RegisteredActivity> activities = List.of(new RegisteredActivity(
+                                          activityFactory(actImplCls, taskFactory, taskRepository, 1d), taskQueue));
+                                  return new RegisteredWorkflow(wfImplClass, taskQueue, activities);
+                              })).toList();
         } catch (ClassNotFoundException e) {
             throw new UnknownTask("Workflow class not found: ", e);
         }
     }
 
-    public Closeable discoverWorkflows(int taskWorkersNb, TaskFactory taskFactory, TaskRepository taskRepository, RoutingStrategy routingStrategy, Group group) {
-        List<RegisteredWorkflow> registeredWorkflows = discoverWorkflows("org.icij.datashare.tasks", taskFactory, taskRepository, routingStrategy, group);
+    public Closeable discoverWorkflows(int taskWorkersNb, TaskFactory taskFactory, TaskRepository taskRepository,
+                                       RoutingStrategy routingStrategy, Group group) {
+        List<RegisteredWorkflow> registeredWorkflows =
+                discoverWorkflows("org.icij.datashare.tasks", taskFactory, taskRepository, routingStrategy, group);
         return createFactory(taskWorkersNb, registeredWorkflows);
     }
 
     public CloseableWorkerFactoryHandle createFactory(int taskWorkersNb, List<RegisteredWorkflow> registeredWorkflows) {
         WorkerFactory workerFactory = WorkerFactory.newInstance(client);
         HashMap<String, Worker> workers = new HashMap<>();
-        WorkerOptions workerOptions = WorkerOptions.newBuilder()
-                .setMaxConcurrentWorkflowTaskExecutionSize(taskWorkersNb)
-                .setMaxConcurrentActivityExecutionSize(taskWorkersNb)
-                .build();
+        WorkerOptions workerOptions =
+                WorkerOptions.newBuilder().setMaxConcurrentWorkflowTaskExecutionSize(taskWorkersNb)
+                             .setMaxConcurrentActivityExecutionSize(taskWorkersNb).build();
         registeredWorkflows.forEach(rethrowConsumer(wf -> {
             String wfTaskQueue = wf.taskQueue();
             workers.computeIfAbsent(wfTaskQueue, workerFactory::newWorker)
-                    .registerWorkflowImplementationTypes(WF_IMPLEMENTATION_DEFAULT_OPTIONS, wf.workflowCls());
+                   .registerWorkflowImplementationTypes(WF_IMPLEMENTATION_DEFAULT_OPTIONS, wf.workflowCls());
             wf.activities().forEach(rethrowConsumer(act -> {
                 workers.computeIfAbsent(act.taskQueue(), q -> workerFactory.newWorker(q, workerOptions))
-                        .registerActivitiesImplementations(act.activityFactory().get());
+                       .registerActivitiesImplementations(act.activityFactory().get());
             }));
         }));
         return new CloseableWorkerFactoryHandle(workerFactory);
@@ -392,7 +389,8 @@ public class TemporalInterlocutor {
         return parseTask(getWorkflowExecution(taskId));
     }
 
-    public record Page<P>(List<P> items, ByteString nextPageToken) { }
+    public record Page<P>(List<P> items, ByteString nextPageToken) {}
+
     @FunctionalInterface
     public interface PageFetcher<P> {
         Page<P> fetchPage(ByteString nextPageToken);
@@ -436,7 +434,6 @@ public class TemporalInterlocutor {
         private final Set<String> remainingIds;
         private final Function<Set<String>, Stream<WorkflowExecutionInfo>> fetchKnownExecInfoFn;
         private final TaskFilters filters;
-
         private Iterator<WorkflowExecutionInfo> missingItems = null;
 
         StronglyConsistentExecutionIterator(Stream<WorkflowExecutionInfo> listWorkflowsResults, Set<String> knownIds,
@@ -455,9 +452,8 @@ public class TemporalInterlocutor {
             }
             if (missingItems == null) {
                 if (!this.remainingIds.isEmpty()) {
-                    missingItems = fetchKnownExecInfoFn.apply(this.remainingIds)
-                        .filter(asExecInfoFilter(filters))
-                        .iterator();
+                    missingItems =
+                            fetchKnownExecInfoFn.apply(this.remainingIds).filter(asExecInfoFilter(filters)).iterator();
                 } else {
                     missingItems = Stream.<WorkflowExecutionInfo>of().iterator();
                 }
@@ -477,23 +473,24 @@ public class TemporalInterlocutor {
     }
 
     public record CloseableWorkerFactoryHandle(WorkerFactory factory) implements Closeable {
-            public CloseableWorkerFactoryHandle(WorkerFactory factory) {
-                this.factory = factory;
-                this.factory.start();
-            }
+        public CloseableWorkerFactoryHandle(WorkerFactory factory) {
+            this.factory = factory;
+            this.factory.start();
+        }
 
-            @Override
-            public void close() throws IOException {
-                synchronized (factory) {
-                    if (!this.factory.isShutdown()) {
-                        this.factory.shutdown();
-                    }
+        @Override
+        public void close() throws IOException {
+            synchronized (factory) {
+                if (!this.factory.isShutdown()) {
+                    this.factory.shutdown();
                 }
             }
         }
+    }
 
-    public record RegisteredActivity(ThrowingSupplier<?> activityFactory, String taskQueue) { }
-    public record RegisteredWorkflow(Class<?> workflowCls, String taskQueue, List<RegisteredActivity> activities) { }
+    public record RegisteredActivity(ThrowingSupplier<?> activityFactory, String taskQueue) {}
+
+    public record RegisteredWorkflow(Class<?> workflowCls, String taskQueue, List<RegisteredActivity> activities) {}
 
     // ------------------------
     // private utility functions
@@ -517,14 +514,14 @@ public class TemporalInterlocutor {
         Task.State state = asTaskState(workflowExecutionInfo.getStatus());
         if (Objects.requireNonNull(state) == Task.State.ERROR || state == Task.State.DONE) {
             try {
-                Serializable res = createWorkflowStub(workflowExecutionInfo.getExecution().getWorkflowId())
-                        .getResult(Serializable.class);
+                Serializable res = createWorkflowStub(workflowExecutionInfo.getExecution().getWorkflowId()).getResult(
+                        Serializable.class);
                 //TODO this is a big hack because Temporal does not use the TYPE_INCLUSION_MAPPER
                 // to deserialize for now
                 if (res instanceof Map<?, ?>) {
                     try {
-                        res = JsonObjectMapper.readValueTyped(
-                                JsonObjectMapper.writeValueAsString(res), Serializable.class);
+                        res = JsonObjectMapper.readValueTyped(JsonObjectMapper.writeValueAsString(res),
+                                                              Serializable.class);
                     } catch (IOException e) {
                         TaskManager.logger.warn("could not convert result to typed object", e);
                     }
@@ -547,26 +544,24 @@ public class TemporalInterlocutor {
     }
 
     private Stream<WorkflowExecutionInfo> fetchExecByIdsIfExist(Set<String> executionIds) {
-        return executionIds.stream()
-                .map(id -> {
-                    try {
-                        return createWorkflowStub(id).describe().getWorkflowExecutionInfo();
-                    } catch (StatusRuntimeException ex) {
-                        if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                            throw ex;
-                        }
-                        return null;
-                    } catch (WorkflowNotFoundException ignored) {
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull);
+        return executionIds.stream().map(id -> {
+            try {
+                return createWorkflowStub(id).describe().getWorkflowExecutionInfo();
+            } catch (StatusRuntimeException ex) {
+                if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
+                    throw ex;
+                }
+                return null;
+            } catch (WorkflowNotFoundException ignored) {
+                return null;
+            }
+        }).filter(Objects::nonNull);
     }
 
     private static double parseProgress(SearchAttributes searchAttributes) {
         Double progress = searchAttributes.get(PROGRESS_CUSTOM_ATTRIBUTE);
         Double maxProgress = searchAttributes.get(MAX_PROGRESS_CUSTOM_ATTRIBUTE);
-        if(maxProgress == 0d) {
+        if (maxProgress == 0d) {
             return 0.0;
         }
         return progress == null ? 0.0 : progress / maxProgress;
@@ -587,9 +582,8 @@ public class TemporalInterlocutor {
 
     private static WorkflowClient buildClient(String target, String namespace) {
         WorkflowClientOptions clientOptions = WorkflowClientOptions.newBuilder().setNamespace(namespace).build();
-        WorkflowServiceStubsOptions serviceStubsOptions = WorkflowServiceStubsOptions.newBuilder()
-                .setTarget(target)
-                .build();
+        WorkflowServiceStubsOptions serviceStubsOptions =
+                WorkflowServiceStubsOptions.newBuilder().setTarget(target).build();
         WorkflowServiceStubs serviceStub = WorkflowServiceStubs.newServiceStubs(serviceStubsOptions);
         return buildClient(serviceStub, clientOptions);
     }
@@ -599,8 +593,8 @@ public class TemporalInterlocutor {
         NamespaceState namespaceState;
         try {
             namespaceState = workflowServiceBlockingStub.describeNamespace(
-                    DescribeNamespaceRequest.newBuilder().setNamespace(namespace).build()
-            ).getNamespaceInfo().getState();
+                                                                DescribeNamespaceRequest.newBuilder().setNamespace(namespace).build()).getNamespaceInfo()
+                                                        .getState();
         } catch (StatusRuntimeException ex) {
             if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
                 throw ex;
@@ -614,12 +608,12 @@ public class TemporalInterlocutor {
                                             String namespace) {
         Set<String> searchAttributes;
         try {
-            searchAttributes = operatorServiceBlockingStub
-                    .listSearchAttributes(ListSearchAttributesRequest.newBuilder().setNamespace(namespace).build())
-                    .getCustomAttributesMap()
-                    .keySet();
+            searchAttributes = operatorServiceBlockingStub.listSearchAttributes(
+                                                                  ListSearchAttributesRequest.newBuilder().setNamespace(namespace).build()).getCustomAttributesMap()
+                                                          .keySet();
         } catch (StatusRuntimeException e) {
-            if (!e.getStatus().getCode().equals(Status.Code.NOT_FOUND) && !e.getStatus().getCode().equals(Status.Code.FAILED_PRECONDITION)) {
+            if (!e.getStatus().getCode().equals(Status.Code.NOT_FOUND) &&
+                !e.getStatus().getCode().equals(Status.Code.FAILED_PRECONDITION)) {
                 throw e;
             }
             return false;
@@ -628,8 +622,8 @@ public class TemporalInterlocutor {
     }
 
     private static void awaitNamespaceDeleted(
-            WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub, String namespace, Duration timeout)
-            throws RuntimeException {
+            WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub, String namespace,
+            Duration timeout) throws RuntimeException {
         long startTime = System.currentTimeMillis();
         long maxDuration = timeout.toMillis();
         while ((System.currentTimeMillis() - startTime < maxDuration)) {

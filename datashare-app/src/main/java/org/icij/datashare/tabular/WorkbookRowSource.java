@@ -10,7 +10,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -22,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
-
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 /**
@@ -34,11 +32,9 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
  */
 public class WorkbookRowSource implements RowSource {
     private static final Logger LOGGER = LoggerFactory.getLogger(WorkbookRowSource.class);
-
-    public static final Set<String> SUPPORTED = Set.of(
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/vnd.ms-excel",
-            "application/vnd.ms-excel.sheet.macroenabled.12");
+    public static final Set<String> SUPPORTED =
+            Set.of("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel",
+                   "application/vnd.ms-excel.sheet.macroenabled.12");
 
     @Override
     public boolean supports(String contentType) {
@@ -150,8 +146,7 @@ public class WorkbookRowSource implements RowSource {
         try {
             return evaluator.evaluateFormulaCell(cell);
         } catch (RuntimeException notEvaluable) {
-            LOGGER.info("falling back to the cached result of {}: {}",
-                    cell.getAddress(), notEvaluable.toString());
+            LOGGER.info("falling back to the cached result of {}: {}", cell.getAddress(), notEvaluable.toString());
             return cell.getCachedFormulaResultType();
         }
     }
@@ -167,9 +162,9 @@ public class WorkbookRowSource implements RowSource {
         if (serial < 1.0) {
             return moment.toLocalTime().format(DateTimeFormatter.ISO_LOCAL_TIME);
         }
-        return moment.toLocalTime().equals(LocalTime.MIDNIGHT)
-                ? moment.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE)
-                : moment.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        return moment.toLocalTime().equals(LocalTime.MIDNIGHT) ?
+               moment.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE) :
+               moment.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
     }
 
     private static void close(Workbook workbook) {

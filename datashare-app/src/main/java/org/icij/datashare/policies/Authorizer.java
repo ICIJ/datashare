@@ -13,7 +13,6 @@ import org.casbin.jcasbin.util.BuiltInFunctions;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
-
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
@@ -24,18 +23,17 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.policies.errors.InvalidValueException.*;
 import static org.icij.datashare.policies.errors.UnknownRoleException.resolveRole;
 
 @Singleton
 public final class Authorizer implements Closeable {
-
     private static final String SEPARATOR = "::";
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private final SyncedEnforcer enforcer;
-    @Nullable private Closeable watcherCloseable;
+    @Nullable
+    private Closeable watcherCloseable;
 
     @Inject
     public Authorizer(CasbinRuleAdapter adapter) throws IOException {
@@ -52,7 +50,8 @@ public final class Authorizer implements Closeable {
 
     public Authorizer(CasbinRuleAdapter adapter, long reloadIntervalMs) throws IOException {
         this(adapter, true, false);
-        if (reloadIntervalMs > 0) enforcer.startAutoLoadPolicy(reloadIntervalMs);
+        if (reloadIntervalMs > 0)
+            enforcer.startAutoLoadPolicy(reloadIntervalMs);
     }
 
     private Authorizer(CasbinRuleAdapter adapter, boolean enableAutoSave, boolean enableLog) throws IOException {
@@ -167,9 +166,8 @@ public final class Authorizer implements Closeable {
         // This includes: *::* (instance), domain::* (domain), and domain::project (project level)
         List<List<String>> list;
         if (user != null && user.id != null) {
-            list = enforcer.getGroupingPolicy().stream()
-                    .filter(rule -> !rule.isEmpty() && rule.get(0).equals(user.id))
-                    .collect(Collectors.toList());
+            list = enforcer.getGroupingPolicy().stream().filter(rule -> !rule.isEmpty() && rule.get(0).equals(user.id))
+                           .collect(Collectors.toList());
         } else {
             list = enforcer.getGroupingPolicy();
         }
@@ -178,23 +176,22 @@ public final class Authorizer implements Closeable {
         String casbinDomain = domainSepProject(Domain.of(domainId), project);
 
         Predicate<List<String>> listPredicate = rule -> {
-            if (rule.size() < 3) return false;
+            if (rule.size() < 3)
+                return false;
             String ruleDomain = rule.get(2);
             if (domainId.equals("*") && project.equals("*")) {
                 return true;
             }
             if (!domainId.equals("*") && project.equals("*")) {
-                return ruleDomain.equals("*::*") || ruleDomain.equals(domainId + "::*") || ruleDomain.startsWith(domainId + "::");
+                return ruleDomain.equals("*::*") || ruleDomain.equals(domainId + "::*") ||
+                       ruleDomain.startsWith(domainId + "::");
             }
             // When both domain and project are specified, only include exact matches for that domain-project scope.
             return ruleDomain.equals("*::*") || ruleDomain.equals(domainId + "::*") || ruleDomain.equals(casbinDomain);
         };
 
-
-        return list.stream()
-                .filter(listPredicate)
-                .map(rule -> streamToCasbinRule("g", rule))
-                .collect(Collectors.toList());
+        return list.stream().filter(listPredicate).map(rule -> streamToCasbinRule("g", rule))
+                   .collect(Collectors.toList());
     }
 
     public List<CasbinRule> getGroupPermissions() {
@@ -216,7 +213,6 @@ public final class Authorizer implements Closeable {
     public List<CasbinRule> getGroupPermissions(Domain domain, String project) {
         return getGroupPermissions(null, domain, project);
     }
-
 
     public List<CasbinRule> getGroupPermissions(@Nullable User user, Domain domain, String project) {
         return getFilteredPermissions(user, domain, project);
@@ -258,14 +254,15 @@ public final class Authorizer implements Closeable {
     }
 
     public void startAutoLoadPolicy(long intervalMs) {
-        if (intervalMs > 0) enforcer.startAutoLoadPolicy(intervalMs);
+        if (intervalMs > 0)
+            enforcer.startAutoLoadPolicy(intervalMs);
     }
 
     @Override
     public void close() throws IOException {
         enforcer.stopAutoLoadPolicy();
-        if (watcherCloseable != null) watcherCloseable.close();
+        if (watcherCloseable != null)
+            watcherCloseable.close();
     }
-
 
 }

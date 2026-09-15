@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.asynctasks.TaskGroupType;
-
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.asynctasks.TaskGroup;
@@ -22,11 +21,10 @@ public class DelApiKeyTask extends DefaultTask<Boolean> implements UserTask {
     private final User user;
 
     @Inject
-    public DelApiKeyTask(ApiKeyRepository apiKeyRepository,@Assisted User user) {
+    public DelApiKeyTask(ApiKeyRepository apiKeyRepository, @Assisted User user) {
         this.apiKeyRepository = apiKeyRepository;
         this.user = user;
     }
-
 
     @Override
     public Boolean call() throws Exception {

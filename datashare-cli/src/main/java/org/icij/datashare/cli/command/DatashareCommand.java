@@ -3,31 +3,16 @@ package org.icij.datashare.cli.command;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
-
 import org.icij.datashare.PropertiesProvider;
-
 import java.util.Properties;
 
-@Command(name = "datashare",
-        mixinStandardHelpOptions = true,
-        versionProvider = DatashareVersionProvider.class,
-        subcommands = {
-                AppCommand.class,
-                WorkerCommand.class,
-                StageCommand.class,
-                PluginCommand.class,
-                ExtensionCommand.class,
-                ApiKeyCommand.class,
-                UserCommand.class,
-                ProjectCommand.class,
-                CommandLine.HelpCommand.class
-        },
-        description = "Datashare - Index and search your documents")
+@Command(name = "datashare", mixinStandardHelpOptions = true, versionProvider = DatashareVersionProvider.class,
+        subcommands = {AppCommand.class, WorkerCommand.class, StageCommand.class, PluginCommand.class,
+                ExtensionCommand.class, ApiKeyCommand.class, UserCommand.class, ProjectCommand.class,
+                CommandLine.HelpCommand.class}, description = "Datashare - Index and search your documents")
 public class DatashareCommand implements Runnable {
-
     @Mixin
     GlobalOptions globalOptions = new GlobalOptions();
-
     private DatashareSubcommand executedSubcommand;
 
     @Override
@@ -78,8 +63,7 @@ public class DatashareCommand implements Runnable {
         // through CommonMode's overrideWith fold-in only where toProperties() omits the key on false
         // (resume, PipelineOptions:129). noDigestProject (GlobalOptions:150) and browserOpenLink
         // (ServerOptions:147) write false unconditionally, so the file cannot set them: see #2339.
-        commandLine.setDefaultValueProvider(
-                arg -> arg.arity().max() == 0 ? null : fromSettings.defaultValue(arg));
+        commandLine.setDefaultValueProvider(arg -> arg.arity().max() == 0 ? null : fromSettings.defaultValue(arg));
     }
 
     /** Reads -s/--settings out of the raw args, in both the "-s value" and "-s=value" forms. */

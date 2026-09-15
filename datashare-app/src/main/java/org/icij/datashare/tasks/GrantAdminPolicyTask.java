@@ -14,7 +14,6 @@ import org.icij.datashare.user.UserTask;
 import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,8 +34,8 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
     @Override
     public Boolean call() {
         List<CasbinRule> existingAdmins = authorizer.getGroupPermissions().stream()
-                .filter(r -> Role.INSTANCE_ADMIN.name().equals(r.getV1()) && "*::*".equals(r.getV2()))
-                .toList();
+                                                    .filter(r -> Role.INSTANCE_ADMIN.name().equals(r.getV1()) &&
+                                                                 "*::*".equals(r.getV2())).toList();
 
         if (existingAdmins.stream().anyMatch(r -> user.getId().equals(r.getV0()))) {
             logger.info("User '{}' already has instance admin role.", user.getId());
@@ -48,8 +47,8 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
             return false;
         }
 
-        if (authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN)
-                || authorizer.can(user.getId(), Domain.of("*"), "*", Role.INSTANCE_ADMIN)) {
+        if (authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN) ||
+            authorizer.can(user.getId(), Domain.of("*"), "*", Role.INSTANCE_ADMIN)) {
             logger.info("Instance admin role granted to user '{}'.", user.getId());
             return true;
         }

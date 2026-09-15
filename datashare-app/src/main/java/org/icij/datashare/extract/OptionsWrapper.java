@@ -1,7 +1,6 @@
 package org.icij.datashare.extract;
 
 import org.icij.task.Options;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -17,7 +16,9 @@ public class OptionsWrapper<V> {
         this.options = options;
     }
 
-    public Map<String, V> getOptions() { return options;}
+    public Map<String, V> getOptions() {
+        return options;
+    }
 
     public Options<String> asOptions() {
         return Options.from(asProperties());

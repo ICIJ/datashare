@@ -5,17 +5,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 public enum Stage {
-    SCAN(true),
-    SCANIDX(false),
-    DEDUPLICATE(false),
-    INDEX(true),
-    ENQUEUEIDX(false),
-    CATEGORIZE(false),
-    NLP(true),
-    CREATENLPBATCHESFROMIDX(false),
-    BATCHNLP(false),
-    ARTIFACT(false);
-
+    SCAN(true), SCANIDX(false), DEDUPLICATE(false), INDEX(true), ENQUEUEIDX(false), CATEGORIZE(false), NLP(true),
+    CREATENLPBATCHESFROMIDX(false), BATCHNLP(false), ARTIFACT(false);
     public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
     private final boolean isMainStage;
 

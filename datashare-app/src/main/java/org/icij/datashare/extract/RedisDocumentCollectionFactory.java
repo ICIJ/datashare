@@ -8,13 +8,12 @@ import org.icij.extract.report.ReportMap;
 import org.redisson.api.RKeys;
 import org.redisson.api.RType;
 import org.redisson.api.RedissonClient;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Singleton
-public class RedisDocumentCollectionFactory <T> implements DocumentCollectionFactory<T> {
+public class RedisDocumentCollectionFactory<T> implements DocumentCollectionFactory<T> {
     PropertiesProvider propertiesProvider;
     RedissonClient redissonClient;
 
@@ -38,13 +37,9 @@ public class RedisDocumentCollectionFactory <T> implements DocumentCollectionFac
     public List<DocumentQueue<T>> getQueues(String wildcardMatcher, Class<T> clazz) {
         RKeys keys = redissonClient.getKeys();
         Iterable<String> iterable = keys.getKeysByPattern(wildcardMatcher, 100);
-        return StreamSupport
-                .stream(iterable.spliterator(), false)
-                .filter(k -> keys.getType(k) == RType.LIST)
-                .map(k -> createQueue(k, clazz))
-                .collect(Collectors.toList());
+        return StreamSupport.stream(iterable.spliterator(), false).filter(k -> keys.getType(k) == RType.LIST)
+                            .map(k -> createQueue(k, clazz)).collect(Collectors.toList());
     }
-
 
     @Override
     public List<DocumentQueue<T>> getQueues(Class<T> clazz) {

@@ -10,28 +10,22 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 import java.util.Optional;
-
 import static java.util.Arrays.stream;
 
-
 public enum Hasher {
-    MD5     (16),
-    SHA_1   (40),
-    SHA_256 (64),
-    SHA_384 (96),
-    SHA_512 (128);
-
+    MD5(16), SHA_1(40), SHA_256(64), SHA_384(96), SHA_512(128);
     public static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
     private final String algorithm;
     public final int digestLength;
 
     Hasher(int digestLen) {
-        algorithm    = name().replace('_', '-');
+        algorithm = name().replace('_', '-');
         digestLength = digestLen;
     }
 
     public static Hasher valueOf(int length) {
-        return stream(values()).filter(h -> h.digestLength == length).findFirst().orElseThrow(IllegalArgumentException::new);
+        return stream(values()).filter(h -> h.digestLength == length).findFirst()
+                               .orElseThrow(IllegalArgumentException::new);
     }
 
     @Override

@@ -3,39 +3,45 @@ package org.icij.datashare.test;
 import org.icij.datashare.time.DatashareDateUtils;
 import org.icij.datashare.time.DatashareTime;
 import org.junit.rules.ExternalResource;
-
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
-
 public class DatashareTimeRule extends ExternalResource {
-	public final Date now;
+    public final Date now;
 
-	/**
-	 * creates a mockdate with now set to current moment
-	 */
-	public DatashareTimeRule() {
-		this.now = new Date();
-	}
-	/**
-	 * @param now in iso8601 yyyy-MM-ddTHH:mm:ssZ
-	 */
-	public DatashareTimeRule(String now) {
-		this.now = DatashareDateUtils.formatDate(now);
-	}
+    /**
+     * creates a mockdate with now set to current moment
+     */
+    public DatashareTimeRule() {
+        this.now = new Date();
+    }
 
-	@Override protected void before() {
-		DatashareTime.setMockTime(true);
-		DatashareTime.getInstance().setMockDate(now);
-	}
+    /**
+     * @param now in iso8601 yyyy-MM-ddTHH:mm:ssZ
+     */
+    public DatashareTimeRule(String now) {
+        this.now = DatashareDateUtils.formatDate(now);
+    }
 
-	@Override protected void after() {
-		DatashareTime.setMockTime(false);
-	}
-	public Date now() {
-		return DatashareTime.getInstance().now();
-	}
-	@Override public String toString() { return ZonedDateTime.now( ZoneOffset.UTC ).format( DateTimeFormatter.ISO_INSTANT); }
+    @Override
+    protected void before() {
+        DatashareTime.setMockTime(true);
+        DatashareTime.getInstance().setMockDate(now);
+    }
+
+    @Override
+    protected void after() {
+        DatashareTime.setMockTime(false);
+    }
+
+    public Date now() {
+        return DatashareTime.getInstance().now();
+    }
+
+    @Override
+    public String toString() {
+        return ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+    }
 }

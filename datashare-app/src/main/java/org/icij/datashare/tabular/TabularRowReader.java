@@ -4,7 +4,6 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -13,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
-
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 /**
@@ -31,41 +29,25 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 public class TabularRowReader {
     // "unknown" is what Document.getContentTypeOrDefault returns, and what the spewer stores, when
     // Tika detected no type at all: the document that most needs refining by extension.
-    private static final Set<String> GENERIC_TYPES =
-            Set.of("text/plain", "application/octet-stream", "unknown");
-
+    private static final Set<String> GENERIC_TYPES = Set.of("text/plain", "application/octet-stream", "unknown");
     // Only the formats a reader claims. Tika 3.3.0 types a .csv named .txt, and every .jsonl, as
     // text/plain, so without this the delimited reader would claim NDJSON files.
-    private static final Map<String, String> TYPE_BY_EXTENSION = Map.of(
-            "csv", "text/csv",
-            "tsv", "text/tab-separated-values",
-            "psv", "text/csv",
-            "txt", "text/plain",
-            "json", "application/json",
-            "jsonl", JsonRowSource.NDJSON_CONTENT_TYPE,
-            "ndjson", JsonRowSource.NDJSON_CONTENT_TYPE);
-
+    private static final Map<String, String> TYPE_BY_EXTENSION =
+            Map.of("csv", "text/csv", "tsv", "text/tab-separated-values", "psv", "text/csv", "txt", "text/plain",
+                   "json", "application/json", "jsonl", JsonRowSource.NDJSON_CONTENT_TYPE, "ndjson",
+                   JsonRowSource.NDJSON_CONTENT_TYPE);
     private static final String DELIMITER_METADATA_KEY = "tika_metadata_csv_delimiter";
-
     private static final String RESOURCE_NAME_METADATA_KEY = "tika_metadata_resourcename";
-
     // Below its sniffer's confidence threshold Tika types every delimited file as text/plain and
     // records no delimiter, so for the two extensions that name one, the extension is the only thing
     // left that does.
     private static final Map<String, Character> DELIMITER_BY_EXTENSION = Map.of("tsv", '\t', "psv", '|');
-
-    private static final Map<String, Character> DELIMITER_BY_TIKA_NAME = Map.of(
-            "comma", ',', "tab", '\t', "pipe", '|', "semicolon", ';');
-
+    private static final Map<String, Character> DELIMITER_BY_TIKA_NAME =
+            Map.of("comma", ',', "tab", '\t', "pipe", '|', "semicolon", ';');
     private static final List<String> CONTENT_FIELDS = List.of("content", "content_translated");
-
-    private static final List<String> SUPPORTED_CONTENT_TYPES = Stream.of(
-                    DelimitedRowSource.SUPPORTED, WorkbookRowSource.SUPPORTED, JsonRowSource.SUPPORTED,
-                    TikaTableRowSource.SUPPORTED)
-            .flatMap(Set::stream)
-            .sorted()
-            .toList();
-
+    private static final List<String> SUPPORTED_CONTENT_TYPES =
+            Stream.of(DelimitedRowSource.SUPPORTED, WorkbookRowSource.SUPPORTED, JsonRowSource.SUPPORTED,
+                      TikaTableRowSource.SUPPORTED).flatMap(Set::stream).sorted().toList();
     private final Indexer indexer;
     private final SourceExtractor sourceExtractor;
     private final List<RowSource> readers;
@@ -76,19 +58,19 @@ public class TabularRowReader {
         // Tika last: it is the tier-2 fallback, and only the types it was confirmed to render as
         // table markup reach it, so it never displaces a tier-1 reader that claims the same type.
         this.readers = List.of(new DelimitedRowSource(), new WorkbookRowSource(), new JsonRowSource(),
-                new TikaTableRowSource());
+                               new TikaTableRowSource());
     }
 
     /**
      * @param rootId the container the document was extracted from, or null for a root document. ES
      *               routes an embedded document by its root, so this cannot be derived here.
      */
-    public Stream<Row> rows(Project project, String documentId, String rootId,
-                            RowSourceOptions options) throws IOException {
+    public Stream<Row> rows(Project project, String documentId, String rootId, RowSourceOptions options) throws
+            IOException {
         // Excluding the extracted text, as DocumentSourceAccess does: only four metadata fields are
         // read here, and a large tabular document's content would be a second full copy in heap.
-        Document document = indexer.get(project.getName(), documentId,
-                rootId == null ? documentId : rootId, CONTENT_FIELDS);
+        Document document =
+                indexer.get(project.getName(), documentId, rootId == null ? documentId : rootId, CONTENT_FIELDS);
         if (document == null) {
             throw new IllegalArgumentException("no such document in " + project.getName() + ": " + documentId);
         }
@@ -105,15 +87,14 @@ public class TabularRowReader {
 
     private RowSourceOptions resolve(Document document, RowSourceOptions options) {
         String filename = filename(document);
-        RowSourceOptions resolved = options.withContentType(effectiveContentType(
-                options.contentType(), document.getContentTypeOrDefault(), filename));
+        RowSourceOptions resolved = options.withContentType(
+                effectiveContentType(options.contentType(), document.getContentTypeOrDefault(), filename));
         if (resolved.charset() == null && document.getContentEncoding() != null) {
             resolved = resolved.withCharset(document.getContentEncoding());
         }
         if (resolved.delimiter() == null) {
-            resolved = resolved.withDelimiter(Optional
-                    .ofNullable(delimiterFrom(document.getMetadata()))
-                    .orElseGet(() -> delimiterByExtension(filename)));
+            resolved = resolved.withDelimiter(Optional.ofNullable(delimiterFrom(document.getMetadata()))
+                                                      .orElseGet(() -> delimiterByExtension(filename)));
         }
         return resolved;
     }

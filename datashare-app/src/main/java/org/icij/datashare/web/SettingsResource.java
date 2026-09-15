@@ -16,11 +16,9 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.text.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
-
 import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
@@ -108,7 +106,7 @@ public class SettingsResource {
         return languageListToMap(Language.values());
     }
 
-    private List<Map<String, String>> languageListToMap (String[] languageStrings)  {
+    private List<Map<String, String>> languageListToMap(String[] languageStrings) {
         List<Map<String, String>> languages = new ArrayList<>();
         for (String languageString : languageStrings) {
             try {
@@ -117,7 +115,7 @@ public class SettingsResource {
                     put("iso6392", language.iso6392Code());
                     put("name", language.name());
                 }});
-            // Ignore unknown languages
+                // Ignore unknown languages
             } catch (IllegalArgumentException ignore) {
                 languages.add(new HashMap<String, String>() {{
                     put("iso6392", null);
@@ -128,13 +126,12 @@ public class SettingsResource {
         return languages;
     }
 
-
-    private List<Map<String, String>> languageListToMap (Language[] languages)  {
+    private List<Map<String, String>> languageListToMap(Language[] languages) {
         String[] languageStrings = Stream.of(languages).map(Language::name).toArray(String[]::new);
         return languageListToMap(languageStrings);
     }
 
-    private List<Map<String, String>> languageListToMap (Set<String> languages) {
+    private List<Map<String, String>> languageListToMap(Set<String> languages) {
         return languageListToMap(languages.stream().toArray(String[]::new));
     }
 }

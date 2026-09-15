@@ -8,21 +8,17 @@ import java.util.Map;
 import java.util.Properties;
 
 public enum ContentTypeCategory {
-
-    AUDIO,
-    VIDEO,
-    DOCUMENT,
-    EMAIL,
-    IMAGE,
-    PRESENTATION,
-    SPREADSHEET,
-    OTHER;
+    AUDIO, VIDEO, DOCUMENT, EMAIL, IMAGE, PRESENTATION, SPREADSHEET, OTHER;
 
     public static ContentTypeCategory fromContentType(String contentType) {
-        if (contentType == null || contentType.isBlank()) return OTHER;
-        if (contentType.startsWith("audio/")) return AUDIO;
-        if (contentType.startsWith("video/")) return VIDEO;
-        if (contentType.startsWith("image/")) return IMAGE;
+        if (contentType == null || contentType.isBlank())
+            return OTHER;
+        if (contentType.startsWith("audio/"))
+            return AUDIO;
+        if (contentType.startsWith("video/"))
+            return VIDEO;
+        if (contentType.startsWith("image/"))
+            return IMAGE;
         return specificContentTypeMapping.getOrDefault(contentType, OTHER);
     }
 

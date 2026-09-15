@@ -3,7 +3,6 @@ package org.icij.datashare.asyncsearch;
 import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
 import org.redisson.codec.JsonJacksonCodec;
-
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;

@@ -1,32 +1,32 @@
 package org.icij.datashare.text.indexing;
 
-
 import org.icij.datashare.text.indexing.Indexer.ScrollQuery;
 
 public class ScrollQueryBuilder {
-
     public String duration;
     public int numSlice;
     public int nbSlices;
     public String stringQuery;
 
-    private ScrollQueryBuilder(){
+    private ScrollQueryBuilder() {
     }
 
-    public static ScrollQueryBuilder createScrollQuery(){
+    public static ScrollQueryBuilder createScrollQuery() {
         return new ScrollQueryBuilder();
     }
 
-    public ScrollQueryBuilder withDuration(String duration){
+    public ScrollQueryBuilder withDuration(String duration) {
         this.duration = duration;
         return this;
     }
-    public ScrollQueryBuilder withSlices(int numSlice, int nbSlices){
+
+    public ScrollQueryBuilder withSlices(int numSlice, int nbSlices) {
         this.numSlice = numSlice;
         this.nbSlices = nbSlices;
         return this;
     }
-    public ScrollQueryBuilder withStringQuery(String stringQuery){
+
+    public ScrollQueryBuilder withStringQuery(String stringQuery) {
         this.stringQuery = stringQuery;
         return this;
     }

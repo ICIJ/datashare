@@ -7,7 +7,6 @@ import static org.icij.datashare.text.Language.GERMAN;
 import static org.icij.datashare.text.Language.HUNGARIAN;
 import static org.icij.datashare.text.Language.ITALIAN;
 import static org.icij.datashare.text.Language.SPANISH;
-
 import edu.stanford.nlp.pipeline.LanguageInfo;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import java.io.IOException;
@@ -21,17 +20,8 @@ import org.icij.datashare.text.nlp.Pipeline;
 
 public class CoreNlpModels extends AbstractModels<StanfordCoreNLP> {
     static final String VERSION = "4.5.10";
-
-    public static final Set<Language> SUPPORTED_LANGUAGES = Set.of(
-        ENGLISH,
-        SPANISH,
-        FRENCH,
-        CHINESE,
-        GERMAN,
-        HUNGARIAN,
-        ITALIAN
-    );
-
+    public static final Set<Language> SUPPORTED_LANGUAGES =
+            Set.of(ENGLISH, SPANISH, FRENCH, CHINESE, GERMAN, HUNGARIAN, ITALIAN);
     private static volatile CoreNlpModels instance;
     private static final Object mutex = new Object();
 

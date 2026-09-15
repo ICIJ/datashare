@@ -19,7 +19,6 @@ import org.icij.extract.report.ReportMap;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.IntStream;
-
 import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
@@ -58,8 +56,8 @@ public class ScanIndexTask extends PipelineTask<Path> {
     private final int reportMapBatchSize;
 
     @Inject
-    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer,
-                         @Assisted Task<Long> taskView, @Assisted Function<Double, Void> ignored) {
+    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, @Assisted Task<Long> taskView,
+                         @Assisted Function<Double, Void> ignored) {
         super(Stage.SCANIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE)));
@@ -75,19 +73,22 @@ public class ScanIndexTask extends PipelineTask<Path> {
     public Long call() throws Exception {
         super.call();
         logger.info("scanning index {} with {} scroll, scroll size {}, {} slice(s) in parallel, batch size {}",
-                projectName, scrollDuration, scrollSize, scrollSlices, reportMapBatchSize);
+                    projectName, scrollDuration, scrollSize, scrollSlices, reportMapBatchSize);
         Optional<Long> nb = IntStream.range(0, scrollSlices).parallel().mapToObj(this::slicedScroll).reduce(Long::sum);
         logger.info("imported {} paths into map {}", nb.get(), getMapName());
         return nb.get();
     }
 
     private Long slicedScroll(int sliceNum) {
-        Indexer.Searcher search = indexer.search(singletonList(projectName), Document.class).withSource("path").limit(scrollSize);
+        Indexer.Searcher search =
+                indexer.search(singletonList(projectName), Document.class).withSource("path").limit(scrollSize);
         List<? extends Entity> docsToProcess = new ArrayList<>();
         long nbProcessed = 0;
         do {
             try {
-                docsToProcess = search.scroll(createScrollQuery().withDuration(scrollDuration).withSlices(sliceNum, scrollSlices).build()).collect(toList());
+                docsToProcess = search.scroll(
+                                              createScrollQuery().withDuration(scrollDuration).withSlices(sliceNum, scrollSlices).build())
+                                      .collect(toList());
                 addToReportMap(docsToProcess);
                 nbProcessed += docsToProcess.size();
             } catch (IOException e) {

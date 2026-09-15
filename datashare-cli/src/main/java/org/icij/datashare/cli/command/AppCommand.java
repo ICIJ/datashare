@@ -4,11 +4,9 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Spec;
 
-@Command(name = "app", mixinStandardHelpOptions = true,
-        description = "Manage and run the Datashare web application.",
+@Command(name = "app", mixinStandardHelpOptions = true, description = "Manage and run the Datashare web application.",
         subcommands = {AppServeCommand.class})
 public class AppCommand implements Runnable {
-
     @Spec
     CommandLine.Model.CommandSpec spec;
 

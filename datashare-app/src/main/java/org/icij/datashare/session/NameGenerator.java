@@ -1,9 +1,10 @@
 package org.icij.datashare.session;
+
 import java.util.List;
 import java.util.Random;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
+
 /**
  * generates fancy names like docker
  * cf https://github.com/moby/moby/blob/master/pkg/namesgenerator/names-generator.go
@@ -12,120 +13,27 @@ public class NameGenerator {
     public static void main(String[] args) {
         System.out.println(generate());
     }
+
     private static final Random random = new Random();
+
     public static String generate() {
         return left.get(random.nextInt(left.size())) + "_" + right.get(random.nextInt(right.size()));
     }
-    static List<String> left = unmodifiableList(asList(
-            "admiring",
-            "adoring",
-            "affectionate",
-            "agitated",
-            "amazing",
-            "angry",
-            "awesome",
-            "beautiful",
-            "blissful",
-            "bold",
-            "boring",
-            "brave",
-            "busy",
-            "charming",
-            "clever",
-            "cool",
-            "compassionate",
-            "competent",
-            "condescending",
-            "confident",
-            "cranky",
-            "crazy",
-            "dazzling",
-            "determined",
-            "distracted",
-            "dreamy",
-            "eager",
-            "ecstatic",
-            "elastic",
-            "elated",
-            "elegant",
-            "eloquent",
-            "epic",
-            "exciting",
-            "fervent",
-            "festive",
-            "flamboyant",
-            "focused",
-            "friendly",
-            "frosty",
-            "funny",
-            "gallant",
-            "gifted",
-            "goofy",
-            "gracious",
-            "great",
-            "happy",
-            "hardcore",
-            "heuristic",
-            "hopeful",
-            "hungry",
-            "infallible",
-            "inspiring",
-            "interesting",
-            "intelligent",
-            "jolly",
-            "jovial",
-            "keen",
-            "kind",
-            "laughing",
-            "loving",
-            "lucid",
-            "magical",
-            "mystifying",
-            "modest",
-            "musing",
-            "naughty",
-            "nervous",
-            "nice",
-            "nifty",
-            "nostalgic",
-            "objective",
-            "optimistic",
-            "peaceful",
-            "pedantic",
-            "pensive",
-            "practical",
-            "priceless",
-            "quirky",
-            "quizzical",
-            "recursing",
-            "relaxed",
-            "reverent",
-            "romantic",
-            "sad",
-            "serene",
-            "sharp",
-            "silly",
-            "sleepy",
-            "stoic",
-            "strange",
-            "stupefied",
-            "suspicious",
-            "sweet",
-            "tender",
-            "thirsty",
-            "trusting",
-            "unruffled",
-            "upbeat",
-            "vibrant",
-            "vigilant",
-            "vigorous",
-            "wizardly",
-            "wonderful",
-            "xenodochial",
-            "youthful",
-            "zealous",
-            "zen"
-    ));
+
+    static List<String> left = unmodifiableList(
+            asList("admiring", "adoring", "affectionate", "agitated", "amazing", "angry", "awesome", "beautiful",
+                   "blissful", "bold", "boring", "brave", "busy", "charming", "clever", "cool", "compassionate",
+                   "competent", "condescending", "confident", "cranky", "crazy", "dazzling", "determined", "distracted",
+                   "dreamy", "eager", "ecstatic", "elastic", "elated", "elegant", "eloquent", "epic", "exciting",
+                   "fervent", "festive", "flamboyant", "focused", "friendly", "frosty", "funny", "gallant", "gifted",
+                   "goofy", "gracious", "great", "happy", "hardcore", "heuristic", "hopeful", "hungry", "infallible",
+                   "inspiring", "interesting", "intelligent", "jolly", "jovial", "keen", "kind", "laughing", "loving",
+                   "lucid", "magical", "mystifying", "modest", "musing", "naughty", "nervous", "nice", "nifty",
+                   "nostalgic", "objective", "optimistic", "peaceful", "pedantic", "pensive", "practical", "priceless",
+                   "quirky", "quizzical", "recursing", "relaxed", "reverent", "romantic", "sad", "serene", "sharp",
+                   "silly", "sleepy", "stoic", "strange", "stupefied", "suspicious", "sweet", "tender", "thirsty",
+                   "trusting", "unruffled", "upbeat", "vibrant", "vigilant", "vigorous", "wizardly", "wonderful",
+                   "xenodochial", "youthful", "zealous", "zen"));
     static List<String> right = unmodifiableList(asList(
             // Muhammad ibn Jābir al-Ḥarrānī al-Battānī was a founding father of astronomy. https://en.wikipedia.org/wiki/Mu%E1%B8%A5ammad_ibn_J%C4%81bir_al-%E1%B8%A4arr%C4%81n%C4%AB_al-Batt%C4%81n%C4%AB
             "albattani",
@@ -598,6 +506,5 @@ public class NameGenerator {
             // Ada Yonath - an Israeli crystallographer, the first woman from the Middle East to win a Nobel prize in the sciences. https://en.wikipedia.org/wiki/Ada_Yonath
             "yonath",
             // Nikolay Yegorovich Zhukovsky (Russian: Никола́й Его́рович Жуко́вский, January 17 1847 – March 17, 1921) was a Russian scientist, mathematician and engineer, and a founding father of modern aero- and hydrodynamics. Whereas contemporary scientists scoffed at the idea of human flight, Zhukovsky was the first to undertake the study of airflow. He is often called the Father of Russian Aviation. https://en.wikipedia.org/wiki/Nikolay_Yegorovich_Zhukovsky
-            "zhukovsky"
-    ));
+            "zhukovsky"));
 }

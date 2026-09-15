@@ -6,7 +6,6 @@ import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
@@ -16,9 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import static java.util.Optional.ofNullable;
-
 
 public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -42,11 +39,13 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         this(factory, taskSupplier, new CountDownLatch(1), progressMinIntervalS);
     }
 
-    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, double progressMinIntervalS) {
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch,
+                          double progressMinIntervalS) {
         this(factory, taskSupplier, countDownLatch, 60_000, progressMinIntervalS);
     }
 
-    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch, int pollTimeMillis, double progressMinIntervalS) {
+    public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier, CountDownLatch countDownLatch,
+                          int pollTimeMillis, double progressMinIntervalS) {
         this.factory = factory;
         this.taskSupplier = taskSupplier;
         this.waitForMainLoopCalled = countDownLatch;
@@ -57,10 +56,10 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         taskSupplier.addEventListener((event -> {
             if (event instanceof ShutdownEvent) {
                 closeAsync(); // for sending ack
-            // TODO: python alignment possible, in Python if the
-            //  worker.negative_acknowledge(task_id, requeue) succeeds the worker doesn't wait
-            //  for confirmation by the task manager to consider the task nacked (this works for
-            //  AMQP where the nack is transactional, does it work for Redis ?)
+                // TODO: python alignment possible, in Python if the
+                //  worker.negative_acknowledge(task_id, requeue) succeeds the worker doesn't wait
+                //  for confirmation by the task manager to consider the task nacked (this works for
+                //  AMQP where the nack is transactional, does it work for Redis ?)
             } else if (event instanceof CancelledEvent cancelledEvent) {
                 cancelledTasks.remove(cancelledEvent.taskId);
             } else if (event instanceof CancelEvent cancelEvent) {
@@ -70,7 +69,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         }));
     }
 
-    public Integer call()  {
+    public Integer call() {
         waitForMainLoopCalled.countDown();
         if (taskSupplier instanceof TaskSupplierAmqp) {
             taskSupplier.consumeTasks(this::handle);
@@ -111,8 +110,9 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         } else {
             try {
                 ProgressSmoother smoothedProgress = new ProgressSmoother(taskSupplier::progress, progressMinIntervalS);
-                Callable<?> taskFn = TaskFactoryHelper.createTaskCallable(factory, currentTask.get().name, currentTask.get(),
-                        currentTask.get().progress(smoothedProgress));
+                Callable<?> taskFn =
+                        TaskFactoryHelper.createTaskCallable(factory, currentTask.get().name, currentTask.get(),
+                                                             currentTask.get().progress(smoothedProgress));
                 currentTaskReference.set(taskFn);
                 logger.info("running task {}", currentTask.get());
                 taskSupplier.progress(currentTask.get().id, 0);
@@ -174,7 +174,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         //  - graceful restart of a task
         ofNullable(currentTaskReference.get()).ifPresent(t -> {
             if (CancellableTask.class.isAssignableFrom(t.getClass()) &&
-                    (taskId == null || (currentTask.get() != null && taskId.equals(currentTask.get().id)))) {
+                (taskId == null || (currentTask.get() != null && taskId.equals(currentTask.get().id)))) {
                 logger.info("cancelling callable for task {} requeue={}", taskId, requeue);
                 ((CancellableTask) t).cancel(requeue);
             }

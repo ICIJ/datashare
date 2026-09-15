@@ -3,7 +3,6 @@ package org.icij.datashare.web;
 import static java.util.Optional.ofNullable;
 
 public record WebResponseRange(int from, int size) {
-
     public WebResponseRange {
         if (size < 0) {
             throw new IllegalArgumentException("size must be >= 0");

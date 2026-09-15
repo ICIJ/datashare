@@ -4,11 +4,9 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Spec;
 
-@Command(name = "extension", mixinStandardHelpOptions = true,
-        description = "Manage Datashare extensions.",
+@Command(name = "extension", mixinStandardHelpOptions = true, description = "Manage Datashare extensions.",
         subcommands = {ExtensionListCommand.class, ExtensionInstallCommand.class, ExtensionDeleteCommand.class})
 public class ExtensionCommand implements Runnable {
-
     @Spec
     CommandLine.Model.CommandSpec spec;
 

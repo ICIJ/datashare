@@ -3,13 +3,10 @@ package org.icij.datashare.asynctasks;
 import java.util.List;
 import java.util.function.Consumer;
 import org.icij.datashare.asynctasks.bus.amqp.*;
-
 import org.icij.datashare.tasks.RoutingStrategy;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.stream.Stream;
-
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
@@ -25,20 +22,25 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
         this(amqp, taskRepository, RoutingStrategy.UNIQUE);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy) throws
+            IOException {
         this(amqp, tasks, routingStrategy, null);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy,
+                           Runnable eventCallback) throws IOException {
         this(amqp, tasks, routingStrategy, eventCallback, DEFAULT_TASK_POLLING_INTERVAL_MS);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository tasks, RoutingStrategy routingStrategy,
+                           Runnable eventCallback, int taskPollingIntervalMs) throws IOException {
         this.amqp = amqp;
         this.tasks = tasks;
         this.routingStrategy = routingStrategy;
         this.taskPollingIntervalMs = taskPollingIntervalMs;
-        eventConsumer = new AmqpConsumer<>(amqp, event -> ofNullable(this.handleAck(event)).flatMap(t -> ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT, TaskEvent.class).consumeEvents();
+        eventConsumer = new AmqpConsumer<>(amqp, event -> ofNullable(this.handleAck(event)).flatMap(
+                t -> ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT,
+                                           TaskEvent.class).consumeEvents();
     }
 
     @Override
@@ -115,14 +117,13 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
     @Override
     public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
         // Require tasks to be in final state and apply user filters
-        Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
-            .map(t -> {
-                try {
-                    return tasks.delete(t.id);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+        Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES)).map(t -> {
+            try {
+                return tasks.delete(t.id);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
         return taskStream.toList();
     }
 
@@ -151,7 +152,7 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
             } else {
                 return amqp.isConnectionOpen();
             }
-        } catch (RuntimeException|IOException e) {
+        } catch (RuntimeException | IOException e) {
             logger.error("error sending monitoring event", e);
             return false;
         }

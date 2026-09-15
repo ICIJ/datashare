@@ -22,7 +22,6 @@ import org.jooq.SQLDialect;
 import org.jooq.exception.IntegrityConstraintViolationException;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
-
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.Serializable;
@@ -36,7 +35,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.bus.amqp.Event.MAX_RETRIES_LEFT;
@@ -58,15 +56,17 @@ public class JooqTaskRepository implements TaskRepository {
 
     @Override
     public Task getTask(String taskId) throws IOException, UnknownTask {
-        return Optional.ofNullable(createTaskFrom(DSL.using(connectionProvider, dialect).selectFrom(TASK)
-            .where(TASK.ID.eq(taskId)).fetchOne())).orElseThrow(() -> new UnknownTask(taskId));
+        return Optional.ofNullable(createTaskFrom(
+                               DSL.using(connectionProvider, dialect).selectFrom(TASK).where(TASK.ID.eq(taskId)).fetchOne()))
+                       .orElseThrow(() -> new UnknownTask(taskId));
     }
 
     @Override
     public <V extends Serializable> void insert(Task<V> task, Group group) throws IOException, TaskAlreadyExists {
         using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            InsertValuesStep12<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String, String> insertInto = insert(inner);
+            InsertValuesStep12<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String, String>
+                    insertInto = insert(inner);
             insertValues(task, group, insertInto);
             try {
                 insertInto.execute();
@@ -84,16 +84,16 @@ public class JooqTaskRepository implements TaskRepository {
     @Override
     public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
         using(connectionProvider, dialect).transactionResult(configuration -> {
-            TaskRecord r = using(configuration)
-                .update(TASK)
-                .set(TASK.ERROR, JsonObjectMapper.writeValueAsStringTyped(task.getError()))
-                .set(TASK.RESULT, JsonObjectMapper.writeValueAsStringTyped(task.getResult()))
-                .set(TASK.STATE, task.getState().name())
-                .set(TASK.PROGRESS, task.getProgress())
-                .set(TASK.COMPLETED_AT, ofNullable(task.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null))
-                .where(TASK.ID.eq(task.id))
-                .returning()
-                .fetchOne();
+            TaskRecord r = using(configuration).update(TASK).set(TASK.ERROR, JsonObjectMapper.writeValueAsStringTyped(
+                                                       task.getError())).set(TASK.RESULT, JsonObjectMapper.writeValueAsStringTyped(task.getResult()))
+                                               .set(TASK.STATE, task.getState().name())
+                                               .set(TASK.PROGRESS, task.getProgress()).set(TASK.COMPLETED_AT,
+                                                                                           ofNullable(
+                                                                                                   task.getCompletedAt()).map(
+                                                                                                                                 d -> new Timestamp(
+                                                                                                                                         d.getTime()).toLocalDateTime())
+                                                                                                                         .orElse(null))
+                                               .where(TASK.ID.eq(task.id)).returning().fetchOne();
             if (r == null) {
                 throw new UnknownTask(task.id);
             }
@@ -101,12 +101,11 @@ public class JooqTaskRepository implements TaskRepository {
         });
     }
 
-
     @Override
     public <V extends Serializable> Task<V> delete(String taskId) throws IOException, UnknownTask {
-        Task<V> task = createTaskFrom(DSL.using(connectionProvider, dialect)
-            .deleteFrom(TASK).where(TASK.ID.eq(taskId)).returning().fetchOne()
-        );
+        Task<V> task = createTaskFrom(
+                DSL.using(connectionProvider, dialect).deleteFrom(TASK).where(TASK.ID.eq(taskId)).returning()
+                   .fetchOne());
         if (task == null) {
             throw new UnknownTask(taskId);
         }
@@ -121,14 +120,8 @@ public class JooqTaskRepository implements TaskRepository {
     @Override
     public Group getTaskGroup(String taskId) throws UnknownTask {
         String groupId = Optional.ofNullable(
-            DSL.using(connectionProvider, dialect)
-                .select(TASK.GROUP_ID)
-                .from(TASK)
-                .where(TASK.ID.eq(taskId))
-                .fetchOne()
-            )
-            .map(r -> r.get(TASK.GROUP_ID))
-            .orElseThrow(() -> new UnknownTask(taskId));
+                DSL.using(connectionProvider, dialect).select(TASK.GROUP_ID).from(TASK).where(TASK.ID.eq(taskId))
+                   .fetchOne()).map(r -> r.get(TASK.GROUP_ID)).orElseThrow(() -> new UnknownTask(taskId));
         return new Group(groupId);
     }
 
@@ -137,9 +130,11 @@ public class JooqTaskRepository implements TaskRepository {
         if (filters == null) {
             return selectFrom(TASK).stream().map(rethrowFunction(this::createTaskFrom));
         }
-        Stream<Task<? extends Serializable>> tasks = selectTasks(DSL.using(connectionProvider, dialect), filters).filter(Objects::nonNull);
+        Stream<Task<? extends Serializable>> tasks =
+                selectTasks(DSL.using(connectionProvider, dialect), filters).filter(Objects::nonNull);
         if (filters.getArgs() != null && !filters.getArgs().isEmpty()) {
-            tasks = tasks.filter(new TaskFilters().with(filters.getArgs().toArray(TaskFilters.ArgsFilter[]::new))::filter);
+            tasks = tasks.filter(
+                    new TaskFilters().with(filters.getArgs().toArray(TaskFilters.ArgsFilter[]::new))::filter);
         }
         return tasks;
     }
@@ -152,24 +147,27 @@ public class JooqTaskRepository implements TaskRepository {
         // Special case when we need to filter on args as we need to deserialize them
         if (filters.getArgs() != null) {
             // TODO: test me
-            return selectTaskIdsAndArgs(DSL.using(connectionProvider, dialect), filters)
-                .filter( p -> new TaskFilters().with(filters.getArgs().toArray(TaskFilters.ArgsFilter[]::new)).filter(p._2()))
-                .map(Pair::_1);
+            return selectTaskIdsAndArgs(DSL.using(connectionProvider, dialect), filters).filter(
+                    p -> new TaskFilters().with(filters.getArgs().toArray(TaskFilters.ArgsFilter[]::new))
+                                          .filter(p._2())).map(Pair::_1);
         }
         return selectTaskStates(DSL.using(connectionProvider, dialect), filters);
     }
 
     private <V extends Serializable> Task<V> createTaskFrom(TaskRecord taskRecord) throws IOException {
-        return ofNullable(taskRecord).map(rethrowFunction(r ->
-        {
-            Date createdAt = r.getCreatedAt() == null ? null : Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
-            Date completedAt = r.getCompletedAt() == null ? null :Date.from(r.getCompletedAt().atZone(ZoneId.systemDefault()).toInstant());
+        return ofNullable(taskRecord).map(rethrowFunction(r -> {
+            Date createdAt = r.getCreatedAt() == null ? null :
+                             Date.from(r.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
+            Date completedAt = r.getCompletedAt() == null ? null :
+                               Date.from(r.getCompletedAt().atZone(ZoneId.systemDefault()).toInstant());
             try {
                 Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
-                TaskResult<V> result = r.getResult() == null ? null : JsonObjectMapper.readValueTyped(r.getResult(), new TypeReference<>() {});
-                TaskError error = r.getError() == null ? null : JsonObjectMapper.readValueTyped(r.getError(), TaskError.class);
-                return new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()),
-                        r.getProgress(), createdAt, r.getRetriesLeft(), completedAt, args, result, error);
+                TaskResult<V> result = r.getResult() == null ? null :
+                                       JsonObjectMapper.readValueTyped(r.getResult(), new TypeReference<>() {});
+                TaskError error =
+                        r.getError() == null ? null : JsonObjectMapper.readValueTyped(r.getError(), TaskError.class);
+                return new Task<>(r.getId(), r.getName(), Task.State.valueOf(r.getState()), r.getProgress(), createdAt,
+                                  r.getRetriesLeft(), completedAt, args, result, error);
             } catch (JacksonException e) {
                 logger.error("Could not deserialize task with id {}", r.getId(), e);
                 return null;
@@ -182,12 +180,10 @@ public class JooqTaskRepository implements TaskRepository {
     }
 
     private Pair<String, Map<String, Object>> createTaskIdsAndArgsFrom(TaskRecord taskRecord) throws IOException {
-        return ofNullable(taskRecord)
-            .map(rethrowFunction(r -> {
-                Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
-                return new Pair<>(r.getId(), args);
-            }))
-            .orElse(null);
+        return ofNullable(taskRecord).map(rethrowFunction(r -> {
+            Map<String, Object> args = JsonObjectMapper.readValueTyped(r.getArgs(), new TypeReference<>() {});
+            return new Pair<>(r.getId(), args);
+        })).orElse(null);
     }
 
     private Stream<Task<? extends Serializable>> selectTasks(DSLContext ctx, TaskFilters filters) throws IOException {
@@ -200,7 +196,8 @@ public class JooqTaskRepository implements TaskRepository {
         return ctx.selectFrom(TASK).where(conditions).stream().map(this::getTaskIdFrom);
     }
 
-    private Stream<Pair<String, Map<String, Object>>> selectTaskIdsAndArgs(DSLContext ctx, TaskFilters filters) throws IOException  {
+    private Stream<Pair<String, Map<String, Object>>> selectTaskIdsAndArgs(DSLContext ctx, TaskFilters filters) throws
+            IOException {
         List<Condition> conditions = conditionsFromFilter(filters);
         return ctx.selectFrom(TASK).where(conditions).stream().map(rethrowFunction(this::createTaskIdsAndArgsFrom));
     }
@@ -208,18 +205,16 @@ public class JooqTaskRepository implements TaskRepository {
     private static List<Condition> conditionsFromFilter(TaskFilters filters) {
         List<Condition> conditions = new ArrayList<>();
         if (filters.getStates() != null && !filters.getStates().isEmpty()) {
-            Condition hasState = filters.getStates().stream()
-                    .map(s -> TASK.STATE.eq(s.name()))
-                    // Starting with falseCondition() ensures the OR chain only
-                    // becomes true if at least one condition matches.
-                    .reduce(falseCondition(), Condition::or);
+            Condition hasState = filters.getStates().stream().map(s -> TASK.STATE.eq(s.name()))
+                                        // Starting with falseCondition() ensures the OR chain only
+                                        // becomes true if at least one condition matches.
+                                        .reduce(falseCondition(), Condition::or);
 
             conditions.add(hasState);
         }
         if (filters.getTypes() != null && !filters.getTypes().isEmpty()) {
-            Condition hasType = filters.getTypes().stream()
-                    .map(t -> TASK.TYPE.eq(t.name()))
-                    .reduce(falseCondition(), Condition::or);
+            Condition hasType = filters.getTypes().stream().map(t -> TASK.TYPE.eq(t.name()))
+                                       .reduce(falseCondition(), Condition::or);
 
             conditions.add(hasType);
         }
@@ -232,24 +227,25 @@ public class JooqTaskRepository implements TaskRepository {
         return conditions;
     }
 
-    
-    private InsertValuesStep12<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String, String> insert(DSLContext ctx) {
-        return ctx.insertInto(TASK).columns(
-                        TASK.ID, TASK.NAME, TASK.STATE, TASK.USER_ID, TASK.GROUP_ID, TASK.PROGRESS,
-                        TASK.CREATED_AT, TASK.COMPLETED_AT, TASK.RETRIES_LEFT, TASK.MAX_RETRIES, TASK.ARGS, TASK.TYPE);
+    private InsertValuesStep12<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String, String> insert(
+            DSLContext ctx) {
+        return ctx.insertInto(TASK)
+                  .columns(TASK.ID, TASK.NAME, TASK.STATE, TASK.USER_ID, TASK.GROUP_ID, TASK.PROGRESS, TASK.CREATED_AT,
+                           TASK.COMPLETED_AT, TASK.RETRIES_LEFT, TASK.MAX_RETRIES, TASK.ARGS, TASK.TYPE);
     }
 
-    private static void insertValues(Task<?> task, Group group, InsertValuesStep12<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String, String> insert) throws JsonProcessingException {
-        insert.values(task.id, task.name,
-                    task.getState().name(),
-                    ofNullable(task.getUser()).map(u -> u.id).orElse(null),
-                    ofNullable(group).map(Group::getId).orElse(null),
-                    task.getProgress(),
-                    new Timestamp(task.createdAt.getTime()).toLocalDateTime(),
-                    ofNullable(task.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime()).orElse(null),
-                    task.getRetriesLeft(),
-                    MAX_RETRIES_LEFT, JsonObjectMapper.writeValueAsStringTyped(task.args), // to force writing @type fields in the hashmap
-                    ofNullable(task.type).map(TaskType::name).orElse(null));
+    private static void insertValues(Task<?> task, Group group,
+                                     InsertValuesStep12<TaskRecord, String, String, String, String, String, Double, LocalDateTime, LocalDateTime, Integer, Integer, String, String> insert) throws
+            JsonProcessingException {
+        insert.values(task.id, task.name, task.getState().name(),
+                      ofNullable(task.getUser()).map(u -> u.id).orElse(null),
+                      ofNullable(group).map(Group::getId).orElse(null), task.getProgress(),
+                      new Timestamp(task.createdAt.getTime()).toLocalDateTime(),
+                      ofNullable(task.getCompletedAt()).map(d -> new Timestamp(d.getTime()).toLocalDateTime())
+                                                       .orElse(null), task.getRetriesLeft(), MAX_RETRIES_LEFT,
+                      JsonObjectMapper.writeValueAsStringTyped(
+                              task.args), // to force writing @type fields in the hashmap
+                      ofNullable(task.type).map(TaskType::name).orElse(null));
     }
 
 }

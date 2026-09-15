@@ -8,9 +8,7 @@ import java.nio.charset.Charset;
  * sheet} is Excel only, {@code table} is the Tika fallback only, and {@code charset} does not reach
  * the fallback, which lets Tika resolve encoding itself.
  */
-public record RowSourceOptions(String contentType, Charset charset, Character delimiter,
-                               Character quote, String sheet, Integer table) {
-
+public record RowSourceOptions(String contentType, Charset charset, Character delimiter, Character quote, String sheet, Integer table) {
     public static RowSourceOptions defaults() {
         return new RowSourceOptions(null, null, null, null, null, null);
     }

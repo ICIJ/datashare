@@ -43,8 +43,13 @@ public class StateLatch {
             this.originalTaskState = state;
         }
 
-        Task.State getOriginalTaskState() { return this.originalTaskState;}
-        int getOrdinal() { return this.getState();}
+        Task.State getOriginalTaskState() {
+            return this.originalTaskState;
+        }
+
+        int getOrdinal() {
+            return this.getState();
+        }
 
         @Override
         protected int tryAcquireShared(int acquires) {

@@ -17,7 +17,6 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.openmetrics.StatusMapper;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.indexing.Indexer;
-
 import java.io.IOException;
 
 @Singleton
@@ -29,24 +28,31 @@ public class StatusResource {
     private final TaskManager taskManager;
 
     @Inject
-    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer, TaskManager taskManager) {
+    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer,
+                          TaskManager taskManager) {
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
         this.indexer = indexer;
         this.taskManager = taskManager;
     }
 
-    @Operation(description = "Retrieve the status of databus connection, database connection and index.",
-            parameters = { @Parameter(name = "format=openmetrics", description = "if provided in the URL it will return the status in openmetrics format", in = ParameterIn.QUERY) })
-    @ApiResponse(responseCode = "200", description = "returns the status of datashare elements", useReturnTypeSchema = true)
-    @ApiResponse(responseCode = "504", description = "proxy error when elasticsearch is down", useReturnTypeSchema = true)
-    @ApiResponse(responseCode = "503", description = "service unavailable when other services are down", useReturnTypeSchema = true)
+    @Operation(description = "Retrieve the status of databus connection, database connection and index.", parameters = {
+            @Parameter(name = "format=openmetrics",
+                    description = "if provided in the URL it will return the status in openmetrics format",
+                    in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", description = "returns the status of datashare elements",
+            useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "504", description = "proxy error when elasticsearch is down",
+            useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "503", description = "service unavailable when other services are down",
+            useReturnTypeSchema = true)
     @Get("/status")
     public Payload getStatus(Context context) throws IOException {
         Status status = new Status(repository.getHealth(), indexer.getHealth(), taskManager.getHealth());
         if ("openmetrics".equals(context.request().query().get("format"))) {
-            return new Payload("text/plain;version=0.0.4",
-                    new StatusMapper("datashare", status, propertiesProvider.get("platform").orElse(null)).toString());
+            return new Payload("text/plain;version=0.0.4", new StatusMapper("datashare", status,
+                                                                            propertiesProvider.get("platform")
+                                                                                              .orElse(null)).toString());
         } else {
             return new Payload("application/json", status, status.getHttpStatus());
         }

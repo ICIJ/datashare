@@ -7,7 +7,6 @@ public interface DocumentMetadataConstants {
     String DEFAULT_VALUE_UNKNOWN = "unknown";
     String DEFAULT_METADATA_FIELD_PREFIX = "tika_metadata_";
     Pattern fieldName = Pattern.compile("[^A-Za-z0-9_]");
-    
     // From Tika DublinCore
     String NAMESPACE_URI_DC = "http://purl.org/dc/elements/1.1/";
     String NAMESPACE_URI_DC_TERMS = "http://purl.org/dc/terms/";

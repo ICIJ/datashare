@@ -15,6 +15,6 @@ public class ApiKeyStoreAdapter implements ApiKeyStore {
     @Override
     public String getLogin(String base64Key) {
         ApiKey apiKey = repository.get(base64Key);
-        return apiKey == null ? null: apiKey.getUser().id;
+        return apiKey == null ? null : apiKey.getUser().id;
     }
 }

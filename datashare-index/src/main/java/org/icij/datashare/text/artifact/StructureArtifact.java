@@ -15,7 +15,6 @@ import org.icij.datashare.text.structure.StructureMarkdownExtractor.Page;
 import org.icij.datashare.utils.AtomicDirectorySwap;
 import org.icij.datashare.utils.BuildVersions;
 import org.xml.sax.SAXException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -24,7 +23,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
 import static org.icij.datashare.cli.DatashareCliOptions.OCR_STRATEGY_OPT;
 import static org.icij.datashare.text.nlp.DocumentMetadataConstants.RESOURCE_NAME_KEY;
 
@@ -38,7 +36,6 @@ public class StructureArtifact implements Artifact {
     private static final String TIKA_VERSION = Tika.getString().replace(TIKA_PREFIX, "").strip();
     // The message AutoDetectParser gives a SecureContentHandler refusal (see isZipBombGuard).
     private static final String ZIP_BOMB_MESSAGE = "Zip bomb detected!";
-
     private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
     private final PropertiesProvider propertiesProvider;
 
@@ -72,9 +69,8 @@ public class StructureArtifact implements Artifact {
         // one), and the datashare version covers what this class decides (page grouping, safelist,
         // flexmark options), which no dependency version tracks. Deliberately conservative: any datashare
         // release makes every structure artifact stale, so the next ARTIFACT run re-extracts a corpus.
-        return Map.of("pipeline", "tika", "version", TIKA_VERSION,
-                "ocr", ocr.images(), "ocrStrategy", ocr.pdfStrategy().name(),
-                "extract", BuildVersions.EXTRACT, "datashare", BuildVersions.DATASHARE);
+        return Map.of("pipeline", "tika", "version", TIKA_VERSION, "ocr", ocr.images(), "ocrStrategy",
+                      ocr.pdfStrategy().name(), "extract", BuildVersions.EXTRACT, "datashare", BuildVersions.DATASHARE);
     }
 
     // What the INDEX stage applied to this document, so the pages hold the text the content field holds.
@@ -151,8 +147,7 @@ public class StructureArtifact implements Artifact {
      */
     List<Page> parse(InputStream source, Document document) throws IOException, ArtifactException {
         try {
-            return extractor.extract(source, document.getContentType(), resourceName(document),
-                    ocrSettings(document));
+            return extractor.extract(source, document.getContentType(), resourceName(document), ocrSettings(document));
         } catch (TikaConfigException fatal) {
             throw new ArtifactConfigurationException(fatal);
         } catch (TikaException | SAXException failure) {
@@ -220,9 +215,9 @@ public class StructureArtifact implements Artifact {
     }
 
     private static void write(Path pagesDir, int pageNumber, Page page) throws IOException {
-        Files.writeString(pagesDir.resolve(ArtifactPath.pageFilename(pageNumber, "xhtml")),
-                page.xhtml(), StandardCharsets.UTF_8);
-        Files.writeString(pagesDir.resolve(ArtifactPath.pageFilename(pageNumber, "md")),
-                page.markdown(), StandardCharsets.UTF_8);
+        Files.writeString(pagesDir.resolve(ArtifactPath.pageFilename(pageNumber, "xhtml")), page.xhtml(),
+                          StandardCharsets.UTF_8);
+        Files.writeString(pagesDir.resolve(ArtifactPath.pageFilename(pageNumber, "md")), page.markdown(),
+                          StandardCharsets.UTF_8);
     }
 }

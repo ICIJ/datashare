@@ -2,10 +2,8 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
-
 import java.nio.file.Path;
 import java.util.Optional;
-
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_FORCE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
@@ -15,14 +13,15 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 /** Shared artifact-stage configuration for the INDEX and ARTIFACT stages, so the two stages resolve
  *  the project, the force flag, and the artifact directory the same way and cannot drift. */
 public final class ArtifactStages {
-    private ArtifactStages() {}
+    private ArtifactStages() {
+    }
 
     /** Resolve the project name the same way ElasticsearchSpewer.configure resolves the ES index
      *  name: prefer the task-level projectName, then defaultProject, then the built-in default. Keeps
      *  the manifest dir, the embedded raw bytes, and the ES index under one project name. */
     public static String resolveProjectName(PropertiesProvider properties) {
         return properties.get("projectName")
-                .orElse(properties.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
+                         .orElse(properties.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
     }
 
     /** Whether artifacts should be reprocessed even when an up-to-date manifest entry exists. */
@@ -39,7 +38,7 @@ public final class ArtifactStages {
             return Optional.empty();
         }
         String dir = properties.get(ARTIFACT_DIR_OPT)
-                .orElseThrow(() -> new IllegalArgumentException("--artifacts requires --artifactDir"));
+                               .orElseThrow(() -> new IllegalArgumentException("--artifacts requires --artifactDir"));
         return Optional.of(ArtifactPath.projectRoot(Path.of(dir), resolveProjectName(properties)));
     }
 }

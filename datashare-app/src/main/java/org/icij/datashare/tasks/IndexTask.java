@@ -2,7 +2,6 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -32,14 +31,12 @@ import org.icij.task.annotation.Option;
 import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
 import org.icij.time.HumanDuration;
-
 import static java.lang.Math.max;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -55,7 +52,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @Option(name = DEFAULT_PROJECT_OPT, description = "the default project name")
 @Option(name = "projectName", description = "task project name")
 @TaskGroup(TaskGroupType.Java)
-public class IndexTask extends PipelineTask<Path> implements Monitorable{
+public class IndexTask extends PipelineTask<Path> implements Monitorable {
     private static final Path PATH_POISON = Paths.get("POISON");
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ElasticsearchSpewer spewer;
@@ -64,7 +61,6 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final DocumentConsumer consumer;
     private final Consumer<Path> progressTrackConsumer;
     private long totalToProcess;
-
     private final AtomicInteger processed = new AtomicInteger(0);
     // entries the drainer counted as consumed but that were not documents (legacy sentinel)
     private final AtomicInteger skipped = new AtomicInteger(0);
@@ -73,11 +69,15 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final String taskId;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) throws IOException {
-        super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class, gateFactory.forTask(taskView));
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory,
+                     final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
+                     @Assisted final Function<Double, Void> progressCallback) throws IOException {
+        super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class,
+              gateFactory.forTask(taskView));
         this.spewer = spewer;
         taskId = taskView.id;
-        parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
+        parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt)
+                                        .orElse(Runtime.getRuntime().availableProcessors());
         indexTimeout = getIndexTimeout();
         warnIfParseTimeoutDisabled();
 
@@ -105,8 +105,10 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             }
         };
         if (propertiesProvider.getProperties().get(REPORT_NAME_OPT) != null) {
-            logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(REPORT_NAME_OPT));
-            consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(REPORT_NAME_OPT).toString())));
+            logger.info("report map enabled with name set to {}",
+                        propertiesProvider.getProperties().get(REPORT_NAME_OPT));
+            consumer.setReporter(new Reporter(
+                    factory.createMap(propertiesProvider.getProperties().get(REPORT_NAME_OPT).toString())));
         }
         drainer = new DocumentQueueDrainer<>(inputQueue, progressTrackConsumer).configure(allTaskOptions);
         // The drainer has no notion of an upstream stage: without a latch it stops on its first
@@ -124,20 +126,21 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         // that requeues forever. When set, extract-lib writes embed bytes to the same project root the
         // ManifestRecorder writes manifests to.
         ArtifactStages.artifactProjectRoot(propertiesProvider).ifPresent(projectRoot -> {
-            List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider).select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
+            List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider)
+                                                      .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
             boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
             boolean artifactStageRuns = new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT);
             // Only raw falls out of the streaming parse (see ManifestRecorder): a selection naming any
             // other type reads as a promise this stage does not keep, so say so rather than drop it in
             // silence. Silent when ARTIFACT is coming, since the run does produce them then: a warning
             // that fires on a correct run is one nobody reads. Once per run, not per document.
-            List<String> notAtIndexTime = selected.stream().map(Artifact::type)
-                    .filter(type -> type != ArtifactType.RAW).map(ArtifactType::token).toList();
+            List<String> notAtIndexTime = selected.stream().map(Artifact::type).filter(type -> type != ArtifactType.RAW)
+                                                  .map(ArtifactType::token).toList();
             if (!notAtIndexTime.isEmpty() && !artifactStageRuns) {
-                logger.warn("--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in "
-                        + "--stages: {}", notAtIndexTime, rawSelected ? "only the 'raw' entry will be recorded."
-                        : "this stage records nothing and writes no embedded payload; add 'raw' to --artifacts "
-                        + "to keep the embedded-download cache.");
+                logger.warn("--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in " +
+                            "--stages: {}", notAtIndexTime, rawSelected ? "only the 'raw' entry will be recorded." :
+                                                            "this stage records nothing and writes no embedded payload; add 'raw' to --artifacts " +
+                                                            "to keep the embedded-download cache.");
             }
             // extract-lib spools every embedded document's bytes here during the parse. This payload is
             // not manifest-only: SourceExtractor.hasCachedEmbeddedSource also reads it straight off disk
@@ -146,7 +149,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             if (rawSelected || artifactStageRuns) {
                 extractor.setEmbedOutputPath(projectRoot);
             }
-            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected, ArtifactStages.force(propertiesProvider), taskId));
+            spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected,
+                                                            ArtifactStages.force(propertiesProvider), taskId));
         });
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         try {
@@ -161,7 +165,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
                 logger.info("Consumer has not terminated yet.");
             }
 
-            if (consumer.getReporter() != null) consumer.getReporter().close();
+            if (consumer.getReporter() != null)
+                consumer.getReporter().close();
             logger.info("exiting");
             return totalToProcess;
         } finally {
@@ -188,7 +193,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
                 Duration parseTimeout = HumanDuration.parse(value);
                 if (parseTimeout.isZero() || parseTimeout.isNegative()) {
                     logger.warn("parseTimeout is set to {}: the parse timeout is DISABLED. " +
-                            "A pathological document can hang a worker indefinitely.", value);
+                                "A pathological document can hang a worker indefinitely.", value);
                 }
             } catch (RuntimeException e) {
                 // Any parse failure (DateTimeParseException, NumberFormatException, ...) is intentionally
@@ -201,6 +206,6 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     @Override
     public double getProgressRate() {
         totalToProcess = max(inputQueue.size(), totalToProcess);
-        return totalToProcess == 0 ? 0 : (double)(totalToProcess - inputQueue.size()) / totalToProcess;
+        return totalToProcess == 0 ? 0 : (double) (totalToProcess - inputQueue.size()) / totalToProcess;
     }
 }

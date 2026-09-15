@@ -3,20 +3,13 @@ package org.icij.datashare.cli.command;
 import org.icij.datashare.cli.Mode;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
-
 import java.util.Properties;
-
 import static org.icij.datashare.cli.DatashareCliOptions.GET_API_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 
-@Command(name = "get", mixinStandardHelpOptions = true, description = {
-        "Print the existing API key for a user.",
-        "",
-        "Examples:",
-        "  datashare api-key get alice"
-})
+@Command(name = "get", mixinStandardHelpOptions = true,
+        description = {"Print the existing API key for a user.", "", "Examples:", "  datashare api-key get alice"})
 public class ApiKeyGetCommand implements Runnable, DatashareSubcommand {
-
     @Parameters(index = "0", description = "Username")
     String user;
 

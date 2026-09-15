@@ -11,17 +11,15 @@ public class EnvUtils {
     private static final Properties envProperties = new Properties();
 
     static {
-        getEnvFile().ifPresent((f) ->
-            {
-                if (f.toFile().exists()) {
-                    try (FileInputStream input = new FileInputStream(f.toFile())) {
-                        envProperties.load(input);
-                    } catch (IOException e) {
-                        throw new RuntimeException("Failed to dev env configuration", e);
-                    }
+        getEnvFile().ifPresent((f) -> {
+            if (f.toFile().exists()) {
+                try (FileInputStream input = new FileInputStream(f.toFile())) {
+                    envProperties.load(input);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to dev env configuration", e);
                 }
             }
-        );
+        });
     }
 
     /**
@@ -45,7 +43,6 @@ public class EnvUtils {
     public static String resolve(String propertyName, String defaultValue) {
         return Optional.ofNullable(resolve(propertyName)).map(String::valueOf).orElse(defaultValue);
     }
-
 
     /**
      * Resolves the URI for a given service key from the environment properties.

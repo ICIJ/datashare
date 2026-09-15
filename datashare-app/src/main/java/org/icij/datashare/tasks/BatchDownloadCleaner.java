@@ -7,12 +7,10 @@ import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.time.DatashareTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Pattern;
-
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.compile;
@@ -25,14 +23,18 @@ public class BatchDownloadCleaner implements Runnable {
 
     @Inject
     public BatchDownloadCleaner(final PropertiesProvider propertiesProvider) {
-        downloadDir = Paths.get(propertiesProvider.getProperties().getProperty(
-                DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT, DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_DIR));
-        ttlHour = Integer.parseInt(propertiesProvider.getProperties().getProperty(
-                DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT, String.valueOf(DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_ZIP_TTL)));
+        downloadDir = Paths.get(propertiesProvider.getProperties()
+                                                  .getProperty(DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT,
+                                                               DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_DIR));
+        ttlHour = Integer.parseInt(propertiesProvider.getProperties()
+                                                     .getProperty(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT,
+                                                                  String.valueOf(
+                                                                          DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_ZIP_TTL)));
         if (ttlHour == 0) {
             logger.info("batch download cleaner disabled (ttl=0, zip files will never be deleted)");
         } else {
-            logger.info("batch download cleaner scheduled (dir={}, ttl={}h, tick={}min)", downloadDir, ttlHour, tickPeriodSeconds() / 60);
+            logger.info("batch download cleaner scheduled (dir={}, ttl={}h, tick={}min)", downloadDir, ttlHour,
+                        tickPeriodSeconds() / 60);
         }
     }
 
@@ -42,13 +44,16 @@ public class BatchDownloadCleaner implements Runnable {
 
     @Override
     public void run() {
-        if (ttlHour == 0) return;
+        if (ttlHour == 0)
+            return;
         try {
             logger.debug("deleting expired batch download zip files from {}", downloadDir);
-            stream(ofNullable(downloadDir.toFile().listFiles()).orElse(new File[] {}))
-                    .filter(f -> filePattern.matcher(f.getName()).matches())
-                    .filter(f -> DatashareTime.getInstance().currentTimeMillis() - f.lastModified() >= ttlHour * 1000L * 60 * 60)
-                    .forEach(File::delete);
+            stream(ofNullable(downloadDir.toFile().listFiles()).orElse(new File[] {})).filter(
+                                                                                              f -> filePattern.matcher(f.getName()).matches()).filter(f -> DatashareTime.getInstance()
+                                                                                                                                                                        .currentTimeMillis() -
+                                                                                                                                                           f.lastModified() >=
+                                                                                                                                                           ttlHour * 1000L * 60 * 60)
+                                                                                      .forEach(File::delete);
         } catch (Exception e) {
             logger.error("batch download cleaner failed", e);
         }

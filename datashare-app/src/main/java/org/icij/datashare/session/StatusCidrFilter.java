@@ -9,14 +9,12 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.web.StatusResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_STATUS_ALLOWED_NETS;
 import static org.icij.datashare.cli.DatashareCliOptions.STATUS_ALLOWED_NETS_OPT;
 
@@ -37,7 +35,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.STATUS_ALLOWED_NETS_OPT
 public class StatusCidrFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(StatusCidrFilter.class);
     static final String STATUS_PATH = "/api/status";
-
     private final List<CidrBlock> allowedNets;
     private final StatusResource statusResource;
 
@@ -53,11 +50,8 @@ public class StatusCidrFilter implements Filter {
     public StatusCidrFilter(PropertiesProvider propertiesProvider, StatusResource statusResource) {
         this.statusResource = statusResource;
         String nets = propertiesProvider.get(STATUS_ALLOWED_NETS_OPT).orElse(DEFAULT_STATUS_ALLOWED_NETS);
-        this.allowedNets = Arrays.stream(nets.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(StatusCidrFilter::parseCidr)
-                .collect(Collectors.toList());
+        this.allowedNets = Arrays.stream(nets.split(",")).map(String::trim).filter(s -> !s.isEmpty())
+                                 .map(StatusCidrFilter::parseCidr).collect(Collectors.toList());
         logger.info("status endpoint allows unauthenticated access from CIDRs: {}", allowedNets);
     }
 
@@ -89,8 +83,8 @@ public class StatusCidrFilter implements Filter {
                 return statusResource.getStatus(context);
             }
         }
-        String clientIp = socketAddress != null && socketAddress.getAddress() != null
-                ? socketAddress.getAddress().getHostAddress() : "unknown";
+        String clientIp = socketAddress != null && socketAddress.getAddress() != null ?
+                          socketAddress.getAddress().getHostAddress() : "unknown";
         logger.info("denied unauthenticated access to {} from {}", STATUS_PATH, clientIp);
         return new Payload("application/json", "{\"error\":\"Not authorized\"}", 403);
     }
@@ -134,8 +128,8 @@ public class StatusCidrFilter implements Filter {
      * @return {@code true} if the address is inside the subnet
      */
     private static boolean isInSubnet(InetAddress addr, CidrBlock block) {
-        return isSameAddressFamily(addr, block.network)
-                && prefixMatches(addr.getAddress(), block.network.getAddress(), block.prefixLength);
+        return isSameAddressFamily(addr, block.network) &&
+               prefixMatches(addr.getAddress(), block.network.getAddress(), block.prefixLength);
     }
 
     /**
@@ -157,7 +151,8 @@ public class StatusCidrFilter implements Filter {
             int maxPrefix = network.getAddress().length * 8;
             if (prefixLength < 0 || prefixLength > maxPrefix) {
                 throw new InvalidCidrException(cidr,
-                        String.format("prefix length %d must be between 0 and %d", prefixLength, maxPrefix));
+                                               String.format("prefix length %d must be between 0 and %d", prefixLength,
+                                                             maxPrefix));
             }
             return new CidrBlock(network, prefixLength);
         } catch (UnknownHostException e) {

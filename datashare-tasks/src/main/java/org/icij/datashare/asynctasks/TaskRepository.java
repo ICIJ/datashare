@@ -17,7 +17,7 @@ public interface TaskRepository {
 
     Group getTaskGroup(String taskId) throws IOException, UnknownTask;
 
-
     Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException, UnknownTask;
+
     Stream<String> getTaskIds(TaskFilters filters) throws IOException;
 }

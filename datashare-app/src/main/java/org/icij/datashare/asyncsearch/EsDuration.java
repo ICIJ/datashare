@@ -13,7 +13,8 @@ public final class EsDuration {
     // "ms" must precede "s" so the alternation matches two-char units first.
     private static final Pattern PATTERN = Pattern.compile("^(\\d+)(ms|s|m|h|d)$");
 
-    private EsDuration() {}
+    private EsDuration() {
+    }
 
     public static Duration parse(String value, Duration fallback) {
         if (value == null) {

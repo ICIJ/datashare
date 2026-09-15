@@ -1,7 +1,6 @@
 package org.icij.datashare.text.nlp.corenlp;
 
 import static org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels.SUPPORTED_LANGUAGES;
-
 import com.google.inject.Inject;
 import edu.stanford.nlp.pipeline.CoreDocument;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
@@ -17,7 +16,6 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
-
 
 /**
  * {@link Pipeline}
@@ -76,7 +74,6 @@ public final class CorenlpPipeline extends AbstractPipeline {
         return SUPPORTED_LANGUAGES;
     }
 
-
     private boolean initializePipelineAnnotator(Language language) throws InterruptedException {
         CoreNlpModels.getInstance().get(language);
         return true;
@@ -87,16 +84,16 @@ public final class CorenlpPipeline extends AbstractPipeline {
      *
      * @param doc the document
      */
-    private List<NamedEntity> processPipeline(Document doc, int contentLength, int contentOffset)
-        throws InterruptedException {
+    private List<NamedEntity> processPipeline(Document doc, int contentLength, int contentOffset) throws
+            InterruptedException {
         NamedEntitiesBuilder namedEntitiesBuilder =
-            new NamedEntitiesBuilder(getType(), doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument());
+                new NamedEntitiesBuilder(getType(), doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument());
         LOGGER.info("name-finding for {} in document {} (offset {})", doc.getLanguage(), Hasher.shorten(doc.getId(), 4),
-            contentOffset);
+                    contentOffset);
         final StanfordCoreNLP annotator;
         annotator = CoreNlpModels.getInstance().get(doc.getLanguage());
         String text = doc.getContent()
-            .substring(contentOffset, Math.min(contentOffset + contentLength, doc.getContentTextLength()));
+                         .substring(contentOffset, Math.min(contentOffset + contentLength, doc.getContentTextLength()));
         CoreDocument codeDoc = annotator.processToCoreDocument(text);
         codeDoc.entityMentions().forEach(e -> {
             NamedEntity.Category category = NamedEntity.Category.parse(e.entityType());

@@ -2,7 +2,6 @@ package org.icij.datashare.asynctasks.temporal;
 
 import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.taskWrapper;
-
 import io.temporal.activity.Activity;
 import io.temporal.activity.ActivityInfo;
 import io.temporal.client.WorkflowClient;
@@ -30,7 +29,8 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
     private final TaskRepository taskRepository;
     private final Double progressWeight;
 
-    public TemporalActivityImpl(TaskFactory factory, WorkflowClient client, TaskRepository taskRepository, Double progressWeight) {
+    public TemporalActivityImpl(TaskFactory factory, WorkflowClient client, TaskRepository taskRepository,
+                                Double progressWeight) {
         this.factory = factory;
         this.client = client;
         this.taskRepository = taskRepository;
@@ -47,7 +47,8 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
         WorkflowStub workflow = client.newUntypedWorkflowStub(info.getWorkflowId());
         String taskId = info.getWorkflowId();
         return (ignored, progress) -> {
-            workflow.signal("progress", new ProgressSignal(info.getRunId(), info.getActivityId(), progress, this.progressWeight));
+            workflow.signal("progress",
+                            new ProgressSignal(info.getRunId(), info.getActivityId(), progress, this.progressWeight));
             try {
                 logger.debug("Setting progress of {} to {}", taskId, progress);
                 Task<?> task = taskRepository.getTask(taskId);
@@ -66,17 +67,16 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
     protected R run(Map<String, Object> args) throws Exception {
         return taskWrapper(rethrowFunction(inputArgs -> {
             ActivityInfo info = Activity.getExecutionContext().getInfo();
-            User user = Optional.ofNullable((HashMap<String, Object>) inputArgs.get("user"))
-                .map(User::new)
-                .orElse(null);
+            User user =
+                    Optional.ofNullable((HashMap<String, Object>) inputArgs.get("user")).map(User::new).orElse(null);
             // TODO : BatchSearchRunner relies on the Task.id to retrieve the Queries to run from the DB.
             // TODO : This is a design that relies on unwritten convention, so it should be changed
             Task<?> task = new Task<>(info.getWorkflowId(), getTaskClass().getSimpleName(), user, inputArgs);
             BiConsumer<String, Double> progressFn = getProgressFn(info);
             ProgressSmoother smoothedProgress = new ProgressSmoother(progressFn, 10);
-            Callable<R> taskFn = (Callable<R>) TaskFactoryHelper.createTaskCallable(
-                getTaskFactory(), getTaskClass().getName(), task, task.progress(smoothedProgress)
-            );
+            Callable<R> taskFn =
+                    (Callable<R>) TaskFactoryHelper.createTaskCallable(getTaskFactory(), getTaskClass().getName(), task,
+                                                                       task.progress(smoothedProgress));
             progressFn.accept(task.getId(), 0.0);
             R result = taskFn.call();
             progressFn.accept(task.getId(), 1.0);

@@ -1,6 +1,5 @@
 package org.icij.datashare.cli;
 
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -10,13 +9,11 @@ import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPT;
@@ -25,7 +22,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OAUTH_USER_PROJECTS_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OPT_ALIASES;
-
 
 public class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
@@ -37,7 +33,7 @@ public class DatashareCli {
         OptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
         OptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);
 
-        List<CliExtension> extensions  = CliExtensionService.getInstance().getExtensions();
+        List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
         OptionSpec<String> extOption = DatashareCliOptions.extOption(parser);
         if (extensions.size() > 1) {
             System.out.println("For now we only allow one CLI extension");
@@ -74,13 +70,15 @@ public class DatashareCli {
             }
 
             properties = asProperties(options, null);
-            if (!Boolean.parseBoolean(properties.getProperty(NO_DIGEST_PROJECT_OPT))
-                    && properties.getProperty(DIGEST_PROJECT_NAME_OPT) == null) {
-                String defaultDigestProjectName = ofNullable(properties.getProperty(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT);
+            if (!Boolean.parseBoolean(properties.getProperty(NO_DIGEST_PROJECT_OPT)) &&
+                properties.getProperty(DIGEST_PROJECT_NAME_OPT) == null) {
+                String defaultDigestProjectName =
+                        ofNullable(properties.getProperty(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT);
                 properties.setProperty(DIGEST_PROJECT_NAME_OPT, defaultDigestProjectName);
             }
             if (!User.DEFAULT_PROJECTS_KEY.equals(properties.getProperty(OAUTH_USER_PROJECTS_KEY_OPT))) {
-                LOGGER.info("settings system property {} to {}", User.JVM_PROJECT_KEY, properties.getProperty(OAUTH_USER_PROJECTS_KEY_OPT));
+                LOGGER.info("settings system property {} to {}", User.JVM_PROJECT_KEY,
+                            properties.getProperty(OAUTH_USER_PROJECTS_KEY_OPT));
                 System.setProperty(User.JVM_PROJECT_KEY, properties.getProperty(OAUTH_USER_PROJECTS_KEY_OPT));
             }
             // Retro-compatibility so the alias options is are mapped to the right property
@@ -235,9 +233,8 @@ public class DatashareCli {
         // file alone, not getProperties(), which also folds in DS_DOCKER_* env vars: those are a
         // separate tier that CommonMode ranks, and promoting them here would make them beat an option
         // default only when -s happens to be passed.
-        Properties settings = options.has(SETTINGS_OPT)
-                ? new PropertiesProvider(String.valueOf(options.valueOf(SETTINGS_OPT))).getFileProperties()
-                : new Properties();
+        Properties settings = options.has(SETTINGS_OPT) ? new PropertiesProvider(
+                String.valueOf(options.valueOf(SETTINGS_OPT))).getFileProperties() : new Properties();
         Properties env = envProperties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
             OptionSpec<?> spec = entry.getKey();
@@ -270,8 +267,8 @@ public class DatashareCli {
         // when in datashare shell script we call java ... -m EMBEDDED $@
         // if the user provided -m SERVER then values will be [EMBEDDED,SERVER] so this function will keep the user option!
         // it has to be refactored because we can't use lists with separator in jopts simple, we use lists as string
-        String stringValue = !values.isEmpty() ? String.valueOf(values.get(values.size() - 1)): "";
-        return stringValue.isEmpty() ? "true": stringValue;
+        String stringValue = !values.isEmpty() ? String.valueOf(values.get(values.size() - 1)) : "";
+        return stringValue.isEmpty() ? "true" : stringValue;
     }
 
     private void printHelp(OptionParser parser) {

@@ -14,12 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 import picocli.CommandLine;
-
 import java.io.Closeable;
 import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Set;
-
 import static java.util.Optional.ofNullable;
 
 /**
@@ -31,7 +29,8 @@ import static java.util.Optional.ofNullable;
  */
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-    private static final Set<String> SUBCOMMAND_NAMES = new CommandLine(new DatashareCommand()).getSubcommands().keySet();
+    private static final Set<String> SUBCOMMAND_NAMES =
+            new CommandLine(new DatashareCommand()).getSubcommands().keySet();
 
     /**
      * Application entry point. Routes to the legacy jopt-simple parser or the picocli subcommand
@@ -75,8 +74,8 @@ public class Main {
     }
 
     private static void applyColorScheme(CommandLine commandLine, String[] args) {
-        boolean isColorDisabled = System.getenv("NO_COLOR") != null
-                || java.util.Arrays.asList(args).contains("--no-color");
+        boolean isColorDisabled =
+                System.getenv("NO_COLOR") != null || java.util.Arrays.asList(args).contains("--no-color");
         if (isColorDisabled) {
             commandLine.setColorScheme(CommandLine.Help.defaultColorScheme(CommandLine.Help.Ansi.OFF));
         }
@@ -108,7 +107,8 @@ public class Main {
         Level logLevel = Level.toLevel(properties.getProperty("logLevel"));
         LOGGER.info("Log level set to {}", logLevel);
 
-        ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ch.qos.logback.classic.Logger root =
+                (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         root.setLevel(logLevel);
 
         if (mode.isWebServer()) {
@@ -118,7 +118,7 @@ public class Main {
             Closeable tray = DatashareSystemTray.create(port);
             ofNullable(tray).ifPresent(commonMode::addCloseable);
             WebApp.start(commonMode);
-            if(QueueType.TEMPORAL == commonMode.getCurrentBatchQueueType()) {
+            if (QueueType.TEMPORAL == commonMode.getCurrentBatchQueueType()) {
                 TaskManagerTemporal taskManager = (TaskManagerTemporal) commonMode.get(TaskManager.class);
                 taskManager.reconcileTasks();
             }

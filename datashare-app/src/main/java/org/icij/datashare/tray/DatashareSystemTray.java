@@ -7,7 +7,6 @@ import org.icij.datashare.utils.WebBrowserUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
@@ -15,14 +14,12 @@ import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import static java.lang.String.format;
 import static org.icij.datashare.tray.SystemThemeDetector.Theme;
 
 public class DatashareSystemTray implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareSystemTray.class);
     private static final long THEME_POLL_SECONDS = 30;
-
     private final SystemTray systemTray;
     private final TrayActions actions;
     private final TrayIconProvider iconProvider;
@@ -126,7 +123,8 @@ public class DatashareSystemTray implements Closeable {
             if (theme == Theme.UNKNOWN) {
                 // Detection is unavailable in this environment (e.g. no GNOME session):
                 // stop polling a doomed subprocess and keep the legible fallback icon.
-                LOGGER.info("System theme could not be detected; keeping the fallback tray icon and stopping the theme watcher");
+                LOGGER.info(
+                        "System theme could not be detected; keeping the fallback tray icon and stopping the theme watcher");
                 stopThemeWatcher();
                 return;
             }

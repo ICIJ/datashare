@@ -21,12 +21,10 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-
 import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
@@ -40,32 +38,25 @@ public class ElasticsearchConfiguration {
     static final String ENTITIES_SETTINGS_RESOURCE_NAME = "datashare_entities_index_settings.json";
     static final int INDEX_MAX_RESULT_WINDOW = 100000;
     static Logger LOGGER = LoggerFactory.getLogger(ElasticsearchConfiguration.class);
-
     static protected final int DEFAULT_SEARCH_FROM = 0;
     static protected final int DEFAULT_SEARCH_SIZE = 10000;
     static protected final int DEFAULT_TIMEOUT_INSEC = 10;
-
     public static final String INDEX_ADDRESS_PROP = "elasticsearchAddress";
     public static final String INDEX_NAME_PROP = "indexName";
     public static final String INDEX_JOIN_FIELD_NAME_PROP = "indexJoinFieldName";
     public static final String INDEX_TYPE_FIELD_NAME_PROP = "indexTypeFieldName";
     public static final String ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT = "elasticsearchMaxIdleConnectionTime";
-
     public static final String DEFAULT_ADDRESS = "http://localhost:9200";
     public static final String ES_CLUSTER_NAME = "datashare";
-    static final String  ES_DOCUMENT_TYPE = "Document";
-    static final String  ES_DUPLICATE_TYPE = "Duplicate";
-    static final String  ES_CONTENT_FIELD = "content";
-
+    static final String ES_DOCUMENT_TYPE = "Document";
+    static final String ES_DUPLICATE_TYPE = "Duplicate";
+    static final String ES_CONTENT_FIELD = "content";
     private static final String DEFAULT_INDEX_JOIN_FIELD = "join";
     static final String DEFAULT_PARENT_DOC_FIELD = "parentDocument";
-
     private static final String DEFAULT_DOC_TYPE_FIELD = "type";
-
     final String indexJoinField;
     final String docTypeField;
     Refresh refreshPolicy = Refresh.False;
-
     final int shards = 1;
     final int replicas = 1;
 
@@ -78,7 +69,8 @@ public class ElasticsearchConfiguration {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
         try {
             URL indexUrl = new URL(propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS));
-            HttpHost httpHost = create(format("%s://%s:%d", indexUrl.getProtocol(), indexUrl.getHost(), indexUrl.getPort()));
+            HttpHost httpHost =
+                    create(format("%s://%s:%d", indexUrl.getProtocol(), indexUrl.getHost(), indexUrl.getPort()));
 
             RestClientBuilder.HttpClientConfigCallback clientConfigCallback = httpAsyncClientBuilder -> {
                 httpAsyncClientBuilder.disableAuthCaching();
@@ -88,18 +80,19 @@ public class ElasticsearchConfiguration {
                     // idling for longer.
                     // Else ElasticSearchClient throws an IOException : Connection reset when trying to reuse the
                     // connection after the LB closed it
-                    return propertiesProvider.get(ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT).map(Long::valueOf).orElse(349000L);
+                    return propertiesProvider.get(ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT).map(Long::valueOf)
+                                             .orElse(349000L);
                 });
-                httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
-                        (response, context) ->
-                                // This header is expected from the client, versions of ES server below 7.14 don't provide it
-                                // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
-                                response.addHeader("X-Elastic-Product", "Elasticsearch"));
+                httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor) (response, context) ->
+                        // This header is expected from the client, versions of ES server below 7.14 don't provide it
+                        // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
+                        response.addHeader("X-Elastic-Product", "Elasticsearch"));
                 if (indexUrl.getUserInfo() != null) {
                     String[] userInfo = indexUrl.getUserInfo().split(":");
                     LOGGER.info("using credentials from url (user={})", userInfo[0]);
                     final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                    credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userInfo[0], userInfo[1]));
+                    credentialsProvider.setCredentials(AuthScope.ANY,
+                                                       new UsernamePasswordCredentials(userInfo[0], userInfo[1]));
 
                     httpAsyncClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
                 }
@@ -107,10 +100,14 @@ public class ElasticsearchConfiguration {
             };
 
             RestClientTransport transport = new RestClientTransport(RestClient.builder(httpHost)
-                    .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
-                            .setConnectTimeout(5000)
-                            .setSocketTimeout(60000))
-                    .setHttpClientConfigCallback(clientConfigCallback).build(), new JacksonJsonpMapper(JsonObjectMapper.getMapper()));
+                                                                              .setRequestConfigCallback(
+                                                                                      requestConfigBuilder -> requestConfigBuilder.setConnectTimeout(
+                                                                                              5000).setSocketTimeout(
+                                                                                              60000))
+                                                                              .setHttpClientConfigCallback(
+                                                                                      clientConfigCallback).build(),
+                                                                    new JacksonJsonpMapper(
+                                                                            JsonObjectMapper.getMapper()));
             return new ElasticsearchClient(transport);
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
@@ -122,8 +119,8 @@ public class ElasticsearchConfiguration {
         return createIndex(client, indexName, MAPPING_RESOURCE_NAME, settingsResource);
     }
 
-    public static boolean createIndex(ElasticsearchClient client, String indexName,
-                                      String mappingsResource, String settingsResource) {
+    public static boolean createIndex(ElasticsearchClient client, String indexName, String mappingsResource,
+                                      String settingsResource) {
         ExistsRequest existsRequest = ExistsRequest.of(er -> er.index(indexName));
         try {
             if (!client.indices().exists(existsRequest).value()) {
@@ -155,18 +152,15 @@ public class ElasticsearchConfiguration {
 
     @Override
     public String toString() {
-        return "cfg{" +
-                "indexJoinField='" + indexJoinField + '\'' +
-                ", docTypeField='" + docTypeField + '\'' +
-                ", shards=" + shards +
-                ", replicas=" + replicas +
-                '}';
+        return "cfg{" + "indexJoinField='" + indexJoinField + '\'' + ", docTypeField='" + docTypeField + '\'' +
+               ", shards=" + shards + ", replicas=" + replicas + '}';
     }
 
     private static String getResourceContent(String resourceName) {
         byte[] resourceBytes;
         try {
-            resourceBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(resourceName));
+            resourceBytes =
+                    toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(resourceName));
         } catch (IOException e) {
             throw new ConfigurationException(e);
         }

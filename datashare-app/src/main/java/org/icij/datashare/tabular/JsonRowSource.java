@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.json.JsonObjectMapper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -21,7 +20,6 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 /**
@@ -37,17 +35,13 @@ public class JsonRowSource implements RowSource {
     /** Tika 3.3.0 has no mimetype for jsonl or ndjson, so this is the de facto type, used only as
      *  the internal token connecting an extension to this reader. It never appears on a document. */
     public static final String NDJSON_CONTENT_TYPE = "application/x-ndjson";
-
     public static final Set<String> SUPPORTED = Set.of("application/json", NDJSON_CONTENT_TYPE);
-
     // A private mapper rather than the shared one: JsonObjectMapper's StreamReadConstraints are cut
     // for HTTP request bodies, and a data dump needs only half of them. Its single-string cap of 1 GB
     // is the guard that matters for a user-supplied file, so it is reused here; its nesting cap of 20
     // is not, and Jackson's default of 1000 stands, since flatten() is built to handle the depth.
-    private final ObjectMapper mapper = new ObjectMapper(JsonFactory.builder()
-            .streamReadConstraints(StreamReadConstraints.builder()
-                    .maxStringLength(JsonObjectMapper.MAX_STRING_LENGTH).build())
-            .build());
+    private final ObjectMapper mapper = new ObjectMapper(JsonFactory.builder().streamReadConstraints(
+            StreamReadConstraints.builder().maxStringLength(JsonObjectMapper.MAX_STRING_LENGTH).build()).build());
 
     @Override
     public boolean supports(String contentType) {
@@ -127,9 +121,8 @@ public class JsonRowSource implements RowSource {
             }
         };
         return StreamSupport.stream(
-                        Spliterators.spliteratorUnknownSize(rows,
-                                Spliterator.ORDERED | Spliterator.NONNULL), false)
-                .onClose(() -> close(parser));
+                                    Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL), false)
+                            .onClose(() -> close(parser));
     }
 
     // An array is refused rather than joined or skipped: a joined array is a delimited file inside a

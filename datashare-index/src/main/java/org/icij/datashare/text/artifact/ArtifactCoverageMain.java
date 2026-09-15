@@ -7,7 +7,6 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
-
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -27,17 +26,18 @@ public class ArtifactCoverageMain {
         String indexName = args[1];
         String artifactDir = args[2];
 
-        PropertiesProvider props = new PropertiesProvider(Map.of(
-                ElasticsearchConfiguration.INDEX_ADDRESS_PROP, elasticsearchUrl,
-                DatashareCliOptions.ARTIFACT_DIR_OPT, artifactDir,
-                PropertiesProvider.DEFAULT_PROJECT_OPT, indexName));
+        PropertiesProvider props = new PropertiesProvider(
+                Map.of(ElasticsearchConfiguration.INDEX_ADDRESS_PROP, elasticsearchUrl,
+                       DatashareCliOptions.ARTIFACT_DIR_OPT, artifactDir, PropertiesProvider.DEFAULT_PROJECT_OPT,
+                       indexName));
 
         ElasticsearchClient client = ElasticsearchConfiguration.createESClient(props);
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(client, props);
         SourceExtractor extractor = new SourceExtractor(props);
 
-        ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(indexer, extractor)
-                .check(Project.project(indexName), Path.of(artifactDir), SCROLL_SIZE);
+        ArtifactCoverageChecker.Report report =
+                new ArtifactCoverageChecker(indexer, extractor).check(Project.project(indexName), Path.of(artifactDir),
+                                                                      SCROLL_SIZE);
 
         System.out.println(report.summary());
         System.exit(report.complete() ? 0 : 1);

@@ -15,7 +15,6 @@ import org.icij.spewer.Spewer;
 import org.icij.task.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -23,11 +22,9 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-
 import static java.lang.System.currentTimeMillis;
 import java.util.HashMap;
 import java.util.Map;
-
 import static java.util.Optional.ofNullable;
 import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
@@ -43,7 +40,6 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     // stopping here avoids that OOM while never dropping content that could otherwise be indexed.
     private static final int MAX_CONTENT_LENGTH = Integer.MAX_VALUE - 8;
     private static final int READ_CHUNK_SIZE = 8192;
-
     static final String PST_ATTACHMENT_RECOVERY = "tika:pst_attachment_recovery";
     static final String PST_EXPECTED = "tika:pst_expected";
     static final String PST_EMITTED = "tika:pst_emitted";
@@ -117,20 +113,23 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private volatile ManifestRecorder manifestRecorder;
 
     @Inject
-    public ElasticsearchSpewer(final Indexer indexer, DocumentCollectionFactory<String> outputQueueFactory, LanguageGuesser languageGuesser, final FieldNames fields,
+    public ElasticsearchSpewer(final Indexer indexer, DocumentCollectionFactory<String> outputQueueFactory,
+                               LanguageGuesser languageGuesser, final FieldNames fields,
                                final PropertiesProvider propertiesProvider) {
         super(fields);
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
         this.maxContentLength = getMaxContentLength(propertiesProvider);
         this.digestAlgorithm = getDigestAlgorithm(propertiesProvider);
-        this.outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
+        this.outputQueue = outputQueueFactory.createQueue(
+                new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
         this.indexName = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
         logger.info("spewer defined with {}", indexer);
     }
 
     @Override
-    protected void writeDocument(TikaDocument doc, TikaDocument parent, TikaDocument root, int level) throws IOException {
+    protected void writeDocument(TikaDocument doc, TikaDocument parent, TikaDocument root, int level) throws
+            IOException {
         if (root != null && root.isDuplicate()) {
             logger.debug("root document {} is duplicate, skipping {}", root.getId(), doc.getId());
             return;
@@ -160,8 +159,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 logger.warn("cannot offer {} to queue {}", queueEntry, outputQueue.getName());
             }
         }
-        logger.info("{} {} added to elasticsearch in {}ms: {}", docType,
-                shorten(doc.getId(), 4), currentTimeMillis() - before, doc);
+        logger.info("{} {} added to elasticsearch in {}ms: {}", docType, shorten(doc.getId(), 4),
+                    currentTimeMillis() - before, doc);
     }
 
     @Override
@@ -180,25 +179,24 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         // PARTIAL stub would be data loss. If the root already exists, its children are not orphaned, so
         // there is nothing to do. (A stub left by an earlier aborted run is likewise kept as-is.)
         if (isDuplicate(root.getId())) {
-            logger.debug("aborted parse: root {} already indexed, keeping it; not writing PARTIAL stub", shorten(root.getId(), 4));
+            logger.debug("aborted parse: root {} already indexed, keeping it; not writing PARTIAL stub",
+                         shorten(root.getId(), 4));
             return false;
         }
-        String contentType = baseContentType(ofNullable(root.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN));
-        Document document = DocumentBuilder.createDoc(root.getId())
-                .with(root.getPath())
-                .with(Document.Status.INDEXED)
-                .with(getMetadata(root))
-                .with("") // contentless: the parse aborted, no body text was extracted for the root
-                .ofContentType(contentType)
-                .with(ContentTypeCategory.fromContentType(contentType))
-                .withContentLength(parseContentLength(root))
-                .withExtractionLevel((short) 0)
-                .with(Document.RecoveryStatus.PARTIAL)
-                .withNbChildrenEmitted((int) Math.min(writtenChildren, Integer.MAX_VALUE))
-                .build();
+        String contentType =
+                baseContentType(ofNullable(root.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN));
+        Document document = DocumentBuilder.createDoc(root.getId()).with(root.getPath()).with(Document.Status.INDEXED)
+                                           .with(getMetadata(root))
+                                           .with("") // contentless: the parse aborted, no body text was extracted for the root
+                                           .ofContentType(contentType)
+                                           .with(ContentTypeCategory.fromContentType(contentType))
+                                           .withContentLength(parseContentLength(root)).withExtractionLevel((short) 0)
+                                           .with(Document.RecoveryStatus.PARTIAL)
+                                           .withNbChildrenEmitted((int) Math.min(writtenChildren, Integer.MAX_VALUE))
+                                           .build();
         indexer.add(indexName, document);
         logger.warn("aborted parse: wrote PARTIAL root stub {} with {} indexed child(ren): {}",
-                shorten(root.getId(), 4), writtenChildren, root);
+                    shorten(root.getId(), 4), writtenChildren, root);
         return true;
     }
 
@@ -210,8 +208,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         // already carry their COMPLETE/PARTIAL/LOSSY rollup from the initial write (applyParentRollup),
         // so their recoveryStatus is left untouched here.
         updateRootChildCount(root, writtenChildren, true);
-        logger.info("finalized container root {} as complete with {} indexed child(ren): {}",
-                shorten(root.getId(), 4), writtenChildren, root);
+        logger.info("finalized container root {} as complete with {} indexed child(ren): {}", shorten(root.getId(), 4),
+                    writtenChildren, root);
     }
 
     @Override
@@ -221,19 +219,21 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         // the root stays PARTIAL (the container was not fully processed). A later re-run replaces the stub
         // with the fully-parsed root.
         updateRootChildCount(root, writtenChildren, false);
-        logger.warn("aborted parse: refreshed PARTIAL root stub {} child count to {}: {}",
-                shorten(root.getId(), 4), writtenChildren, root);
+        logger.warn("aborted parse: refreshed PARTIAL root stub {} child count to {}: {}", shorten(root.getId(), 4),
+                    writtenChildren, root);
     }
 
     // Partial (doc-merge) update of the container root's child count, int-clamped, preserving the
     // already-indexed content/language/status. markComplete flips a non-PST root to COMPLETE (PST roots
     // keep their applyParentRollup rollup either way); the aborted path passes false so the root stays
     // PARTIAL.
-    private void updateRootChildCount(TikaDocument root, long writtenChildren, boolean markComplete) throws IOException {
+    private void updateRootChildCount(TikaDocument root, long writtenChildren, boolean markComplete) throws
+            IOException {
         Map<String, Object> fields = new HashMap<>();
         fields.put("nbChildrenEmitted", (int) Math.min(writtenChildren, Integer.MAX_VALUE));
         if (markComplete) {
-            boolean isPstRoot = root.getMetadata().get(PST_EXPECTED) != null || root.getMetadata().get(PST_EMITTED) != null;
+            boolean isPstRoot =
+                    root.getMetadata().get(PST_EXPECTED) != null || root.getMetadata().get(PST_EMITTED) != null;
             if (!isPstRoot) {
                 fields.put("recoveryStatus", Document.RecoveryStatus.COMPLETE.toString());
             }
@@ -272,26 +272,26 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return !indexer.exists(indexName, docId, path) && isDuplicate(docId);
     }
 
-    Document getDocument(TikaDocument document, TikaDocument root, TikaDocument parent, short level) throws IOException {
-        Charset charset = Charset.isSupported(ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN)) ?
-                Charset.forName(document.getMetadata().get(CONTENT_ENCODING)) : StandardCharsets.US_ASCII;
-        String contentType = baseContentType(ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN));
-        DocumentBuilder builder = DocumentBuilder.createDoc(document.getId())
-                .with(document.getPath())
-                .with(Document.Status.INDEXED)
-                .with(getMetadata(document))
-                .ofContentType(contentType)
-                .with(ContentTypeCategory.fromContentType(contentType))
-                .withContentLength(Long.parseLong(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
-                .with(charset)
-                .withExtractionLevel(level)
-                .withOcrParser(document.getMetadata().get(OCRParser.OCR_PARSER))
-                .with(parseChildRecoveryStatus(document));
+    Document getDocument(TikaDocument document, TikaDocument root, TikaDocument parent, short level) throws
+            IOException {
+        Charset charset = Charset.isSupported(
+                ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN)) ?
+                          Charset.forName(document.getMetadata().get(CONTENT_ENCODING)) : StandardCharsets.US_ASCII;
+        String contentType =
+                baseContentType(ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN));
+        DocumentBuilder builder =
+                DocumentBuilder.createDoc(document.getId()).with(document.getPath()).with(Document.Status.INDEXED)
+                               .with(getMetadata(document)).ofContentType(contentType)
+                               .with(ContentTypeCategory.fromContentType(contentType)).withContentLength(
+                                       Long.parseLong(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
+                               .with(charset).withExtractionLevel(level)
+                               .withOcrParser(document.getMetadata().get(OCRParser.OCR_PARSER))
+                               .with(parseChildRecoveryStatus(document));
 
         String content = readContent(document);
         if (document.getLanguage() == null) {
             builder.with(languageGuesser.guess(content));
-        } else  {
+        } else {
             builder.with(Language.parse(document.getLanguage()));
         }
         builder.with(content);
@@ -402,12 +402,13 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     int getMaxContentLength(PropertiesProvider propertiesProvider) {
-        return (int) Math.min(HumanReadableSize.parse(propertiesProvider.get("maxContentLength").orElse("-1")), Integer.MAX_VALUE);
+        return (int) Math.min(HumanReadableSize.parse(propertiesProvider.get("maxContentLength").orElse("-1")),
+                              Integer.MAX_VALUE);
     }
 
     private Hasher getDigestAlgorithm(PropertiesProvider propertiesProvider) {
-        return Hasher.parse(propertiesProvider.get("digestAlgorithm")
-                .orElse(Entity.DEFAULT_DIGESTER.name())).orElse(Entity.DEFAULT_DIGESTER);
+        return Hasher.parse(propertiesProvider.get("digestAlgorithm").orElse(Entity.DEFAULT_DIGESTER.name()))
+                     .orElse(Entity.DEFAULT_DIGESTER);
     }
 
     @Override

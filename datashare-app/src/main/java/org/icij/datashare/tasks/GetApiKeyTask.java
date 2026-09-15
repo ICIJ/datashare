@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.asynctasks.TaskGroupType;
-
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
@@ -11,17 +10,16 @@ import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.task.DefaultTask;
-
 import jakarta.inject.Inject;
 
 @TemporalSingleActivityWorkflow(name = "get-api-key", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
-public class GetApiKeyTask extends DefaultTask<String> implements UserTask  {
+public class GetApiKeyTask extends DefaultTask<String> implements UserTask {
     private final ApiKeyRepository apiKeyRepository;
     private final User user;
 
     @Inject
-    public GetApiKeyTask(ApiKeyRepository apiKeyRepository,@Assisted User user) {
+    public GetApiKeyTask(ApiKeyRepository apiKeyRepository, @Assisted User user) {
         this.apiKeyRepository = apiKeyRepository;
         this.user = user;
     }

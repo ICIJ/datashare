@@ -50,7 +50,6 @@ public class MemoryAsyncSearchStore implements AsyncSearchStore {
 
     @Override
     public void refresh(String asyncId, Duration keepAlive) {
-        entries.computeIfPresent(asyncId, (k, entry) ->
-                new Entry(entry.owner(), clock.instant().plus(keepAlive)));
+        entries.computeIfPresent(asyncId, (k, entry) -> new Entry(entry.owner(), clock.instant().plus(keepAlive)));
     }
 }

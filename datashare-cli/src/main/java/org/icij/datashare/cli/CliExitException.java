@@ -8,5 +8,7 @@ public class CliExitException extends RuntimeException {
         this.exitCode = exitCode;
     }
 
-    public int exitCode() { return exitCode; }
+    public int exitCode() {
+        return exitCode;
+    }
 }

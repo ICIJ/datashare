@@ -37,7 +37,6 @@ import org.icij.extract.extractor.EmbeddedDocumentExtractor.ContentNotFoundExcep
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -53,7 +52,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.zip.ZipException;
-
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
@@ -62,7 +60,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 @TemporalSingleActivityWorkflow(name = "batch-download", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
-public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>, Monitorable, UserTask, CancellableTask {
+public class BatchDownloadRunner
+        implements Callable<BatchDownloadRunnerResult>, Monitorable, UserTask, CancellableTask {
     private static final Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
@@ -81,11 +80,13 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
     protected volatile Thread callThread;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<?> task, @Assisted Function<Double, Void> progressCallback) {
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted Task<?> task,
+                               @Assisted Function<Double, Void> progressCallback) {
         this(indexer, propertiesProvider, progressCallback, task, MailSender::new, new CountDownLatch(1));
     }
 
-    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback, Task<?> task, Function<URI, MailSender> mailSenderSupplier, CountDownLatch latch) {
+    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback,
+                        Task<?> task, Function<URI, MailSender> mailSenderSupplier, CountDownLatch latch) {
         assert task.args.get("batchDownload") != null : "'batchDownload' property in task shouldn't be null";
         this.task = (Task<File>) task;
         this.indexer = indexer;
@@ -99,22 +100,28 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
     @Override
     public BatchDownloadRunnerResult call() throws Exception {
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
-        int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES_OPT).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
-        String scrollDuration = propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
+        int maxResultSize = parseInt(
+                propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES_OPT).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
+        String scrollDuration =
+                propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         int scrollSizeFromParams = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_SIZE_OPT)
-                .orElse(propertiesProvider.get(SCROLL_SIZE_OPT)
-                .orElse(valueOf(DEFAULT_SCROLL_SIZE))));
+                                                              .orElse(propertiesProvider.get(SCROLL_SIZE_OPT)
+                                                                                        .orElse(valueOf(
+                                                                                                DEFAULT_SCROLL_SIZE))));
         int scrollSize = min(scrollSizeFromParams, MAX_SCROLL_SIZE);
-        long maxZipSizeBytes = HumanReadableSize.parse(propertiesProvider.get(BATCH_DOWNLOAD_MAX_SIZE_OPT).orElse(DEFAULT_BATCH_DOWNLOAD_MAX_SIZE));
+        long maxZipSizeBytes = HumanReadableSize.parse(
+                propertiesProvider.get(BATCH_DOWNLOAD_MAX_SIZE_OPT).orElse(DEFAULT_BATCH_DOWNLOAD_MAX_SIZE));
         long zippedFilesSize = 0;
         callThread = Thread.currentThread();
         callWaiterLatchForTests.countDown(); // for tests
         BatchDownload batchDownload = getBatchDownload();
 
-        logger.info("running batch download for user {} on project {} with {} scroll with throttle {}ms and scroll size of {}",
+        logger.info(
+                "running batch download for user {} on project {} with {} scroll with throttle {}ms and scroll size of {}",
                 batchDownload.user.getId(), batchDownload.projects, scrollDuration, throttleMs, scrollSize);
-        Indexer.Searcher searcher = indexer.search(batchDownload.projects.stream().map(Project::getId).collect(toList()),
-                Document.class, batchDownload.query).withoutSource("content").limit(scrollSize);
+        Indexer.Searcher searcher =
+                indexer.search(batchDownload.projects.stream().map(Project::getId).collect(toList()), Document.class,
+                               batchDownload.query).withoutSource("content").limit(scrollSize);
 
         try {
             List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
@@ -129,13 +136,15 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
                 HashMap<String, Object> taskProperties = new HashMap<>();
                 taskProperties.put("batchDownload", batchDownload);
                 while (!docsToProcess.isEmpty()) {
-                    for (int i = 0; i < docsToProcess.size() && numberOfResults.get() < maxResultSize && zippedFilesSize <= maxZipSizeBytes; i++) {
+                    for (int i = 0; i < docsToProcess.size() && numberOfResults.get() < maxResultSize &&
+                                    zippedFilesSize <= maxZipSizeBytes; i++) {
                         if (cancelAsked) {
                             logger.info("cancelling batch download {} requeue={}", batchDownload.uuid, requeueCancel);
                             throw new CancelException(requeueCancel);
                         }
                         Document document = (Document) docsToProcess.get(i);
-                        int addedBytes = documentVerifier.isRootDocumentSizeAllowed(document) ? zipper.add(document) : 0;
+                        int addedBytes =
+                                documentVerifier.isRootDocumentSizeAllowed(document) ? zipper.add(document) : 0;
                         if (addedBytes > 0) {
                             zippedFilesSize += addedBytes;
                             numberOfResults.incrementAndGet();
@@ -150,32 +159,40 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
             throw ElasticSearchAdapterException.createFrom(esEx);
         }
         BatchDownloadRunnerResult.TruncationReason truncationReason = null; //Can stay null if no truncation was made
-        if(numberOfResults.get() < docsToProcessSize) {
-            if(zippedFilesSize > maxZipSizeBytes) {
+        if (numberOfResults.get() < docsToProcessSize) {
+            if (zippedFilesSize > maxZipSizeBytes) {
                 truncationReason = BatchDownloadRunnerResult.TruncationReason.SIZE_LIMIT;
-                logger.warn("File size of results for batch download {} of user {} exceeds size limit {}. Zip entries will be limited",
+                logger.warn(
+                        "File size of results for batch download {} of user {} exceeds size limit {}. Zip entries will be limited",
                         batchDownload.uuid, batchDownload.user, maxZipSizeBytes);
-            } else if(numberOfResults.get() >= maxResultSize) {
+            } else if (numberOfResults.get() >= maxResultSize) {
                 truncationReason = BatchDownloadRunnerResult.TruncationReason.FILE_COUNT_LIMIT;
-                logger.warn("Number of files results for batch download {} of user {} exceeds file size limit {}. Zip entries will be limited",
+                logger.warn(
+                        "Number of files results for batch download {} of user {} exceeds file size limit {}. Zip entries will be limited",
                         batchDownload.uuid, batchDownload.user, maxResultSize);
             } else {
                 truncationReason = BatchDownloadRunnerResult.TruncationReason.UNKNOWN;
             }
         }
 
-        BatchDownloadRunnerResult result = new BatchDownloadRunnerResult(batchDownload.filename.toUri(), Files.size(batchDownload.filename), truncationReason);
-        logger.info("created batch download file {} of {} entries for user {}", result, numberOfResults.get(), batchDownload.user.getId());
+        BatchDownloadRunnerResult result =
+                new BatchDownloadRunnerResult(batchDownload.filename.toUri(), Files.size(batchDownload.filename),
+                                              truncationReason);
+        logger.info("created batch download file {} of {} entries for user {}", result, numberOfResults.get(),
+                    batchDownload.user.getId());
         return result;
     }
 
-    private Zipper createZipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider, Function<URI, MailSender> mailSenderSupplier) throws URISyntaxException, IOException {
+    private Zipper createZipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider,
+                                Function<URI, MailSender> mailSenderSupplier) throws URISyntaxException, IOException {
         if (batchDownload.encrypted) {
             String rootHost = propertiesProvider.get("rootHost").orElse(null);
-            int ttlHour = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_ZIP_TTL_OPT).orElse(valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL)));
+            int ttlHour = parseInt(
+                    propertiesProvider.get(BATCH_DOWNLOAD_ZIP_TTL_OPT).orElse(valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL)));
             URI mailSenderUri = new URI(propertiesProvider.get("smtpUrl").orElse("smtp://localhost:25"));
             MailSender mailSender = mailSenderSupplier.apply(mailSenderUri);
-            return new ZipperWithPassword(batchDownload, propertiesProvider, mailSender, rootHost, formatRetentionRow(ttlHour));
+            return new ZipperWithPassword(batchDownload, propertiesProvider, mailSender, rootHost,
+                                          formatRetentionRow(ttlHour));
         }
         return new Zipper(batchDownload, propertiesProvider);
     }
@@ -197,7 +214,8 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
 
     private BatchDownload getBatchDownload() {
         Object raw = task.args.get("batchDownload");
-        if (raw instanceof BatchDownload bd) return bd;
+        if (raw instanceof BatchDownload bd)
+            return bd;
         return JsonObjectMapper.convertValue(raw, BatchDownload.class);
     }
 
@@ -211,7 +229,8 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
         requeueCancel = requeue;
         cancelAsked = true;
         try {
-            if (callThread != null) callThread.join();
+            if (callThread != null)
+                callThread.join();
         } catch (InterruptedException e) {
             logger.warn("batch download interrupted during cancel check status for {}", task.id);
         }
@@ -227,16 +246,17 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
     }
 
     private static class Zipper implements AutoCloseable {
-
         protected final BatchDownload batchDownload;
         protected final ZipOutputStream zipOutputStream;
         private final PropertiesProvider propertiesProvider;
 
         protected Zipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider) throws IOException {
-            this(batchDownload, propertiesProvider, new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile())));
+            this(batchDownload, propertiesProvider,
+                 new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile())));
         }
 
-        protected Zipper(BatchDownload batchDownload,  PropertiesProvider propertiesProvider, ZipOutputStream zipOutputStream) {
+        protected Zipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider,
+                         ZipOutputStream zipOutputStream) {
             this.batchDownload = batchDownload;
             this.zipOutputStream = zipOutputStream;
             this.propertiesProvider = propertiesProvider;
@@ -283,12 +303,17 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
         private final String rootHost;
         private final String retentionRow;
 
-        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider, MailSender mailSender, String rootHost, String retentionRow) throws IOException {
-            this(batchDownload, propertiesProvider, mailSender, RandomStringUtils.randomAlphanumeric(16), rootHost, retentionRow);
+        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider,
+                                  MailSender mailSender, String rootHost, String retentionRow) throws IOException {
+            this(batchDownload, propertiesProvider, mailSender, RandomStringUtils.randomAlphanumeric(16), rootHost,
+                 retentionRow);
         }
 
-        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider, MailSender mailSender, String password, String rootHost, String retentionRow) throws IOException {
-            super(batchDownload, propertiesProvider, new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()), password.toCharArray()));
+        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider,
+                                  MailSender mailSender, String password, String rootHost, String retentionRow) throws
+                IOException {
+            super(batchDownload, propertiesProvider,
+                  new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()), password.toCharArray()));
             this.password = password;
             this.passwordSender = mailSender;
             this.rootHost = rootHost;
@@ -299,7 +324,7 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
             return StringUtils.stripEnd(this.rootHost, "/").concat("/#/tasks/batch-download");
         }
 
-        public String batchDownloadsLinkRow () {
+        public String batchDownloadsLinkRow() {
             if (rootHost == null || rootHost.trim().isEmpty()) {
                 return "";
             }
@@ -320,18 +345,19 @@ public class BatchDownloadRunner implements Callable<BatchDownloadRunnerResult>,
             try {
                 String from = "engineering@icij.org";
                 String recipient = batchDownload.user.email;
-                String subject = String.format("[Datashare] Your batch download is ready - %s", batchDownload.filename.getFileName());
-                String body = "Hello,\n\n"
-                        .concat("Your requested batch download has been successfully processed and is now ready for your retrieval.\n\n")
-                        .concat(this.batchDownloadsLinkRow())
-                        .concat(this.retentionRow)
-                        .concat("In order to ensure the highest level of security, your batch download is password protected.\n\n")
-                        .concat(String.format("To open the ZIP file, the password is \"%s\".\n\n", password))
-                        .concat("We strongly recommend that you keep this password confidential. Do not share it with anyone and delete this email after you have successfully accessed your batch download.");
+                String subject = String.format("[Datashare] Your batch download is ready - %s",
+                                               batchDownload.filename.getFileName());
+                String body = "Hello,\n\n".concat(
+                                                  "Your requested batch download has been successfully processed and is now ready for your retrieval.\n\n")
+                                          .concat(this.batchDownloadsLinkRow()).concat(this.retentionRow)
+                                          .concat("In order to ensure the highest level of security, your batch download is password protected.\n\n")
+                                          .concat(String.format("To open the ZIP file, the password is \"%s\".\n\n",
+                                                                password))
+                                          .concat("We strongly recommend that you keep this password confidential. Do not share it with anyone and delete this email after you have successfully accessed your batch download.");
                 Mail mail = new Mail(from, recipient, subject, body);
                 passwordSender.send(mail);
             } catch (MailException mex) {
-                logger.error("failed to send mail password" , mex);
+                logger.error("failed to send mail password", mex);
             }
         }
     }

@@ -4,7 +4,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.function.IOConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,7 +25,8 @@ public class AtomicDirectorySwap {
     private static final Logger LOGGER = LoggerFactory.getLogger(AtomicDirectorySwap.class);
     private static final String REPLACED_SUFFIX = ".replaced";
 
-    private AtomicDirectorySwap() {}
+    private AtomicDirectorySwap() {
+    }
 
     /**
      * Writes new contents through {@code writer} and puts them at {@code target}, replacing whatever is
@@ -70,7 +70,7 @@ public class AtomicDirectorySwap {
     private static void reclaimHoldingPens(Path parent, String prefix) throws IOException {
         try (Stream<Path> entries = Files.list(parent)) {
             entries.filter(entry -> isHoldingPen(entry.getFileName().toString(), prefix))
-                    .forEach(leftover -> discard(leftover, null));
+                   .forEach(leftover -> discard(leftover, null));
         }
     }
 
@@ -114,8 +114,7 @@ public class AtomicDirectorySwap {
             Files.move(aside, target, StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException restoreFailure) {
             moveFailure.addSuppressed(restoreFailure);
-            LOGGER.error("cannot restore {}: it is left in {}, rename it back by hand",
-                    target, aside, restoreFailure);
+            LOGGER.error("cannot restore {}: it is left in {}, rename it back by hand", target, aside, restoreFailure);
         }
     }
 

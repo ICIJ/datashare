@@ -7,11 +7,9 @@ import org.icij.ftm.Address;
 import org.icij.ftm.Document;
 import org.icij.ftm.Folder;
 import org.joda.time.DateTime;
-
 import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import static java.util.Optional.ofNullable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -20,6 +18,7 @@ public class FtmDocument implements Document {
     public static final String TRANSLATED_CONTENT_KEY = "content";
     @JsonIgnore
     org.icij.datashare.text.Document icijDoc;
+
     public FtmDocument(org.icij.datashare.text.Document doc) {
         this.icijDoc = doc;
     }
@@ -102,12 +101,16 @@ public class FtmDocument implements Document {
 
     @Override
     public String getTranslatedLanguage() {
-        return ofNullable(icijDoc.getContentTranslated()).filter(l -> !l.isEmpty()).map(maps -> maps.get(0).get(TARGET_LANGUAGE_KEY)).orElse(null);
+        return ofNullable(icijDoc.getContentTranslated()).filter(l -> !l.isEmpty())
+                                                         .map(maps -> maps.get(0).get(TARGET_LANGUAGE_KEY))
+                                                         .orElse(null);
     }
 
     @Override
     public String getTranslatedText() {
-        return ofNullable(icijDoc.getContentTranslated()).stream().flatMap(List::stream).map(m -> m.get(TRANSLATED_CONTENT_KEY)).collect(Collectors.joining());
+        return ofNullable(icijDoc.getContentTranslated()).stream().flatMap(List::stream)
+                                                         .map(m -> m.get(TRANSLATED_CONTENT_KEY))
+                                                         .collect(Collectors.joining());
     }
 
     @Override
@@ -209,7 +212,6 @@ public class FtmDocument implements Document {
     public String getWikidataId() {
         return null;
     }
-
 
     @Override
     public String getKeywords() {

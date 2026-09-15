@@ -11,7 +11,10 @@ public class FileReportVisitor extends SimpleFileVisitor<Path> {
     private final Stack<DirectoryReport> dirStack = new Stack<>();
     private final int depth;
 
-    public FileReportVisitor(DirectoryReport root) { this(root, 1); }
+    public FileReportVisitor(DirectoryReport root) {
+        this(root, 1);
+    }
+
     public FileReportVisitor(DirectoryReport root, int depth) {
         this.depth = depth;
         dirStack.push(root);

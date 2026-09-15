@@ -15,16 +15,13 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntitiesBuilder;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-
 import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableSet;
 import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
-
 
 /**
  * this is a fake NLP pipeline. It just uses syntactic methods to find
@@ -55,39 +52,23 @@ public class EmailPipeline extends AbstractPipeline {
     // (64 octet local part, 255 octet domain); past 63 labels a domain is truncated, not dropped.
     // '.' and '@' stay out of the lookbehind class: P.romera@icij.org must still yield
     // romera@icij.org (the class is lower case only) and user@bad@host.com must yield bad@host.com.
-    final Pattern pattern = Pattern.compile("(?:(?<![a-z0-9!#$%&'*+/=?^_`{|}~-])[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+){0,63}|\"(?:[\\x01-\\x08\\x0b" +
+    final Pattern pattern = Pattern.compile(
+            "(?:(?<![a-z0-9!#$%&'*+/=?^_`{|}~-])[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+){0,63}|\"(?:[\\x01-\\x08\\x0b" +
             "\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f]){0,255}\")@" +
             "(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.){1,63}[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|" +
             "\\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\\.){3}" +
             "(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:" +
             "(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|" +
             "\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f]){1,255})\\])");
+    private final Set<String> parsedEmailHeaders = unmodifiableSet(new HashSet<>(
+            asList(tika("Dc-Title"), tika("Dc-Creator"), tika("Creator"), tika("Author"), tika("Meta-Author"),
 
-    private final Set<String> parsedEmailHeaders = unmodifiableSet(new HashSet<>(asList(
-            tika("Dc-Title"),
-            tika("Dc-Creator"),
-            tika("Creator"),
-            tika("Author"),
-            tika("Meta-Author"),
+                   tikaMsgHeader("To"), tikaMsgHeader("From"), tikaMsgHeader("Cc"), tikaMsgHeader("Bcc"),
 
-            tikaMsgHeader("To"),
-            tikaMsgHeader("From"),
-            tikaMsgHeader("Cc"),
-            tikaMsgHeader("Bcc"),
-
-            tikaRawHeader("Return-Path"),
-            tikaRawHeader("Delivered-To"),
-            tikaRawHeader("Reply-To"),
-            tikaRawHeader("Followup-To"),
-            tikaRawHeader("Alternate-Recipient"),
-            tikaRawHeader("For-Handling"),
-            tikaRawHeader("Resent-Reply-To"),
-            tikaRawHeader("Resent-Sender"),
-            tikaRawHeader("Resent-From"),
-            tikaRawHeader("Resent-To"),
-            tikaRawHeader("Resent-cc"),
-            tikaRawHeader("Resent-bcc")
-    )));
+                   tikaRawHeader("Return-Path"), tikaRawHeader("Delivered-To"), tikaRawHeader("Reply-To"),
+                   tikaRawHeader("Followup-To"), tikaRawHeader("Alternate-Recipient"), tikaRawHeader("For-Handling"),
+                   tikaRawHeader("Resent-Reply-To"), tikaRawHeader("Resent-Sender"), tikaRawHeader("Resent-From"),
+                   tikaRawHeader("Resent-To"), tikaRawHeader("Resent-cc"), tikaRawHeader("Resent-bcc"))));
 
     @Inject
     public EmailPipeline(final PropertiesProvider propertiesProvider) {
@@ -101,8 +82,11 @@ public class EmailPipeline extends AbstractPipeline {
 
     @Override
     public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) {
-        Matcher matcher = pattern.matcher(doc.getContent().substring(contentOffset, Math.min(contentLength + contentOffset, doc.getContentTextLength())));
-        NamedEntitiesBuilder namedEntitiesBuilder = new NamedEntitiesBuilder(EMAIL, doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument());
+        Matcher matcher = pattern.matcher(doc.getContent().substring(contentOffset,
+                                                                     Math.min(contentLength + contentOffset,
+                                                                              doc.getContentTextLength())));
+        NamedEntitiesBuilder namedEntitiesBuilder =
+                new NamedEntitiesBuilder(EMAIL, doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument());
         while (matcher.find()) {
             String email = matcher.group(0);
             int start = matcher.start();
@@ -116,27 +100,18 @@ public class EmailPipeline extends AbstractPipeline {
     }
 
     protected List<NamedEntity> processMetadata(Document doc) {
-        return parsedEmailHeaders
-            .stream()
-            .flatMap(k -> Optional.ofNullable(doc.getMetadata().get(k))
-                .map(m -> {
-                    Map<String, Object> meta = Map.of(MESSAGE_HEADER_FIELD, k);
-                    NamedEntitiesBuilder builder = new NamedEntitiesBuilder(
-                        EMAIL, doc.getId(), doc.getLanguage())
-                        .withRoot(doc.getRootDocument())
-                        .withMetadata(meta);
-                    Matcher metaMatcher = pattern.matcher(m.toString());
-                    while (metaMatcher.find()) {
-                        builder.add(NamedEntity.Category.EMAIL, metaMatcher.group(0),
-                            -1);
-                    }
-                    return builder.build();
-                }).stream()
-            )
-            .flatMap(Collection::stream)
-            .collect(Collectors.toList());
+        return parsedEmailHeaders.stream().flatMap(k -> Optional.ofNullable(doc.getMetadata().get(k)).map(m -> {
+            Map<String, Object> meta = Map.of(MESSAGE_HEADER_FIELD, k);
+            NamedEntitiesBuilder builder =
+                    new NamedEntitiesBuilder(EMAIL, doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument())
+                                                                                   .withMetadata(meta);
+            Matcher metaMatcher = pattern.matcher(m.toString());
+            while (metaMatcher.find()) {
+                builder.add(NamedEntity.Category.EMAIL, metaMatcher.group(0), -1);
+            }
+            return builder.build();
+        }).stream()).flatMap(Collection::stream).collect(Collectors.toList());
     }
-
 
     public static String tikaRawHeader(String s) {
         return tika(RAW_HEADER_FIELD_PREFIX + s);
@@ -151,10 +126,13 @@ public class EmailPipeline extends AbstractPipeline {
     }
 
     @Override
-    public Type getType() { return EMAIL;}
+    public Type getType() {
+        return EMAIL;
+    }
 
     @Override
-    public void terminate(Language language) {}
+    public void terminate(Language language) {
+    }
 
     @Override
     public Set<Language> supportedLanguages() {
@@ -162,14 +140,22 @@ public class EmailPipeline extends AbstractPipeline {
     }
 
     @Override
-    public List<NamedEntity.Category> getTargetEntities() { return Collections.singletonList(NamedEntity.Category.EMAIL);}
+    public List<NamedEntity.Category> getTargetEntities() {
+        return Collections.singletonList(NamedEntity.Category.EMAIL);
+    }
 
     @Override
-    public boolean isCaching() { return false;}
+    public boolean isCaching() {
+        return false;
+    }
 
     @Override
-    public Charset getEncoding() { return Charset.defaultCharset();}
+    public Charset getEncoding() {
+        return Charset.defaultCharset();
+    }
 
     @Override
-    public boolean initialize(Language language) { return true;}
+    public boolean initialize(Language language) {
+        return true;
+    }
 }

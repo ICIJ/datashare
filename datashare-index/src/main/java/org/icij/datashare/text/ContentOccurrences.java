@@ -17,14 +17,14 @@ public class ContentOccurrences {
      * meaning, and it is the branch nearly every character of a Latin-script page takes.
      */
     private static final char ASCII_LIMIT = 0x80;
-
     // Latin Extended, Greek and Cyrillic all sit below this and are all LOWERCASE_LETTER, so they miss
     // the fast path: a full Russian page costs 17x an ASCII one without the memo. Racy on purpose, no
     // lock: a String is safely published by its final fields, so a reader sees null or the same value.
     private static final int MEMO_LIMIT = 0x600;
     private static final String[] MEMO = new String[MEMO_LIMIT];
 
-    private ContentOccurrences() {}
+    private ContentOccurrences() {
+    }
 
     /**
      * Occurrences of {@code query} in {@code content}, both folded first. Stepping by the raw query's

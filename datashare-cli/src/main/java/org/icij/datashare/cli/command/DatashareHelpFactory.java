@@ -4,7 +4,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.Model.PositionalParamSpec;
 import picocli.CommandLine.Model.UsageMessageSpec;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -12,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import static picocli.CommandLine.Model.UsageMessageSpec.*;
 
 /**
@@ -21,12 +19,12 @@ import static picocli.CommandLine.Model.UsageMessageSpec.*;
  * so descriptions always appear on the same line.
  */
 public final class DatashareHelpFactory {
-
     static final int HELP_WIDTH = 120;
     private static final int INDENT = 2;
     private static final int COLUMN_GAP = 2;
 
-    private DatashareHelpFactory() {}
+    private DatashareHelpFactory() {
+    }
 
     /**
      * Applies help styling to cmd and all its subcommands recursively.
@@ -54,9 +52,8 @@ public final class DatashareHelpFactory {
         usage.width(HELP_WIDTH);
 
         if (isRoot) {
-            usage.footer("",
-                    "  Run '@|italic datashare COMMAND --help|@' for more information on a command.",
-                    "  Documentation and support: https://github.com/ICIJ/datashare");
+            usage.footer("", "  Run '@|italic datashare COMMAND --help|@' for more information on a command.",
+                         "  Documentation and support: https://github.com/ICIJ/datashare");
         }
 
         Map<String, CommandLine.IHelpSectionRenderer> sections = cmd.getHelpSectionMap();
@@ -64,15 +61,17 @@ public final class DatashareHelpFactory {
         // Bold markup (@|bold ...|@) is processed by picocli's ANSI pass at print time,
         // respecting --no-color / NO_COLOR automatically.
         for (String key : List.of(SECTION_KEY_OPTION_LIST_HEADING, SECTION_KEY_COMMAND_LIST_HEADING,
-                                   SECTION_KEY_PARAMETER_LIST_HEADING, SECTION_KEY_DESCRIPTION_HEADING)) {
+                                  SECTION_KEY_PARAMETER_LIST_HEADING, SECTION_KEY_DESCRIPTION_HEADING)) {
             sections.put(key, h -> "");
         }
 
-        sections.put(SECTION_KEY_DESCRIPTION,    DatashareHelpFactory::renderDescription);
-        sections.put(SECTION_KEY_OPTION_LIST,    h -> headedSection(h, "Options:",        ownOptionRows(h),    sharedFirstColWidth(h)));
-        sections.put(SECTION_KEY_COMMAND_LIST,   h -> headedSection(h, "Commands:",       renderCommandList(h)));
-        sections.put(SECTION_KEY_PARAMETER_LIST, h -> headedSection(h, "Arguments:",      renderParameterList(h)));
-        sections.put("globalOptionList",         h -> headedSection(h, "Global Options:", globalOptionRows(h), sharedFirstColWidth(h)));
+        sections.put(SECTION_KEY_DESCRIPTION, DatashareHelpFactory::renderDescription);
+        sections.put(SECTION_KEY_OPTION_LIST,
+                     h -> headedSection(h, "Options:", ownOptionRows(h), sharedFirstColWidth(h)));
+        sections.put(SECTION_KEY_COMMAND_LIST, h -> headedSection(h, "Commands:", renderCommandList(h)));
+        sections.put(SECTION_KEY_PARAMETER_LIST, h -> headedSection(h, "Arguments:", renderParameterList(h)));
+        sections.put("globalOptionList",
+                     h -> headedSection(h, "Global Options:", globalOptionRows(h), sharedFirstColWidth(h)));
 
         List<String> keys = new ArrayList<>(usage.sectionKeys());
         int idx = keys.indexOf(SECTION_KEY_OPTION_LIST);
@@ -102,9 +101,8 @@ public final class DatashareHelpFactory {
         if (!help.commandSpec().subcommands().isEmpty()) {
             return List.of();
         }
-        return optionRows(help.commandSpec().options().stream()
-                .filter(o -> !o.inherited())
-                .collect(Collectors.toList()));
+        return optionRows(
+                help.commandSpec().options().stream().filter(o -> !o.inherited()).collect(Collectors.toList()));
     }
 
     private static List<String[]> globalOptionRows(CommandLine.Help help) {
@@ -130,11 +128,9 @@ public final class DatashareHelpFactory {
 
     /** Filters, sorts, and maps a list of option specs to two-column row pairs. */
     private static List<String[]> optionRows(List<OptionSpec> options) {
-        return options.stream()
-                .filter(o -> !o.hidden())
-                .sorted(Comparator.comparing(DatashareHelpFactory::optionSortKey))
-                .map(o -> new String[]{ optionLabel(o), firstLine(o.description()) })
-                .collect(Collectors.toList());
+        return options.stream().filter(o -> !o.hidden())
+                      .sorted(Comparator.comparing(DatashareHelpFactory::optionSortKey))
+                      .map(o -> new String[] {optionLabel(o), firstLine(o.description())}).collect(Collectors.toList());
     }
 
     /**
@@ -142,13 +138,9 @@ public final class DatashareHelpFactory {
      * command's own options and the root's global options, so both sections align.
      */
     private static int sharedFirstColWidth(CommandLine.Help help) {
-        return Stream.concat(
-                help.commandSpec().options().stream().filter(o -> !o.inherited()),
-                help.commandSpec().root().options().stream()
-        ).filter(o -> !o.hidden())
-         .mapToInt(o -> optionLabel(o).length())
-         .max()
-         .orElse(0);
+        return Stream.concat(help.commandSpec().options().stream().filter(o -> !o.inherited()),
+                             help.commandSpec().root().options().stream()).filter(o -> !o.hidden())
+                     .mapToInt(o -> optionLabel(o).length()).max().orElse(0);
     }
 
     static String renderCommandList(CommandLine.Help help) {
@@ -156,23 +148,19 @@ public final class DatashareHelpFactory {
         if (subs.isEmpty()) {
             return "";
         }
-        List<String[]> rows = subs.entrySet().stream()
-                .map(e -> new String[]{ e.getKey(),
-                        firstLine(e.getValue().getCommandSpec().usageMessage().description()) })
-                .collect(Collectors.toList());
+        List<String[]> rows = subs.entrySet().stream().map(e -> new String[] {e.getKey(),
+                firstLine(e.getValue().getCommandSpec().usageMessage().description())}).collect(Collectors.toList());
         return twoColumns(rows);
     }
 
     static String renderParameterList(CommandLine.Help help) {
-        List<PositionalParamSpec> params = help.commandSpec().positionalParameters().stream()
-                .filter(p -> !p.hidden())
-                .collect(Collectors.toList());
+        List<PositionalParamSpec> params = help.commandSpec().positionalParameters().stream().filter(p -> !p.hidden())
+                                               .collect(Collectors.toList());
         if (params.isEmpty()) {
             return "";
         }
-        List<String[]> rows = params.stream()
-                .map(p -> new String[]{ p.paramLabel(), firstLine(p.description()) })
-                .collect(Collectors.toList());
+        List<String[]> rows = params.stream().map(p -> new String[] {p.paramLabel(), firstLine(p.description())})
+                                    .collect(Collectors.toList());
         return twoColumns(rows);
     }
 
@@ -204,12 +192,8 @@ public final class DatashareHelpFactory {
 
     /** Returns the sort key for an option: the long name (or first name) stripped of leading dashes, lowercased. */
     static String optionSortKey(OptionSpec option) {
-        return Arrays.stream(option.names())
-                .filter(n -> n.startsWith("--"))
-                .findFirst()
-                .orElse(option.names()[0])
-                .replaceFirst("^-+", "")
-                .toLowerCase();
+        return Arrays.stream(option.names()).filter(n -> n.startsWith("--")).findFirst().orElse(option.names()[0])
+                     .replaceFirst("^-+", "").toLowerCase();
     }
 
     /** Formats option names + param label: e.g. -b, --bind=<host> */
@@ -217,7 +201,8 @@ public final class DatashareHelpFactory {
         StringBuilder sb = new StringBuilder();
         String[] names = option.names();
         for (int i = 0; i < names.length; i++) {
-            if (i > 0) sb.append(", ");
+            if (i > 0)
+                sb.append(", ");
             sb.append(names[i]);
         }
         if (option.arity().max() > 0) {
@@ -241,10 +226,8 @@ public final class DatashareHelpFactory {
         Class<?> type = option.type();
 
         // Numeric Java types
-        if (type == int.class || type == Integer.class
-                || type == long.class || type == Long.class
-                || type == double.class || type == Double.class
-                || type == float.class || type == Float.class) {
+        if (type == int.class || type == Integer.class || type == long.class || type == Long.class ||
+            type == double.class || type == Double.class || type == float.class || type == Float.class) {
             return "<number>";
         }
 
@@ -254,12 +237,8 @@ public final class DatashareHelpFactory {
         }
 
         // Name-based hints for String options: use the longest --name, lowercased
-        String name = Arrays.stream(option.names())
-                .filter(n -> n.startsWith("--"))
-                .findFirst()
-                .orElse(option.names()[option.names().length - 1])
-                .replaceFirst("^-+", "")
-                .toLowerCase();
+        String name = Arrays.stream(option.names()).filter(n -> n.startsWith("--")).findFirst()
+                            .orElse(option.names()[option.names().length - 1]).replaceFirst("^-+", "").toLowerCase();
 
         if (name.endsWith("url") || name.endsWith("address") || name.endsWith("uri")) {
             return "<url>";

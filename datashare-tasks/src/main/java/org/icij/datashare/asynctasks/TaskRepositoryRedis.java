@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Optional;
 import java.util.stream.Stream;
-
 import org.icij.datashare.json.JsonObjectMapper;
 import org.redisson.Redisson;
 import org.redisson.RedissonMap;
@@ -18,12 +17,13 @@ public class TaskRepositoryRedis extends RedissonMap<String, TaskGroupMetadata<?
     }
 
     public TaskRepositoryRedis(RedissonClient redisson, String name) {
-        super(new TaskManagerRedis.RedisCodec<>(TaskGroupMetadata.class, JsonObjectMapper.getMapper()), new CommandSyncService(((Redisson) redisson).getConnectionManager(), new RedissonObjectBuilder(redisson)),
-                name, redisson, null, null);
+        super(new TaskManagerRedis.RedisCodec<>(TaskGroupMetadata.class, JsonObjectMapper.getMapper()),
+              new CommandSyncService(((Redisson) redisson).getConnectionManager(), new RedissonObjectBuilder(redisson)),
+              name, redisson, null, null);
     }
 
     @Override
-    public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask{
+    public <V extends Serializable> Task<V> getTask(String taskId) throws IOException, UnknownTask {
         TaskGroupMetadata<V> taskGroupMetadata = (TaskGroupMetadata<V>) super.get(taskId);
         if (taskGroupMetadata == null) {
             throw new UnknownTask(taskId);
@@ -33,9 +33,8 @@ public class TaskRepositoryRedis extends RedissonMap<String, TaskGroupMetadata<?
 
     @Override
     public Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException, UnknownTask {
-        return super.values().stream().map(TaskGroupMetadata::task)
-            .filter(filters::filter)
-            .map(t -> (Task<? extends Serializable>)t);
+        return super.values().stream().map(TaskGroupMetadata::task).filter(filters::filter)
+                    .map(t -> (Task<? extends Serializable>) t);
     }
 
     @Override

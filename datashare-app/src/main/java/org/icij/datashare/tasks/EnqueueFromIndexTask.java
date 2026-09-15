@@ -2,7 +2,6 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-
 import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PipelineHelper;
@@ -22,9 +21,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.List;
-
 import static java.lang.Integer.parseInt;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -56,8 +53,9 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         super(Stage.ENQUEUEIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
         this.factory = factory;
         this.indexer = indexer;
-        this.nlpPipeline = Pipeline.Type.parse((String) taskView.args.getOrDefault(NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name()));
-        this.projectName = (String)taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT);
+        this.nlpPipeline = Pipeline.Type.parse(
+                (String) taskView.args.getOrDefault(NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name()));
+        this.projectName = (String) taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT);
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(String.valueOf(DEFAULT_SCROLL_SIZE)));
         this.searchQuery = propertiesProvider.get(SEARCH_QUERY_OPT).orElse(null);
@@ -76,14 +74,14 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
             searcher = builder.withSource("rootDocument").limit(scrollSize);
         } else {
             searcher = indexer.search(singletonList(projectName), Document.class, new SearchQuery(searchQuery))
-                    .withoutSource("content", "contentTranslated").limit(scrollSize);
+                              .withoutSource("content", "contentTranslated").limit(scrollSize);
         }
         searcher.sort("language", Indexer.Searcher.SortOrder.ASC);
         List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
         long totalHits = searcher.totalHits();
         String pipelineInfo = (nextStage == Stage.NLP) ? " excluding already processed by " + nlpPipeline : "";
         logger.info("enqueuing doc ids for index {} targeting {}{} with {} scroll and size of {} : {} documents found",
-                projectName, nextStage, pipelineInfo, scrollDuration, scrollSize, totalHits);
+                    projectName, nextStage, pipelineInfo, scrollDuration, scrollSize, totalHits);
 
         try (DocumentQueue<String> outputQueue = factory.createQueue(getOutputQueueName(), String.class)) {
             do {

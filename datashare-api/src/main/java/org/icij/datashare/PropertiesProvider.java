@@ -2,7 +2,6 @@ package org.icij.datashare;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -18,7 +17,6 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import static java.lang.Character.toUpperCase;
 import static java.lang.Integer.parseInt;
 import static java.lang.System.getenv;
@@ -48,12 +46,14 @@ public class PropertiesProvider {
     public static final String TCP_LISTEN_PORT_OPT = "tcpListenPort";
     public static final String TEMPORAL_ADDRESS_OPT = "temporalAddress";
     public static final String TEMPORAL_NAMESPACE_OPT = "temporalNamespace";
-
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Path settingsPath;
     private volatile Properties cachedProperties;
 
-    public PropertiesProvider() {this((String) null);}
+    public PropertiesProvider() {
+        this((String) null);
+    }
+
     public PropertiesProvider(String fileName) {
         this.settingsPath = getFilePath(fileName);
     }
@@ -70,16 +70,13 @@ public class PropertiesProvider {
 
     public static Map<String, Object> propertiesToMap(final Properties properties) {
         return properties.entrySet().stream().collect(
-                Collectors.toMap(
-                        e -> String.valueOf(e.getKey()),
-                        Map.Entry::getValue,
-                        (prev, next) -> next, HashMap::new
-                ));
+                Collectors.toMap(e -> String.valueOf(e.getKey()), Map.Entry::getValue, (prev, next) -> next,
+                                 HashMap::new));
     }
 
     public Properties getProperties() {
         if (cachedProperties == null) {
-            synchronized(this) {
+            synchronized (this) {
                 if (cachedProperties == null) {
                     Properties localProperties = getFileProperties();
                     loadEnvVariables(localProperties);
@@ -117,8 +114,8 @@ public class PropertiesProvider {
      */
     public static Properties getEnvProperties() {
         Properties envProperties = new Properties();
-        envProperties.putAll(getenv().entrySet().stream().filter(entry -> entry.getKey().startsWith(PREFIX)).
-                collect(toMap(k -> camelCasify(k.getKey().replace(PREFIX, "")), Map.Entry::getValue)));
+        envProperties.putAll(getenv().entrySet().stream().filter(entry -> entry.getKey().startsWith(PREFIX)).collect(
+                toMap(k -> camelCasify(k.getKey().replace(PREFIX, "")), Map.Entry::getValue)));
         return envProperties;
     }
 
@@ -130,15 +127,13 @@ public class PropertiesProvider {
 
     private static String camelCasify(String str) {
         String[] stringParts = str.toLowerCase().split("_");
-        return stringParts[0] + stream(stringParts).skip(1).
-                map(s -> toUpperCase(s.charAt(0)) + s.substring(1)).
-                collect(joining());
+        return stringParts[0] +
+               stream(stringParts).skip(1).map(s -> toUpperCase(s.charAt(0)) + s.substring(1)).collect(joining());
     }
 
     public Optional<String> get(final String propertyName) {
-        return getProperties().getProperty(propertyName) == null ?
-                Optional.empty():
-                Optional.of((getProperties().getProperty(propertyName)));
+        return getProperties().getProperty(propertyName) == null ? Optional.empty() :
+               Optional.of((getProperties().getProperty(propertyName)));
     }
 
     public PropertiesProvider mergeWith(final Properties properties) {
@@ -181,9 +176,9 @@ public class PropertiesProvider {
     }
 
     public Map<String, Object> getFilteredProperties(String... excludedKeyPatterns) {
-        return getProperties().entrySet().
-                stream().filter(e -> stream(excludedKeyPatterns).noneMatch(s -> Pattern.matches(s, (String)e.getKey()))).
-                collect(toMap(e -> (String)e.getKey(), Map.Entry::getValue));
+        return getProperties().entrySet().stream().filter(e -> stream(excludedKeyPatterns).noneMatch(
+                                      s -> Pattern.matches(s, (String) e.getKey())))
+                              .collect(toMap(e -> (String) e.getKey(), Map.Entry::getValue));
     }
 
     public void save() throws IOException {
@@ -197,7 +192,8 @@ public class PropertiesProvider {
     }
 
     public static Properties fromMap(Map<String, Object> map) {
-        if (map == null) return null;
+        if (map == null)
+            return null;
         Properties properties = new Properties();
         properties.putAll(map);
         return properties;
@@ -208,17 +204,14 @@ public class PropertiesProvider {
     }
 
     public List<String> queueHashProperties() {
-        return QUEUE_HASH_PROPERTIES.stream()
-                .map(p -> get(p).orElse("-"))
-                .map(String::hashCode)
-                .map(String::valueOf)
-                .collect(Collectors.toList());
+        return QUEUE_HASH_PROPERTIES.stream().map(p -> get(p).orElse("-")).map(String::hashCode).map(String::valueOf)
+                                    .collect(Collectors.toList());
     }
 
     public String queueHash() {
         String defaultProject = get(DEFAULT_PROJECT_OPT).orElse("-");
         return Stream.concat(Stream.of(defaultProject), queueHashProperties().stream())
-                .collect(Collectors.joining(QUEUE_SEPARATOR));
+                     .collect(Collectors.joining(QUEUE_SEPARATOR));
     }
 
     public String queueNameWithHash() {
@@ -230,15 +223,15 @@ public class PropertiesProvider {
     }
 
     public int queueCapacity() throws IllegalArgumentException {
-            int qC = parseInt(get(QUEUE_CAPACITY_OPT).orElse(String.valueOf(DEFAULT_QUEUE_CAPACITY)));
-            if( qC < 1 ){
-                throw new IllegalArgumentException("Queue capacity must be a positive integer");
-            }
-            return qC;
+        int qC = parseInt(get(QUEUE_CAPACITY_OPT).orElse(String.valueOf(DEFAULT_QUEUE_CAPACITY)));
+        if (qC < 1) {
+            throw new IllegalArgumentException("Queue capacity must be a positive integer");
+        }
+        return qC;
     }
 
     private void putAllIfIsAbsent(Properties dest, Properties propertiesToMerge) {
-        for (Map.Entry entry: propertiesToMerge.entrySet()) {
+        for (Map.Entry entry : propertiesToMerge.entrySet()) {
             dest.putIfAbsent(entry.getKey(), entry.getValue());
         }
     }
@@ -246,8 +239,10 @@ public class PropertiesProvider {
     private Path getFilePath(String fileName) {
         Path path;
         if (fileName == null) {
-            URL url = Thread.currentThread().getContextClassLoader().getResource(DEFAULT_DATASHARE_PROPERTIES_FILE_NAME);
-            if (url == null) return null;
+            URL url =
+                    Thread.currentThread().getContextClassLoader().getResource(DEFAULT_DATASHARE_PROPERTIES_FILE_NAME);
+            if (url == null)
+                return null;
             path = Paths.get(url.getPath());
         } else {
             path = Paths.get(fileName);
@@ -274,6 +269,8 @@ public class PropertiesProvider {
     }
 
     public static class SettingsNotFound extends RuntimeException {
-        SettingsNotFound() { super("cannot find settings file");}
+        SettingsNotFound() {
+            super("cannot find settings file");
+        }
     }
 }

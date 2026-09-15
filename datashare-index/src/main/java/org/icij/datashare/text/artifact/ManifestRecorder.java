@@ -2,7 +2,6 @@ package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -23,7 +22,8 @@ public class ManifestRecorder {
     private final String taskId;
     private final RawArtifact raw = new RawArtifact();
 
-    public ManifestRecorder(ManifestRepository repository, Path projectRoot, List<Artifact> selected, boolean force, String taskId) {
+    public ManifestRecorder(ManifestRepository repository, Path projectRoot, List<Artifact> selected, boolean force,
+                            String taskId) {
         this.repository = repository;
         this.projectRoot = projectRoot;
         this.force = force;

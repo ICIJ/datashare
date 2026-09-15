@@ -1,7 +1,6 @@
 package org.icij.datashare.text;
 
 import me.xuender.unidecode.Unidecode;
-
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
@@ -14,6 +13,7 @@ import java.util.Random;
 public class StringUtils {
     private static final Random random = new Random();
     private static final String chars = "abcdefghijklmnopqrstuvwxyz01234567890";
+
     public static String normalize(String unicoded) {
         return Unidecode.decode(unicoded).trim().replaceAll("(\\s+)", " ").toLowerCase();
     }
@@ -61,20 +61,21 @@ public class StringUtils {
                     return getter.invoke(bean);
                 }
             }
-        } catch (IntrospectionException | IllegalAccessException | InvocationTargetException ignored) { }
+        } catch (IntrospectionException | IllegalAccessException | InvocationTargetException ignored) {
+        }
 
         // 2) Fallback: public field only (no private)
         try {
             Field field = bean.getClass().getField(propertyName);
             return field.get(bean);
-        } catch (NoSuchFieldException | IllegalAccessException ignored) { }
+        } catch (NoSuchFieldException | IllegalAccessException ignored) {
+        }
 
         // not found
         return null;
     }
 
-    public static String generateString(int length)
-    {
+    public static String generateString(int length) {
         char[] text = new char[length];
         for (int i = 0; i < length; i++) {
             text[i] = chars.charAt(random.nextInt(chars.length()));

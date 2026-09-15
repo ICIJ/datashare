@@ -17,18 +17,18 @@ import org.icij.datashare.policies.TaskPolicy;
 import org.icij.datashare.policies.TaskPolicyAnnotation;
 import org.icij.datashare.session.*;
 import org.icij.datashare.web.*;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-
 import static org.icij.datashare.cli.DatashareCliOptions.AUTH_FILTER_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.AUTH_MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_STORE_TYPE_OPT;
 
 public class ServerMode extends CommonMode {
-    ServerMode(Properties properties) { super(properties);}
+    ServerMode(Properties properties) {
+        super(properties);
+    }
 
     @Override
     protected void configure() {
@@ -37,14 +37,15 @@ public class ServerMode extends CommonMode {
         Class<? extends Filter> authFilterClass = resolveAuthFilterClass();
         // Materialize the effective auth mode back into the properties so the public /settings
         // endpoint reports it (e.g. "form" by default). Unrecognized custom filters write nothing.
-        modeForFilterClass(authFilterClass)
-                .ifPresent(mode -> propertiesProvider.setProperty(AUTH_MODE_OPT, mode.cliName));
+        modeForFilterClass(authFilterClass).ifPresent(
+                mode -> propertiesProvider.setProperty(AUTH_MODE_OPT, mode.cliName));
         bindAuthFilter(authFilterClass);
         bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     SessionIdStore provideSessionIdStore() {
         QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
         if (QueueType.MEMORY == sessionStoreType) {
@@ -57,21 +58,25 @@ public class ServerMode extends CommonMode {
 
     static Class<? extends Filter> filterClassFor(AuthMode mode) {
         switch (mode) {
-            case OAUTH:      return OAuth2CookieFilter.class;
-            case FORM:       return FormAuthFilter.class;
-            case BASIC:      return BasicAuthAdaptorFilter.class;
-            case YES_COOKIE: return YesCookieAuthFilter.class;
-            case YES_BASIC:  return YesBasicAuthFilter.class;
-            default:         throw new IllegalStateException("Unhandled auth mode: " + mode);
+            case OAUTH:
+                return OAuth2CookieFilter.class;
+            case FORM:
+                return FormAuthFilter.class;
+            case BASIC:
+                return BasicAuthAdaptorFilter.class;
+            case YES_COOKIE:
+                return YesCookieAuthFilter.class;
+            case YES_BASIC:
+                return YesBasicAuthFilter.class;
+            default:
+                throw new IllegalStateException("Unhandled auth mode: " + mode);
         }
     }
 
     // Inverse of filterClassFor. Relies on filterClassFor being total over AuthMode: a new enum
     // value without a matching case there makes this throw, so keep the switch above exhaustive.
     static Optional<AuthMode> modeForFilterClass(Class<? extends Filter> clazz) {
-        return Arrays.stream(AuthMode.values())
-                .filter(mode -> filterClassFor(mode).equals(clazz))
-                .findFirst();
+        return Arrays.stream(AuthMode.values()).filter(mode -> filterClassFor(mode).equals(clazz)).findFirst();
     }
 
     @SuppressWarnings("unchecked")
@@ -87,9 +92,11 @@ public class ServerMode extends CommonMode {
         if (!authFilterClassName.isEmpty()) {
             logger.warn("--authFilter is deprecated; prefer --auth (oauth, form, basic, yesCookie, yesBasic)");
             try {
-                return (Class<? extends Filter>) Class.forName(authFilterClassName, true, ClassLoader.getSystemClassLoader());
+                return (Class<? extends Filter>) Class.forName(authFilterClassName, true,
+                                                               ClassLoader.getSystemClassLoader());
             } catch (ClassNotFoundException e) {
-                logger.warn("\"{}\" auth filter class not found. Using default {}", authFilterClassName, FormAuthFilter.class);
+                logger.warn("\"{}\" auth filter class not found. Using default {}", authFilterClassName,
+                            FormAuthFilter.class);
                 return FormAuthFilter.class;
             }
         }
@@ -123,23 +130,11 @@ public class ServerMode extends CommonMode {
     @Override
     protected Routes addModeConfiguration(Routes routes) {
         addPermissionConfiguration(routes);
-        return routes.
-                add(TaskResource.class).
-                add(IndexResource.class).
-                add(UserResource.class).
-                add(NamedEntityResource.class).
-                add(DocumentResource.class).
-                add(ArtifactResource.class).
-                add(DocumentUserRecommendationResource.class).
-                add(BatchSearchResource.class).
-                add(PathBannerResource.class).
-                add(FtmResource.class).
-                add(NerResource.class).
-                add(ApiKeyResource.class).
-                add(ProjectResource.class).
-                add(ContentTypeResource.class).
-                filter(CsrfFilter.class).
-                filter(ApiKeyFilter.class).
-                filter(Filter.class);
+        return routes.add(TaskResource.class).add(IndexResource.class).add(UserResource.class)
+                     .add(NamedEntityResource.class).add(DocumentResource.class).add(ArtifactResource.class)
+                     .add(DocumentUserRecommendationResource.class).add(BatchSearchResource.class)
+                     .add(PathBannerResource.class).add(FtmResource.class).add(NerResource.class)
+                     .add(ApiKeyResource.class).add(ProjectResource.class).add(ContentTypeResource.class)
+                     .filter(CsrfFilter.class).filter(ApiKeyFilter.class).filter(Filter.class);
     }
 }

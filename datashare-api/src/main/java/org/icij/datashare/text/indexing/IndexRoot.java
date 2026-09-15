@@ -7,6 +7,4 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-public @interface IndexRoot {
-
-}
+public @interface IndexRoot {}

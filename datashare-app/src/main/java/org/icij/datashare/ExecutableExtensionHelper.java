@@ -1,7 +1,6 @@
 package org.icij.datashare;
 
 import static org.icij.datashare.Extension.extractIdVersion;
-
 import com.google.inject.Inject;
 import java.io.File;
 import java.nio.file.Path;
@@ -40,18 +39,22 @@ public class ExecutableExtensionHelper {
     private Path locateExtension() {
         Set<File> extensionBins = extensionService.listInstalled(extensionPattern);
         return switch (extensionBins.size()) {
-            case 0 -> throw new RuntimeException("Couldn't find any executable for extension " + extensionId + " (matching " + extensionPattern
-                + "), extension must be installed !");
+            case 0 -> throw new RuntimeException(
+                    "Couldn't find any executable for extension " + extensionId + " (matching " + extensionPattern +
+                    "), extension must be installed !");
             case 1 -> extensionBins.iterator().next().toPath();
-            default -> throw new RuntimeException("Found several executable extension " + extensionId + " (matching " + extensionPattern
-                + "), extension must be installed !");
+            default -> throw new RuntimeException(
+                    "Found several executable extension " + extensionId + " (matching " + extensionPattern +
+                    "), extension must be installed !");
         };
     }
 
     private String fileNamePattern() {
-        Map.Entry<String, String> res = extractIdVersion(((Extension) this.extensionService.list().stream().filter(ext -> ext.getId().equals(this.extensionId)).findAny()
-            .orElseThrow(() -> new RuntimeException("couldn't find any extension matching " + extensionId)).reference())
-            .url);
+        Map.Entry<String, String> res = extractIdVersion(
+                ((Extension) this.extensionService.list().stream().filter(ext -> ext.getId().equals(this.extensionId))
+                                                  .findAny().orElseThrow(
+                                () -> new RuntimeException("couldn't find any extension matching " + extensionId))
+                                                  .reference()).url);
         String filename = res.getKey();
         return "^" + Pattern.quote(filename) + ".*$";
     }

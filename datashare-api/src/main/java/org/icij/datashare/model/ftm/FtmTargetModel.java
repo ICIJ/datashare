@@ -8,7 +8,6 @@ import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.UnreadableModelResource;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -32,7 +31,6 @@ import java.util.TreeSet;
  */
 public class FtmTargetModel implements TargetModel {
     private static final String RESOURCE = "ftm/defaultModel-4.10.2.json";
-
     private final String version;
     private final Map<String, EntityType> types;
 
@@ -108,18 +106,15 @@ public class FtmTargetModel implements TargetModel {
     public List<Violation> validate(ModelEntity entity) {
         List<Violation> violations = new ArrayList<>(TargetModel.super.validate(entity));
         if (entity.types().size() > 1 && mostSpecific(entity.types()).isEmpty()) {
-            violations.add(new Violation("types " + new TreeSet<>(entity.types())
-                    + " have no common schema, so the entity cannot be written as FtM JSON"));
+            violations.add(new Violation("types " + new TreeSet<>(entity.types()) +
+                                         " have no common schema, so the entity cannot be written as FtM JSON"));
         }
         return violations;
     }
 
     private Optional<String> mostSpecific(Set<String> types) {
-        return types.stream()
-                .filter(candidate -> type(candidate)
-                        .map(found -> found.ancestors().containsAll(types))
-                        .orElse(false))
-                .findFirst();
+        return types.stream().filter(candidate -> type(candidate).map(found -> found.ancestors().containsAll(types))
+                                                                 .orElse(false)).findFirst();
     }
 
     private static Map<String, EntityType> types(JsonNode schemata) {
@@ -130,8 +125,8 @@ public class FtmTargetModel implements TargetModel {
             required.put(schema.getKey(), strings(schema.getValue().path("required")));
         });
         Map<String, EntityType> types = new HashMap<>();
-        schemata.properties().forEach(schema ->
-                types.put(schema.getKey(), type(schema.getKey(), schema.getValue(), properties, required)));
+        schemata.properties().forEach(
+                schema -> types.put(schema.getKey(), type(schema.getKey(), schema.getValue(), properties, required)));
         return Map.copyOf(types);
     }
 
@@ -149,8 +144,8 @@ public class FtmTargetModel implements TargetModel {
             properties.putAll(declared.getOrDefault(ancestor, Map.of()));
             required.addAll(declaredRequired.getOrDefault(ancestor, Set.of()));
         });
-        return new EntityType(name, schema.path("abstract").asBoolean(false), ancestors,
-                Map.copyOf(properties), Collections.unmodifiableSet(required), edge(schema.path("edge")));
+        return new EntityType(name, schema.path("abstract").asBoolean(false), ancestors, Map.copyOf(properties),
+                              Collections.unmodifiableSet(required), edge(schema.path("edge")));
     }
 
     private static Map<String, Property> properties(JsonNode node) {
@@ -161,13 +156,13 @@ public class FtmTargetModel implements TargetModel {
 
     private static Property property(JsonNode property) {
         return new Property(present(property, "qname").asText(), property.path("range").asText(null),
-                property.path("stub").asBoolean(false));
+                            property.path("stub").asBoolean(false));
     }
 
     private static EntityType.Edge edge(JsonNode edge) {
-        return edge.isMissingNode() || edge.isNull() ? null
-                : new EntityType.Edge(present(edge, "source").asText(), present(edge, "target").asText(),
-                        edge.path("directed").asBoolean(false));
+        return edge.isMissingNode() || edge.isNull() ? null :
+               new EntityType.Edge(present(edge, "source").asText(), present(edge, "target").asText(),
+                                   edge.path("directed").asBoolean(false));
     }
 
     private static Set<String> strings(JsonNode array) {
@@ -186,5 +181,5 @@ public class FtmTargetModel implements TargetModel {
         return value;
     }
 
-    record FtmEntity(String id, String schema, Map<String, List<String>> properties) { }
+    record FtmEntity(String id, String schema, Map<String, List<String>> properties) {}
 }

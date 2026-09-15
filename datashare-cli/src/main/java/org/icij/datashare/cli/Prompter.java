@@ -11,22 +11,24 @@ import java.util.function.Supplier;
 public class Prompter {
     public static class ValidationFailedException extends RuntimeException {
         private final String field;
+
         public ValidationFailedException(String field, String message) {
             super(message);
             this.field = field;
         }
-        public String field() { return field; }
+
+        public String field() {
+            return field;
+        }
     }
 
     static final int MAX_RETRIES = 3;
-
     private final BufferedReader in;
     private final PrintWriter out;
     private final Supplier<char[]> passwordSupplier;
 
     public Prompter() {
-        this(new BufferedReader(new InputStreamReader(System.in)),
-             new PrintWriter(System.err, true),
+        this(new BufferedReader(new InputStreamReader(System.in)), new PrintWriter(System.err, true),
              () -> System.console() == null ? new char[0] : System.console().readPassword());
     }
 
@@ -50,7 +52,8 @@ public class Prompter {
             } catch (IOException e) {
                 throw new ValidationFailedException("io", e.getMessage());
             }
-            if (line == null) line = "";
+            if (line == null)
+                line = "";
             try {
                 validator.accept(line);
                 return line;
@@ -70,15 +73,13 @@ public class Prompter {
             out.print("Password (confirm): ");
             out.flush();
             char[] confirmation = passwordSupplier.get();
-            if (firstEntry != null && confirmation != null
-                    && firstEntry.length > 0
-                    && Arrays.equals(firstEntry, confirmation)) {
+            if (firstEntry != null && confirmation != null && firstEntry.length > 0 &&
+                Arrays.equals(firstEntry, confirmation)) {
                 return new String(firstEntry);
             }
             out.println("invalid: passwords do not match or are empty");
         }
-        throw new ValidationFailedException("password",
-                "password entry failed after " + MAX_RETRIES + " attempts");
+        throw new ValidationFailedException("password", "password entry failed after " + MAX_RETRIES + " attempts");
     }
 
     public boolean confirm(String label) {
@@ -86,8 +87,7 @@ public class Prompter {
         out.flush();
         try {
             String line = in.readLine();
-            return line != null && !line.isEmpty()
-                    && (line.charAt(0) == 'y' || line.charAt(0) == 'Y');
+            return line != null && !line.isEmpty() && (line.charAt(0) == 'y' || line.charAt(0) == 'Y');
         } catch (IOException e) {
             // Treat IO failure as an implicit "no": refusing to delete on a
             // broken stream is safer than acting on garbage input.

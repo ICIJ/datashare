@@ -150,6 +150,7 @@
         <maven-exec.version>1.5.0</maven-exec.version>
         <maven-javadoc.version>3.1.0</maven-javadoc.version>
         <git-commit-id-maven-plugin.version>9.0.0</git-commit-id-maven-plugin.version>
+        <formater.version>1.0.4</formater.version>
 
         <!-- Env file -->
         <devenv.file>${maven.multiModuleProjectDirectory}/datashare-devenv.properties</devenv.file>
@@ -496,6 +497,14 @@
     <build>
         <pluginManagement>
             <plugins>
+
+                <plugin>
+                    <groupId>org.icij</groupId>
+                    <artifactId>intellij-code-formatter-maven-plugin</artifactId>
+                    <version>${formater.version}</version>
+                    <!-- no <executions> — only runs via explicit `mvn intellij-code-formatter:check` -->
+                </plugin>
+
                 <!-- Compile -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -754,6 +763,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.icij</groupId>
+                <artifactId>intellij-code-formatter-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

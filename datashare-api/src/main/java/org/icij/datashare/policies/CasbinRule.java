@@ -1,7 +1,6 @@
 package org.icij.datashare.policies;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-
 import java.util.List;
 
 public class CasbinRule {
@@ -62,19 +61,14 @@ public class CasbinRule {
     }
 
     public static String escapeSingleRule(String rule) {
-        return !rule.isEmpty() && (!rule.startsWith("\"") || !rule.endsWith("\"")) ? String.format("\"%s\"", rule) : rule;
+        return !rule.isEmpty() && (!rule.startsWith("\"") || !rule.endsWith("\"")) ? String.format("\"%s\"", rule) :
+               rule;
     }
 
     public static CasbinRule escape(CasbinRule line) {
-        return new CasbinRule(
-                line.ptype,
-                escapeSingleRule(line.v0),
-                escapeSingleRule(line.v1),
-                escapeSingleRule(line.v2),
-                escapeSingleRule(line.v3),
-                escapeSingleRule(line.v4),
-                escapeSingleRule(line.v5)
-        );
+        return new CasbinRule(line.ptype, escapeSingleRule(line.v0), escapeSingleRule(line.v1),
+                              escapeSingleRule(line.v2), escapeSingleRule(line.v3), escapeSingleRule(line.v4),
+                              escapeSingleRule(line.v5));
     }
 
     public static String getLineText(CasbinRule escapedLine) {
@@ -102,12 +96,14 @@ public class CasbinRule {
 
     @JsonCreator
     public static CasbinRule fromArray(List<String> arr) {
-        if (arr.isEmpty()) return new CasbinRule();
+        if (arr.isEmpty())
+            return new CasbinRule();
         String ptype = arr.get(0);
         String[] values = arr.subList(1, arr.size()).toArray(new String[0]);
         return new CasbinRule(ptype, values);
     }
+
     public String[] toStringArray() {
-        return new String[]{this.ptype, this.v0, this.v1, this.v2, this.v3, this.v4, this.v5};
+        return new String[] {this.ptype, this.v0, this.v1, this.v2, this.v3, this.v4, this.v5};
     }
 }

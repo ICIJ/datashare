@@ -5,7 +5,6 @@ import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
 import static org.apache.commons.lang3.ClassUtils.getPackageName;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
-
 import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.FieldSpec;
@@ -52,18 +51,20 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
     private static final ClassName CLASS_TYPE = ClassName.get(Class.class);
     private static final ClassName EXCEPTION_TYPE = ClassName.get(Exception.class);
     private static final ParameterizedTypeName RETRIABLES_TYPE = ParameterizedTypeName.get(ClassName.get(Set.class),
-        ParameterizedTypeName.get(CLASS_TYPE, WildcardTypeName.subtypeOf(EXCEPTION_TYPE)));
+                                                                                           ParameterizedTypeName.get(
+                                                                                                   CLASS_TYPE,
+                                                                                                   WildcardTypeName.subtypeOf(
+                                                                                                           EXCEPTION_TYPE)));
     private static final ClassName TEMPORAL_WF_IMPL_TYPE = ClassName.get(TemporalWorkflowImpl.class);
     private static final ClassName TEMPORAL_ACTIVITY_IMPL_TYPE = ClassName.get(TemporalActivityImpl.class);
     private static final ClassName WF_TYPE = ClassName.get(Workflow.class);
     private static final ClassName ACT_OPTIONS_TYPE = ClassName.get(ActivityOptions.class);
     private static final ClassName DURATION_TYPE = ClassName.get(Duration.class);
-    private static final String WF_IMPL_CONSTRUCTOR_CODE = "this.activity = $T.newActivityStub($T.class, $T.newBuilder().setTaskQueue(\"$L\").setStartToCloseTimeout($L.parse(\"$L\")).build());";
-    private static final ParameterizedTypeName ARG_TYPE = ParameterizedTypeName.get(
-        ClassName.get(Map.class),
-        ClassName.get(String.class),
-        ClassName.get(Object.class)
-    );
+    private static final String WF_IMPL_CONSTRUCTOR_CODE =
+            "this.activity = $T.newActivityStub($T.class, $T.newBuilder().setTaskQueue(\"$L\").setStartToCloseTimeout($L.parse(\"$L\")).build());";
+    private static final ParameterizedTypeName ARG_TYPE =
+            ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class),
+                                      ClassName.get(Object.class));
 
     public TemporalWorkflowGenerator() {
         super();
@@ -73,7 +74,8 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         for (Element element : roundEnv.getElementsAnnotatedWith(TemporalSingleActivityWorkflow.class)) {
             TypeElement classElement = (TypeElement) element;
-            TemporalSingleActivityWorkflow annotation = classElement.getAnnotation(TemporalSingleActivityWorkflow.class);
+            TemporalSingleActivityWorkflow annotation =
+                    classElement.getAnnotation(TemporalSingleActivityWorkflow.class);
             String packageName = getPackageName(classElement.getQualifiedName().toString());
 
             String wfType = classElement.getQualifiedName().toString();
@@ -83,21 +85,21 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
             String actInterface = baseName + "Activity";
             String actImpl = actInterface + "Impl";
             TypeName outputType = parseOutputType(classElement);
-            ClassName datashareTaskType = ClassName.get(getPackageName(classElement.getQualifiedName().toString()), classElement.getSimpleName().toString());
+            ClassName datashareTaskType = ClassName.get(getPackageName(classElement.getQualifiedName().toString()),
+                                                        classElement.getSimpleName().toString());
             String actTimeout = annotation.activityOptions().timeout();
             String actTaskQueue = annotation.activityOptions().taskQueue();
             Set<TypeName> retriables = parseRetriables(annotation.activityOptions());
 
-
-            Map<String, JavaFile> generated = Map.of(
-                wfInterface, generateWorkflowInterface(packageName, wfInterface, wfType, outputType),
-                actInterface, generateActivity(packageName, actInterface, wfType, outputType),
-                wfImpl, generateWorkflowImpl(packageName, wfInterface, outputType, actInterface, actTaskQueue, actTimeout),
-                actImpl, generateActivityImpl(packageName, actInterface, outputType, datashareTaskType, retriables)
-            );
+            Map<String, JavaFile> generated =
+                    Map.of(wfInterface, generateWorkflowInterface(packageName, wfInterface, wfType, outputType),
+                           actInterface, generateActivity(packageName, actInterface, wfType, outputType), wfImpl,
+                           generateWorkflowImpl(packageName, wfInterface, outputType, actInterface, actTaskQueue,
+                                                actTimeout), actImpl,
+                           generateActivityImpl(packageName, actInterface, outputType, datashareTaskType, retriables));
 
             try {
-                generated.entrySet().forEach(rethrowConsumer( e -> {
+                generated.entrySet().forEach(rethrowConsumer(e -> {
                     JavaFileObject activity = processingEnv.getFiler().createSourceFile(packageName + "." + e.getKey());
                     try (PrintWriter out = new PrintWriter(activity.openWriter())) {
                         e.getValue().writeTo(out);
@@ -134,125 +136,90 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
         return retriableTypes.stream().map(TypeName::get).collect(Collectors.toSet());
     }
 
-    private JavaFile generateWorkflowInterface(String packageName, String wfInterface, String wfType, TypeName outputType) {
-        AnnotationSpec wfMethodAnnotationSpec = AnnotationSpec.builder(WorkflowMethod.class)
-            .addMember("name", "$S", wfType)
-            .build();
-        MethodSpec run = MethodSpec.methodBuilder("run")
-            .addAnnotation(wfMethodAnnotationSpec)
-            .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-            .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
-            .returns(outputType)
-            .addException(Exception.class)
-            .build();
-        TypeSpec wfInterfaceSpec = TypeSpec.interfaceBuilder(wfInterface)
-            .addModifiers(Modifier.PUBLIC)
-            .addAnnotation(WorkflowInterface.class)
-            .addMethod(run)
-            .build();
+    private JavaFile generateWorkflowInterface(String packageName, String wfInterface, String wfType,
+                                               TypeName outputType) {
+        AnnotationSpec wfMethodAnnotationSpec =
+                AnnotationSpec.builder(WorkflowMethod.class).addMember("name", "$S", wfType).build();
+        MethodSpec run = MethodSpec.methodBuilder("run").addAnnotation(wfMethodAnnotationSpec)
+                                   .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                                   .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
+                                   .returns(outputType).addException(Exception.class).build();
+        TypeSpec wfInterfaceSpec = TypeSpec.interfaceBuilder(wfInterface).addModifiers(Modifier.PUBLIC)
+                                           .addAnnotation(WorkflowInterface.class).addMethod(run).build();
         return JavaFile.builder(packageName, wfInterfaceSpec).build();
     }
 
-    private JavaFile generateWorkflowImpl(String packageName, String wfInterface, TypeName outputType, String actInterface, String actTaskQueue, String actTimeout) {
+    private JavaFile generateWorkflowImpl(String packageName, String wfInterface, TypeName outputType,
+                                          String actInterface, String actTaskQueue, String actTimeout) {
         String workflow = wfInterface + "Impl";
         ClassName actInterfaceType = ClassName.get(packageName, actInterface);
-        MethodSpec constructor = MethodSpec.constructorBuilder()
-            .addModifiers(Modifier.PUBLIC)
-            .addCode(WF_IMPL_CONSTRUCTOR_CODE, WF_TYPE, actInterfaceType, ACT_OPTIONS_TYPE, actTaskQueue, DURATION_TYPE, actTimeout)
-            .build();
-        MethodSpec run = MethodSpec.methodBuilder("run")
-            .addAnnotation(Override.class)
-            .addModifiers(Modifier.PUBLIC)
-            .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
-            .addCode("return this.activity.run(args);")
-            .returns(outputType)
-            .addException(Exception.class)
-            .build();
-        TypeSpec wfImplSpec = TypeSpec.classBuilder(workflow)
-            .addModifiers(Modifier.PUBLIC)
-            .superclass(TEMPORAL_WF_IMPL_TYPE)
-            .addSuperinterface(ClassName.get(packageName, wfInterface))
-            .addField(FieldSpec.builder(actInterfaceType, "activity", Modifier.PRIVATE, Modifier.FINAL).build())
-            .addMethod(constructor)
-            .addMethod(run)
-            .build();
+        MethodSpec constructor = MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC)
+                                           .addCode(WF_IMPL_CONSTRUCTOR_CODE, WF_TYPE, actInterfaceType,
+                                                    ACT_OPTIONS_TYPE, actTaskQueue, DURATION_TYPE, actTimeout).build();
+        MethodSpec run = MethodSpec.methodBuilder("run").addAnnotation(Override.class).addModifiers(Modifier.PUBLIC)
+                                   .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
+                                   .addCode("return this.activity.run(args);").returns(outputType)
+                                   .addException(Exception.class).build();
+        TypeSpec wfImplSpec =
+                TypeSpec.classBuilder(workflow).addModifiers(Modifier.PUBLIC).superclass(TEMPORAL_WF_IMPL_TYPE)
+                        .addSuperinterface(ClassName.get(packageName, wfInterface)).addField(
+                                FieldSpec.builder(actInterfaceType, "activity", Modifier.PRIVATE, Modifier.FINAL).build())
+                        .addMethod(constructor).addMethod(run).build();
         return JavaFile.builder(packageName, wfImplSpec).build();
 
     }
 
-    private JavaFile generateActivity(
-        String packageName, String actInterface, String actType, TypeName outputType
-    ) {
-        AnnotationSpec actMethodAnnotationSpec = AnnotationSpec.builder(ActivityMethod.class)
-            .addMember("name", "$S", actType)
-            .build();
-        MethodSpec run = MethodSpec.methodBuilder("run")
-            .addAnnotation(actMethodAnnotationSpec)
-            .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-            .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
-            .returns(outputType)
-            .addException(Exception.class)
-            .build();
-        TypeSpec actInterfaceSpec = TypeSpec.interfaceBuilder(actInterface)
-            .addModifiers(Modifier.PUBLIC)
-            .addAnnotation(ActivityInterface.class)
-            .addMethod(run)
-            .build();
+    private JavaFile generateActivity(String packageName, String actInterface, String actType, TypeName outputType) {
+        AnnotationSpec actMethodAnnotationSpec =
+                AnnotationSpec.builder(ActivityMethod.class).addMember("name", "$S", actType).build();
+        MethodSpec run = MethodSpec.methodBuilder("run").addAnnotation(actMethodAnnotationSpec)
+                                   .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                                   .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
+                                   .returns(outputType).addException(Exception.class).build();
+        TypeSpec actInterfaceSpec = TypeSpec.interfaceBuilder(actInterface).addModifiers(Modifier.PUBLIC)
+                                            .addAnnotation(ActivityInterface.class).addMethod(run).build();
         return JavaFile.builder(packageName, actInterfaceSpec).build();
     }
 
-    private JavaFile generateActivityImpl(String packageName, String actInterface, TypeName outputType, TypeName datashareTaskClass, Set<TypeName> retriables) {
+    private JavaFile generateActivityImpl(String packageName, String actInterface, TypeName outputType,
+                                          TypeName datashareTaskClass, Set<TypeName> retriables) {
         String activityImpl = actInterface + "Impl";
-        MethodSpec constructor = MethodSpec.constructorBuilder()
-            .addModifiers(Modifier.PUBLIC)
-            .addParameter(TaskFactory.class, "factory")
-            .addParameter(WorkflowClient.class, "client")
-            .addParameter(TaskRepository.class, "taskRepository")
-            .addParameter(Double.class, "progressWeight")
-            .addCode("super(factory, client, taskRepository, progressWeight);")
-            .build();
-        MethodSpec run = MethodSpec.methodBuilder("run")
-            .addAnnotation(Override.class)
-            .addModifiers(Modifier.PUBLIC)
-            .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
-            .addCode("return super.run(args);")
-            .returns(outputType)
-            .addException(Exception.class)
-            .build();
-        MethodSpec getTaskClass = MethodSpec.methodBuilder("getTaskClass")
-            .addAnnotation(Override.class)
-            .addModifiers(Modifier.PROTECTED)
-            .addCode("return $T.class;", datashareTaskClass)
-            .returns(ParameterizedTypeName.get(CLASS_TYPE, datashareTaskClass))
-            .build();
-        TypeSpec.Builder activityBuilder = TypeSpec.classBuilder(activityImpl)
-            .addModifiers(Modifier.PUBLIC)
-            .superclass(ParameterizedTypeName.get(TEMPORAL_ACTIVITY_IMPL_TYPE, outputType, datashareTaskClass))
-            .addSuperinterface(ClassName.get(packageName, actInterface))
-            .addMethod(constructor)
-            .addMethod(getTaskClass);
+        MethodSpec constructor =
+                MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC).addParameter(TaskFactory.class, "factory")
+                          .addParameter(WorkflowClient.class, "client")
+                          .addParameter(TaskRepository.class, "taskRepository")
+                          .addParameter(Double.class, "progressWeight")
+                          .addCode("super(factory, client, taskRepository, progressWeight);").build();
+        MethodSpec run = MethodSpec.methodBuilder("run").addAnnotation(Override.class).addModifiers(Modifier.PUBLIC)
+                                   .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
+                                   .addCode("return super.run(args);").returns(outputType).addException(Exception.class)
+                                   .build();
+        MethodSpec getTaskClass =
+                MethodSpec.methodBuilder("getTaskClass").addAnnotation(Override.class).addModifiers(Modifier.PROTECTED)
+                          .addCode("return $T.class;", datashareTaskClass)
+                          .returns(ParameterizedTypeName.get(CLASS_TYPE, datashareTaskClass)).build();
+        TypeSpec.Builder activityBuilder = TypeSpec.classBuilder(activityImpl).addModifiers(Modifier.PUBLIC).superclass(
+                                                           ParameterizedTypeName.get(TEMPORAL_ACTIVITY_IMPL_TYPE, outputType, datashareTaskClass))
+                                                   .addSuperinterface(ClassName.get(packageName, actInterface))
+                                                   .addMethod(constructor).addMethod(getTaskClass);
         if (!retriables.isEmpty()) {
             String setOfRetriables = "Set.of(";
             setOfRetriables += retriables.stream().map(e -> "$T.class").collect(joining(", "));
             setOfRetriables += ")";
-            MethodSpec getRetriables = MethodSpec.methodBuilder("getRetriables")
-                .addAnnotation(Override.class)
-                .addModifiers(Modifier.PROTECTED)
-                .addCode("return " + setOfRetriables + ";", retriables.toArray())
-                .returns(RETRIABLES_TYPE)
-                .build();
+            MethodSpec getRetriables = MethodSpec.methodBuilder("getRetriables").addAnnotation(Override.class)
+                                                 .addModifiers(Modifier.PROTECTED)
+                                                 .addCode("return " + setOfRetriables + ";", retriables.toArray())
+                                                 .returns(RETRIABLES_TYPE).build();
             activityBuilder.addMethod(getRetriables);
         }
-        TypeSpec workflowImplSpec = activityBuilder
-            .addMethod(run)
-            .build();
+        TypeSpec workflowImplSpec = activityBuilder.addMethod(run).build();
         return JavaFile.builder(packageName, workflowImplSpec).build();
 
     }
 
     private String asClassName(String name, String sep) {
         return stream(name.toLowerCase().split(sep)).map(s -> toUpperCase(s.charAt(0)) + s.substring(1))
-            .collect(joining());
+                                                    .collect(joining());
     }
 
 }

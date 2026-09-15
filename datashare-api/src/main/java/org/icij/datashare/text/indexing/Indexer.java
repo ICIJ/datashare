@@ -8,7 +8,6 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -16,24 +15,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-
 public interface Indexer extends Closeable {
     Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
 
     QueryBuilderSearcher search(List<String> indexesNames, Class<? extends Entity> entityClass);
+
     Searcher search(List<String> indexesNames, Class<? extends Entity> entityClass, SearchQuery query);
 
     /** Creates {@code indexName} and, unless it is itself a "&lt;project&gt;.entities" name, the entities
      *  index derived from it, so every creation path pairs the two. Returns false when {@code indexName}
      *  already exists, and creates neither index if either creation fails. */
     boolean createIndex(String indexName) throws IOException;
+
     /** Creates the "&lt;projectId&gt;.entities" index holding the project's extracted entities, with the
      *  entity mappings rather than the document ones. Returns false when it already exists. */
     boolean createEntitiesIndex(String projectId) throws IOException;
+
     /** Drops {@code indexName}, mappings included, and returns false when it does not exist. Unlike
      *  {@link #deleteAll} this discards the mappings, so it is how an index gets re-created with new ones. */
     boolean deleteIndex(String indexName) throws IOException;
+
     boolean deleteAll(String indexName) throws IOException;
+
     /**
      * Returns the number of documents indexed in {@code indexName}, or 0 if the index
      * is empty or does not exist. Counts only first-class documents (filtered by
@@ -43,64 +46,106 @@ public interface Indexer extends Closeable {
     long count(String indexName) throws IOException;
 
     boolean getHealth();
+
     boolean ping() throws IOException;
+
     void close() throws IOException;
+
     Map<String, String> getVersion() throws IOException;
 
-    boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
+    boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws
+            IOException;
+
     <T extends Entity> boolean bulkAdd(final String indexName, List<T> entities) throws IOException;
+
     <T extends Entity> boolean bulkUpdate(String indexName, List<T> entities) throws IOException;
+
     <T extends Entity> void add(String indexName, T obj) throws IOException;
+
     <T extends Entity> void update(String indexName, T obj) throws IOException;
+
     // Partial (doc-merge) update of specific fields on an existing document, leaving all other fields
     // untouched. Unlike update(indexName, T obj), which serializes the whole entity (and would reset
     // unset fields to their defaults), this merges only the supplied fields.
     void update(String indexName, String id, Map<String, Object> fields) throws IOException;
 
     boolean exists(String indexName) throws IOException;
+
     boolean exists(String indexName, String id) throws IOException;
+
     boolean exists(String indexName, String id, Path path) throws IOException;
 
     <T extends Entity> T get(String indexName, String id);
+
     <T extends Entity> T get(String indexName, String id, List<String> sourceExcludes);
+
     <T extends Entity> T get(String indexName, String id, String root);
+
     <T extends Entity> T get(String indexName, String id, String root, List<String> sourceExcludes);
 
     String executeRaw(String method, String url, String body) throws IOException;
 
     // from Repository
     boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
+
     boolean untag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
+
     boolean tag(Project prj, List<String> documentIds, Tag... tags) throws IOException;
+
     boolean untag(Project prj, List<String> documentIds, Tag... tags) throws IOException;
-    ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, int offset, int limit, String targetLanguage) throws IOException;
-    SearchedText searchTextOccurrences(String indexName, String documentId, String query, String targetLanguage) throws IOException;
-    SearchedText searchTextOccurrences(String indexName, String documentId, String rootDocument, String query, String targetLanguage) throws IOException;
+
+    ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, int offset, int limit,
+                                   String targetLanguage) throws IOException;
+
+    SearchedText searchTextOccurrences(String indexName, String documentId, String query, String targetLanguage) throws
+            IOException;
+
+    SearchedText searchTextOccurrences(String indexName, String documentId, String rootDocument, String query,
+                                       String targetLanguage) throws IOException;
 
     interface Searcher {
         Stream<? extends Entity> execute() throws IOException;
+
         Stream<? extends Entity> execute(String stringQuery) throws IOException;
+
         Stream<? extends Entity> scroll(String duration) throws IOException;
+
         Stream<? extends Entity> scroll(String duration, String stringQuery) throws IOException;
+
         Stream<? extends Entity> scroll(ScrollQuery scrollQuery) throws IOException;
+
         Searcher withSource(String... fields);
+
         Searcher withoutSource(String... fields);
+
         Searcher withSource(boolean source);
+
         Searcher limit(int maxCount);
+
         Searcher sort(String field, SortOrder order);
+
         void clearScroll() throws IOException;
+
         long totalHits();
+
         Searcher with(int fuzziness, boolean phraseMatches);
-        enum SortOrder { ASC, DESC }
+
+        enum SortOrder {ASC, DESC}
     }
 
     interface QueryBuilderSearcher extends Searcher {
         QueryBuilderSearcher ofStatus(Document.Status indexed);
+
         QueryBuilderSearcher without(Pipeline.Type... nlpPipelines);
+
         QueryBuilderSearcher with(Pipeline.Type... nlpPipelines);
+
         QueryBuilderSearcher with(Tag... tags);
+
         QueryBuilderSearcher thatMatchesFieldValue(String key, Object value);
+
         QueryBuilderSearcher withFieldValues(String key, String... values);
+
         QueryBuilderSearcher withPrefixQuery(String key, String... values);
     }
 
@@ -109,6 +154,7 @@ public interface Indexer extends Closeable {
         private final int numSlice;
         private final int nbSlices;
         private final String stringQuery;
+
         public ScrollQuery(String duration, int numSlice, int nbSlices, String stringQuery) {
             this.duration = duration;
             this.numSlice = numSlice;

@@ -3,35 +3,30 @@ package org.icij.datashare.cli.command;
 import org.icij.datashare.cli.TaskRepositoryType;
 import org.icij.datashare.tasks.RoutingStrategy;
 import picocli.CommandLine.Option;
-
 import java.util.Properties;
-
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 /**
  * Options specific to the worker run subcommand.
  */
 public class WorkerOptions {
-
     @Option(names = {"--taskWorkers"}, description = "Number of task workers", defaultValue = "1")
     String taskWorkers;
-
     @Option(names = {"--taskRoutingStrategy"}, description = "Task routing strategy", defaultValue = "UNIQUE")
     RoutingStrategy taskRoutingStrategy;
-
     @Option(names = {"--taskRoutingKey"}, description = "Task routing key")
     String taskRoutingKey;
-
-    @Option(names = {"--pollingInterval"}, description = "in-memory task manager only (ignored with a Redis or AMQP task manager): base interval in seconds for waiting on task worker termination, the window is twice this value", defaultValue = "60")
+    @Option(names = {"--pollingInterval"},
+            description = "in-memory task manager only (ignored with a Redis or AMQP task manager): base interval in seconds for waiting on task worker termination, the window is twice this value",
+            defaultValue = "60")
     String pollingInterval;
-
     @Option(names = {"--taskRepositoryType"}, description = "Task repository type", defaultValue = "DATABASE")
     TaskRepositoryType taskRepositoryType;
-
-    @Option(names = {"--taskManagerPollingIntervalMilliseconds"}, description = "Task manager polling interval ms", defaultValue = "5000")
+    @Option(names = {"--taskManagerPollingIntervalMilliseconds"}, description = "Task manager polling interval ms",
+            defaultValue = "5000")
     int taskManagerPollingIntervalMilliseconds;
-
-    @Option(names = {"--taskProgressUpdateIntervalSeconds"}, description = "Task progress update interval seconds", defaultValue = "10.0")
+    @Option(names = {"--taskProgressUpdateIntervalSeconds"}, description = "Task progress update interval seconds",
+            defaultValue = "10.0")
     double taskProgressUpdateIntervalSeconds;
 
     /** Converts the parsed worker option fields into a Properties map for the rest of the application. */

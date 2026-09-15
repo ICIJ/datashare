@@ -2,20 +2,16 @@ package org.icij.datashare.user.admin;
 
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.WebResponse;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
 public interface UserAdminService {
-    UserCreated create(UserCreateRequest req)
-            throws UserExistsException, ValidationException;
+    UserCreated create(UserCreateRequest req) throws UserExistsException, ValidationException;
 
-    boolean delete(String login)
-            throws UserNotFoundException;
+    boolean delete(String login) throws UserNotFoundException;
 
-    UserCreated createIfNotExists(UserCreateRequest req)
-            throws ValidationException;
+    UserCreated createIfNotExists(UserCreateRequest req) throws ValidationException;
 
     boolean deleteIfExists(String login);
 
@@ -25,6 +21,5 @@ public interface UserAdminService {
 
     List<User> getByIds(Set<String> ids);
 
-    UserCreated update(String login, UserUpdateRequest req)
-            throws UserNotFoundException, ValidationException;
+    UserCreated update(String login, UserUpdateRequest req) throws UserNotFoundException, ValidationException;
 }

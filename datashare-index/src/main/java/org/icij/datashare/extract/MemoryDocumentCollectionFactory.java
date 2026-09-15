@@ -7,12 +7,10 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.queue.MemoryDocumentQueue;
 import org.icij.extract.report.HashMapReportMap;
 import org.icij.extract.report.ReportMap;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import static org.apache.commons.io.FilenameUtils.wildcardMatch;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
 
@@ -29,7 +27,7 @@ public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFac
 
     @Inject
     public MemoryDocumentCollectionFactory(final PropertiesProvider propertiesProvider) {
-        this.queueCapacity = propertiesProvider.queueCapacity() ;
+        this.queueCapacity = propertiesProvider.queueCapacity();
     }
 
     @Override
@@ -54,12 +52,8 @@ public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFac
 
     @Override
     public List<DocumentQueue<T>> getQueues(String wildcardMatcher, Class<T> clazz) {
-        return queues
-                .keySet()
-                .stream()
-                .filter(name -> wildcardMatch(name, wildcardMatcher))
-                .map(k -> createQueue(k, clazz))
-                .collect(Collectors.toList());
+        return queues.keySet().stream().filter(name -> wildcardMatch(name, wildcardMatcher))
+                     .map(k -> createQueue(k, clazz)).collect(Collectors.toList());
     }
 
     @Override

@@ -13,28 +13,25 @@ import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
-
 import static java.util.Optional.ofNullable;
 
 @Singleton
 public class FormAuthFilter extends DatashareAuthFilter {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-
     static final String LOGIN_PATH = "/auth/login";
     static final String SIGNOUT_PATH = "/auth/signout";
-
     private final int sessionTtl;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
 
     @Inject
-    public FormAuthFilter(PropertiesProvider propertiesProvider, Users users,
-                          SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
+    public FormAuthFilter(PropertiesProvider propertiesProvider, Users users, SessionIdStore sessionIdStore,
+                          @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
-        this.sessionTtl = Integer.parseInt(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
+        this.sessionTtl = Integer.parseInt(
+                ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
         this.postLoginEnroller = postLoginEnroller;
         logger.info("created FormAuthFilter with uriPrefix={}", uriPrefix);
     }
@@ -70,9 +67,11 @@ public class FormAuthFilter extends DatashareAuthFilter {
         if (postLoginEnroller != null) {
             postLoginEnroller.enroll((DatashareUser) user);
         }
-        return new Payload(200)
-                .withCookie(this.authCookie(this.buildCookie(user, "/")));
+        return new Payload(200).withCookie(this.authCookie(this.buildCookie(user, "/")));
     }
 
-    @Override protected int expiry() { return sessionTtl; }
+    @Override
+    protected int expiry() {
+        return sessionTtl;
+    }
 }

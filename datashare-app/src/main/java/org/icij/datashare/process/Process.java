@@ -2,7 +2,6 @@ package org.icij.datashare.process;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.File;
@@ -12,7 +11,6 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import static org.icij.datashare.utils.ProcessHandler.killProcessById;
 
 /**
@@ -43,7 +41,6 @@ public class Process implements Closeable {
     private final String dir;
     private final String name;
     private final String[] cmd;
-
     private java.lang.Process p;
     private final Logger logger;
     private final ExecutorService pool;

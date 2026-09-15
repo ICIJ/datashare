@@ -24,7 +24,6 @@ import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +35,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PARSE_TIMEOUT;
@@ -56,13 +54,17 @@ public class ArtifactTask extends PipelineTask<String> {
     private final String taskId;
 
     @Inject
-    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.ARTIFACT, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class, gateFactory.forTask(taskView));
+    public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer,
+                        final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
+                        @Assisted final Function<Double, Void> updateCallback) {
+        super(Stage.ARTIFACT, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class,
+              gateFactory.forTask(taskView));
         this.indexer = indexer;
         taskId = taskView.id;
         project = Project.project(ArtifactStages.resolveProjectName(propertiesProvider));
         parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
-        artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
+        artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(
+                String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
         executor = Executors.newFixedThreadPool(parallelism, namedThreadFactory("artifact-worker"));
     }
 
@@ -78,7 +80,8 @@ public class ArtifactTask extends PipelineTask<String> {
     @Override
     public Long call() throws Exception {
         super.call();
-        logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s)", artifactDir, project, inputQueue.getName(), parallelism);
+        logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s)", artifactDir,
+                    project, inputQueue.getName(), parallelism);
         warnIfParseTimeoutIsIgnored();
         AtomicLong nbDocs = new AtomicLong(0);
         AtomicLong nbSkipped = new AtomicLong(0);
@@ -109,7 +112,9 @@ public class ArtifactTask extends PipelineTask<String> {
                 throw new InterruptedException("cancelled while draining " + inputQueue.getName());
             }
             if (nbFailures > 0) {
-                throw new IllegalStateException(String.format("%d of %d artifact worker(s) terminated abnormally", nbFailures, futures.size()), firstCause);
+                throw new IllegalStateException(
+                        String.format("%d of %d artifact worker(s) terminated abnormally", nbFailures, futures.size()),
+                        firstCause);
             }
         } finally {
             // single cleanup point for every path: normal completion, worker failure, and
@@ -119,13 +124,16 @@ public class ArtifactTask extends PipelineTask<String> {
             executor.shutdownNow();
         }
         if (nbSkipped.get() > 0) {
-            logger.error("{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them", nbSkipped.get(), project.name);
+            logger.error(
+                    "{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them",
+                    nbSkipped.get(), project.name);
         }
         if (nbFailed.get() > 0) {
             // Failed docs never got a terminal manifest entry, so isCurrent() is false for them
             // and a plain re-run already reprocesses exactly those (not --artifactsForce, which
             // would force-reprocess the entire corpus). Matches the nbSkipped guidance above.
-            logger.error("{} document(s) failed artifact production in project {}, re-run the ARTIFACT stage for them", nbFailed.get(), project.name);
+            logger.error("{} document(s) failed artifact production in project {}, re-run the ARTIFACT stage for them",
+                         nbFailed.get(), project.name);
         }
         logger.info("exiting ArtifactTask loop after processing {} document(s).", nbDocs.get());
         return nbDocs.get();
@@ -140,7 +148,8 @@ public class ArtifactTask extends PipelineTask<String> {
         boolean force = ArtifactStages.force(propertiesProvider);
         // The producer owns what counts as a cancellation (see ArtifactProducer#isCancellation), so this
         // loop and the produce loop it drives cannot disagree about it.
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), executor::isShutdown, taskId);
+        ArtifactProducer producer =
+                new ArtifactProducer(new FilesystemManifestRepository(), executor::isShutdown, taskId);
         Path projectRoot = ArtifactPath.projectRoot(artifactDir, project.name);
         // The interrupt check keeps cancellation prompt, since cancel() calls executor.shutdownNow()
         // while a worker may sit between two non-blocking polls.
@@ -207,11 +216,10 @@ public class ArtifactTask extends PipelineTask<String> {
     // pathological parse here is bounded by nothing but the activity's one-day timeout.
     private void warnIfParseTimeoutIsIgnored() {
         // Filtered on the default, not just on presence: the option is set on every run.
-        propertiesProvider.get(PARSE_TIMEOUT_OPT)
-                .filter(value -> !DEFAULT_PARSE_TIMEOUT.equals(value))
-                .ifPresent(value -> logger.warn("parseTimeout is set to {} but does not apply to the "
-                        + "ARTIFACT stage: a document whose parse never returns holds its worker until "
-                        + "the task times out.", value));
+        propertiesProvider.get(PARSE_TIMEOUT_OPT).filter(value -> !DEFAULT_PARSE_TIMEOUT.equals(value)).ifPresent(
+                value -> logger.warn("parseTimeout is set to {} but does not apply to the " +
+                                     "ARTIFACT stage: a document whose parse never returns holds its worker until " +
+                                     "the task times out.", value));
     }
 
     protected SourceExtractor createSourceExtractor() {

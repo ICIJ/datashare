@@ -4,11 +4,9 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Spec;
 
-@Command(name = "plugin", mixinStandardHelpOptions = true,
-        description = "Manage Datashare plugins.",
+@Command(name = "plugin", mixinStandardHelpOptions = true, description = "Manage Datashare plugins.",
         subcommands = {PluginListCommand.class, PluginInstallCommand.class, PluginDeleteCommand.class})
 public class PluginCommand implements Runnable {
-
     @Spec
     CommandLine.Model.CommandSpec spec;
 

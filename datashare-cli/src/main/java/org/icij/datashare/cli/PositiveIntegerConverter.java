@@ -18,8 +18,12 @@ public class PositiveIntegerConverter implements ValueConverter<Integer> {
     }
 
     @Override
-    public Class<? extends Integer> valueType() { return Integer.class; }
+    public Class<? extends Integer> valueType() {
+        return Integer.class;
+    }
 
     @Override
-    public String valuePattern() { return "positive integer"; }
+    public String valuePattern() {
+        return "positive integer";
+    }
 }

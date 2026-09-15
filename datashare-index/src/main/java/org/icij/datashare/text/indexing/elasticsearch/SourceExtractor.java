@@ -22,7 +22,6 @@ import org.icij.extract.extractor.UpdatableDigester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
-
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -34,9 +33,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-
 
 public class SourceExtractor {
     Logger LOGGER = LoggerFactory.getLogger(SourceExtractor.class);
@@ -64,7 +61,8 @@ public class SourceExtractor {
         if (document.isRootDocument()) {
             if (filterMetadata) {
                 try {
-                    return new ByteArrayInputStream(metadataCleaner.clean(new FileInputStream(document.getPath().toFile())).getContent());
+                    return new ByteArrayInputStream(
+                            metadataCleaner.clean(new FileInputStream(document.getPath().toFile())).getContent());
                 } catch (IOException e) {
                     throw new ExtractException("content cleaner error ", e);
                 }
@@ -75,7 +73,9 @@ public class SourceExtractor {
                 return openForTika(document.getPath());
             }
         } else {
-            LOGGER.info("Extracting embedded document " + Identifier.shorten(document.getId(), 4) + " from root document " + document.getPath());
+            LOGGER.info(
+                    "Extracting embedded document " + Identifier.shorten(document.getId(), 4) + " from root document " +
+                    document.getPath());
             return getEmbeddedSource(project, document);
         }
     }
@@ -105,13 +105,12 @@ public class SourceExtractor {
             Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
             String tikaVersionField = document.getField(DocumentMetadataConstants.TIKA_VERSION);
             String tikaVersion = (String) document.getMetadata().get(tikaVersionField);
-            TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier)
-                    .create(document.getPath(), tikaVersion);
+            TikaDocument rootDocument =
+                    new DocumentFactory().withIdentifier(identifier).create(document.getPath(), tikaVersion);
 
             try {
-                EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(
-                        digester, hasher.toString(),
-                        getArtifactPath(project), useOcr);
+                EmbeddedDocumentExtractor embeddedExtractor =
+                        new EmbeddedDocumentExtractor(digester, hasher.toString(), getArtifactPath(project), useOcr);
                 TikaDocumentSource source = embeddedExtractor.extract(rootDocument, document.getId());
                 InputStream inputStream = source.get();
                 if (filterMetadata) {
@@ -120,11 +119,10 @@ public class SourceExtractor {
                 return inputStream;
             } catch (RuntimeException | SAXException | TikaException | IOException ex) {
                 lastFailure = ex;
-                LOGGER.debug("Extract attempt {}/{} for embedded document {}/{} failed (algorithm={}, digester={}, project={})",
-                        ++i, digesters.size(),
-                        document.getId(), document.getRootDocument(),
-                        hasher, digester.getClass().getSimpleName(),
-                        document.getProject(), ex);
+                LOGGER.debug(
+                        "Extract attempt {}/{} for embedded document {}/{} failed (algorithm={}, digester={}, project={})",
+                        ++i, digesters.size(), document.getId(), document.getRootDocument(), hasher,
+                        digester.getClass().getSimpleName(), document.getProject(), ex);
             }
         }
 
@@ -132,10 +130,12 @@ public class SourceExtractor {
         // even when the last failure was a genuine runtime defect (not just "not found"), so log
         // it loudly here (once, with the real cause) instead of leaving it invisible at DEBUG.
         if (lastFailure != null) {
-            String digesterNames = digesters.stream().map(digester -> digester.getClass().getSimpleName()).collect(Collectors.joining(","));
-            LOGGER.warn("could not extract embedded document {} from root {} in project {} after trying {} digester scheme(s) ({}); last failure: {}",
-                    document.getId(), document.getRootDocument(), document.getProject(), digesters.size(), digesterNames,
-                    lastFailure.toString(), lastFailure);
+            String digesterNames = digesters.stream().map(digester -> digester.getClass().getSimpleName())
+                                            .collect(Collectors.joining(","));
+            LOGGER.warn(
+                    "could not extract embedded document {} from root {} in project {} after trying {} digester scheme(s) ({}); last failure: {}",
+                    document.getId(), document.getRootDocument(), document.getProject(), digesters.size(),
+                    digesterNames, lastFailure.toString(), lastFailure);
         }
         throw new ContentNotFoundException(document.getRootDocument(), document.getId());
     }
@@ -148,7 +148,7 @@ public class SourceExtractor {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         List<DigestingParser.Digester> digesters = new ArrayList<>();
         // Digester without the project name
-        digesters.add(new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()));
+        digesters.add(new CommonsDigester(20 * 1024 * 1024, hasher.toStringWithoutDash()));
         // Digester with the project name
         digesters.add(new UpdatableDigester(project.getId(), hasher.toString()));
         // Digester with the project name set on "defaultProject" for retro-compatibility
@@ -158,7 +158,8 @@ public class SourceExtractor {
         return digesters;
     }
 
-    public TikaDocument extractEmbeddedSources(final Project project, Document document) throws TikaException, IOException, SAXException {
+    public TikaDocument extractEmbeddedSources(final Project project, Document document) throws TikaException,
+            IOException, SAXException {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         // Must stay consistent with the read path's primary digesters (see buildDigesters/
         // getEmbeddedSource): under a stable config this digester is always one of the two
@@ -168,13 +169,14 @@ public class SourceExtractor {
         // succeed via getEmbeddedSource's multi-digester fallback (incl. the legacy digester)
         // and EmbeddedDocumentExtractor's live-parse fallback on a cache miss - drift only
         // costs a wasted cache entry + re-parse, it doesn't lose the content.
-        DigestingParser.Digester digester = noDigestProject() ?
-                new CommonsDigester(20 * 1024 * 1024,  hasher.toStringWithoutDash()):
+        DigestingParser.Digester digester =
+                noDigestProject() ? new CommonsDigester(20 * 1024 * 1024, hasher.toStringWithoutDash()) :
                 new UpdatableDigester(project.getId(), hasher.toString());
 
         Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
         TikaDocument tikaDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
-        EmbeddedDocumentExtractor embeddedExtractor = new EmbeddedDocumentExtractor(digester, hasher.toString(), getArtifactPath(project), useOcr(document));
+        EmbeddedDocumentExtractor embeddedExtractor =
+                new EmbeddedDocumentExtractor(digester, hasher.toString(), getArtifactPath(project), useOcr(document));
         embeddedExtractor.extractAll(tikaDocument);
         return tikaDocument;
     }
@@ -206,7 +208,8 @@ public class SourceExtractor {
     }
 
     private Path getArtifactPath(Project project) {
-        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> ArtifactPath.projectRoot(Path.of(dir), project.name)).orElse(null);
+        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT)
+                                 .map(dir -> ArtifactPath.projectRoot(Path.of(dir), project.name)).orElse(null);
     }
 
     private boolean noDigestProject() {

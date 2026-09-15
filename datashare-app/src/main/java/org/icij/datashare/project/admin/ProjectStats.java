@@ -9,11 +9,7 @@ import java.util.OptionalLong;
  * (e.g. {@code project delete --keep-index}); present otherwise. Use
  * {@link OptionalLong#isPresent()} to distinguish "skipped" from "zero".
  */
-public record ProjectStats(
-        String name,
-        OptionalLong indexedDocuments,
-        int memberCount
-) {
+public record ProjectStats(String name, OptionalLong indexedDocuments, int memberCount) {
     public static ProjectStats withSkippedIndex(String name, int memberCount) {
         return new ProjectStats(name, OptionalLong.empty(), memberCount);
     }

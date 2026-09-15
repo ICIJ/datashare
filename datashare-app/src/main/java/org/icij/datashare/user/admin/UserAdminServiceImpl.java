@@ -8,9 +8,7 @@ import org.icij.datashare.session.PostLoginEnroller;
 import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
-
 import org.icij.datashare.web.WebResponse;
-
 import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -21,7 +19,6 @@ import java.util.Set;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
-
     private final UserStore userStore;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
@@ -33,8 +30,7 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     @Override
-    public UserCreated create(UserCreateRequest request)
-            throws UserExistsException, ValidationException {
+    public UserCreated create(UserCreateRequest request) throws UserExistsException, ValidationException {
         validate(request);
         if (userStore.find(request.login()) != null) {
             throw new UserExistsException(request.login());
@@ -43,13 +39,11 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     @Override
-    public UserCreated createIfNotExists(UserCreateRequest request)
-            throws ValidationException {
+    public UserCreated createIfNotExists(UserCreateRequest request) throws ValidationException {
         validate(request);
         if (userStore.find(request.login()) != null) {
             String name = request.name() == null ? request.login() : request.name();
-            return new UserCreated(request.login(), request.email(), name,
-                    request.provider(), request.groups(), true);
+            return new UserCreated(request.login(), request.email(), name, request.provider(), request.groups(), true);
         }
         return persist(request);
     }
@@ -88,8 +82,7 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     @Override
-    public UserCreated update(String login, UserUpdateRequest req)
-            throws UserNotFoundException, ValidationException {
+    public UserCreated update(String login, UserUpdateRequest req) throws UserNotFoundException, ValidationException {
         net.codestory.http.security.User found = userStore.find(login);
         if (found == null) {
             throw new UserNotFoundException(login);
@@ -127,6 +120,7 @@ public class UserAdminServiceImpl implements UserAdminService {
     private static boolean isLocal(UserCreateRequest request) {
         return User.LOCAL.equals(request.provider());
     }
+
     private boolean isExternal(UserCreateRequest request) {
         return User.EXTERNAL.equals(request.provider());
     }
@@ -161,7 +155,6 @@ public class UserAdminServiceImpl implements UserAdminService {
 
         User user = new User(request.login(), name, request.email(), request.provider(), details);
         userStore.save(user);
-        return new UserCreated(request.login(), request.email(), name,
-                request.provider(), request.groups(), false);
+        return new UserCreated(request.login(), request.email(), name, request.provider(), request.groups(), false);
     }
 }

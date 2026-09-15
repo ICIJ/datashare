@@ -95,6 +95,14 @@ This creates a gitignored `datashare-devenv.properties` from the template file. 
 
 The properties file is loaded automatically when running tests via the `-Ddevenv.file` system property.
 
+### Git config
+
+After cloning the repo, consider configuring git in the following way, to ignore commits that are actively noted by 
+developers as to be ignored for git blame
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ### Build
 
 The project is modular. Using Make:

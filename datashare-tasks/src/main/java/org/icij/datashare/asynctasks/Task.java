@@ -16,7 +16,6 @@ import org.icij.datashare.batch.WebQueryPagination;
 import org.icij.datashare.tasks.TaskType;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Date;
@@ -28,7 +27,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
@@ -36,20 +34,22 @@ import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Task<V extends Serializable> extends Event implements Entity, Comparable<Task<V>> {
     public static final String USER_KEY = "user";
-    @JsonIgnore private StateLatch stateLatch;
-    @JsonIgnore private final Object lock = new Object();
+    @JsonIgnore
+    private StateLatch stateLatch;
+    @JsonIgnore
+    private final Object lock = new Object();
 
     public enum State {
         CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE;
-
         public static final Set<State> FINAL_STATES = Set.of(CANCELLED, ERROR, DONE);
-        public static final Set<State> NON_FINAL_STATES = Arrays.stream(State.values()).filter(s -> !FINAL_STATES.contains(s))
-            .collect(Collectors.toSet());
+        public static final Set<State> NON_FINAL_STATES =
+                Arrays.stream(State.values()).filter(s -> !FINAL_STATES.contains(s)).collect(Collectors.toSet());
 
         public boolean isFinal() {
             return FINAL_STATES.contains(this);
         }
     }
+
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
     public final Map<String, Object> args;
     public final String id;
@@ -78,16 +78,11 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
     }
 
     @JsonCreator
-    public Task(@JsonProperty("id") String id,
-         @JsonProperty("name") String name,
-         @JsonProperty("state") State state,
-         @JsonProperty("progress") double progress,
-         @JsonProperty("createdAt") Date createdAt,
-         @JsonProperty("retriesLeft") int retriesLeft,
-         @JsonProperty("completedAt") Date completedAt,
-         @JsonProperty("args") Map<String, Object> args,
-         @JsonProperty("result") TaskResult<V> result,
-         @JsonProperty("error") TaskError error) {
+    public Task(@JsonProperty("id") String id, @JsonProperty("name") String name, @JsonProperty("state") State state,
+                @JsonProperty("progress") double progress, @JsonProperty("createdAt") Date createdAt,
+                @JsonProperty("retriesLeft") int retriesLeft, @JsonProperty("completedAt") Date completedAt,
+                @JsonProperty("args") Map<String, Object> args, @JsonProperty("result") TaskResult<V> result,
+                @JsonProperty("error") TaskError error) {
         super(createdAt, retriesLeft);
         this.id = id;
         this.name = name;
@@ -131,7 +126,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     public void setResult(TaskResult<V> result) {
         synchronized (lock) {
-            this.result =  result;
+            this.result = result;
             setState(State.DONE);
             this.progress = 1;
             this.completedAt = DatashareTime.getNow();
@@ -182,8 +177,13 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         return state;
     }
 
-    public int getRetriesLeft() {return retriesLeft;}
-    public Date getCompletedAt() {return completedAt;}
+    public int getRetriesLeft() {
+        return retriesLeft;
+    }
+
+    public Date getCompletedAt() {
+        return completedAt;
+    }
 
     @JsonIgnore
     public boolean isFinished() {
@@ -192,14 +192,12 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass())
+            return false;
         Task<?> task = (Task<?>) o;
-        return Double.compare(progress, task.progress) == 0 &&
-                Objects.equals(id, task.id) &&
-                Objects.equals(name, task.name)
-                && state == task.state &&
-                Objects.equals(createdAt, task.createdAt) &&
-                Objects.equals(completedAt, task.completedAt);
+        return Double.compare(progress, task.progress) == 0 && Objects.equals(id, task.id) &&
+               Objects.equals(name, task.name) && state == task.state && Objects.equals(createdAt, task.createdAt) &&
+               Objects.equals(completedAt, task.completedAt);
     }
 
     @Override
@@ -240,20 +238,19 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         return new Comparator("name", ASC).compare(this, task);
     }
 
-    public record Comparator(String field, WebQueryPagination.OrderDirection order) implements java.util.Comparator<Task<?>> {
-        public static Map<String, Function<Task<?>, ?>> SORT_FIELDS = Map.of(
-            "id", Task::getId,
-            "user", Task::getUser,
-            "createdAt", t -> t.createdAt,
-            "name", t -> t.name,
-            "state", Task::getState,
-            "finished", Task::isFinished
-        );
+    public record Comparator(String field, WebQueryPagination.OrderDirection order)
+            implements java.util.Comparator<Task<?>> {
+        public static Map<String, Function<Task<?>, ?>> SORT_FIELDS =
+                Map.of("id", Task::getId, "user", Task::getUser, "createdAt", t -> t.createdAt, "name", t -> t.name,
+                       "state", Task::getState, "finished", Task::isFinished);
 
-        public Comparator(String field) {this(field, ASC);}
+        public Comparator(String field) {
+            this(field, ASC);
+        }
+
         public Comparator(String field, WebQueryPagination.OrderDirection order) {
-            this.field = ofNullable(SORT_FIELDS.get(field)).map(f -> field)
-                    .orElseThrow(() -> new IllegalArgumentException("no sort field with name " + field));
+            this.field = ofNullable(SORT_FIELDS.get(field)).map(f -> field).orElseThrow(
+                    () -> new IllegalArgumentException("no sort field with name " + field));
             this.order = order;
         }
 
@@ -262,9 +259,8 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
             CompareToBuilder compareToBuilder = new CompareToBuilder();
             Object fieldValue1 = SORT_FIELDS.get(field()).apply(t1);
             Object fieldValue2 = SORT_FIELDS.get(field()).apply(t2);
-            compareToBuilder = order == ASC ?
-                    compareToBuilder.append(fieldValue1, fieldValue2):
-                    compareToBuilder.append(fieldValue2, fieldValue1);
+            compareToBuilder = order == ASC ? compareToBuilder.append(fieldValue1, fieldValue2) :
+                               compareToBuilder.append(fieldValue2, fieldValue1);
             return compareToBuilder.toComparison();
         }
     }
