@@ -35,7 +35,7 @@ public class Extension implements Deliverable {
     @JsonIgnore
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     static Pattern extensionFormat = Pattern.compile("([[^\\W_]\\-.]*)-v?([0-9.]*)(?<!-)([-\\w]*)?$");
-            //of form: id-with-numb3r-1.2.3-suffix with negative lookbehind for suffix dash
+    //of form: id-with-numb3r-1.2.3-suffix with negative lookbehind for suffix dash
     static Pattern endsWithExtension = Pattern.compile("(.*)(\\.[a-zA-Z]+$)");
     public static final String TMP_PREFIX = "tmp";
     public final String id;
