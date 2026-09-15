@@ -32,6 +32,7 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -65,22 +66,64 @@ public class JooqStatementRepository implements StatementRepository {
 
     @Override
     public int save(String projectId, String runId, Stream<Statement> statements) {
+        return write(projectId, runId, statements, create -> 0).written();
+    }
+
+    @Override
+    public Replaced replace(String projectId, String runId, String documentId, String sheet,
+                            Stream<Statement> statements) {
+        String section = Statement.Provenance.sheetOrEmpty(sheet);
+        return write(projectId, runId,
+                statements.peek(statement -> requireWrittenBy(statement, documentId, section)),
+                create -> deleteBySheet(create, projectId, documentId, section));
+    }
+
+    // The retraction shares the first chunk's transaction, and the first chunk is read before that
+    // transaction opens, so an extraction that fails on its first row throws with the sheet still
+    // whole rather than emptied. A stream that yields nothing retracts on its own, since a mapping
+    // that stopped matching has to take what it wrote with it.
+    private Replaced write(String projectId, String runId, Stream<Statement> statements,
+                           ToIntFunction<DSLContext> retract) {
         Write write = new Write(projectId, runId,
                 new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime());
         DSLContext create = create();
+        int retracted = 0;
         int written = 0;
         try (statements) {
             Iterator<Statement> source = statements.iterator();
+            boolean pending = true;
             while (source.hasNext()) {
                 List<Statement> chunk = new ArrayList<>(chunkSize);
                 while (chunk.size() < chunkSize && source.hasNext()) {
                     chunk.add(source.next());
                 }
-                written += create.transactionResult(configuration ->
-                        saveChunk(DSL.using(configuration), write, chunk));
+                boolean retracting = pending;
+                pending = false;
+                Replaced round = create.transactionResult(configuration -> {
+                    DSLContext transaction = DSL.using(configuration);
+                    return new Replaced(retracting ? retract.applyAsInt(transaction) : 0,
+                            saveChunk(transaction, write, chunk));
+                });
+                retracted += round.retracted();
+                written += round.written();
+            }
+            if (pending) {
+                retracted = retract.applyAsInt(create);
             }
         }
-        return written;
+        return new Replaced(retracted, written);
+    }
+
+    // The delete keys on the caller's document and sheet while each row keys on its own provenance:
+    // a mismatch retracts one sheet and writes another, emptying the first for good, so it is refused
+    // rather than obeyed. Checked as the stream flows, so nothing has to be buffered to check it.
+    private static void requireWrittenBy(Statement statement, String documentId, String sheet) {
+        Statement.Provenance provenance = statement.provenance();
+        if (!provenance.documentId().equals(documentId) || !provenance.sheet().equals(sheet)) {
+            throw new IllegalArgumentException("statement " + statement.id() + " comes from ("
+                    + provenance.documentId() + ", " + provenance.sheet() + "), not ("
+                    + documentId + ", " + sheet + ")");
+        }
     }
 
     // A batch built from Query...values(...) inlines every row's SQL and ships it as literal text
@@ -91,8 +134,9 @@ public class JooqStatementRepository implements StatementRepository {
     // binding its own values, which would not line up with the record's positional binds.
     private static int saveChunk(DSLContext create, Write write, List<Statement> chunk) {
         // The update is conditional so a no-op re-run rewrites nothing: unconditional, every row and
-        // both index entries are rewritten on every re-run, for WRITTEN_AT and RUN_ID values nothing
-        // reads. DO UPDATE ... WHERE needs SQLite 3.24+; the bundled driver carries 3.40.
+        // all three of its index entries are rewritten on every re-run, for WRITTEN_AT and RUN_ID
+        // values nothing reads. DO UPDATE ... WHERE needs SQLite 3.24+; the bundled driver carries
+        // 3.40.
         BatchBindStep batch = create.batch(create.insertInto(STATEMENT).set(row(write, chunk.get(0)))
                 .onConflict(STATEMENT.ID, STATEMENT.PRJ_ID).doUpdate()
                 .set(STATEMENT.RUN_ID, DSL.excluded(STATEMENT.RUN_ID))
@@ -133,6 +177,18 @@ public class JooqStatementRepository implements StatementRepository {
     // nothing instead of subtracting from the total.
     private static int inserted(int[] results) {
         return IntStream.of(results).filter(result -> result > 0).sum();
+    }
+
+    @Override
+    public int deleteBySheet(String projectId, String documentId, String sheet) {
+        return deleteBySheet(create(), projectId, documentId, Statement.Provenance.sheetOrEmpty(sheet));
+    }
+
+    private static int deleteBySheet(DSLContext create, String projectId, String documentId, String sheet) {
+        return create.deleteFrom(STATEMENT)
+                .where(STATEMENT.PRJ_ID.eq(projectId)).and(STATEMENT.DOC_ID.eq(documentId))
+                .and(STATEMENT.SHEET.eq(sheet))
+                .execute();
     }
 
     @Override

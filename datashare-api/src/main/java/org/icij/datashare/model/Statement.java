@@ -32,9 +32,16 @@ public record Statement(String id, String model, String entityId, String entityT
     }
 
     public record Provenance(String documentId, String sheet, long rowNumber, String column) {
+        /** A source with no sections writes the empty sheet, so a null one names it rather than
+         *  standing apart from it. Retraction has to ask the same question the write answered, which
+         *  is why the rule is here and not repeated at each end. */
+        public static String sheetOrEmpty(String sheet) {
+            return sheet == null ? "" : sheet;
+        }
+
         public Provenance {
             documentId = component(documentId, "documentId");
-            sheet = sheet == null ? "" : component(sheet, "sheet");
+            sheet = component(sheetOrEmpty(sheet), "sheet");
             column = component(column, "column");
         }
     }

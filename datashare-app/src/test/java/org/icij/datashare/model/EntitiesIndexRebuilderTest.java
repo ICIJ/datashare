@@ -205,6 +205,17 @@ public class EntitiesIndexRebuilderTest {
         }
 
         @Override
+        public int deleteBySheet(String projectId, String documentId, String sheet) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Replaced replace(String projectId, String runId, String documentId, String sheet,
+                                Stream<Statement> statements) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
             return consumer.apply(entities.stream());
         }
