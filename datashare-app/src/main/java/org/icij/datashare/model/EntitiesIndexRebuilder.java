@@ -3,7 +3,6 @@ package org.icij.datashare.model;
 import org.icij.datashare.text.StructuredEntity;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -50,8 +49,8 @@ public class EntitiesIndexRebuilder {
             }
             try {
                 if (!indexer.bulkAdd(indexName, chunk)) {
-                    throw new UncheckedIOException(
-                            new IOException("bulk add rejected in " + indexName + " for a chunk of " + chunk.size() + " entities"));
+                    throw new UncheckedIOException(new IOException(
+                            "bulk add rejected in " + indexName + " for a chunk of " + chunk.size() + " entities"));
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

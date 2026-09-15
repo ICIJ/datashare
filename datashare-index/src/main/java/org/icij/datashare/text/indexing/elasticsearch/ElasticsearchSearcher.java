@@ -13,21 +13,17 @@ import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.json.JsonException;
-
 import java.util.Objects;
-
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.JsonUtils;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import static co.elastic.clients.elasticsearch.core.SearchRequest.Builder;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -39,18 +35,17 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     protected final List<String> indexesNames;
     protected final ElasticsearchClient client;
     protected final Class<? extends Entity> cls;
-
     final Builder sourceBuilder;
     private String scrollId;
     private SearchRequest scrollSearchRequest;
     private long totalHits;
     private final JsonNode jsonBoolQuery;
     private static final String TEMPLATE_QUERY = "<query>";
-
     protected int fuzziness = 0;
     protected boolean phraseMatches = false;
 
-    ElasticsearchSearcher(ElasticsearchClient client, final List<String> indexesNames, final Class<? extends Entity> cls, JsonNode boolQuery) {
+    ElasticsearchSearcher(ElasticsearchClient client, final List<String> indexesNames,
+                          final Class<? extends Entity> cls, JsonNode boolQuery) {
         this.client = client;
         this.indexesNames = indexesNames;
         this.cls = cls;
@@ -67,7 +62,8 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     }
 
     static <T extends Entity> T hitToObject(Hit<ObjectNode> searchHit, Class<T> cls) {
-        return JsonObjectMapper.getObject(searchHit.id(), searchHit.index(), JsonUtils.nodeToMap(searchHit.source()), cls);
+        return JsonObjectMapper.getObject(searchHit.id(), searchHit.index(), JsonUtils.nodeToMap(searchHit.source()),
+                                          cls);
     }
 
     @Override
@@ -130,15 +126,18 @@ class ElasticsearchSearcher implements Indexer.Searcher {
             BoolQuery.Builder boolQueryBuilder = getBoolQueryBuilder(queryAsString(scrollQuery.getStringQuery()));
             sourceBuilder.index(indexesNames).query(q -> q.bool(boolQueryBuilder.build()));
             if (scrollQuery.getNbSlices() > 1) {
-                sourceBuilder.slice(s -> s.id(String.valueOf(scrollQuery.getNumSlice())).max(scrollQuery.getNbSlices()));
+                sourceBuilder.slice(
+                        s -> s.id(String.valueOf(scrollQuery.getNumSlice())).max(scrollQuery.getNbSlices()));
             }
             scrollSearchRequest = sourceBuilder.scroll(Time.of(t -> t.time(scrollQuery.getDuration()))).build();
             response = client.search(scrollSearchRequest, ObjectNode.class);
             totalHits = Objects.requireNonNull(response.hits().total()).value();
         } else if (scrollQuery.getStringQuery() == null) {
             response = client.scroll(ScrollRequest.of(s -> s.scroll(Time.of(t -> t.time(scrollQuery.getDuration())))
-                    .scrollId(ofNullable(scrollId)
-                            .orElseThrow(() -> new IllegalStateException("ScrollId must have been cleared")))), ObjectNode.class);
+                                                            .scrollId(ofNullable(scrollId).orElseThrow(
+                                                                    () -> new IllegalStateException(
+                                                                            "ScrollId must have been cleared")))),
+                                     ObjectNode.class);
         } else {
             throw new IllegalStateException("cannot change query when scroll is pending");
         }
@@ -190,7 +189,8 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public Searcher sort(String field, SortOrder order) {
-        sourceBuilder.sort(builder -> builder.field(fieldBuilder -> fieldBuilder.field(field).order(esSortOrder(order))));
+        sourceBuilder.sort(
+                builder -> builder.field(fieldBuilder -> fieldBuilder.field(field).order(esSortOrder(order))));
         return this;
     }
 

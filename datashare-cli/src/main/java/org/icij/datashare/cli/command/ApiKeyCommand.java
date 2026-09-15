@@ -4,11 +4,9 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Spec;
 
-@Command(name = "api-key", mixinStandardHelpOptions = true,
-        description = "Manage API keys for programmatic access.",
+@Command(name = "api-key", mixinStandardHelpOptions = true, description = "Manage API keys for programmatic access.",
         subcommands = {ApiKeyCreateCommand.class, ApiKeyGetCommand.class, ApiKeyDeleteCommand.class})
 public class ApiKeyCommand implements Runnable {
-
     @Spec
     CommandLine.Model.CommandSpec spec;
 

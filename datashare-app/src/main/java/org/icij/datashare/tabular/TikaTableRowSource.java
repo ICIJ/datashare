@@ -9,7 +9,6 @@ import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -37,31 +36,25 @@ import java.util.stream.Stream;
  */
 public class TikaTableRowSource implements RowSource {
     private static final Logger LOGGER = LoggerFactory.getLogger(TikaTableRowSource.class);
-
     /** Rows of this table only: a table nested inside a cell keeps its own rows, and thead, tbody and
      *  tfoot survive the sanitizer, so a row is either a direct child or one level down. Selected in
      *  four passes rather than as one comma group, because a group returns document order and a tfoot
      *  written before its tbody is legal html that several exporters emit. */
     private static final List<String> ROW_SELECTORS = List.of(">thead>tr", ">tr", ">tbody>tr", ">tfoot>tr");
-
     /** Excel's column limit, used only to stop a hostile or corrupt span from expanding a row without
      *  bound; a real sheet cannot exceed it. */
     private static final int MAX_CELLS_PER_ROW = 16384;
-
     /** Only the types whose Tika parser was confirmed to emit table markup. Deliberately not a
      *  catch-all: claiming every unclaimed type would make this reader own application/pdf and force
      *  a future PDF table extractor to displace an incumbent. */
-    public static final Set<String> SUPPORTED = Set.of(
-            "application/vnd.oasis.opendocument.spreadsheet",
-            "application/vnd.ms-excel.sheet.binary.macroenabled.12",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/msword",
-            "text/html",
+    public static final Set<String> SUPPORTED = Set.of("application/vnd.oasis.opendocument.spreadsheet",
+                                                       "application/vnd.ms-excel.sheet.binary.macroenabled.12",
+                                                       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                                       "application/msword", "text/html",
             // Tika types Numbers by format generation, and only the pre-2013 one keeps the bare name.
-            "application/vnd.apple.numbers",
-            "application/vnd.apple.numbers.13",
-            "application/vnd.apple.numbers.18");
-
+                                                       "application/vnd.apple.numbers",
+                                                       "application/vnd.apple.numbers.13",
+                                                       "application/vnd.apple.numbers.18");
     private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
 
     @Override
@@ -134,13 +127,11 @@ public class TikaTableRowSource implements RowSource {
 
     private static Element selectTable(List<Element> tables, Integer requested) {
         if (tables.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "the source holds no table, so it has no rows to read");
+            throw new IllegalArgumentException("the source holds no table, so it has no rows to read");
         }
         int index = requested == null ? 1 : requested;
         if (index < 1 || index > tables.size()) {
-            throw new IllegalArgumentException(
-                    "no table at index " + index + ": the source holds " + tables.size());
+            throw new IllegalArgumentException("no table at index " + index + ": the source holds " + tables.size());
         }
         return tables.get(index - 1);
     }

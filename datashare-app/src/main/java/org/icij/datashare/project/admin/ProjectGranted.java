@@ -8,10 +8,4 @@ import org.icij.datashare.policies.Role;
  * {@code grantIfNotExists} when the user already held exactly the requested
  * role and no other project roles.
  */
-public record ProjectGranted(
-        String name,
-        String userLogin,
-        Role role,
-        Role previousRole,
-        boolean noop) {
-}
+public record ProjectGranted(String name, String userLogin, Role role, Role previousRole, boolean noop) {}

@@ -2,7 +2,6 @@ package org.icij.datashare.reflect;
 
 import java.util.Locale;
 import java.util.Optional;
-
 import static org.icij.datashare.function.Functions.capitalize;
 import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 
@@ -18,7 +17,6 @@ import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
  * Created by julien on 7/16/16.
  */
 public interface EnumTypeToken {
-
     String getClassName();
 
     /**
@@ -28,8 +26,7 @@ public interface EnumTypeToken {
      * @param enumValue      the enum value  whose name is the prefix of the concrete class to build
      * @return the fully qualified name of the concrete class implementing interface
      */
-    default String buildClassName(final Class<?> interfaceClass,
-                                  final Enum<? extends EnumTypeToken> enumValue) {
+    default String buildClassName(final Class<?> interfaceClass, final Enum<? extends EnumTypeToken> enumValue) {
         String packageName = interfaceClass.getPackage().getName();
         String typeName = enumValue.name().toLowerCase();
         String interfaceName = interfaceClass.getSimpleName();
@@ -37,8 +34,7 @@ public interface EnumTypeToken {
         return String.join(".", packageName, typeName, implClassName);
     }
 
-    static <E extends Enum<E>> Optional<E> parseClassName(final Class<?> interfaceClass,
-                                                          final Class<E> enumType,
+    static <E extends Enum<E>> Optional<E> parseClassName(final Class<?> interfaceClass, final Class<E> enumType,
                                                           final String className) {
         if (className == null || className.isEmpty()) {
             return Optional.empty();

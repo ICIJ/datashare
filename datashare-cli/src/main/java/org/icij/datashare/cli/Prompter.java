@@ -23,15 +23,13 @@ public class Prompter {
     }
 
     static final int MAX_RETRIES = 3;
-
     private final BufferedReader in;
     private final PrintWriter out;
     private final Supplier<char[]> passwordSupplier;
 
     public Prompter() {
-        this(new BufferedReader(new InputStreamReader(System.in)),
-                new PrintWriter(System.err, true),
-                () -> System.console() == null ? new char[0] : System.console().readPassword());
+        this(new BufferedReader(new InputStreamReader(System.in)), new PrintWriter(System.err, true),
+             () -> System.console() == null ? new char[0] : System.console().readPassword());
     }
 
     public Prompter(BufferedReader in, PrintWriter out, Supplier<char[]> passwordSupplier) {
@@ -54,7 +52,8 @@ public class Prompter {
             } catch (IOException e) {
                 throw new ValidationFailedException("io", e.getMessage());
             }
-            if (line == null) line = "";
+            if (line == null)
+                line = "";
             try {
                 validator.accept(line);
                 return line;
@@ -74,15 +73,13 @@ public class Prompter {
             out.print("Password (confirm): ");
             out.flush();
             char[] confirmation = passwordSupplier.get();
-            if (firstEntry != null && confirmation != null
-                    && firstEntry.length > 0
-                    && Arrays.equals(firstEntry, confirmation)) {
+            if (firstEntry != null && confirmation != null && firstEntry.length > 0 &&
+                Arrays.equals(firstEntry, confirmation)) {
                 return new String(firstEntry);
             }
             out.println("invalid: passwords do not match or are empty");
         }
-        throw new ValidationFailedException("password",
-                "password entry failed after " + MAX_RETRIES + " attempts");
+        throw new ValidationFailedException("password", "password entry failed after " + MAX_RETRIES + " attempts");
     }
 
     public boolean confirm(String label) {
@@ -90,8 +87,7 @@ public class Prompter {
         out.flush();
         try {
             String line = in.readLine();
-            return line != null && !line.isEmpty()
-                    && (line.charAt(0) == 'y' || line.charAt(0) == 'Y');
+            return line != null && !line.isEmpty() && (line.charAt(0) == 'y' || line.charAt(0) == 'Y');
         } catch (IOException e) {
             // Treat IO failure as an implicit "no": refusing to delete on a
             // broken stream is safer than acting on garbage input.

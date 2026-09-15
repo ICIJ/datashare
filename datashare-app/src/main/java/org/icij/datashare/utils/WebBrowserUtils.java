@@ -2,7 +2,6 @@ package org.icij.datashare.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.Socket;

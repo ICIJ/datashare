@@ -8,14 +8,12 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-
 
 public interface Indexer extends Closeable {
     Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
@@ -55,7 +53,8 @@ public interface Indexer extends Closeable {
 
     Map<String, String> getVersion() throws IOException;
 
-    boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
+    boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws
+            IOException;
 
     <T extends Entity> boolean bulkAdd(final String indexName, List<T> entities) throws IOException;
 
@@ -95,11 +94,14 @@ public interface Indexer extends Closeable {
 
     boolean untag(Project prj, List<String> documentIds, Tag... tags) throws IOException;
 
-    ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, int offset, int limit, String targetLanguage) throws IOException;
+    ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, int offset, int limit,
+                                   String targetLanguage) throws IOException;
 
-    SearchedText searchTextOccurrences(String indexName, String documentId, String query, String targetLanguage) throws IOException;
+    SearchedText searchTextOccurrences(String indexName, String documentId, String query, String targetLanguage) throws
+            IOException;
 
-    SearchedText searchTextOccurrences(String indexName, String documentId, String rootDocument, String query, String targetLanguage) throws IOException;
+    SearchedText searchTextOccurrences(String indexName, String documentId, String rootDocument, String query,
+                                       String targetLanguage) throws IOException;
 
     interface Searcher {
         Stream<? extends Entity> execute() throws IOException;

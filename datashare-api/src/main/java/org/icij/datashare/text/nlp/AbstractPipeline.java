@@ -6,37 +6,29 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.*;
-
 import static org.icij.datashare.function.ThrowingFunctions.*;
 import static org.icij.datashare.text.nlp.Pipeline.Type.valueOf;
-
 
 public abstract class AbstractPipeline implements Pipeline {
     public static final String NLP_STAGES_PROP = "nlpStages";
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
-
     protected final Charset encoding;
     protected final List<NamedEntity.Category> targetEntities;
     protected final boolean caching;
 
     protected AbstractPipeline(Properties properties) {
         targetEntities = getProperty(Property.ENTITIES.getName(), properties,
-                removeSpaces
-                        .andThen(splitComma)
-                        .andThen(NamedEntity.Category.parseAll))
-                .orElse(DEFAULT_ENTITIES);
+                                     removeSpaces.andThen(splitComma).andThen(NamedEntity.Category.parseAll)).orElse(
+                DEFAULT_ENTITIES);
 
-        encoding = getProperty(Property.ENCODING.getName(), properties,
-                parseCharset.compose(String::trim))
-                .orElse(DEFAULT_ENCODING);
+        encoding = getProperty(Property.ENCODING.getName(), properties, parseCharset.compose(String::trim)).orElse(
+                DEFAULT_ENCODING);
 
-        caching = getProperty(Property.CACHING.getName(), properties,
-                trim.andThen(Boolean::parseBoolean))
-                .orElse(DEFAULT_CACHING);
+        caching = getProperty(Property.CACHING.getName(), properties, trim.andThen(Boolean::parseBoolean)).orElse(
+                DEFAULT_CACHING);
     }
 
     @Override
@@ -59,8 +51,11 @@ public abstract class AbstractPipeline implements Pipeline {
         return encoding;
     }
 
-    public static AbstractPipeline create(final String pipelineName, final PropertiesProvider propertiesProvider) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ClassNotFoundException {
-        Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipelineName).getClassName());
+    public static AbstractPipeline create(final String pipelineName, final PropertiesProvider propertiesProvider) throws
+            NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException,
+            ClassNotFoundException {
+        Class<? extends AbstractPipeline> pipelineClass =
+                (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipelineName).getClassName());
         return pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
     }
 

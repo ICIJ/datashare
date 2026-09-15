@@ -1,7 +1,6 @@
 package org.icij.datashare.extract;
 
 import org.icij.task.Options;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;

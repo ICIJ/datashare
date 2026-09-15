@@ -4,11 +4,9 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Spec;
 
-@Command(name = "stage", mixinStandardHelpOptions = true,
-        description = "Run document processing pipeline stages.",
+@Command(name = "stage", mixinStandardHelpOptions = true, description = "Run document processing pipeline stages.",
         subcommands = {StageRunCommand.class})
 public class StageCommand implements Runnable {
-
     @Spec
     CommandLine.Model.CommandSpec spec;
 

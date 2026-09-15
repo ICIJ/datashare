@@ -10,9 +10,7 @@ import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.annotation.Nullable;
-
 import static net.codestory.http.constants.Headers.CACHE_CONTROL;
 import static net.codestory.http.constants.HttpStatus.UNAUTHORIZED;
 
@@ -64,9 +62,11 @@ public class ApiKeyFilter implements Filter {
     }
 
     private String getToken(String authorizationHeader) {
-        if (authorizationHeader == null) return null;
+        if (authorizationHeader == null)
+            return null;
         String[] typeAndCredential = authorizationHeader.split("\\s");
-        if (typeAndCredential.length != 2) return null;
+        if (typeAndCredential.length != 2)
+            return null;
         return typeAndCredential[0].equalsIgnoreCase("bearer") ? typeAndCredential[1] : null;
     }
 

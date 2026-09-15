@@ -4,12 +4,10 @@ import com.rabbitmq.client.AlreadyClosedException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-
 import static java.util.Optional.ofNullable;
 
 /**
@@ -27,23 +25,23 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
     private final AtomicReference<String> consumerTag = new AtomicReference<>();
     private final Class<Evt> evtClass;
 
-    public AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
-                        EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass) throws IOException {
+    public AmqpConsumer(AmqpInterlocutor amqpInterlocutor, EvtConsumer eventConsumer, AmqpQueue queue,
+                        Class<Evt> evtClass) throws IOException {
         this(amqpInterlocutor, eventConsumer, queue, evtClass, null, null);
     }
 
-    public AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
-                        EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass, CountDownLatch initLatch) throws IOException {
+    public AmqpConsumer(AmqpInterlocutor amqpInterlocutor, EvtConsumer eventConsumer, AmqpQueue queue,
+                        Class<Evt> evtClass, CountDownLatch initLatch) throws IOException {
         this(amqpInterlocutor, eventConsumer, queue, evtClass, null, initLatch);
     }
 
-    public AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
-                        EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass, String key) throws IOException {
+    public AmqpConsumer(AmqpInterlocutor amqpInterlocutor, EvtConsumer eventConsumer, AmqpQueue queue,
+                        Class<Evt> evtClass, String key) throws IOException {
         this(amqpInterlocutor, eventConsumer, queue, evtClass, key, null);
     }
 
-    AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
-                 EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass, String key, CountDownLatch initLatch) throws IOException {
+    AmqpConsumer(AmqpInterlocutor amqpInterlocutor, EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass,
+                 String key, CountDownLatch initLatch) throws IOException {
         this.amqpInterlocutor = amqpInterlocutor;
         this.eventConsumer = eventConsumer;
         this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue, key);
@@ -63,7 +61,8 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
         return launchConsumer(channel, eventHandler);
     }
 
-    AmqpConsumer<Evt, EvtConsumer> launchConsumer(AmqpChannel channel, Consumer<Evt> eventHandler, final int nbEventsToConsume) {
+    AmqpConsumer<Evt, EvtConsumer> launchConsumer(AmqpChannel channel, Consumer<Evt> eventHandler,
+                                                  final int nbEventsToConsume) {
         launchConsumer(channel, eventHandler, new ConsumerCriteria() {
             int nvReceivedEvents = 0;
 
@@ -93,7 +92,8 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
     private void launchConsumer(AmqpChannel channel, Consumer<Evt> eventHandler, ConsumerCriteria criteria) {
         try {
             logger.info("starting consuming events for {}", channel);
-            consumerTag.set(channel.consume((body) -> eventHandler.accept(this.deserialize(body)), criteria, this::cancel));
+            consumerTag.set(
+                    channel.consume((body) -> eventHandler.accept(this.deserialize(body)), criteria, this::cancel));
         } catch (IOException ioe) {
             logger.error("exception during basicConsume", ioe);
         }

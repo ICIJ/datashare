@@ -1,9 +1,7 @@
 package org.icij.datashare.cli.command;
 
 import org.icij.datashare.user.User;
-
 import java.util.Properties;
-
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.DIGEST_PROJECT_NAME_OPT;
 import static org.icij.datashare.PropertiesProvider.TCP_LISTEN_PORT_OPT;
@@ -21,7 +19,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.PORT_OPT;
  * and subcommand properties.
  */
 public final class DatashareOptions {
-
     private DatashareOptions() {
     }
 
@@ -63,8 +60,8 @@ public final class DatashareOptions {
         // the two: without it, User.getDefaultProjectsKey() would always fall
         // back to the hardcoded default "groups_by_applications.datashare".
         String projectsAttribute = props.getProperty(OAUTH_USER_PROJECTS_KEY_OPT);
-        boolean hasCustomProjectsAttribute = projectsAttribute != null
-                && !User.DEFAULT_PROJECTS_KEY.equals(projectsAttribute);
+        boolean hasCustomProjectsAttribute =
+                projectsAttribute != null && !User.DEFAULT_PROJECTS_KEY.equals(projectsAttribute);
         if (hasCustomProjectsAttribute) {
             System.setProperty(User.JVM_PROJECT_KEY, projectsAttribute);
         }

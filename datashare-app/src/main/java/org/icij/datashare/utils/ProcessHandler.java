@@ -1,7 +1,6 @@
 package org.icij.datashare.utils;
 
 import static java.lang.System.getProperty;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -15,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 public class ProcessHandler {
-
     public static void dumpPid(File pidFile, Long pid) throws IOException {
         boolean ignored = pidFile.getParentFile().mkdirs();
         try (FileOutputStream fos = new FileOutputStream(pidFile)) {
@@ -23,18 +21,17 @@ public class ProcessHandler {
         }
     }
 
-    public static boolean isProcessRunning(Path pidPath, int timeout, TimeUnit timeunit) throws IOException, InterruptedException {
+    public static boolean isProcessRunning(Path pidPath, int timeout, TimeUnit timeunit) throws IOException,
+            InterruptedException {
         try (Stream<String> lines = Files.lines(pidPath)) {
             Long pid = Long.parseLong(
-                    lines.findFirst()
-                            .orElseThrow(() -> new RuntimeException("PID file is empty"))
-                            .strip()
-            );
+                    lines.findFirst().orElseThrow(() -> new RuntimeException("PID file is empty")).strip());
             return isProcessRunning(pid, timeout, timeunit);
         }
     }
 
-    public static boolean isProcessRunning(Long pid, int timeout, TimeUnit timeunit) throws IOException, InterruptedException {
+    public static boolean isProcessRunning(Long pid, int timeout, TimeUnit timeunit) throws IOException,
+            InterruptedException {
         ProcessBuilder builder = new ProcessBuilder();
         if (getProperty("os.name").toLowerCase().contains("windows")) {
             builder.command("ps", "-p", pid.toString());
@@ -52,25 +49,20 @@ public class ProcessHandler {
 
     public static void killProcessById(Long pid, boolean force) {
         Stream<ProcessHandle> liveProcesses = ProcessHandle.allProcesses();
-        liveProcesses
-                .filter(handle -> handle.isAlive() && pid.equals(handle.pid()))
-                .findFirst()
-                .ifPresent(parent -> {
-                            parent.descendants()
-                                    .forEach(child -> {
-                                        if (force) {
-                                            child.destroyForcibly();
-                                        } else {
-                                            child.destroy();
-                                        }
-                                    });
-                            if (force) {
-                                parent.destroyForcibly();
-                            } else {
-                                parent.destroy();
-                            }
-                        }
-                );
+        liveProcesses.filter(handle -> handle.isAlive() && pid.equals(handle.pid())).findFirst().ifPresent(parent -> {
+            parent.descendants().forEach(child -> {
+                if (force) {
+                    child.destroyForcibly();
+                } else {
+                    child.destroy();
+                }
+            });
+            if (force) {
+                parent.destroyForcibly();
+            } else {
+                parent.destroy();
+            }
+        });
     }
 
     public static List<Path> findPidPaths(String pattern, Path dir) throws IOException {

@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.attribute.*;
 import java.util.*;
-
 import static java.lang.String.format;
 
 public class DirectoryReport extends AbstractFileReport {
@@ -20,7 +19,8 @@ public class DirectoryReport extends AbstractFileReport {
 
     public void add(AbstractFileReport fileReport) {
         if (!file.equals(fileReport.file.getParentFile())) {
-            throw new IllegalArgumentException(format("cannot add a file (%s) outside this directory (%s)", fileReport.file, file));
+            throw new IllegalArgumentException(
+                    format("cannot add a file (%s) outside this directory (%s)", fileReport.file, file));
         }
         contents.add(fileReport);
     }

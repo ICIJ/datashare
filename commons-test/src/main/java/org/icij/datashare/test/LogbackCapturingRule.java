@@ -2,7 +2,6 @@ package org.icij.datashare.test;
 
 import org.junit.rules.ExternalResource;
 import org.slf4j.event.Level;
-
 import java.util.List;
 
 public class LogbackCapturingRule extends ExternalResource {

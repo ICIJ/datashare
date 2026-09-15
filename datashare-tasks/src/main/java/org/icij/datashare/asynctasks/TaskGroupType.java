@@ -1,7 +1,6 @@
 package org.icij.datashare.asynctasks;
 
 import java.util.Objects;
-
 import org.icij.datashare.text.nlp.Pipeline;
 
 public enum TaskGroupType {

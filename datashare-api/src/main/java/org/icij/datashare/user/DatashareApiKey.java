@@ -1,7 +1,6 @@
 package org.icij.datashare.user;
 
 import org.icij.datashare.time.DatashareTime;
-
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
@@ -65,8 +64,10 @@ public class DatashareApiKey implements ApiKey {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof DatashareApiKey)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof DatashareApiKey))
+            return false;
         DatashareApiKey that = (DatashareApiKey) o;
         return hashedKey.equals(that.hashedKey);
     }

@@ -2,7 +2,6 @@ package org.icij.datashare.asynctasks;
 
 import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.text.StringUtils.getValue;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -10,7 +9,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import org.icij.datashare.tasks.TaskType;
 import org.icij.datashare.user.User;
 
@@ -24,7 +22,8 @@ public final class TaskFilters {
     private Map<String, Pattern> argsPatterns = null;
     private Pattern taskNamePattern = null;
 
-    public TaskFilters(List<ArgsFilter> args, Set<Task.State> states, Set<TaskType> types, String name, User user, Integer regexFlags) {
+    public TaskFilters(List<ArgsFilter> args, Set<Task.State> states, Set<TaskType> types, String name, User user,
+                       Integer regexFlags) {
         this.args = args;
         this.states = states;
         this.types = types;
@@ -89,11 +88,11 @@ public final class TaskFilters {
         return new TaskFilters(args, states, types, name, user, flag);
     }
 
-    public record ArgsFilter(String argLocation, String pattern) {
-    }
+    public record ArgsFilter(String argLocation, String pattern) {}
 
     public boolean filter(Task<? extends Serializable> task) {
-        return byName(task.name) && byUser(task.getUser()) && byState(task.getState()) && byType(task.type) && byArgs(task.args);
+        return byName(task.name) && byUser(task.getUser()) && byState(task.getState()) && byType(task.type) &&
+               byArgs(task.args);
     }
 
     public boolean filter(Map<String, Object> args) {
@@ -139,13 +138,8 @@ public final class TaskFilters {
     }
 
     boolean byArgs(Map<String, Object> taskArgs) {
-        return Optional.ofNullable(getArgsPatterns())
-                .map(patterns -> patterns.entrySet()
-                        .stream()
-                        .allMatch(e -> e.getValue()
-                                .matcher(String.valueOf(getValue(taskArgs, e.getKey())))
-                                .find()))
-                .orElse(true);
+        return Optional.ofNullable(getArgsPatterns()).map(patterns -> patterns.entrySet().stream().allMatch(
+                e -> e.getValue().matcher(String.valueOf(getValue(taskArgs, e.getKey()))).find())).orElse(true);
     }
 
     private Pattern getNamePattern() {
@@ -182,11 +176,11 @@ public final class TaskFilters {
             return false;
         }
         TaskFilters filters = (TaskFilters) o;
-        return Objects.equals(args, filters.args) && Objects.equals(states, filters.states)
-                && Objects.equals(types, filters.types)
-                && Objects.equals(name, filters.name) && Objects.equals(user, filters.user)
-                && Objects.equals(regexFlags, filters.regexFlags) && Objects.equals(argsPatterns,
-                filters.argsPatterns) && Objects.equals(taskNamePattern, filters.taskNamePattern);
+        return Objects.equals(args, filters.args) && Objects.equals(states, filters.states) &&
+               Objects.equals(types, filters.types) && Objects.equals(name, filters.name) &&
+               Objects.equals(user, filters.user) && Objects.equals(regexFlags, filters.regexFlags) &&
+               Objects.equals(argsPatterns, filters.argsPatterns) &&
+               Objects.equals(taskNamePattern, filters.taskNamePattern);
     }
 
     @Override

@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import org.icij.datashare.asynctasks.Task;
-
 import java.io.IOException;
 import java.util.Date;
 
@@ -41,7 +40,7 @@ public class TaskCreation extends Event {
             JsonNode taskViewEventNode = oc.readTree(p);
             Task<?> taskView = oc.treeToValue(taskViewEventNode, Task.class);
             return new TaskCreation(new Date(taskViewEventNode.get("createdAt").asLong()),
-                    taskViewEventNode.get("retries").asInt(), taskView);
+                                    taskViewEventNode.get("retries").asInt(), taskView);
         }
     }
 }

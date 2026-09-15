@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.time.DatashareTime;
-
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
@@ -18,10 +17,9 @@ import java.util.Date;
  * For name mapping, subclasses can use the @JsonTypeName annotation.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
-@JsonSubTypes({@JsonSubTypes.Type(ShutdownEvent.class),
-        @JsonSubTypes.Type(ProgressEvent.class), @JsonSubTypes.Type(CancelEvent.class),
-        @JsonSubTypes.Type(CancelledEvent.class), @JsonSubTypes.Type(ResultEvent.class),
-        @JsonSubTypes.Type(ErrorEvent.class)})
+@JsonSubTypes({@JsonSubTypes.Type(ShutdownEvent.class), @JsonSubTypes.Type(ProgressEvent.class),
+        @JsonSubTypes.Type(CancelEvent.class), @JsonSubTypes.Type(CancelledEvent.class),
+        @JsonSubTypes.Type(ResultEvent.class), @JsonSubTypes.Type(ErrorEvent.class)})
 public class Event implements Serializable {
     @Serial
     private static final long serialVersionUID = -2295266944323500399L;

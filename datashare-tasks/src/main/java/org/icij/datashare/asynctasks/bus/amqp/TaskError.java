@@ -3,12 +3,10 @@ package org.icij.datashare.asynctasks.bus.amqp;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -21,10 +19,8 @@ public class TaskError implements Serializable {
     final List<StacktraceItem> stacktrace;
 
     @JsonCreator
-    public TaskError(@JsonProperty("name") String name,
-                     @JsonProperty("message") String message,
-                     @JsonProperty("cause") String cause,
-                     @JsonProperty("stacktrace") List<StacktraceItem> stacktrace) {
+    public TaskError(@JsonProperty("name") String name, @JsonProperty("message") String message,
+                     @JsonProperty("cause") String cause, @JsonProperty("stacktrace") List<StacktraceItem> stacktrace) {
         super();
         this.name = name;
         this.message = message;
@@ -33,22 +29,25 @@ public class TaskError implements Serializable {
     }
 
     public TaskError(Throwable throwable) {
-        this(throwable.getClass().getName(), throwable.getMessage(),
-                ofNullable(throwable.getCause()).map(c -> format("%s: %s",
-                        throwable.getCause().getClass().getName(),
-                        throwable.getCause().getMessage())).orElse(null), stream(throwable.getStackTrace()).map(se ->
-                {
-                    String name = se.isNativeMethod() ? se.getClassName() : format("%s.%s", se.getClassName(), se.getMethodName());
-                    return new StacktraceItem(se.getFileName(), se.getLineNumber(), name);
-                }).collect(Collectors.toList()));
+        this(throwable.getClass().getName(), throwable.getMessage(), ofNullable(throwable.getCause()).map(
+                                                                                                             c -> format("%s: %s", throwable.getCause().getClass().getName(), throwable.getCause().getMessage()))
+                                                                                                     .orElse(null),
+             stream(throwable.getStackTrace()).map(se -> {
+                 String name = se.isNativeMethod() ? se.getClassName() :
+                               format("%s.%s", se.getClassName(), se.getMethodName());
+                 return new StacktraceItem(se.getFileName(), se.getLineNumber(), name);
+             }).collect(Collectors.toList()));
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         TaskError that = (TaskError) o;
-        return Objects.equals(name, that.name) && Objects.equals(message, that.message) && Objects.equals(cause, that.cause) && Objects.equals(stacktrace, that.stacktrace);
+        return Objects.equals(name, that.name) && Objects.equals(message, that.message) &&
+               Objects.equals(cause, that.cause) && Objects.equals(stacktrace, that.stacktrace);
     }
 
     @Override
@@ -75,8 +74,7 @@ public class TaskError implements Serializable {
         final String name;
 
         @JsonCreator
-        public StacktraceItem(@JsonProperty("file") String file,
-                              @JsonProperty("lineno") int lineno,
+        public StacktraceItem(@JsonProperty("file") String file, @JsonProperty("lineno") int lineno,
                               @JsonProperty("name") String name) {
             this.file = file;
             this.lineno = lineno;
@@ -85,8 +83,10 @@ public class TaskError implements Serializable {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
             StacktraceItem that = (StacktraceItem) o;
             return lineno == that.lineno && Objects.equals(file, that.file) && Objects.equals(name, that.name);
         }

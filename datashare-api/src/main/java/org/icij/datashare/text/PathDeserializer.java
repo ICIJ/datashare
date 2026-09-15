@@ -3,7 +3,6 @@ package org.icij.datashare.text;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;

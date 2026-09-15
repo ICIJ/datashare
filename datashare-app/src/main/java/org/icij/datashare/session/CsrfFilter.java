@@ -5,7 +5,6 @@ import net.codestory.http.NewCookie;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
-
 import java.security.SecureRandom;
 
 public class CsrfFilter implements Filter {
@@ -44,8 +43,7 @@ public class CsrfFilter implements Filter {
     }
 
     private boolean needsCsrfCookie(Context context) {
-        return context.currentUser() != null
-                && context.cookies().get(CSRF_COOKIE_NAME) == null;
+        return context.currentUser() != null && context.cookies().get(CSRF_COOKIE_NAME) == null;
     }
 
     private static String generateToken() {

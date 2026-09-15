@@ -1,7 +1,6 @@
 package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -24,8 +23,8 @@ public class ArtifactPayload {
         return switch (type) {
             // Both or neither: SourceExtractor serves the cache only when both are readable, so a pair
             // half written by a JVM death is unservable.
-            case RAW -> !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_FILE))
-                    || !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE));
+            case RAW -> !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_FILE)) ||
+                        !Files.exists(docArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE));
             case STRUCTURE -> !Files.exists(lastPageOrDir(docArtifactDir, entry));
             // One file for every page, swapped in whole, so its existence answers for the payload: the
             // per-page offsets live in the entry, and a run that wrote no pages recorded EMPTY above.

@@ -2,7 +2,6 @@ package org.icij.datashare.text.artifact;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.nio.channels.ClosedByInterruptException;
@@ -28,9 +27,8 @@ public class ArtifactProducer {
     public boolean run(List<Artifact> artifacts, ArtifactContext context, boolean force) {
         // reduce (not allMatch): allMatch short-circuits on the first false, which would skip
         // producing sibling types once one fails; every type must get its turn.
-        return dedupeByType(artifacts).values().stream()
-                .map(artifact -> produce(artifact, context, force))
-                .reduce(true, Boolean::logicalAnd);
+        return dedupeByType(artifacts).values().stream().map(artifact -> produce(artifact, context, force))
+                                      .reduce(true, Boolean::logicalAnd);
     }
 
     private Map<ArtifactType, Artifact> dedupeByType(List<Artifact> artifacts) {
@@ -73,7 +71,8 @@ public class ArtifactProducer {
             if (handledAsCancellation(type, context, failure)) {
                 return true;
             }
-            LOGGER.error("failed to produce artifact '{}' for document {}", type.token(), context.document().getId(), failure);
+            LOGGER.error("failed to produce artifact '{}' for document {}", type.token(), context.document().getId(),
+                         failure);
             return false;
         }
     }
@@ -92,7 +91,8 @@ public class ArtifactProducer {
             return false;
         }
         Thread.currentThread().interrupt();
-        LOGGER.debug("cancelled while producing '{}' for document {}", type.token(), context.document().getId(), failure);
+        LOGGER.debug("cancelled while producing '{}' for document {}", type.token(), context.document().getId(),
+                     failure);
         return true;
     }
 
@@ -107,7 +107,8 @@ public class ArtifactProducer {
             record(context, type, ManifestEntry.empty(artifact.taskInput(context.document())));
             return true;
         } catch (IOException recordFailure) {
-            LOGGER.error("failed to record artifact '{}' for document {}", type.token(), context.document().getId(), recordFailure);
+            LOGGER.error("failed to record artifact '{}' for document {}", type.token(), context.document().getId(),
+                         recordFailure);
             return false;
         }
     }
@@ -120,16 +121,15 @@ public class ArtifactProducer {
      * Believing either one alone ends the whole remaining queue green, with nbFailed at 0.
      */
     public boolean isCancellation(Throwable failure) {
-        return cancelRequested.getAsBoolean()
-                && (Thread.currentThread().isInterrupted() || causedByInterrupt(failure));
+        return cancelRequested.getAsBoolean() && (Thread.currentThread().isInterrupted() || causedByInterrupt(failure));
     }
 
     // InterruptedIOException as well as the two obvious ones: extract-lib's cancellation path surfaces it,
     // and being an IOException it would otherwise be counted as a failed document.
     private static boolean causedByInterrupt(Throwable throwable) {
         for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
-            if (cause instanceof InterruptedException || cause instanceof ClosedByInterruptException
-                    || cause instanceof InterruptedIOException) {
+            if (cause instanceof InterruptedException || cause instanceof ClosedByInterruptException ||
+                cause instanceof InterruptedIOException) {
                 return true;
             }
             // A custom or deserialised exception can return itself from getCause(), which would make this
@@ -151,8 +151,8 @@ public class ArtifactProducer {
         // A terminal entry is not proof the payload survived a JVM death mid-swap or a failed restore.
         // Asking the disk is what lets a plain re-run repair it, instead of --artifactsForce on the corpus.
         if (ArtifactPayload.isMissing(context.docArtifactDir(), type, existing)) {
-            LOGGER.warn("'{}' entry for document {} is current but its payload is gone: re-producing",
-                    type.token(), context.document().getId());
+            LOGGER.warn("'{}' entry for document {} is current but its payload is gone: re-producing", type.token(),
+                        context.document().getId());
             return false;
         }
         return true;

@@ -15,7 +15,6 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import static java.util.Arrays.asList;
 
 public class JarUtil {
@@ -29,12 +28,14 @@ public class JarUtil {
 
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        JarOutputStream target = new JarOutputStream(new FileOutputStream(pathToJar.resolve(jarName + ".jar").toString()), manifest);
+        JarOutputStream target =
+                new JarOutputStream(new FileOutputStream(pathToJar.resolve(jarName + ".jar").toString()), manifest);
 
         try (BufferedOutputStream bos = new BufferedOutputStream(target)) {
             Files.walkFileTree(jarRoot, new SimpleFileVisitor<Path>() {
                 @Override
-                public FileVisitResult visitFile(Path classFilePath, BasicFileAttributes basicFileAttributes) throws IOException {
+                public FileVisitResult visitFile(Path classFilePath, BasicFileAttributes basicFileAttributes) throws
+                        IOException {
                     BufferedInputStream br = new BufferedInputStream(new FileInputStream(classFilePath.toFile()));
                     target.putNextEntry(new JarEntry(jarRoot.relativize(classFilePath).toString()));
                     int c;
@@ -69,6 +70,6 @@ public class JarUtil {
                 files.add(sourcePath.toFile());
             }
         }
-        createJar(pathToJar, jarName, files.toArray(new File[]{}));
+        createJar(pathToJar, jarName, files.toArray(new File[] {}));
     }
 }

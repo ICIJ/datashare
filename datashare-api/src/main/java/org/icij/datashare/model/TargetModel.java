@@ -30,8 +30,7 @@ public interface TargetModel {
      */
     ModelEntity parse(String json);
 
-    record Violation(String message) {
-    }
+    record Violation(String message) {}
 
     default Optional<Property> property(String type, String name) {
         return type(type).map(found -> found.properties().get(name));
@@ -57,35 +56,30 @@ public interface TargetModel {
             }
         }
         if (!types.isEmpty() && types.stream().allMatch(EntityType::isAbstract)) {
-            violations.add(new Violation("every type in " + types.stream().map(EntityType::name).toList()
-                    + " is abstract and cannot be instantiated"));
+            violations.add(new Violation("every type in " + types.stream().map(EntityType::name).toList() +
+                                         " is abstract and cannot be instantiated"));
         }
         if (!types.isEmpty()) {
             for (String property : new TreeSet<>(entity.properties().keySet())) {
-                List<Property> declarations = types.stream()
-                        .map(type -> type.properties().get(property))
-                        .filter(Objects::nonNull)
-                        .toList();
+                List<Property> declarations =
+                        types.stream().map(type -> type.properties().get(property)).filter(Objects::nonNull).toList();
                 if (declarations.isEmpty()) {
                     violations.add(new Violation("no property '" + property + "' on " + names));
                 } else if (declarations.stream().allMatch(Property::stub)) {
-                    violations.add(new Violation("property '" + property + "' is a stub: it is inferred from the '"
-                            + declarations.get(0).range() + "' relation rather than written"));
+                    violations.add(new Violation("property '" + property + "' is a stub: it is inferred from the '" +
+                                                 declarations.get(0).range() + "' relation rather than written"));
                 }
             }
         }
         Set<String> reported = new HashSet<>();
         for (EntityType type : types) {
-            type.required().stream()
-                    .filter(required -> isBlank(entity, required) && reported.add(required))
-                    .forEach(required ->
-                            violations.add(new Violation("type '" + type.name() + "' requires '" + required + "'")));
+            type.required().stream().filter(required -> isBlank(entity, required) && reported.add(required)).forEach(
+                    required -> violations.add(
+                            new Violation("type '" + type.name() + "' requires '" + required + "'")));
             if (type.edge() != null) {
-                Stream.of(type.edge().source(), type.edge().target())
-                        .filter(end -> !type.required().contains(end))
-                        .filter(end -> isBlank(entity, end))
-                        .forEach(end -> violations.add(
-                                new Violation("edge type '" + type.name() + "' needs '" + end + "'")));
+                Stream.of(type.edge().source(), type.edge().target()).filter(end -> !type.required().contains(end))
+                      .filter(end -> isBlank(entity, end)).forEach(
+                              end -> violations.add(new Violation("edge type '" + type.name() + "' needs '" + end + "'")));
             }
         }
         return violations;

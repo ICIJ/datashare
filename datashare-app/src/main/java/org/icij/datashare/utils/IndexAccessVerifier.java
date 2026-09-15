@@ -5,11 +5,9 @@ import net.codestory.http.Query;
 import net.codestory.http.errors.UnauthorizedException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
-
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import static java.util.Arrays.stream;
 
 public class IndexAccessVerifier {
@@ -85,8 +83,9 @@ public class IndexAccessVerifier {
      *  or the base project it derives from. Suffix match on the whole remainder, never a prefix match,
      *  so "myproject-other" doesn't inherit "myproject". */
     public static List<String> baseProjects(String indices) {
-        return stream(indices.split(",")).map(i -> i.endsWith(Project.ENTITIES_INDEX_SUFFIX)
-                ? i.substring(0, i.length() - Project.ENTITIES_INDEX_SUFFIX.length()) : i).toList();
+        return stream(indices.split(",")).map(i -> i.endsWith(Project.ENTITIES_INDEX_SUFFIX) ?
+                                                   i.substring(0, i.length() - Project.ENTITIES_INDEX_SUFFIX.length()) :
+                                                   i).toList();
     }
 
     public static String getUrlString(Context context, String s) {
@@ -97,6 +96,7 @@ public class IndexAccessVerifier {
     }
 
     static String getQueryAsString(final Query query) {
-        return query.keyValues().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("&"));
+        return query.keyValues().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue())
+                    .collect(Collectors.joining("&"));
     }
 }

@@ -15,7 +15,6 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.payload.Payload;
 import org.icij.swagger.FluentReader;
-
 import static java.util.Optional.ofNullable;
 import static org.icij.swagger.ClassUtils.findAllClassesUsingClassLoader;
 
@@ -23,18 +22,13 @@ import static org.icij.swagger.ClassUtils.findAllClassesUsingClassLoader;
 @Prefix("/api/openapi?format=:format")
 public class OpenApiResource {
     @Operation(description = "Get the JSON or YAML OpenAPI v3 contract specification",
-            parameters = {
-                    @Parameter(name = "format",
-                            description = """
-                                    format of openapi description. Possible values are:
-                                    
-                                    * json (default)
-                                    * yaml
-                                    
-                                    """,
-                            in = ParameterIn.QUERY, schema = @Schema(implementation = String.class))
-            }
-    )
+            parameters = {@Parameter(name = "format", description = """
+                    format of openapi description. Possible values are:
+                    
+                    * json (default)
+                    * yaml
+                    
+                    """, in = ParameterIn.QUERY, schema = @Schema(implementation = String.class))})
     @ApiResponse(responseCode = "200", description = "returns the JSON or YAML file")
     @Get()
     public Payload get(String format) {

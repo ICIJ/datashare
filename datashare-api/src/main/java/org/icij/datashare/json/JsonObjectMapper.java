@@ -21,15 +21,12 @@ import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
-
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
 import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
-
 
 /**
  * JSON - POJO Index mapping functions
@@ -42,17 +39,12 @@ import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
  *
  * Created by julien on 6/29/16.
  */
-
 public class JsonObjectMapper {
-
     // JSON - Object mapper
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final ObjectMapper TYPE_INCLUSION_MAPPER;
-
     public static final int MAX_NESTING_DEPTH = 20;
-
     public static final int MAX_NUMBER_LENGTH = 100;
-
     public static final int MAX_STRING_LENGTH = 1000000000;
 
     static {
@@ -65,52 +57,47 @@ public class JsonObjectMapper {
             //  Making domain entities' private fields visible to Jackson
             MAPPER.setVisibility(FIELD, ANY);
             MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            MAPPER.getFactory().setStreamReadConstraints(StreamReadConstraints.builder()
-                    .maxNestingDepth(MAX_NESTING_DEPTH)
-                    .maxNumberLength(MAX_NUMBER_LENGTH)
-                    .maxStringLength(MAX_STRING_LENGTH).build());
+            MAPPER.getFactory().setStreamReadConstraints(
+                    StreamReadConstraints.builder().maxNestingDepth(MAX_NESTING_DEPTH)
+                                         .maxNumberLength(MAX_NUMBER_LENGTH).maxStringLength(MAX_STRING_LENGTH)
+                                         .build());
             TYPE_INCLUSION_MAPPER = MAPPER.copy();
             // Restrict polymorphic deserialization to an allowlist of safe types.
             // Applied to both MAPPER (HTTP bodies) and TYPE_INCLUSION_MAPPER (DB/AMQP).
             // allowIfBaseType: matches the declared type; allowIfSubType: matches the runtime type.
             // Both are needed for types inside generic containers like Map<String, Object>.
-            BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
-                    .allowIfBaseType(java.util.Map.class)
-                    .allowIfBaseType(java.util.Collection.class)
-                    .allowIfBaseType(java.util.Date.class)
-                    .allowIfBaseType(java.nio.file.Path.class)
-                    .allowIfBaseType(java.nio.charset.Charset.class)
-                    .allowIfBaseType(java.net.URI.class)
-                    .allowIfBaseType(java.lang.Enum.class)
-                    .allowIfBaseType(java.lang.Number.class)
-                    .allowIfBaseType(java.lang.Throwable.class)
-                    .allowIfBaseType("org.icij.datashare.")
-                    .allowIfBaseType("org.icij.extract.")
-                    .allowIfSubType(java.lang.String.class)
-                    .allowIfSubType(java.lang.Boolean.class)
-                    .allowIfSubType(java.util.Map.class)
-                    .allowIfSubType(java.util.Collection.class)
-                    .allowIfSubType(java.util.Date.class)
-                    .allowIfSubType(java.nio.file.Path.class)
-                    .allowIfSubType(java.nio.charset.Charset.class)
-                    .allowIfSubType(java.net.URI.class)
-                    .allowIfSubType(java.lang.Enum.class)
-                    .allowIfSubType(java.lang.Number.class)
-                    .allowIfSubType(java.lang.Throwable.class)
-                    .allowIfSubType("org.icij.datashare.")
-                    .allowIfSubType("org.icij.extract.")
-                    .allowIfSubType("[Ljava.lang.")
-                    .allowIfSubType("[Ljava.util.")
-                    .allowIfSubType("[Lorg.icij.")
-                    .build();
+            BasicPolymorphicTypeValidator ptv =
+                    BasicPolymorphicTypeValidator.builder().allowIfBaseType(java.util.Map.class)
+                                                 .allowIfBaseType(java.util.Collection.class)
+                                                 .allowIfBaseType(java.util.Date.class)
+                                                 .allowIfBaseType(java.nio.file.Path.class)
+                                                 .allowIfBaseType(java.nio.charset.Charset.class)
+                                                 .allowIfBaseType(java.net.URI.class)
+                                                 .allowIfBaseType(java.lang.Enum.class)
+                                                 .allowIfBaseType(java.lang.Number.class)
+                                                 .allowIfBaseType(java.lang.Throwable.class)
+                                                 .allowIfBaseType("org.icij.datashare.")
+                                                 .allowIfBaseType("org.icij.extract.")
+                                                 .allowIfSubType(java.lang.String.class)
+                                                 .allowIfSubType(java.lang.Boolean.class)
+                                                 .allowIfSubType(java.util.Map.class)
+                                                 .allowIfSubType(java.util.Collection.class)
+                                                 .allowIfSubType(java.util.Date.class)
+                                                 .allowIfSubType(java.nio.file.Path.class)
+                                                 .allowIfSubType(java.nio.charset.Charset.class)
+                                                 .allowIfSubType(java.net.URI.class)
+                                                 .allowIfSubType(java.lang.Enum.class)
+                                                 .allowIfSubType(java.lang.Number.class)
+                                                 .allowIfSubType(java.lang.Throwable.class)
+                                                 .allowIfSubType("org.icij.datashare.")
+                                                 .allowIfSubType("org.icij.extract.").allowIfSubType("[Ljava.lang.")
+                                                 .allowIfSubType("[Ljava.util.").allowIfSubType("[Lorg.icij.").build();
             // Also apply PTV to MAPPER so per-field @JsonTypeInfo annotations
             // (e.g. Task.args) are validated during HTTP body deserialization.
             MAPPER.setPolymorphicTypeValidator(ptv);
-            TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(
-                    ObjectMapper.DefaultTyping.NON_FINAL, ptv)
-                    .init(JsonTypeInfo.Id.CLASS, null)
-                    .typeProperty("@type")
-                    .inclusion(JsonTypeInfo.As.PROPERTY);
+            TypeResolverBuilder<?> mapTyper =
+                    new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.NON_FINAL, ptv).init(
+                            JsonTypeInfo.Id.CLASS, null).typeProperty("@type").inclusion(JsonTypeInfo.As.PROPERTY);
             TYPE_INCLUSION_MAPPER.setDefaultTyping(mapTyper);
         }
     }
@@ -126,14 +113,14 @@ public class JsonObjectMapper {
         String json;
         try {
             json = MAPPER.writeValueAsString(obj);
-            return MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>() {
-            });
+            return MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>() {});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static <T extends Entity> T getObject(String id, String projectId, Map<String, Object> source, Class<T> type) {
+    public static <T extends Entity> T getObject(String id, String projectId, Map<String, Object> source,
+                                                 Class<T> type) {
         HashMap<String, Object> map;
         if (source == null) {
             map = new HashMap<>() {{
@@ -251,8 +238,7 @@ public class JsonObjectMapper {
 
     public static Map<String, Object> deserialize(String jsonMap) {
         try {
-            return new ObjectMapper().readValue(jsonMap, new TypeReference<HashMap<String, Object>>() {
-            });
+            return new ObjectMapper().readValue(jsonMap, new TypeReference<HashMap<String, Object>>() {});
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -292,8 +278,11 @@ public class JsonObjectMapper {
     public static void registerSubtypes(NamedType... classesToRegister) {
         TYPE_INCLUSION_MAPPER.registerSubtypes(classesToRegister);
         MAPPER.registerSubtypes(classesToRegister);
-        LoggerFactory.getLogger(JsonObjectMapper.class).info("Registered task types : "
-                + Arrays.stream(classesToRegister).map(namedType -> namedType.getType().getSimpleName()).toList());
+        LoggerFactory.getLogger(JsonObjectMapper.class).info("Registered task types : " +
+                                                             Arrays.stream(classesToRegister)
+                                                                   .map(namedType -> namedType.getType()
+                                                                                              .getSimpleName())
+                                                                   .toList());
     }
 
     public static <T> T readValue(String rawJson, TypeReference<T> type) throws IOException {
@@ -336,7 +325,8 @@ public class JsonObjectMapper {
         TYPE_INCLUSION_MAPPER.writeValue(file, obj);
     }
 
-    public static CollectionType constructCollectionType(Class<? extends Collection> arrayListClass, Class<?> mapClass) {
+    public static CollectionType constructCollectionType(Class<? extends Collection> arrayListClass,
+                                                         Class<?> mapClass) {
         return MAPPER.getTypeFactory().constructCollectionType(arrayListClass, mapClass);
     }
 

@@ -12,12 +12,7 @@ import picocli.CommandLine.TypeConversionException;
  * {@code ServerMode}.</p>
  */
 public enum AuthMode {
-    OAUTH("oauth"),
-    FORM("form"),
-    BASIC("basic"),
-    YES_COOKIE("yesCookie"),
-    YES_BASIC("yesBasic");
-
+    OAUTH("oauth"), FORM("form"), BASIC("basic"), YES_COOKIE("yesCookie"), YES_BASIC("yesBasic");
     public final String cliName;
 
     AuthMode(String cliName) {

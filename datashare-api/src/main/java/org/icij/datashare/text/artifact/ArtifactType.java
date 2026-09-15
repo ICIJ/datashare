@@ -10,13 +10,11 @@ import java.util.stream.Collectors;
  *  worker, but every produced type must appear here so the backend and frontend can integrate it.
  *  Adding a type is a datashare change, by design (unknown = unsupported). */
 public enum ArtifactType {
-    RAW("raw"),
-    STRUCTURE("structure"),
+    RAW("raw"), STRUCTURE("structure"),
     // Singular, like the serving routes and the manifest key; the payload directory it writes is the
     // plural `pages/` (see ArtifactPath.PAGES_DIR), which is the mapping the convention's type table
     // records.
     PAGE("page");
-
     private final String token;
 
     ArtifactType(String token) {

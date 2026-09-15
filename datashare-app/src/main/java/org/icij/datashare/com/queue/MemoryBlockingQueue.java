@@ -1,7 +1,6 @@
 package org.icij.datashare.com.queue;
 
 import com.google.inject.Singleton;
-
 import java.util.concurrent.LinkedBlockingQueue;
 
 @Singleton

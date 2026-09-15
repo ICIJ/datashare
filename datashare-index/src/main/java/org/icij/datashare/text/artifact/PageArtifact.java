@@ -15,7 +15,6 @@ import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.EmbedSpawner;
 import org.icij.extract.extractor.Extractor;
 import org.icij.task.Options;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 /** The page artifact: a document's paginated PLAIN extracted text, written as a single
  *  pages/content.txt whose per-page half-open byte ranges live in the manifest entry. */
 public class PageArtifact implements Artifact {
@@ -34,7 +32,6 @@ public class PageArtifact implements Artifact {
     private static final String TIKA_PREFIX = "Apache Tika";
     // Read once: Tika.getString() re-reads a jar resource, and taskInput() is called per document.
     private static final String TIKA_VERSION = Tika.getString().replace(TIKA_PREFIX, "").strip();
-
     private final PropertiesProvider propertiesProvider;
 
     public PageArtifact(PropertiesProvider propertiesProvider) {
@@ -66,8 +63,8 @@ public class PageArtifact implements Artifact {
     }
 
     private static Map<String, Object> taskInput(boolean ocr) {
-        return Map.of("pipeline", "tika", "version", TIKA_VERSION, "ocr", ocr,
-                "extract", BuildVersions.EXTRACT, "datashare", BuildVersions.DATASHARE);
+        return Map.of("pipeline", "tika", "version", TIKA_VERSION, "ocr", ocr, "extract", BuildVersions.EXTRACT,
+                      "datashare", BuildVersions.DATASHARE);
     }
 
     @Override
@@ -134,8 +131,8 @@ public class PageArtifact implements Artifact {
     // fatal bucket is only reachable from a test that stands in for this method.
     List<String> extractPages(Document document, Path source) throws IOException, ArtifactException {
         Hasher hasher = Hasher.valueOf(document.getId().length());
-        DocumentFactory documentFactory = new DocumentFactory()
-                .configure(Options.from(Map.of("digestAlgorithm", hasher.toStringWithoutDash())));
+        DocumentFactory documentFactory =
+                new DocumentFactory().configure(Options.from(Map.of("digestAlgorithm", hasher.toStringWithoutDash())));
         try (Extractor extractor = new Extractor(documentFactory, Options.from(propertiesProvider.getProperties()))) {
             // Same rule as DocumentResource.getPages: a document indexed without OCR must be
             // paginated without OCR, or its pages would not match its indexed content.
@@ -176,10 +173,10 @@ public class PageArtifact implements Artifact {
         String name = source.getFileName().toString();
         return metadata -> {
             String resourceName = metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY);
-            return name.equals(resourceName)
-                    || TikaCoreProperties.EmbeddedResourceType.INLINE.toString()
-                    .equals(metadata.get(TikaCoreProperties.EMBEDDED_RESOURCE_TYPE))
-                    || StructureMarkdownExtractor.isOwnBody(metadata);
+            return name.equals(resourceName) || TikaCoreProperties.EmbeddedResourceType.INLINE.toString()
+                                                                                              .equals(metadata.get(
+                                                                                                      TikaCoreProperties.EMBEDDED_RESOURCE_TYPE)) ||
+                   StructureMarkdownExtractor.isOwnBody(metadata);
         };
     }
 
@@ -204,8 +201,8 @@ public class PageArtifact implements Artifact {
             throw new ArtifactConfigurationException(failure.getCause());
         }
         Throwable unreadable = StructureArtifact.unreadableCause(failure);
-        return unreadable == null ? retryable(document, failure)
-                : new UnreadableContentException(document.getId(), unreadable);
+        return unreadable == null ? retryable(document, failure) :
+               new UnreadableContentException(document.getId(), unreadable);
     }
 
     private static ArtifactException retryable(Document document, IOException failure) {
@@ -229,7 +226,7 @@ public class PageArtifact implements Artifact {
                 for (String page : pages) {
                     byte[] bytes = page.getBytes(StandardCharsets.UTF_8);
                     out.write(bytes);
-                    ranges.add(new long[]{offset, offset + bytes.length});
+                    ranges.add(new long[] {offset, offset + bytes.length});
                     offset += bytes.length;
                 }
             }

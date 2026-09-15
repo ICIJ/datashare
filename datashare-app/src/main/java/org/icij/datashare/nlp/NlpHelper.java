@@ -1,7 +1,6 @@
 package org.icij.datashare.nlp;
 
 import java.util.Map;
-
 import org.icij.datashare.text.nlp.Pipeline;
 
 public class NlpHelper {

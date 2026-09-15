@@ -14,7 +14,6 @@ import java.util.Set;
  * no number.
  */
 public record Row(long number, Map<String, String> values) {
-
     /**
      * Applies the one header rule every reader shares: a blank name means the column is dropped
      * (represented by a null entry the caller skips), a duplicate name is a mapping the reader
@@ -36,8 +35,8 @@ public record Row(long number, Map<String, String> values) {
             headers.add(name);
         }
         if (seen.isEmpty()) {
-            throw new IllegalArgumentException("no column name in the header row: every name is blank, "
-                    + "so the row above the data is a title or a spacer rather than a header");
+            throw new IllegalArgumentException("no column name in the header row: every name is blank, " +
+                                               "so the row above the data is a title or a spacer rather than a header");
         }
         return headers;
     }
@@ -68,8 +67,8 @@ public record Row(long number, Map<String, String> values) {
      */
     public static Map<String, String> values(List<String> headers, List<String> cells, long number) {
         if (cells.stream().skip(headers.size()).anyMatch(cell -> !cell.isBlank())) {
-            throw new IllegalArgumentException("row " + number + " has " + cells.size()
-                    + " fields but the header declares " + headers.size());
+            throw new IllegalArgumentException(
+                    "row " + number + " has " + cells.size() + " fields but the header declares " + headers.size());
         }
         return values(headers, cells);
     }

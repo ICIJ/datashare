@@ -8,7 +8,6 @@ import java.util.function.Function;
  */
 @FunctionalInterface
 public interface TerFunction<A, B, C, R> {
-
     R apply(A a, B b, C c);
 
     default <S> TerFunction<A, B, C, S> andThen(Function<? super R, ? extends S> after) {

@@ -15,12 +15,9 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
-
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
-
 import java.io.IOException;
 import java.util.List;
-
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
@@ -39,10 +36,11 @@ public class NamedEntityResource {
     @Operation(description = "Returns the named entity given an id and a document id.")
     @ApiResponse(responseCode = "200", description = "returns the pipeline set", useReturnTypeSchema = true)
     @Get("/:project/namedEntities/:id?routing=:documentId")
-    public NamedEntity getById(@Parameter(name = "project", description = "current project", in = ParameterIn.PATH) final String project,
-                               @Parameter(name = "id", description = "named entity id", in = ParameterIn.PATH) final String id,
-                               @Parameter(name = "documentId", description = "documentId the root document", in = ParameterIn.PATH) final String documentId,
-                               final Context context) {
+    public NamedEntity getById(
+            @Parameter(name = "project", description = "current project", in = ParameterIn.PATH) final String project,
+            @Parameter(name = "id", description = "named entity id", in = ParameterIn.PATH) final String id,
+            @Parameter(name = "documentId", description = "documentId the root document",
+                    in = ParameterIn.PATH) final String documentId, final Context context) {
         requireGranted(context, project);
         return notFoundIfNull(indexer.get(project, id, documentId));
     }
@@ -57,12 +55,14 @@ public class NamedEntityResource {
     @Operation(description = "Hide all named entities with the given normalized mention")
     @ApiResponse(responseCode = "200", description = "returns 200 OK")
     @Put("/:project/namedEntities/hide/:mentionNorm")
-    public Payload hide(@Parameter(name = "project", description = "current project", in = ParameterIn.PATH) final String project,
-                        @Parameter(name = "mentionNorm", description = "normalized mention", in = ParameterIn.PATH) final String mentionNorm,
-                        final Context context) throws IOException {
+    public Payload hide(
+            @Parameter(name = "project", description = "current project", in = ParameterIn.PATH) final String project,
+            @Parameter(name = "mentionNorm", description = "normalized mention",
+                    in = ParameterIn.PATH) final String mentionNorm, final Context context) throws IOException {
         requireGranted(context, project);
-        List<? extends Entity> nes = indexer.search(singletonList(project), NamedEntity.class).
-                thatMatchesFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity) ne).hide()).collect(toList());
+        List<? extends Entity> nes = indexer.search(singletonList(project), NamedEntity.class)
+                                            .thatMatchesFieldValue("mentionNorm", mentionNorm).execute()
+                                            .map(ne -> ((NamedEntity) ne).hide()).collect(toList());
         indexer.bulkUpdate(project, nes);
         return ok();
     }

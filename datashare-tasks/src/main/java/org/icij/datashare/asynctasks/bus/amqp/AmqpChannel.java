@@ -9,7 +9,6 @@ import com.rabbitmq.client.Envelope;
 import org.icij.datashare.asynctasks.NackException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -21,7 +20,6 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-
 import static java.util.Optional.ofNullable;
 
 /**
@@ -41,7 +39,6 @@ public class AmqpChannel {
     final AmqpQueue queue;
     private final int randomQueueNumber;
     private final String key;
-
     private final ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
         if (multiple) {
             ConcurrentNavigableMap<Long, byte[]> confirmed = outstandingConfirms.headMap(sequenceNumber, true);
@@ -59,7 +56,8 @@ public class AmqpChannel {
         this.rabbitMqChannel = channel;
         channel.addConfirmListener(cleanOutstandingConfirms, (sequenceNumber, multiple) -> {
             byte[] body = outstandingConfirms.get(sequenceNumber);
-            logger.error("Message with body {} has been nack-ed. Sequence number: {}, multiple: {}", new String(body), sequenceNumber, multiple);
+            logger.error("Message with body {} has been nack-ed. Sequence number: {}, multiple: {}", new String(body),
+                         sequenceNumber, multiple);
             cleanOutstandingConfirms.handle(sequenceNumber, multiple);
         });
         this.queue = queue;
@@ -77,10 +75,12 @@ public class AmqpChannel {
         rabbitMqChannel.basicPublish(queue.exchange, key, null, event.serialize());
     }
 
-    String consume(Consumer<byte[]> bodyHandler, ConsumerCriteria criteria, CancelFunction cancelCallback) throws IOException {
+    String consume(Consumer<byte[]> bodyHandler, ConsumerCriteria criteria, CancelFunction cancelCallback) throws
+            IOException {
         return this.rabbitMqChannel.basicConsume(queueName(WORKER_PREFIX), new DefaultConsumer(rabbitMqChannel) {
             @Override
-            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
+                                       byte[] body) throws IOException {
                 try {
                     bodyHandler.accept(body);
                     rabbitMqChannel.basicAck(envelope.getDeliveryTag(), false);
@@ -88,13 +88,13 @@ public class AmqpChannel {
                     logger.warn("exception while deserializing json. Sending nack without requeue", jsonException);
                     rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
                 } catch (NackException nackEx) {
-                    logger.warn("exception while accepting event. Sending nack with requeue={}", nackEx.requeue, nackEx);
+                    logger.warn("exception while accepting event. Sending nack with requeue={}", nackEx.requeue,
+                                nackEx);
                     rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, nackEx.requeue);
                 } catch (Exception ex) {
                     logger.error(
                             "consumer ({}) can't process message {} for channel {}, rejecting the message due to unhandled exception",
-                            consumerTag, envelope.getDeliveryTag(), rabbitMqChannel, ex
-                    );
+                            consumerTag, envelope.getDeliveryTag(), rabbitMqChannel, ex);
                     rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
                 }
                 criteria.newEvent();
@@ -126,8 +126,9 @@ public class AmqpChannel {
 
     String queueName(String prefix) {
         return BuiltinExchangeType.FANOUT.equals(queue.exchangeType) ?
-                String.format("%s-%s-%s-%d-%d-%d", queue.name(), prefix, getHostname(), ProcessHandle.current().pid(), Thread.currentThread().getId(), randomQueueNumber) :
-                ofNullable(key).map(q -> String.format("%s.%s", queue.name(), key)).orElse(queue.name());
+               String.format("%s-%s-%s-%d-%d-%d", queue.name(), prefix, getHostname(), ProcessHandle.current().pid(),
+                             Thread.currentThread().getId(), randomQueueNumber) :
+               ofNullable(key).map(q -> String.format("%s.%s", queue.name(), key)).orElse(queue.name());
     }
 
     @Override

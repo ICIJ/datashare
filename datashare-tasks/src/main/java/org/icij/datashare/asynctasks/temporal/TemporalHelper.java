@@ -10,7 +10,6 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
-
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -21,15 +20,12 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
 import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
 
 public class TemporalHelper {
-
     private static final String WORKFLOW_METHOD_CLASS_NAME = WorkflowMethod.class.getName();
     private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
-
 
     public static Task.State asTaskState(WorkflowExecutionStatus status) {
         return switch (status) {
@@ -68,21 +64,26 @@ public class TemporalHelper {
             if (!filters.byState(asTaskState(execInfo.getStatus()))) {
                 return false;
             }
-            User user = Optional.ofNullable(execInfo.getSearchAttributes().getIndexedFieldsOrDefault(USER_CUSTOM_ATTRIBUTE.getName(), null))
-                    .map(userId -> new User(defaultDataConverter.fromPayload(userId, String.class, String.class))).orElse(null);
+            User user = Optional.ofNullable(
+                                        execInfo.getSearchAttributes().getIndexedFieldsOrDefault(USER_CUSTOM_ATTRIBUTE.getName(), null))
+                                .map(userId -> new User(
+                                        defaultDataConverter.fromPayload(userId, String.class, String.class)))
+                                .orElse(null);
 
             return filters.byUser(user);
         };
     }
 
-    protected static <P, R> R taskWrapper(Function<P, R> taskFn, P payload, Set<Class<? extends Exception>> retriables) {
+    protected static <P, R> R taskWrapper(Function<P, R> taskFn, P payload,
+                                          Set<Class<? extends Exception>> retriables) {
         try {
             return taskFn.apply(payload);
         } catch (Exception e) {
             if (retriables.stream().anyMatch(r -> r.isInstance(e))) {
                 throw e;
             }
-            throw ApplicationFailure.newNonRetryableFailureWithCause("Non retryable failure occurred", e.getMessage(), e);
+            throw ApplicationFailure.newNonRetryableFailureWithCause("Non retryable failure occurred", e.getMessage(),
+                                                                     e);
         }
     }
 
@@ -90,8 +91,7 @@ public class TemporalHelper {
         return taskWrapper(taskFn, payload, Set.of());
     }
 
-    protected static <R> R taskWrapper(Supplier<R> taskSupplier,
-                                       Set<Class<? extends Exception>> retriables) {
+    protected static <R> R taskWrapper(Supplier<R> taskSupplier, Set<Class<? extends Exception>> retriables) {
         return taskWrapper((t) -> taskSupplier.get(), null, retriables);
     }
 
@@ -103,8 +103,9 @@ public class TemporalHelper {
         // We have to get method by name because of the dynamic class loader and proxies... inspection doesn't work
         // properly: m.isAnnotationPresent(WorkflowMethod.class) fails
         List<Method> annotated = Arrays.stream(workflowInterface.getDeclaredMethods())
-                .filter(m -> Arrays.stream(m.getAnnotations()).anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)))
-                .toList();
+                                       .filter(m -> Arrays.stream(m.getAnnotations()).anyMatch(
+                                               a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)))
+                                       .toList();
         if (annotated.size() != 1) {
             throw new RuntimeException("expected exactly one workflow method for " + workflowInterface);
         }
@@ -124,9 +125,9 @@ public class TemporalHelper {
                 return false;
             }
             // Skip signal/query-only interfaces (like TemporalWorkflow) that have no @WorkflowMethod
-            boolean hasWorkflowMethod = Arrays.stream(c.getDeclaredMethods())
-                    .anyMatch(m -> Arrays.stream(m.getAnnotations())
-                            .anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)));
+            boolean hasWorkflowMethod = Arrays.stream(c.getDeclaredMethods()).anyMatch(
+                    m -> Arrays.stream(m.getAnnotations())
+                               .anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME)));
             if (!hasWorkflowMethod) {
                 return false;
             }

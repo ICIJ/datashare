@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.icij.datashare.text.PathDeserializer;
 import org.icij.datashare.text.PathSerializer;
 import org.icij.datashare.text.Project;
-
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -34,10 +33,8 @@ public class PathBanner {
     }
 
     @JsonCreator
-    public PathBanner(@JsonProperty("project") Project project,
-                      @JsonProperty("path") Path path,
-                      @JsonProperty("note") String note,
-                      @JsonProperty("variant") Variant variant,
+    public PathBanner(@JsonProperty("project") Project project, @JsonProperty("path") Path path,
+                      @JsonProperty("note") String note, @JsonProperty("variant") Variant variant,
                       @JsonProperty("blurSensitiveMedia") Boolean blurSensitiveMedia) {
         this.project = project;
         this.note = note;
@@ -48,11 +45,12 @@ public class PathBanner {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         PathBanner pathBanner = (PathBanner) o;
-        return project.equals(pathBanner.project) &&
-                path.equals(pathBanner.path);
+        return project.equals(pathBanner.project) && path.equals(pathBanner.path);
     }
 
     @Override

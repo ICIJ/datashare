@@ -16,10 +16,8 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.Set;
-
 import static java.util.Collections.emptyList;
 
 @Singleton
@@ -45,10 +43,13 @@ public class NerResource {
             When datashare is launched in NER mode (without index) it exposes a name finding HTTP API.
             
             The text is sent with the HTTP body.""")
-    @ApiResponse(responseCode = "200", description = "returns the list of NamedEntities annotations", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "200", description = "returns the list of NamedEntities annotations",
+            useReturnTypeSchema = true)
     @Post("/findNames/:pipeline")
-    public List<NamedEntity> getAnnotations(@Parameter(name = "pipeline", description = "pipeline to use", in = ParameterIn.PATH) final String pipeline,
-                                            @Parameter(name = "text", description = "text to analyze in the request body", in = ParameterIn.QUERY) String text) throws Exception {
+    public List<NamedEntity> getAnnotations(
+            @Parameter(name = "pipeline", description = "pipeline to use", in = ParameterIn.PATH) final String pipeline,
+            @Parameter(name = "text", description = "text to analyze in the request body",
+                    in = ParameterIn.QUERY) String text) throws Exception {
         LoggerFactory.getLogger(getClass()).info(String.valueOf(getClass().getClassLoader()));
         Pipeline p = pipelineRegistry.get(Pipeline.Type.parse(pipeline));
         Language language = languageGuesser.guess(text);

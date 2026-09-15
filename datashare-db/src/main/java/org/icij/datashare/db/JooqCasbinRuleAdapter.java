@@ -10,18 +10,15 @@ import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.jooq.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import static org.icij.datashare.db.Tables.CASBIN_RULE;
 import static org.jooq.impl.DSL.trueCondition;
 import static org.jooq.impl.DSL.using;
 
 public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
-
     private static final Logger logger = LoggerFactory.getLogger(JooqCasbinRuleAdapter.class);
     public static final int SQLITE_BATCHSIZE = 1000;
     public static final int PSQL_BATCHSIZE = 10000;
@@ -57,7 +54,6 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
         this.addPolicies(sec, ptype, rules);
     }
 
-
     @Override
     public void removePolicies(String sec, String ptype, List<List<String>> rules) {
         if (!rules.isEmpty()) {
@@ -77,8 +73,8 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
     }
 
     private void removePolicy(DSLContext ctx, String ptype, List<String> rule) {
-        DeleteConditionStep<CasbinRuleRecord> deleteQuery = ctx.deleteFrom(CASBIN_RULE)
-                .where(CASBIN_RULE.PTYPE.eq(ptype));
+        DeleteConditionStep<CasbinRuleRecord> deleteQuery =
+                ctx.deleteFrom(CASBIN_RULE).where(CASBIN_RULE.PTYPE.eq(ptype));
         for (int i = 0; i < rule.size(); i++) {
             String value = rule.get(i);
             if (!value.isEmpty()) {
@@ -97,8 +93,8 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
                 DSLContext trxCtx = using(trx);
 
                 // Build the WHERE clause dynamically
-                DeleteConditionStep<CasbinRuleRecord> deleteQuery = trxCtx.deleteFrom(CASBIN_RULE)
-                        .where(CASBIN_RULE.PTYPE.eq(ptype));
+                DeleteConditionStep<CasbinRuleRecord> deleteQuery =
+                        trxCtx.deleteFrom(CASBIN_RULE).where(CASBIN_RULE.PTYPE.eq(ptype));
 
                 // Add conditions for non-empty field values
                 int columnIndex = fieldIndex;
@@ -114,8 +110,8 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
         }
     }
 
-    private DeleteConditionStep<CasbinRuleRecord> addFieldCondition(
-            DeleteConditionStep<CasbinRuleRecord> query, int columnIndex, String value) {
+    private DeleteConditionStep<CasbinRuleRecord> addFieldCondition(DeleteConditionStep<CasbinRuleRecord> query,
+                                                                    int columnIndex, String value) {
         return switch (columnIndex) {
             case 0 -> query.and(CASBIN_RULE.V0.eq(value));
             case 1 -> query.and(CASBIN_RULE.V1.eq(value));
@@ -127,9 +123,9 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
         };
     }
 
-
     private void saveSectionPolicyWithBatch(DSLContext ctx, Model model, String section) {
-        if (!model.model.containsKey(section)) return;
+        if (!model.model.containsKey(section))
+            return;
         for (String ptype : model.model.get(section).keySet()) {
             List<List<String>> rules = model.model.get(section).get(ptype).policy;
             createInsertQueries(ctx, ptype, rules);
@@ -137,20 +133,18 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
     }
 
     private void createInsertQueries(DSLContext ctx, String ptype, List<List<String>> rules) {
-        if (rules.isEmpty()) return;
+        if (rules.isEmpty())
+            return;
         for (int offset = 0; offset < rules.size(); offset += batchSize) {
             List<List<String>> batch = rules.subList(offset, Math.min(offset + batchSize, rules.size()));
-            var insertQuery = ctx.insertInto(
-                    CASBIN_RULE,
-                    CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1,
-                    CASBIN_RULE.V2, CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5
-            );
+            var insertQuery =
+                    ctx.insertInto(CASBIN_RULE, CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1, CASBIN_RULE.V2,
+                                   CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5);
             for (List<String> rule : batch) {
                 CasbinRule line = savePolicyLine(ptype, rule);
-                insertQuery = insertQuery.values(
-                        line.getPtype(), line.getV0(), line.getV1(),
-                        line.getV2(), line.getV3(), line.getV4(), line.getV5()
-                );
+                insertQuery =
+                        insertQuery.values(line.getPtype(), line.getV0(), line.getV1(), line.getV2(), line.getV3(),
+                                           line.getV4(), line.getV5());
             }
             insertQuery.onConflictDoNothing().execute();
         }
@@ -206,8 +200,8 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
                 DSLContext trxCtx = using(trx);
 
                 // Remove the old rule using the DSLContext from transaction
-                DeleteConditionStep<CasbinRuleRecord> deleteQuery = trxCtx.deleteFrom(CASBIN_RULE)
-                        .where(CASBIN_RULE.PTYPE.eq(ptype));
+                DeleteConditionStep<CasbinRuleRecord> deleteQuery =
+                        trxCtx.deleteFrom(CASBIN_RULE).where(CASBIN_RULE.PTYPE.eq(ptype));
                 for (int i = 0; i < oldRule.size(); i++) {
                     String value = oldRule.get(i);
                     if (!value.isEmpty()) {
@@ -218,9 +212,10 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
                 // Insert the new rule
                 CasbinRule line = savePolicyLine(ptype, newRule);
-                trxCtx.insertInto(CASBIN_RULE, CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1, CASBIN_RULE.V2, CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5)
-                        .values(line.getPtype(), line.getV0(), line.getV1(), line.getV2(), line.getV3(), line.getV4(), line.getV5())
-                        .execute();
+                trxCtx.insertInto(CASBIN_RULE, CASBIN_RULE.PTYPE, CASBIN_RULE.V0, CASBIN_RULE.V1, CASBIN_RULE.V2,
+                                  CASBIN_RULE.V3, CASBIN_RULE.V4, CASBIN_RULE.V5)
+                      .values(line.getPtype(), line.getV0(), line.getV1(), line.getV2(), line.getV3(), line.getV4(),
+                              line.getV5()).execute();
 
                 logger.debug("Updated policy: ptype={}", ptype);
             });
@@ -259,7 +254,8 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
     }
 
     private void loadFilteredSectionPolicy(DSLContext ctx, Model model, String section, String[] filterSlice) {
-        if (filterSlice == null) return;
+        if (filterSlice == null)
+            return;
         // Build query for section and filterSlice
         Condition condition = CASBIN_RULE.PTYPE.eq(section);
         for (int i = 0; i < filterSlice.length; i++) {
@@ -278,15 +274,12 @@ public class JooqCasbinRuleAdapter implements CasbinRuleAdapter {
 
     private void loadCasbinRuleRecords(Model model, List<CasbinRuleRecord> records) {
         for (CasbinRuleRecord record : records) {
-            CasbinRule line = new CasbinRule(
-                    record.get(CASBIN_RULE.PTYPE),
-                    nullToEmpty(record.get(CASBIN_RULE.V0)),
-                    nullToEmpty(record.get(CASBIN_RULE.V1)),
-                    nullToEmpty(record.get(CASBIN_RULE.V2)),
-                    nullToEmpty(record.get(CASBIN_RULE.V3)),
-                    nullToEmpty(record.get(CASBIN_RULE.V4)),
-                    nullToEmpty(record.get(CASBIN_RULE.V5))
-            );
+            CasbinRule line = new CasbinRule(record.get(CASBIN_RULE.PTYPE), nullToEmpty(record.get(CASBIN_RULE.V0)),
+                                             nullToEmpty(record.get(CASBIN_RULE.V1)),
+                                             nullToEmpty(record.get(CASBIN_RULE.V2)),
+                                             nullToEmpty(record.get(CASBIN_RULE.V3)),
+                                             nullToEmpty(record.get(CASBIN_RULE.V4)),
+                                             nullToEmpty(record.get(CASBIN_RULE.V5)));
             loadPolicyLine(line, model);
         }
     }

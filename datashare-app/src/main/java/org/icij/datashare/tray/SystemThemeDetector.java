@@ -2,7 +2,6 @@ package org.icij.datashare.tray;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,9 +48,9 @@ public class SystemThemeDetector {
 
     private Theme detectLinux() {
         try {
-            String colorScheme = runner.run(TIMEOUT_MS,
-                            "gsettings", "get", "org.gnome.desktop.interface", "color-scheme")
-                    .toLowerCase(Locale.ROOT);
+            String colorScheme =
+                    runner.run(TIMEOUT_MS, "gsettings", "get", "org.gnome.desktop.interface", "color-scheme")
+                          .toLowerCase(Locale.ROOT);
             if (colorScheme.contains("prefer-dark")) {
                 return Theme.DARK;
             }
@@ -69,9 +68,8 @@ public class SystemThemeDetector {
 
     private Theme detectLinuxGtkTheme() {
         try {
-            String theme = runner.run(TIMEOUT_MS,
-                            "gsettings", "get", "org.gnome.desktop.interface", "gtk-theme")
-                    .toLowerCase(Locale.ROOT);
+            String theme = runner.run(TIMEOUT_MS, "gsettings", "get", "org.gnome.desktop.interface", "gtk-theme")
+                                 .toLowerCase(Locale.ROOT);
             return theme.contains("dark") ? Theme.DARK : Theme.LIGHT;
         } catch (Exception e) {
             LOGGER.debug("Could not read GTK theme ({}); defaulting to UNKNOWN", e.getMessage());
@@ -81,11 +79,9 @@ public class SystemThemeDetector {
 
     private Theme detectWindows() {
         try {
-            String registryValue = runner.run(TIMEOUT_MS,
-                            "reg", "query",
-                            "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-                            "/v", "SystemUsesLightTheme")
-                    .toLowerCase(Locale.ROOT);
+            String registryValue = runner.run(TIMEOUT_MS, "reg", "query",
+                                              "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                              "/v", "SystemUsesLightTheme").toLowerCase(Locale.ROOT);
             if (registryValue.contains("0x1")) {
                 return Theme.LIGHT;
             }
@@ -114,16 +110,13 @@ public class SystemThemeDetector {
         public String run(long timeoutMillis, String... command) throws Exception {
             // Discard stderr (we never parse it) so the child can never block on a full
             // stderr pipe, and so there is one fewer stream to drain.
-            Process process = new ProcessBuilder(command)
-                    .redirectError(ProcessBuilder.Redirect.DISCARD)
-                    .start();
+            Process process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
             try {
                 if (!process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)) {
                     throw new IOException("Command timed out: " + String.join(" ", command));
                 }
                 if (process.exitValue() != 0) {
-                    throw new IOException("Command exited " + process.exitValue()
-                            + ": " + String.join(" ", command));
+                    throw new IOException("Command exited " + process.exitValue() + ": " + String.join(" ", command));
                 }
                 try (InputStream in = process.getInputStream()) {
                     return new String(in.readAllBytes(), StandardCharsets.UTF_8).trim();

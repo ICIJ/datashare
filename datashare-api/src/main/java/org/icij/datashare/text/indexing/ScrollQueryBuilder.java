@@ -1,10 +1,8 @@
 package org.icij.datashare.text.indexing;
 
-
 import org.icij.datashare.text.indexing.Indexer.ScrollQuery;
 
 public class ScrollQueryBuilder {
-
     public String duration;
     public int numSlice;
     public int nbSlices;

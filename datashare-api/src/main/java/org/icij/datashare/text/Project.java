@@ -3,21 +3,17 @@ package org.icij.datashare.text;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.Objects;
 import java.util.regex.Pattern;
-
 import static com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING;
 import static com.fasterxml.jackson.annotation.JsonCreator.Mode.PROPERTIES;
 
-
 public class Project extends ProjectProxy {
     private static final long serialVersionUID = 2568979856231459L;
-
     public static final String NAME_REGEX = "^[a-z0-9][a-z0-9-]{1,63}$";
     public static final String ALLOW_FROM_MASK_REGEX = "^[\\d*]{1,3}(\\.[\\d*]{1,3}){3}$";
     public static final Pattern NAME_PATTERN = Pattern.compile(NAME_REGEX);
@@ -43,67 +39,28 @@ public class Project extends ProjectProxy {
     public final Date creationDate;
     public final Date updateDate;
 
-
     @JsonCreator(mode = DELEGATING)
     public Project(String name) {
         this(name, Paths.get("/vault").resolve(name), "*.*.*.*");
     }
 
     @JsonCreator(mode = PROPERTIES)
-    public Project(@JsonProperty("name") String name,
-                   @JsonProperty("sourcePath") Path sourcePath) {
+    public Project(@JsonProperty("name") String name, @JsonProperty("sourcePath") Path sourcePath) {
         this(name, sourcePath, "*.*.*.*");
     }
 
     public Project(String name, Path sourcePath, String allowFromMask) {
-        this(name,
-                name,
-                null,
-                sourcePath,
-                null,
-                null,
-                null,
-                null,
-                allowFromMask,
-                null,
-                null
-        );
+        this(name, name, null, sourcePath, null, null, null, null, allowFromMask, null, null);
     }
 
-    public Project(String name,
-                   String label,
-                   Path sourcePath,
-                   String sourceUrl,
-                   String maintainerName,
-                   String publisherName,
-                   String logoUrl,
-                   String allowFromMask,
-                   Date creationDate,
-                   Date updateDate) {
-        this(name,
-                label,
-                null,
-                sourcePath,
-                sourceUrl,
-                maintainerName,
-                publisherName,
-                logoUrl,
-                allowFromMask,
-                creationDate,
-                updateDate
-        );
+    public Project(String name, String label, Path sourcePath, String sourceUrl, String maintainerName,
+                   String publisherName, String logoUrl, String allowFromMask, Date creationDate, Date updateDate) {
+        this(name, label, null, sourcePath, sourceUrl, maintainerName, publisherName, logoUrl, allowFromMask,
+             creationDate, updateDate);
     }
 
-    public Project(String name,
-                   String label,
-                   String description,
-                   Path sourcePath,
-                   String sourceUrl,
-                   String maintainerName,
-                   String publisherName,
-                   String logoUrl,
-                   String allowFromMask,
-                   Date creationDate,
+    public Project(String name, String label, String description, Path sourcePath, String sourceUrl,
+                   String maintainerName, String publisherName, String logoUrl, String allowFromMask, Date creationDate,
                    Date updateDate) {
         super(name);
         this.label = label;
@@ -116,9 +73,7 @@ public class Project extends ProjectProxy {
         this.allowFromMask = allowFromMask;
         this.creationDate = creationDate;
         this.updateDate = updateDate;
-        this.pattern = Pattern.compile(allowFromMask.
-                replace(".", "\\.").
-                replace("*", "\\d{1,3}"));
+        this.pattern = Pattern.compile(allowFromMask.replace(".", "\\.").replace("*", "\\d{1,3}"));
     }
 
     public Project(String name, String allowFromMask) {

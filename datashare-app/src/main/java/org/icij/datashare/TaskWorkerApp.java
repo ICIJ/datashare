@@ -1,7 +1,6 @@
 package org.icij.datashare;
 
 import org.icij.datashare.mode.CommonMode;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 

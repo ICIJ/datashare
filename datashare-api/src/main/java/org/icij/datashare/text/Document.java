@@ -16,7 +16,6 @@ import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.DocumentMetadataConstants;
 import org.icij.datashare.text.nlp.Pipeline;
-
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -26,14 +25,12 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Supplier;
-
 import static java.nio.file.Paths.get;
 import static java.time.OffsetDateTime.now;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.text.StringUtils.isEmpty;
-
 
 @IndexType("Document")
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -69,7 +66,6 @@ public class Document implements Entity, DocumentMetadataConstants {
 
     public enum Status {
         PARSED((short) 0), INDEXED((short) 1), DONE((short) 2);
-
         public final short code;
 
         Status(short code) {
@@ -88,8 +84,7 @@ public class Document implements Entity, DocumentMetadataConstants {
 
     public enum RecoveryStatus {
         // child / stub document values
-        RECOVERED, ENCRYPTED, UNRECOVERED,
-        // PST parent rollup values
+        RECOVERED, ENCRYPTED, UNRECOVERED, // PST parent rollup values
         COMPLETE, PARTIAL, LOSSY
     }
 
@@ -105,7 +100,6 @@ public class Document implements Entity, DocumentMetadataConstants {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private final Date extractionDate;
     private final short extractionLevel;
-
     private final String content;
     private final List<Map<String, String>> content_translated;
     private final long contentLength;
@@ -119,7 +113,6 @@ public class Document implements Entity, DocumentMetadataConstants {
     // streaming parse aborted mid-way (with recoveryStatus PARTIAL) so it is visible how much of the
     // container was recovered; null on non-container documents.
     private final Integer nbChildrenEmitted;
-
     @JsonDeserialize(using = CharsetDeserializer.class)
     private final Charset contentEncoding;
     private final Language language;
@@ -127,50 +120,49 @@ public class Document implements Entity, DocumentMetadataConstants {
     private final Status status;
     private final Set<Pipeline.Type> nerTags;
     private final Set<Tag> tags;
-
     @IndexParent
     private final String parentDocument;
     @IndexRoot
     private final String rootDocument;
 
-
-    Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
-        this(project, id, filePath, content, null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>(), null, null, null, null, null, null);
+    Document(Project project, String id, Path filePath, String content, Language language, Charset charset,
+             String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
+             Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
+             Long contentLength) {
+        this(project, id, filePath, content, null, language, extractionDate, charset, mimetype, extractionLevel,
+             metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>(), null, null, null,
+             null, null, null);
     }
 
-    Document(Project project, String id, Path filePath, String content, List<Map<String, String>> content_translated, Language language, Charset charset,
-             String contentType, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
-             Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
-             Long contentLength, Set<Tag> tags, ContentTypeCategory contentTypeCategory,
+    Document(Project project, String id, Path filePath, String content, List<Map<String, String>> content_translated,
+             Language language, Charset charset, String contentType, Map<String, Object> metadata, Status status,
+             Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument,
+             Short extractionLevel, Long contentLength, Set<Tag> tags, ContentTypeCategory contentTypeCategory,
              RecoveryStatus recoveryStatus, Integer pstExpected, Integer pstEmitted, Integer pstUnrecovered,
              Integer nbChildrenEmitted) {
-        this(project, id, filePath, content, content_translated, language, extractionDate, charset,
-                contentType, extractionLevel, metadata, status, nerTags,
-                parentDocument, rootDocument, contentLength,
-                tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered, nbChildrenEmitted);
+        this(project, id, filePath, content, content_translated, language, extractionDate, charset, contentType,
+             extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, tags,
+             contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered, nbChildrenEmitted);
     }
 
     @JsonCreator
-    private Document(@JsonProperty("projectId") Project project, @JsonProperty("id") String id, @JsonProperty("path") Path path,
-                     @JsonProperty("content") String content,
+    private Document(@JsonProperty("projectId") Project project, @JsonProperty("id") String id,
+                     @JsonProperty("path") Path path, @JsonProperty("content") String content,
                      @JsonProperty("content_translated") List<Map<String, String>> content_translated,
                      @JsonProperty("language") Language language, @JsonProperty("extractionDate") Date extractionDate,
-                     @JsonProperty("contentEncoding") Charset contentEncoding, @JsonProperty("contentType") String contentType,
+                     @JsonProperty("contentEncoding") Charset contentEncoding,
+                     @JsonProperty("contentType") String contentType,
                      @JsonProperty("extractionLevel") int extractionLevel,
-                     @JsonProperty("metadata") Map<String, Object> metadata,
-                     @JsonProperty("status") Status status,
+                     @JsonProperty("metadata") Map<String, Object> metadata, @JsonProperty("status") Status status,
                      @JsonProperty("nerTags") Set<Pipeline.Type> nerTags,
                      @JsonProperty("parentDocument") String parentDocument,
                      @JsonProperty("rootDocument") String rootDocument,
-                     @JsonProperty("contentLength") Long contentLength,
-                     @JsonProperty("tags") Set<Tag> tags,
+                     @JsonProperty("contentLength") Long contentLength, @JsonProperty("tags") Set<Tag> tags,
                      @JsonProperty("contentTypeCategory") ContentTypeCategory contentTypeCategory,
                      @JsonProperty("recoveryStatus") RecoveryStatus recoveryStatus,
-                     @JsonProperty("pstExpected") Integer pstExpected,
-                     @JsonProperty("pstEmitted") Integer pstEmitted,
+                     @JsonProperty("pstExpected") Integer pstExpected, @JsonProperty("pstEmitted") Integer pstEmitted,
                      @JsonProperty("pstUnrecovered") Integer pstUnrecovered,
-                     @JsonProperty("nbChildrenEmitted") Integer nbChildrenEmitted
-    ) {
+                     @JsonProperty("nbChildrenEmitted") Integer nbChildrenEmitted) {
         this.id = id;
         this.project = project;
         this.path = path;
@@ -333,8 +325,10 @@ public class Document implements Entity, DocumentMetadataConstants {
     }
 
     public Date getCreationDate() {
-        String creationDate = (String) ofNullable(metadata).orElse(new HashMap<>()).get("tika_metadata_dcterms_created");
-        if (creationDate == null) return null;
+        String creationDate =
+                (String) ofNullable(metadata).orElse(new HashMap<>()).get("tika_metadata_dcterms_created");
+        if (creationDate == null)
+            return null;
         Instant instant = null;
         try {
             instant = ZonedDateTime.parse(creationDate).toInstant();
@@ -427,8 +421,10 @@ public class Document implements Entity, DocumentMetadataConstants {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         Document document = (Document) o;
         return Objects.equals(id, document.id);
     }
@@ -448,7 +444,7 @@ public class Document implements Entity, DocumentMetadataConstants {
 
     public static Set<Pipeline.Type> fromNerMask(int mask) {
         return mask == 0 ? new HashSet<>() :
-                stream(Pipeline.Type.values()).filter(t -> (mask & t.mask) == t.mask).collect(toSet());
+               stream(Pipeline.Type.values()).filter(t -> (mask & t.mask) == t.mask).collect(toSet());
     }
 
     private String getMetadataTitle(String key) {
@@ -463,7 +459,8 @@ public class Document implements Entity, DocumentMetadataConstants {
      * @return value of the key sanitized (non null)
      */
     private String getMetadataTitle(String key, Supplier<String> defaultValue) {
-        return ofNullable(metadata.get(getField(key))).orElse(Objects.requireNonNullElse(defaultValue.get(), "")).toString();
+        return ofNullable(metadata.get(getField(key))).orElse(Objects.requireNonNullElse(defaultValue.get(), ""))
+                                                      .toString();
     }
 
     /** Serializes a {@link Tag} as its label so it maps to the {@code tags} keyword field in the index. */

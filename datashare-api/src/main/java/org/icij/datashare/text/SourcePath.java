@@ -4,12 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexType;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Date;
 import java.util.Optional;
-
 
 /**
  * DataShare Source File Path
@@ -39,14 +37,11 @@ public class SourcePath implements Entity {
 
     // Source file Path
     private Path path;
-
     // Path as of date
     private Date asOf;
-
     @IndexId
     @JsonIgnore
     private String hash;
-
 
     private SourcePath() {
     }
@@ -62,7 +57,6 @@ public class SourcePath implements Entity {
         this.hash = DEFAULT_DIGESTER.hash(getPath().toString());
         this.asOf = new Date();
     }
-
 
     public Path getPath() {
         return path;

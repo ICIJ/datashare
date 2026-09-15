@@ -2,7 +2,6 @@ package org.icij.datashare;
 
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
-
 import java.net.URI;
 import java.util.Date;
 import java.util.Objects;
@@ -45,7 +44,8 @@ public class UserEvent {
         this.uri = uri;
     }
 
-    public UserEvent(User user, Type type, String name, URI uri, Date creationDate, Date modificationDate, int eventId) {
+    public UserEvent(User user, Type type, String name, URI uri, Date creationDate, Date modificationDate,
+                     int eventId) {
         this(eventId, user, type, name, uri, creationDate, modificationDate);
     }
 
@@ -64,12 +64,12 @@ public class UserEvent {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         UserEvent userEvent = (UserEvent) o;
-        return user.equals(userEvent.user) &&
-                uri.equals(userEvent.uri) &&
-                creationDate.equals(userEvent.creationDate);
+        return user.equals(userEvent.user) && uri.equals(userEvent.uri) && creationDate.equals(userEvent.creationDate);
     }
 
     @Override

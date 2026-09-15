@@ -14,13 +14,11 @@ import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
 import static org.icij.datashare.asynctasks.TaskManagerRedis.EVENT_CHANNEL_NAME;
 
 public class TaskSupplierRedis implements TaskSupplier {
@@ -80,12 +78,15 @@ public class TaskSupplierRedis implements TaskSupplier {
 
     private <V extends Serializable> BlockingQueue<Task<V>> taskQueue() {
         return this.taskQueueKey == null ?
-                new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient) :
-                new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
+               new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(),
+                                           AmqpQueue.TASK.name(), redissonClient) :
+               new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(),
+                                           String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
     }
 
     private CommandSyncService getCommandSyncService() {
-        return new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
+        return new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
+                                      new RedissonObjectBuilder(redissonClient));
     }
 
     @Override

@@ -4,11 +4,9 @@ import static java.nio.file.Files.copy;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
@@ -28,7 +26,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.commons.io.FilenameUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -37,7 +34,8 @@ import org.slf4j.LoggerFactory;
 public class Extension implements Deliverable {
     @JsonIgnore
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    static Pattern extensionFormat = Pattern.compile("([[^\\W_]\\-.]*)-v?([0-9.]*)(?<!-)([-\\w]*)?$"); //of form: id-with-numb3r-1.2.3-suffix with negative lookbehind for suffix dash
+    static Pattern extensionFormat = Pattern.compile("([[^\\W_]\\-.]*)-v?([0-9.]*)(?<!-)([-\\w]*)?$");
+            //of form: id-with-numb3r-1.2.3-suffix with negative lookbehind for suffix dash
     static Pattern endsWithExtension = Pattern.compile("(.*)(\\.[a-zA-Z]+$)");
     public static final String TMP_PREFIX = "tmp";
     public final String id;
@@ -50,12 +48,9 @@ public class Extension implements Deliverable {
     protected boolean hostSpecific;
 
     @JsonCreator
-    public Extension(@JsonProperty("id") String id,
-                     @JsonProperty("name") String name,
-                     @JsonProperty("version") String version,
-                     @JsonProperty("description") String description,
-                     @JsonProperty("url") URL url,
-                     @JsonProperty("homepage") URL homepage,
+    public Extension(@JsonProperty("id") String id, @JsonProperty("name") String name,
+                     @JsonProperty("version") String version, @JsonProperty("description") String description,
+                     @JsonProperty("url") URL url, @JsonProperty("homepage") URL homepage,
                      @JsonProperty("type") Type type) {
         this.id = requireNonNull(id);
         this.url = url;
@@ -68,7 +63,8 @@ public class Extension implements Deliverable {
     }
 
     Extension(URL url, Type type) {
-        Entry<String, String> res = extractIdVersion(requireNonNull(url, "an extension/plugin cannot be created with a null URL"));
+        Entry<String, String> res =
+                extractIdVersion(requireNonNull(url, "an extension/plugin cannot be created with a null URL"));
         this.id = res.getKey();
         this.url = url;
         this.homepage = null;
@@ -127,14 +123,16 @@ public class Extension implements Deliverable {
             filenameFilter = (file, s) -> DeliverableHelper.getExtensionFileExt(s).isEmpty();
         }
         candidateFiles = ofNullable(extensionsDir.toFile().listFiles(filenameFilter)).orElse(new File[0]);
-        List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
+        List<File> previousVersionInstalled =
+                getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
         if (!previousVersionInstalled.isEmpty()) {
             logger.info("removing previous versions {}", previousVersionInstalled);
             previousVersionInstalled.forEach(File::delete);
         }
         logger.info("installing extension from file {} into {}", extensionFile, extensionsDir);
         copy(extensionFile.toPath(), extensionsDir.resolve(getUrlFileName()));
-        if (isTemporaryFile(extensionFile)) extensionFile.delete();
+        if (isTemporaryFile(extensionFile))
+            extensionFile.delete();
         extensionsDir.resolve(getUrlFileName()).toFile().setExecutable(true);
     }
 
@@ -149,17 +147,14 @@ public class Extension implements Deliverable {
         }
     }
 
-
     static List<File> getPreviousVersionInstalled(File[] candidateFiles, String baseName) {
-        return Stream.of(candidateFiles)
-                .filter(f -> {
-                    String fileName = f.getName();
-                    String baseFileName = removePattern(extensionFormat, baseName);
-                    boolean startsWithBaseName = fileName.startsWith(baseFileName);
-                    boolean matchesPattern = extensionFormat.matcher(getBaseName(fileName)).matches();
-                    return startsWithBaseName && matchesPattern;
-                })
-                .collect(Collectors.toList());
+        return Stream.of(candidateFiles).filter(f -> {
+            String fileName = f.getName();
+            String baseFileName = removePattern(extensionFormat, baseName);
+            boolean startsWithBaseName = fileName.startsWith(baseFileName);
+            boolean matchesPattern = extensionFormat.matcher(getBaseName(fileName)).matches();
+            return startsWithBaseName && matchesPattern;
+        }).collect(Collectors.toList());
     }
 
     static Entry<String, String> extractIdVersion(URL url) {
@@ -222,13 +217,10 @@ public class Extension implements Deliverable {
     @JsonIgnore
     public Path getLocalPath(Path installationDir) {
         try (Stream<Path> paths = Files.list(installationDir)) {
-            return paths
-                    .filter(entry -> {
-                        String fileName = entry.getFileName().toString();
-                        return fileName.startsWith(id);
-                    })
-                    .findFirst()
-                    .orElse(null);
+            return paths.filter(entry -> {
+                String fileName = entry.getFileName().toString();
+                return fileName.startsWith(id);
+            }).findFirst().orElse(null);
         } catch (IOException e) {
             logger.info("Unable to list directories in {}", installationDir);
         }
@@ -246,20 +238,22 @@ public class Extension implements Deliverable {
 
     @Override
     public String toString() {
-        return "Extension id='" + id + '\'' + '\'' + ", version='" + version + '\'' + "url=" + url + '\'' + "type=" + type;
+        return "Extension id='" + id + '\'' + '\'' + ", version='" + version + '\'' + "url=" + url + '\'' + "type=" +
+               type;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Extension extension)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof Extension extension))
+            return false;
         if (version == null || extension.version == null) {
             if (version == null && extension.version == null)
                 return id.equals(extension.id);
             return false;
         }
-        return id.equals(extension.id) &&
-                version.equals(extension.version);
+        return id.equals(extension.id) && version.equals(extension.version);
     }
 
     @Override
@@ -270,7 +264,9 @@ public class Extension implements Deliverable {
     @Override
     public int compareTo(@NotNull Deliverable deliverable) {
         int idCompare = this.id.compareTo(deliverable.getId());
-        return idCompare == 0 ? ofNullable(this.version).orElse("-1").compareTo(ofNullable(deliverable.getVersion()).orElse("-1")) : idCompare;
+        return idCompare == 0 ?
+               ofNullable(this.version).orElse("-1").compareTo(ofNullable(deliverable.getVersion()).orElse("-1")) :
+               idCompare;
     }
 
     protected boolean isHostSpecific() {

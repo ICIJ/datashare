@@ -3,7 +3,6 @@ package org.icij.datashare.utils;
 import net.codestory.http.errors.ForbiddenException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.Mode;
-
 import java.util.Arrays;
 
 public class ModeVerifier {

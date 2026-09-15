@@ -16,7 +16,6 @@ import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.jooq.SQLDialect;
-
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -35,7 +34,8 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         this.propertiesProvider = propertiesProvider;
         System.getProperties().setProperty("org.jooq.no-logo", "true");
         System.getProperties().setProperty("org.jooq.no-tips", "true");
-        System.getProperties().setProperty("org.jooq.log.org.jooq.impl.DefaultExecuteContext.logVersionSupport", "ERROR");
+        System.getProperties()
+              .setProperty("org.jooq.log.org.jooq.impl.DefaultExecuteContext.logVersionSupport", "ERROR");
         this.dataSource = createDatasource();
     }
 
@@ -62,9 +62,11 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     void initDatabase(final DataSource dataSource) {
         System.setProperty("liquibase.command.showSummaryOutput", "LOG"); // avoid double log
         try (Connection connection = dataSource.getConnection()) {
-            try (Database db = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection))) {
+            try (Database db = DatabaseFactory.getInstance()
+                                              .findCorrectDatabaseImplementation(new JdbcConnection(connection))) {
                 CommandScope updateCommand = new CommandScope(UpdateCommandStep.COMMAND_NAME);
-                updateCommand.addArgumentValue(UpdateCommandStep.CHANGELOG_FILE_ARG, "liquibase/changelog/db.changelog.yml");
+                updateCommand.addArgumentValue(UpdateCommandStep.CHANGELOG_FILE_ARG,
+                                               "liquibase/changelog/db.changelog.yml");
                 Scope.enter(Map.of(Scope.Attr.ui.name(), new NullUIService()));
                 updateCommand.addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, db);
                 updateCommand.execute();

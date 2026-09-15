@@ -4,10 +4,8 @@ import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.QueueType;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
-
 import java.nio.file.Paths;
 import java.util.Properties;
-
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.PropertiesProvider.TCP_LISTEN_PORT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -16,7 +14,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
  * Options specific to the app start subcommand.
  */
 public class ServerOptions {
-
     private static String userHome() {
         return System.getProperty("user.home", "");
     }
@@ -24,115 +21,84 @@ public class ServerOptions {
     // HTTP server binding
     @Option(names = {"-b", "--bind"}, description = "Host/IP to bind the HTTP server to")
     String bind;
-
     @Option(names = {"--port", "--tcpListenPort"}, description = "HTTP server port", defaultValue = "8080")
     int tcpListenPort;
-
     @Option(names = {"--cors"}, description = "CORS headers", defaultValue = "no-cors")
     String cors;
-
     @Option(names = {"--rootHost"}, description = "Datashare host for urls")
     String rootHost;
-
     @Option(names = {"--browserOpenLink"}, description = "Open link in default browser", defaultValue = "false")
     boolean browserOpenLink;
-
     @Option(names = {"--protectedUriPrefix"}, description = "Protected URI prefix", defaultValue = "/api/")
     String protectedUriPrefix;
-
-    @Option(names = {"--statusAllowedNets"}, description = "CIDR list for unauthenticated /api/status", defaultValue = "127.0.0.0/8,::1/128")
+    @Option(names = {"--statusAllowedNets"}, description = "CIDR list for unauthenticated /api/status",
+            defaultValue = "127.0.0.0/8,::1/128")
     String statusAllowedNets;
-
     // OAuth / Authentication
     @Option(names = {"--oauthClientId"}, description = "OAuth2 client id")
     String oauthClientId;
-
-    @Option(names = {"--oauthClientSecret"}, description = "OAuth2 client secret key. Prefer passing via a settings file to avoid leaking into shell history.")
+    @Option(names = {"--oauthClientSecret"},
+            description = "OAuth2 client secret key. Prefer passing via a settings file to avoid leaking into shell history.")
     String oauthClientSecret;
-
     @Option(names = {"--oauthAuthorizeUrl"}, description = "OAuth2 authorize url")
     String oauthAuthorizeUrl;
-
     @Option(names = {"--oauthTokenUrl"}, description = "OAuth2 token url")
     String oauthTokenUrl;
-
     @Option(names = {"--oauthApiUrl"}, description = "OAuth2 api url")
     String oauthApiUrl;
-
     @Option(names = {"--oauthCallbackPath"}, description = "OAuth2 callback path")
     String oauthCallbackPath;
-
     @Option(names = {"--oauthDefaultProject"}, description = "Default project for OAuth2 users")
     String oauthDefaultProject;
-
     @Option(names = {"--oauthScope"}, description = "OAuth2 scope")
     String oauthScope;
-
     @Option(names = {"--oauthClaimIdAttribute"}, description = "OAuth claim id attribute")
     String oauthClaimIdAttribute;
-
     @Option(names = {"--authFilter"}, description = "Auth filter class")
     String authFilter;
-
     @Option(names = {"--auth"}, converter = AuthMode.PicocliConverter.class,
             description = "Authentication method: oauth, form, basic, yesCookie, yesBasic (default: form when not set). Preferred over the deprecated --authFilter.")
     AuthMode auth;
-
-    @Option(names = {"--sessionSigningKey"}, description = "HMAC key for session signing. Prefer passing via a settings file to avoid leaking into shell history.")
+    @Option(names = {"--sessionSigningKey"},
+            description = "HMAC key for session signing. Prefer passing via a settings file to avoid leaking into shell history.")
     String sessionSigningKey;
-
     @Option(names = {"--sessionTtlSeconds"}, description = "Session TTL in seconds", defaultValue = "43200")
     int sessionTtlSeconds;
-
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
     QueueType sessionStoreType;
-
     // Batch / Download
     @Option(names = {"--batchSearchMaxTimeSeconds"}, description = "Max batch search time in seconds")
     Integer batchSearchMaxTimeSeconds;
-
     @Option(names = {"--batchThrottleMilliseconds"}, description = "Batch throttle in milliseconds")
     Integer batchThrottleMilliseconds;
-
     @Option(names = {"--batchDownloadDir"}, description = "Batch download directory")
     String batchDownloadDir = Paths.get(userHome(), ".local/share/datashare/tmp").toString();
-
     @Option(names = {"--batchDownloadMaxSize"}, description = "Max batch download size", defaultValue = "100M")
     String batchDownloadMaxSize;
-
     @Option(names = {"--batchDownloadMaxNbFiles"}, description = "Max batch download files", defaultValue = "10000")
     int batchDownloadMaxNbFiles;
-
     @Option(names = {"--batchDownloadEncrypt"}, description = "Encrypt batch download zips")
     Boolean batchDownloadEncrypt;
-
     @Option(names = {"--batchDownloadTimeToLive"}, description = "Batch download TTL in hours", defaultValue = "24")
     int batchDownloadTimeToLive;
-
-    @Option(names = {"--embeddedDocumentDownloadMaxSize"}, description = "Max embedded document download size", defaultValue = "1G")
+    @Option(names = {"--embeddedDocumentDownloadMaxSize"}, description = "Max embedded document download size",
+            defaultValue = "1G")
     String embeddedDocumentDownloadMaxSize;
-
     // Scroll — --scroll/--scrollSize/--scrollSlices come from the PipelineOptions mixin
     @Option(names = {"--batchSearchScroll"}, description = "Batch search scroll duration", defaultValue = "60000ms")
     String batchSearchScroll;
-
     @Option(names = {"--batchSearchScrollSize"}, description = "Batch search scroll size", defaultValue = "1000")
     int batchSearchScrollSize;
-
     @Option(names = {"--batchDownloadScroll"}, description = "Batch download scroll duration", defaultValue = "60000ms")
     String batchDownloadScroll;
-
     @Option(names = {"--batchDownloadScrollSize"}, description = "Batch download scroll size", defaultValue = "1000")
     int batchDownloadScrollSize;
-
     // Misc server — --reportName comes from the PipelineOptions mixin
     @Option(names = {"--smtpUrl"}, description = "SMTP URL for sending emails")
     String smtpUrl;
-
     // Task management and document processing options — shared with WorkerRunCommand and StageRunCommand
     @Mixin
     WorkerOptions workerOptions = new WorkerOptions();
-
     @Mixin
     PipelineOptions pipelineOptions = new PipelineOptions();
 
@@ -190,7 +156,8 @@ public class ServerOptions {
     }
 
     private static String resolveAbsolutePath(String value) {
-        if (value == null) return null;
+        if (value == null)
+            return null;
         return Paths.get(value).toAbsolutePath().normalize().toString();
     }
 }

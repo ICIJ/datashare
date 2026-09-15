@@ -8,7 +8,6 @@ import java.util.function.Function;
  */
 @FunctionalInterface
 public interface QuadFunction<A, B, C, D, R> {
-
     R apply(A a, B b, C c, D d);
 
     default <S> QuadFunction<A, B, C, D, S> andThen(Function<? super R, ? extends S> after) {
@@ -21,11 +20,13 @@ public interface QuadFunction<A, B, C, D, R> {
         return (T t, B b, C c, D d) -> apply(before.apply(t), b, c, d);
     }
 
-    static <A, B, C, D, R> Function<A, Function<B, Function<C, Function<D, R>>>> curry(final QuadFunction<A, B, C, D, R> f) {
+    static <A, B, C, D, R> Function<A, Function<B, Function<C, Function<D, R>>>> curry(
+            final QuadFunction<A, B, C, D, R> f) {
         return (A a) -> (B b) -> (C c) -> (D d) -> f.apply(a, b, c, d);
     }
 
-    static <A, B, C, D, R> QuadFunction<A, B, C, D, R> uncurry(Function<A, Function<B, Function<C, Function<D, R>>>> f) {
+    static <A, B, C, D, R> QuadFunction<A, B, C, D, R> uncurry(
+            Function<A, Function<B, Function<C, Function<D, R>>>> f) {
         return (A a, B b, C c, D d) -> f.apply(a).apply(b).apply(c).apply(d);
     }
 

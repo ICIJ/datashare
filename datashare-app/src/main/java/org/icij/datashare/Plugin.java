@@ -2,17 +2,14 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
-
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
-
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Path;
@@ -20,9 +17,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
-
 import org.jetbrains.annotations.NotNull;
-
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
 import static org.apache.commons.io.FilenameUtils.getExtension;
@@ -35,14 +30,10 @@ public class Plugin extends Extension {
     public final List<String> extensions;
 
     @JsonCreator
-    public Plugin(@JsonProperty("id") String id,
-                  @JsonProperty("name") String name,
-                  @JsonProperty("version") String version,
-                  @JsonProperty("description") String description,
-                  @JsonProperty("url") URL url,
-                  @JsonProperty("homepage") URL homepage,
-                  @JsonProperty("extensions") List<String> extensions
-    ) {
+    public Plugin(@JsonProperty("id") String id, @JsonProperty("name") String name,
+                  @JsonProperty("version") String version, @JsonProperty("description") String description,
+                  @JsonProperty("url") URL url, @JsonProperty("homepage") URL homepage,
+                  @JsonProperty("extensions") List<String> extensions) {
         super(id, name, version, description, url, homepage, Type.PLUGIN);
         this.extensions = ofNullable(extensions).orElse(List.of());
     }
@@ -80,10 +71,11 @@ public class Plugin extends Extension {
 
     @Override
     public void install(File pluginFile, Path pluginsDir) throws IOException {
-        File[] pluginDirDirectories = pluginsDir.toFile()
-                .listFiles((dir, fileName) -> dir.toPath().resolve(fileName).toFile().isDirectory());
+        File[] pluginDirDirectories =
+                pluginsDir.toFile().listFiles((dir, fileName) -> dir.toPath().resolve(fileName).toFile().isDirectory());
         File[] candidateFiles = ofNullable(pluginDirDirectories).orElse(new File[0]);
-        List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
+        List<File> previousVersionInstalled =
+                getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
         if (previousVersionInstalled.size() > 0) {
             logger.info("removing previous versions {}", previousVersionInstalled);
             for (File file : previousVersionInstalled) {
@@ -120,14 +112,16 @@ public class Plugin extends Extension {
                         totalExtractedSize += copyBounded(zippedArchiveInputStream, outputFileStream, MAX_ENTRY_SIZE);
                     }
                     if (totalExtractedSize > MAX_TOTAL_SIZE) {
-                        throw new IOException("Archive total extracted size exceeds limit (" + MAX_TOTAL_SIZE + " bytes)");
+                        throw new IOException(
+                                "Archive total extracted size exceeds limit (" + MAX_TOTAL_SIZE + " bytes)");
                     }
                 }
             }
         } catch (ArchiveException e) {
             throw new RuntimeException(e);
         }
-        if (isTemporaryFile(pluginFile)) pluginFile.delete();
+        if (isTemporaryFile(pluginFile))
+            pluginFile.delete();
     }
 
     @Override

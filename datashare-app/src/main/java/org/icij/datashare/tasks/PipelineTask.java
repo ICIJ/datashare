@@ -14,9 +14,7 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.List;
-
 import static java.util.Optional.ofNullable;
 
 public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableTask {
@@ -26,7 +24,6 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
      * minute slow (that option's CLI default) while muddying what that option means.
      */
     protected static final long UPSTREAM_POLL_INTERVAL_MS = 1000;
-
     private final Logger logger = LoggerFactory.getLogger(getClass());
     protected final DocumentQueue<T> inputQueue;
     protected final DocumentQueue<T> outputQueue;
@@ -38,11 +35,13 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     private volatile Thread taskThread;
 
     /** For producer stages: nothing feeds their input queue, the gate is {@link UpstreamGate#NONE}. */
-    public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz) {
+    public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory,
+                        final PropertiesProvider propertiesProvider, Class<T> clazz) {
         this(stage, user, factory, propertiesProvider, clazz, UpstreamGate.NONE);
     }
 
-    public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz, UpstreamGate gate) {
+    public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory,
+                        final PropertiesProvider propertiesProvider, Class<T> clazz, UpstreamGate gate) {
         this.propertiesProvider = propertiesProvider;
         this.stage = stage;
         this.user = user;
@@ -128,7 +127,9 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     private Document warnIfNull(Document document, String projectName, String docId) {
         // indexer.get() also returns null on fetch failures (it logs them as ERROR), not only on missing ids
         if (document == null) {
-            logger.warn("document <{}> could not be retrieved from index {} (missing document or index fetch error), skipping", docId, projectName);
+            logger.warn(
+                    "document <{}> could not be retrieved from index {} (missing document or index fetch error), skipping",
+                    docId, projectName);
         }
         return document;
     }

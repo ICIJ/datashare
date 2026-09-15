@@ -1,10 +1,8 @@
 package org.icij.datashare.utils;
 
 import org.icij.datashare.PropertiesProvider;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DATA_DIR;
 

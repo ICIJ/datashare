@@ -4,7 +4,6 @@ import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.TargetModelRegistry;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,10 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
-public record ExtractionMapping(String id, String projectId, String userId, String name, String model,
-                                String documentId, RowSourceOptions options,
-                                Map<String, EntityMapping> entities) {
-
+public record ExtractionMapping(String id, String projectId, String userId, String name, String model, String documentId, RowSourceOptions options, Map<String, EntityMapping> entities) {
     public ExtractionMapping {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(projectId, "projectId");
@@ -70,8 +66,8 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         List<TargetModel.Violation> violations = new ArrayList<>();
         for (String alias : new TreeSet<>(entities.keySet())) {
             EntityMapping entity = entities.get(alias);
-            target.validate(probe(alias, entity)).forEach(violation ->
-                    violations.add(new TargetModel.Violation("entity '" + alias + "': " + violation.message())));
+            target.validate(probe(alias, entity)).forEach(violation -> violations.add(
+                    new TargetModel.Violation("entity '" + alias + "': " + violation.message())));
             for (String property : new TreeSet<>(entity.properties().keySet())) {
                 reference(target, alias, entity, property).ifPresent(violations::add);
             }
@@ -105,9 +101,10 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             return Optional.of(new TargetModel.Violation(on + "holds a value, not a reference to an entity"));
         }
         return target.type(referenced.type())
-                .filter(type -> !type.name().equals(range) && !type.ancestors().contains(range))
-                .map(type -> new TargetModel.Violation(on + "needs a '" + range + "', but entity '" + reference
-                        + "' is a '" + type.name() + "'"));
+                     .filter(type -> !type.name().equals(range) && !type.ancestors().contains(range))
+                     .map(type -> new TargetModel.Violation(
+                             on + "needs a '" + range + "', but entity '" + reference + "' is a '" + type.name() +
+                             "'"));
     }
 
     // A mapping declares which properties it fills, not what they will hold, so the model's own

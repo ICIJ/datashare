@@ -1,6 +1,5 @@
 package org.icij.datashare.com.mail;
 
-
 public class MailException extends RuntimeException {
     /**
      * wraps AddressException, MessagingException, IOException

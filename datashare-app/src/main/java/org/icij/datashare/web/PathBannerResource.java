@@ -17,11 +17,9 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.DatashareUser;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-
 import static net.codestory.http.constants.HttpStatus.NO_CONTENT;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
@@ -75,12 +73,8 @@ public class PathBannerResource {
             ```
             
             matches `/start/with/myparameter/with/slashes` and the parameter variable will contain `myparameter/with/slashes`
-            """,
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-                    @Parameter(name = "path", description = "the path of the document.", in = ParameterIn.PATH),
-            }
-    )
+            """, parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            @Parameter(name = "path", description = "the path of the document.", in = ParameterIn.PATH),})
     @ApiResponse(responseCode = "403", description = "if the user is not granted for the project")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:project/pathBanners/:path:")
@@ -91,8 +85,7 @@ public class PathBannerResource {
     }
 
     @Operation(description = "Gets the list of notes for a project.",
-            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)}
-    )
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "403", description = "if the user is not granted for the project")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:project/pathBanners")
@@ -103,11 +96,9 @@ public class PathBannerResource {
     }
 
     @Operation(description = "Creates or replaces a path banner for a given project and path.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-                    @Parameter(name = "path", description = "the path the banner is attached to", in = ParameterIn.PATH),
-            }
-    )
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "path", description = "the path the banner is attached to",
+                            in = ParameterIn.PATH),})
     @ApiResponse(responseCode = "403", description = "if the user is not granted for the project")
     @ApiResponse(responseCode = "201", description = "if the path banner was created")
     @ApiResponse(responseCode = "200", description = "if an existing path banner was updated")
@@ -116,7 +107,8 @@ public class PathBannerResource {
     public Payload savePathBanner(String project, String documentPath, PathBanner body, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         forbiddenIfNotGranted(user.isGranted(project));
-        PathBanner pathBanner = new PathBanner(project(project), bannerPath(documentPath), body.note, body.variant, body.blurSensitiveMedia);
+        PathBanner pathBanner = new PathBanner(project(project), bannerPath(documentPath), body.note, body.variant,
+                                               body.blurSensitiveMedia);
         return repository.save(pathBanner) ? created() : ok();
     }
 
@@ -127,13 +119,11 @@ public class PathBannerResource {
             With `?greedy=true`, deletes the banner at the given path and every banner below it
             (subtree delete). For example, `DELETE /api/p1/pathBanners/a/b?greedy=true` removes
             banners at `a/b`, `a/b/doc1`, `a/b/sub/doc2`, etc, but not the one at `a/bcd`.
-            """,
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-                    @Parameter(name = "path", description = "the path of the banner to delete", in = ParameterIn.PATH),
-                    @Parameter(name = "greedy", description = "if true, delete all banners whose path starts with the given prefix", in = ParameterIn.QUERY),
-            }
-    )
+            """, parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            @Parameter(name = "path", description = "the path of the banner to delete", in = ParameterIn.PATH),
+            @Parameter(name = "greedy",
+                    description = "if true, delete all banners whose path starts with the given prefix",
+                    in = ParameterIn.QUERY),})
     @ApiResponse(responseCode = "403", description = "if the user is not granted for the project")
     @ApiResponse(responseCode = "204", description = "if the path banner(s) were deleted")
     @Delete("/:project/pathBanners/:path:")
@@ -151,10 +141,7 @@ public class PathBannerResource {
     }
 
     @Operation(description = "Deletes all path banners for the given project.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-            }
-    )
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),})
     @ApiResponse(responseCode = "403", description = "if the user is not granted for the project")
     @ApiResponse(responseCode = "204", description = "if all path banners for the project were deleted")
     @Delete("/:project/pathBanners")

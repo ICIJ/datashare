@@ -12,8 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * here because memory mode runs in a single process.
  */
 public class MemoryAsyncSearchStore implements AsyncSearchStore {
-    private record Entry(AsyncSearchOwner owner, Instant expiresAt) {
-    }
+    private record Entry(AsyncSearchOwner owner, Instant expiresAt) {}
 
     private final ConcurrentHashMap<String, Entry> entries = new ConcurrentHashMap<>();
     private final Clock clock;
@@ -51,7 +50,6 @@ public class MemoryAsyncSearchStore implements AsyncSearchStore {
 
     @Override
     public void refresh(String asyncId, Duration keepAlive) {
-        entries.computeIfPresent(asyncId, (k, entry) ->
-                new Entry(entry.owner(), clock.instant().plus(keepAlive)));
+        entries.computeIfPresent(asyncId, (k, entry) -> new Entry(entry.owner(), clock.instant().plus(keepAlive)));
     }
 }

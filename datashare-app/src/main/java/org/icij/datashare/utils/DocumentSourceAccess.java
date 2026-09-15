@@ -17,12 +17,10 @@ import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.extract.extractor.EmbeddedDocumentExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.function.Function;
-
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.constants.Headers.CONTENT_LENGTH;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
@@ -49,8 +47,8 @@ public class DocumentSourceAccess {
         this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }
 
-    public Payload gated(final String project, final String id, final String routing,
-                         final Context context, final Function<Document, Payload> whenAllowed) {
+    public Payload gated(final String project, final String id, final String routing, final Context context,
+                         final Function<Document, Payload> whenAllowed) {
         boolean isProjectGranted = ((DatashareUser) context.currentUser()).isGranted(project);
         boolean isDownloadAllowed = isAllowed(repository.getProject(project), context.request().clientAddress());
         if (!isProjectGranted || !isDownloadAllowed) {
@@ -71,7 +69,8 @@ public class DocumentSourceAccess {
     public Payload source(Document doc, String index, boolean inline, boolean filterMetadata) {
         try {
             InputStream from = new SourceExtractor(propertiesProvider, filterMetadata).getSource(project(index), doc);
-            String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
+            String contentType =
+                    ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
             // OCR-routed embedded images are stored with a synthetic "image/ocr-<fmt>" content type
             // (the "ocr-" prefix routes them through the OCR parser). Serve the real media type so the
             // Content-Type header and the download filename extension are correct (otherwise ".bin").
@@ -82,8 +81,10 @@ public class DocumentSourceAccess {
             if (!filterMetadata && doc.getContentLength() > 0) {
                 payload.withHeader(CONTENT_LENGTH, String.valueOf(doc.getContentLength()));
             }
-            String fileName = doc.isRootDocument() ? doc.getName() : doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
-            return inline ? payload : payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
+            String fileName = doc.isRootDocument() ? doc.getName() :
+                              doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
+            return inline ? payload :
+                   payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
         } catch (FileNotFoundException | EmbeddedDocumentExtractor.ContentNotFoundException fnf) {
             logger.error("unable to read document source file", fnf);
             return Payload.notFound();

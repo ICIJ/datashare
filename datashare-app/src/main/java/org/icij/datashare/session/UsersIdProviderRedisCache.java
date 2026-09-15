@@ -9,10 +9,8 @@ import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
-
 import java.io.Closeable;
 import java.util.List;
-
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.user.User.fromJson;
@@ -25,7 +23,8 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache, Closeabl
     @Inject
     public UsersIdProviderRedisCache(PropertiesProvider propertiesProvider) {
         redis = RedisPoolFactory.createPool(propertiesProvider);
-        this.ttl = Integer.valueOf(propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(DEFAULT_SESSION_TTL_SECONDS)));
+        this.ttl = Integer.valueOf(
+                propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(DEFAULT_SESSION_TTL_SECONDS)));
     }
 
     @Override
@@ -40,7 +39,8 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache, Closeabl
     public User find(String login, String password) {
         try (Jedis jedis = redis.getResource()) {
             org.icij.datashare.user.User user = fromJson(jedis.get(login));
-            return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user) : null;
+            return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ?
+                   new DatashareUser(user) : null;
         }
     }
 

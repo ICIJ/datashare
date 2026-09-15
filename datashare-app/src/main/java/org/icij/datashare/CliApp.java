@@ -39,7 +39,6 @@ import org.icij.datashare.user.admin.UserNotFoundException;
 import org.icij.datashare.user.admin.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -50,7 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Supplier;
-
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -59,12 +57,10 @@ import static org.icij.datashare.user.User.nullUser;
 
 class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
-
     // Single ObjectMapper shared across handlers for serializing JSON output.
     // Input is read from typed sibling properties, not parsed JSON, so this
     // mapper never sees untrusted strings.
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
     // Exit codes returned by the admin dispatchers (handleUserCreate, etc.).
     // Picocli itself owns exit code 2 (usage errors) and signals it before
     // dispatch, so it does not appear here. Kept in sync with the "code"
@@ -102,7 +98,8 @@ class CliApp {
             deliverableService.downloadAndInstallFromCli(properties);
         } else if (deliverableService.getDeleteOpt(properties) != null) {
             deliverableService.deleteFromCli(properties);
-        } else return;
+        } else
+            return;
         System.exit(0);
     }
 
@@ -119,7 +116,9 @@ class CliApp {
         if (properties.getProperty(CRE_API_KEY_OPT) != null) {
             String userName = properties.getProperty(CRE_API_KEY_OPT);
             String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
-            logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}", userName, secretKey);
+            logger.info(
+                    "generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}",
+                    userName, secretKey);
             System.exit(0);
         }
 
@@ -189,16 +188,12 @@ class CliApp {
         }
     }
 
-    static final Map<Stage, Class<?>> TASK_CLASSES = Map.of(
-            Stage.SCAN, ScanTask.class,
-            Stage.SCANIDX, ScanIndexTask.class,
-            Stage.DEDUPLICATE, DeduplicateTask.class,
-            Stage.INDEX, IndexTask.class,
-            Stage.ENQUEUEIDX, EnqueueFromIndexTask.class,
-            Stage.CATEGORIZE, CategorizeTask.class,
-            Stage.CREATENLPBATCHESFROMIDX, CreateNlpBatchesFromIndex.class,
-            Stage.NLP, ExtractNlpTask.class,
-            Stage.ARTIFACT, ArtifactTask.class);
+    static final Map<Stage, Class<?>> TASK_CLASSES =
+            Map.of(Stage.SCAN, ScanTask.class, Stage.SCANIDX, ScanIndexTask.class, Stage.DEDUPLICATE,
+                   DeduplicateTask.class, Stage.INDEX, IndexTask.class, Stage.ENQUEUEIDX, EnqueueFromIndexTask.class,
+                   Stage.CATEGORIZE, CategorizeTask.class, Stage.CREATENLPBATCHESFROMIDX,
+                   CreateNlpBatchesFromIndex.class, Stage.NLP, ExtractNlpTask.class, Stage.ARTIFACT,
+                   ArtifactTask.class);
 
     /**
      * Starts every configured stage, then awaits them all at once. Each stage carries the previous
@@ -211,7 +206,8 @@ class CliApp {
      *
      * @return true when every configured stage completed, false when any of them did not
      */
-    static boolean runPipeline(TaskManager taskManager, PipelineHelper pipeline, Properties properties) throws Exception {
+    static boolean runPipeline(TaskManager taskManager, PipelineHelper pipeline, Properties properties) throws
+            Exception {
         Map<String, Stage> stagesByTaskId = new LinkedHashMap<>();
         String upstreamTaskId = null;
         for (Stage stage : new LinkedHashSet<>(pipeline.stages)) {
@@ -244,30 +240,26 @@ class CliApp {
         boolean json = Boolean.parseBoolean(properties.getProperty(USER_CREATE_JSON_OPT));
         boolean ifNotExists = Boolean.parseBoolean(properties.getProperty(USER_CREATE_IF_NOT_EXISTS_OPT));
         try {
-            UserCreateRequest request = new UserCreateRequest(
-                    login,
-                    properties.getProperty(USER_CREATE_EMAIL_OPT),
-                    properties.getProperty(USER_CREATE_NAME_OPT),
-                    properties.getProperty(USER_CREATE_PASSWORD_OPT),
-                    properties.getProperty(USER_CREATE_PROVIDER_OPT),
-                    Validators.groups(properties.getProperty(USER_CREATE_GROUPS_OPT)));
+            UserCreateRequest request = new UserCreateRequest(login, properties.getProperty(USER_CREATE_EMAIL_OPT),
+                                                              properties.getProperty(USER_CREATE_NAME_OPT),
+                                                              properties.getProperty(USER_CREATE_PASSWORD_OPT),
+                                                              properties.getProperty(USER_CREATE_PROVIDER_OPT),
+                                                              Validators.groups(
+                                                                      properties.getProperty(USER_CREATE_GROUPS_OPT)));
 
             UserCreated created = ifNotExists ? service.createIfNotExists(request) : service.create(request);
 
             if (json) {
-                System.out.println(MAPPER.writeValueAsString(Map.of(
-                        "created", !created.noop(),
-                        "noop", created.noop(),
-                        "login", created.login(),
-                        "email", created.email(),
-                        "name", created.name(),
-                        "provider", created.provider(),
-                        "groups", created.groups())));
+                System.out.println(MAPPER.writeValueAsString(
+                        Map.of("created", !created.noop(), "noop", created.noop(), "login", created.login(), "email",
+                               created.email(), "name", created.name(), "provider", created.provider(), "groups",
+                               created.groups())));
             } else if (created.noop()) {
                 System.out.println("user '" + created.login() + "' already exists (no-op)");
             } else {
-                System.out.println("created user '" + created.login() + "' (provider="
-                        + created.provider() + ", groups=" + created.groups() + ")");
+                System.out.println(
+                        "created user '" + created.login() + "' (provider=" + created.provider() + ", groups=" +
+                        created.groups() + ")");
             }
             return EXIT_SUCCESS;
         } catch (UserExistsException e) {
@@ -294,10 +286,7 @@ class CliApp {
             boolean noop = !removed;
 
             if (json) {
-                System.out.println(MAPPER.writeValueAsString(Map.of(
-                        "deleted", removed,
-                        "noop", noop,
-                        "login", login)));
+                System.out.println(MAPPER.writeValueAsString(Map.of("deleted", removed, "noop", noop, "login", login)));
             } else if (noop) {
                 System.out.println("user '" + login + "' does not exist (no-op)");
             } else {
@@ -374,26 +363,23 @@ class CliApp {
         }
     }
 
-    private static ProjectCreateRequest buildCreateRequest(Properties properties)
-            throws org.icij.datashare.project.admin.ValidationException {
+    private static ProjectCreateRequest buildCreateRequest(Properties properties) throws
+            org.icij.datashare.project.admin.ValidationException {
         String sourcePathOpt = properties.getProperty(PROJECT_CREATE_SOURCE_PATH_OPT);
         boolean noIndex = Boolean.parseBoolean(properties.getProperty(PROJECT_CREATE_NO_INDEX_OPT));
-        Date creationDate = parseInstantOrNull(properties.getProperty(PROJECT_CREATE_CREATION_DATE_OPT), "creationDate");
+        Date creationDate =
+                parseInstantOrNull(properties.getProperty(PROJECT_CREATE_CREATION_DATE_OPT), "creationDate");
         Date updateDate = parseInstantOrNull(properties.getProperty(PROJECT_CREATE_UPDATE_DATE_OPT), "updateDate");
         Path sourcePath = sourcePathOpt == null ? null : Path.of(sourcePathOpt);
-        return new ProjectCreateRequest(
-                properties.getProperty(PROJECT_CREATE_OPT),
-                properties.getProperty(PROJECT_CREATE_LABEL_OPT),
-                properties.getProperty(PROJECT_CREATE_DESCRIPTION_OPT),
-                sourcePath,
-                properties.getProperty(PROJECT_CREATE_ALLOW_FROM_MASK_OPT),
-                properties.getProperty(PROJECT_CREATE_SOURCE_URL_OPT),
-                properties.getProperty(PROJECT_CREATE_MAINTAINER_NAME_OPT),
-                properties.getProperty(PROJECT_CREATE_PUBLISHER_NAME_OPT),
-                properties.getProperty(PROJECT_CREATE_LOGO_URL_OPT),
-                creationDate,
-                updateDate,
-                !noIndex);
+        return new ProjectCreateRequest(properties.getProperty(PROJECT_CREATE_OPT),
+                                        properties.getProperty(PROJECT_CREATE_LABEL_OPT),
+                                        properties.getProperty(PROJECT_CREATE_DESCRIPTION_OPT), sourcePath,
+                                        properties.getProperty(PROJECT_CREATE_ALLOW_FROM_MASK_OPT),
+                                        properties.getProperty(PROJECT_CREATE_SOURCE_URL_OPT),
+                                        properties.getProperty(PROJECT_CREATE_MAINTAINER_NAME_OPT),
+                                        properties.getProperty(PROJECT_CREATE_PUBLISHER_NAME_OPT),
+                                        properties.getProperty(PROJECT_CREATE_LOGO_URL_OPT), creationDate, updateDate,
+                                        !noIndex);
     }
 
     /**
@@ -402,14 +388,16 @@ class CliApp {
      * theory be invoked from elsewhere. Surface bad input as a
      * {@code ValidationException} (exit 5) instead of an opaque runtime error.
      */
-    private static Date parseInstantOrNull(String value, String field)
-            throws org.icij.datashare.project.admin.ValidationException {
-        if (value == null) return null;
+    private static Date parseInstantOrNull(String value, String field) throws
+            org.icij.datashare.project.admin.ValidationException {
+        if (value == null)
+            return null;
         try {
             return Date.from(Instant.parse(value));
         } catch (java.time.format.DateTimeParseException e) {
-            throw new org.icij.datashare.project.admin.ValidationException(
-                    field, field + " must be ISO-8601 (e.g. 2026-05-15T10:00:00Z): " + e.getMessage());
+            throw new org.icij.datashare.project.admin.ValidationException(field, field +
+                                                                                  " must be ISO-8601 (e.g. 2026-05-15T10:00:00Z): " +
+                                                                                  e.getMessage());
         }
     }
 
@@ -425,8 +413,7 @@ class CliApp {
      * dev setups have a custom login that does not match the launcher's
      * default, and the noise isn't helpful.
      */
-    private static GrantOutcome attemptAutoGrant(ProjectAdminService service,
-                                                 ProjectCreated created,
+    private static GrantOutcome attemptAutoGrant(ProjectAdminService service, ProjectCreated created,
                                                  Properties properties) {
         if (created.noop()) {
             return GrantOutcome.skipped();
@@ -441,35 +428,32 @@ class CliApp {
             return new GrantOutcome(creator, GrantStatus.GRANTED);
         } catch (org.icij.datashare.project.admin.UserNotFoundException e) {
             if (!defaulted) {
-                System.err.println("warning: user '" + creator
-                        + "' not found in inventory; auto-grant skipped");
+                System.err.println("warning: user '" + creator + "' not found in inventory; auto-grant skipped");
             }
             return new GrantOutcome(creator, GrantStatus.USER_NOT_FOUND);
         } catch (Exception e) {
-            System.err.println("warning: failed to grant PROJECT_ADMIN on '" + created.name()
-                    + "' to '" + creator + "': " + e.getMessage());
+            System.err.println(
+                    "warning: failed to grant PROJECT_ADMIN on '" + created.name() + "' to '" + creator + "': " +
+                    e.getMessage());
             return new GrantOutcome(creator, GrantStatus.ERROR);
         }
     }
 
     private static Map<String, Object> createResultMap(ProjectCreated created, GrantOutcome grant) {
-        return Map.ofEntries(
-                Map.entry("created", !created.noop()),
-                Map.entry("noop", created.noop()),
-                Map.entry("name", created.name()),
-                Map.entry("label", orEmpty(created.label())),
-                Map.entry("description", orEmpty(created.description())),
-                Map.entry("sourcePath", pathOrEmpty(created.sourcePath())),
-                Map.entry("allowFromMask", orEmpty(created.allowFromMask())),
-                Map.entry("sourceUrl", orEmpty(created.sourceUrl())),
-                Map.entry("maintainerName", orEmpty(created.maintainerName())),
-                Map.entry("publisherName", orEmpty(created.publisherName())),
-                Map.entry("logoUrl", orEmpty(created.logoUrl())),
-                Map.entry("creationDate", instantOrEmpty(created.creationDate())),
-                Map.entry("updateDate", instantOrEmpty(created.updateDate())),
-                Map.entry("indexCreated", created.indexCreated()),
-                Map.entry("creator", orEmpty(grant.creator())),
-                Map.entry("grantApplied", grant.granted()));
+        return Map.ofEntries(Map.entry("created", !created.noop()), Map.entry("noop", created.noop()),
+                             Map.entry("name", created.name()), Map.entry("label", orEmpty(created.label())),
+                             Map.entry("description", orEmpty(created.description())),
+                             Map.entry("sourcePath", pathOrEmpty(created.sourcePath())),
+                             Map.entry("allowFromMask", orEmpty(created.allowFromMask())),
+                             Map.entry("sourceUrl", orEmpty(created.sourceUrl())),
+                             Map.entry("maintainerName", orEmpty(created.maintainerName())),
+                             Map.entry("publisherName", orEmpty(created.publisherName())),
+                             Map.entry("logoUrl", orEmpty(created.logoUrl())),
+                             Map.entry("creationDate", instantOrEmpty(created.creationDate())),
+                             Map.entry("updateDate", instantOrEmpty(created.updateDate())),
+                             Map.entry("indexCreated", created.indexCreated()),
+                             Map.entry("creator", orEmpty(grant.creator())),
+                             Map.entry("grantApplied", grant.granted()));
     }
 
     private static void emitCreateText(ProjectCreated created, GrantOutcome grant) {
@@ -478,13 +462,11 @@ class CliApp {
             return;
         }
         String indexBadge = created.indexCreated() ? "index=created" : "index=skipped";
-        System.out.println("created project '" + created.name() + "' (label='"
-                + orEmpty(created.label()) + "', source-path="
-                + created.sourcePath() + ", allow-from-mask=" + created.allowFromMask()
-                + ", " + indexBadge + ")");
+        System.out.println(
+                "created project '" + created.name() + "' (label='" + orEmpty(created.label()) + "', source-path=" +
+                created.sourcePath() + ", allow-from-mask=" + created.allowFromMask() + ", " + indexBadge + ")");
         if (grant.granted()) {
-            System.out.println("granted PROJECT_ADMIN on '" + created.name()
-                    + "' to '" + grant.creator() + "'");
+            System.out.println("granted PROJECT_ADMIN on '" + created.name() + "' to '" + grant.creator() + "'");
         }
     }
 
@@ -518,8 +500,7 @@ class CliApp {
         return defaultUser == null || defaultUser.isBlank() ? null : defaultUser;
     }
 
-    static int handleProjectDelete(ProjectAdminService service,
-                                   Properties properties,
+    static int handleProjectDelete(ProjectAdminService service, Properties properties,
                                    Supplier<Prompter> prompterFactory) {
         String name = properties.getProperty(PROJECT_DELETE_OPT);
         boolean json = Boolean.parseBoolean(properties.getProperty(PROJECT_DELETE_JSON_OPT));
@@ -531,16 +512,15 @@ class CliApp {
 
         try {
             ProjectStats stats = loadStatsOrNoop(service, name, options, ifExists, json);
-            if (stats == null) return EXIT_SUCCESS; // not-found + --if-exists, already emitted
+            if (stats == null)
+                return EXIT_SUCCESS; // not-found + --if-exists, already emitted
 
             if (!(yes || noInput) && !confirmDeletion(stats, name, prompterFactory)) {
                 emitDeleteAborted(name, json);
                 return EXIT_SUCCESS;
             }
 
-            ProjectDeleted deleted = ifExists
-                    ? service.deleteIfExists(name, options)
-                    : service.delete(name, options);
+            ProjectDeleted deleted = ifExists ? service.deleteIfExists(name, options) : service.delete(name, options);
 
             emitDeleteResult(deleted, options, json);
             return EXIT_SUCCESS;
@@ -560,12 +540,9 @@ class CliApp {
      * {@code --if-exists} converts that into a successful no-op (which this
      * method emits before returning). Any other not-found case re-throws.
      */
-    private static ProjectStats loadStatsOrNoop(ProjectAdminService service,
-                                                String name,
-                                                ProjectDeleteOptions options,
-                                                boolean ifExists,
-                                                boolean json)
-            throws ProjectNotFoundException, IOException {
+    private static ProjectStats loadStatsOrNoop(ProjectAdminService service, String name, ProjectDeleteOptions options,
+                                                boolean ifExists, boolean json) throws ProjectNotFoundException,
+            IOException {
         try {
             return service.stats(name, !options.keepIndex());
         } catch (ProjectNotFoundException e) {
@@ -583,63 +560,49 @@ class CliApp {
      * {@link Prompter.ValidationFailedException} when retries exhaust; a clean
      * return from the prompter means the typed name matched.
      */
-    private static boolean confirmDeletion(ProjectStats stats,
-                                           String name,
-                                           Supplier<Prompter> prompterFactory) {
-        String docCount = stats.indexedDocuments()
-                .stream().mapToObj(n -> n + " indexed documents")
-                .findFirst().orElse("(index check skipped)");
-        System.err.println("Project '" + name + "' has " + docCount
-                + " and " + stats.memberCount() + " members.");
-        System.err.println("This will permanently delete the project, its index, "
-                + "document queues, report map, and artifact directory. "
-                + "This cannot be undone.");
+    private static boolean confirmDeletion(ProjectStats stats, String name, Supplier<Prompter> prompterFactory) {
+        String docCount = stats.indexedDocuments().stream().mapToObj(n -> n + " indexed documents").findFirst()
+                               .orElse("(index check skipped)");
+        System.err.println("Project '" + name + "' has " + docCount + " and " + stats.memberCount() + " members.");
+        System.err.println("This will permanently delete the project, its index, " +
+                           "document queues, report map, and artifact directory. " + "This cannot be undone.");
         Prompter prompter = prompterFactory.get();
-        prompter.promptString(
-                "To confirm, type the project name",
-                typedName -> {
-                    if (!typedName.trim().equals(name)) {
-                        throw new Validators.InvalidValueException(
-                                "name", "typed name does not match");
-                    }
-                });
+        prompter.promptString("To confirm, type the project name", typedName -> {
+            if (!typedName.trim().equals(name)) {
+                throw new Validators.InvalidValueException("name", "typed name does not match");
+            }
+        });
         return true;
     }
 
-    private static void emitDeleteResult(ProjectDeleted deleted,
-                                         ProjectDeleteOptions options,
-                                         boolean json) {
+    private static void emitDeleteResult(ProjectDeleted deleted, ProjectDeleteOptions options, boolean json) {
         if (json) {
-            printJsonOrFallback(deleteResultMap(deleted),
-                    "deleted project '" + deleted.name() + "'");
+            printJsonOrFallback(deleteResultMap(deleted), "deleted project '" + deleted.name() + "'");
             return;
         }
         if (deleted.noop()) {
             System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
             return;
         }
-        String indexBadge = options.keepIndex()
-                ? "index skipped"
-                : (deleted.indexDeleted() ? "index OK" : "index FAILED");
+        String indexBadge =
+                options.keepIndex() ? "index skipped" : (deleted.indexDeleted() ? "index OK" : "index FAILED");
         String dbBadge = deleted.dbDeleted() ? "db OK" : "db FAILED";
         String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
         String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
         String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
-        System.out.println("deleted project '" + deleted.name() + "' ("
-                + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", "
-                + reportMapBadge + ", " + artifactsBadge + ")");
+        System.out.println(
+                "deleted project '" + deleted.name() + "' (" + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", " +
+                reportMapBadge + ", " + artifactsBadge + ")");
         warnIfPartialFailure(deleted, options);
     }
 
     private static void warnIfPartialFailure(ProjectDeleted deleted, ProjectDeleteOptions options) {
         boolean indexFailed = !options.keepIndex() && !deleted.indexDeleted();
-        if (!deleted.dbDeleted() || indexFailed
-                || !deleted.queuesDeleted() || !deleted.reportMapDeleted()) {
+        if (!deleted.dbDeleted() || indexFailed || !deleted.queuesDeleted() || !deleted.reportMapDeleted()) {
             // Some load-bearing step failed: keep the cascade exit code 0
             // (the cascade did run to completion) but nudge the operator
             // to retry with --if-exists, which is continuation-friendly.
-            System.err.println("warning: cascade completed with failures; "
-                    + "re-run with --if-exists to retry");
+            System.err.println("warning: cascade completed with failures; " + "re-run with --if-exists to retry");
         }
     }
 
@@ -664,15 +627,12 @@ class CliApp {
      * emitters.
      */
     private static Map<String, Object> deleteResultMap(ProjectDeleted deleted) {
-        return Map.ofEntries(
-                Map.entry("deleted", !deleted.noop()),
-                Map.entry("noop", deleted.noop()),
-                Map.entry("name", deleted.name()),
-                Map.entry("dbDeleted", deleted.dbDeleted()),
-                Map.entry("indexDeleted", deleted.indexDeleted()),
-                Map.entry("queuesDeleted", deleted.queuesDeleted()),
-                Map.entry("reportMapDeleted", deleted.reportMapDeleted()),
-                Map.entry("artifactsDeleted", deleted.artifactsDeleted()));
+        return Map.ofEntries(Map.entry("deleted", !deleted.noop()), Map.entry("noop", deleted.noop()),
+                             Map.entry("name", deleted.name()), Map.entry("dbDeleted", deleted.dbDeleted()),
+                             Map.entry("indexDeleted", deleted.indexDeleted()),
+                             Map.entry("queuesDeleted", deleted.queuesDeleted()),
+                             Map.entry("reportMapDeleted", deleted.reportMapDeleted()),
+                             Map.entry("artifactsDeleted", deleted.artifactsDeleted()));
     }
 
     private static void emitDeleteNoop(String name, boolean json) {
@@ -690,11 +650,9 @@ class CliApp {
             // aborted != noop: aborted means the operator cancelled, noop means
             // the project did not exist. Consumers reading `noop` to learn
             // whether the project still exists must not be misled.
-            Map<String, Object> payload = Map.ofEntries(
-                    Map.entry("deleted", false),
-                    Map.entry("noop", false),
-                    Map.entry("aborted", true),
-                    Map.entry("name", name));
+            Map<String, Object> payload =
+                    Map.ofEntries(Map.entry("deleted", false), Map.entry("noop", false), Map.entry("aborted", true),
+                                  Map.entry("name", name));
             try {
                 System.out.println(MAPPER.writeValueAsString(payload));
             } catch (Exception e) {
@@ -713,15 +671,13 @@ class CliApp {
         boolean json = Boolean.parseBoolean(properties.getProperty(PROJECT_GRANT_JSON_OPT));
         try {
             Role role = Validators.projectRole(alias);
-            ProjectGranted granted = ifNotExists
-                    ? service.grantIfNotExists(project, user, role)
-                    : service.grant(project, user, role);
+            ProjectGranted granted =
+                    ifNotExists ? service.grantIfNotExists(project, user, role) : service.grant(project, user, role);
             emitGrantResult(granted, json);
             return EXIT_SUCCESS;
         } catch (ProjectNotFoundException | org.icij.datashare.project.admin.UserNotFoundException e) {
             return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
-        } catch (org.icij.datashare.project.admin.ValidationException
-                 | Validators.InvalidValueException e) {
+        } catch (org.icij.datashare.project.admin.ValidationException | Validators.InvalidValueException e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, json);
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
@@ -748,12 +704,10 @@ class CliApp {
 
     private static String fallbackGrantLine(ProjectGranted granted, String roleShort, String prevShort) {
         if (granted.noop()) {
-            return "'" + granted.userLogin() + "' already has " + roleShort
-                    + " on '" + granted.name() + "' (no-op)";
+            return "'" + granted.userLogin() + "' already has " + roleShort + " on '" + granted.name() + "' (no-op)";
         }
         String tail = prevShort == null ? "" : " (was " + prevShort + ")";
-        return "granted " + roleShort + " on '" + granted.name()
-                + "' to '" + granted.userLogin() + "'" + tail;
+        return "granted " + roleShort + " on '" + granted.name() + "' to '" + granted.userLogin() + "'" + tail;
     }
 
     private static String stripPrefix(Role role) {
@@ -761,8 +715,7 @@ class CliApp {
         return n.startsWith("PROJECT_") ? n.substring("PROJECT_".length()) : n;
     }
 
-    static int handleProjectRevoke(ProjectAdminService service,
-                                   Properties properties,
+    static int handleProjectRevoke(ProjectAdminService service, Properties properties,
                                    java.util.function.Supplier<Prompter> prompterFactory) {
         String project = properties.getProperty(PROJECT_REVOKE_OPT);
         String user = properties.getProperty(PROJECT_REVOKE_USER_OPT);
@@ -778,13 +731,11 @@ class CliApp {
                     return EXIT_SUCCESS;
                 }
             }
-            ProjectRevoked revoked = ifExists
-                    ? service.revokeIfExists(project, user)
-                    : service.revoke(project, user);
+            ProjectRevoked revoked = ifExists ? service.revokeIfExists(project, user) : service.revoke(project, user);
             emitRevokeResult(revoked, json);
             return EXIT_SUCCESS;
-        } catch (org.icij.datashare.project.admin.ProjectNotFoundException
-                 | org.icij.datashare.project.admin.UserNotFoundException e) {
+        } catch (org.icij.datashare.project.admin.ProjectNotFoundException |
+                 org.icij.datashare.project.admin.UserNotFoundException e) {
             return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
         } catch (Exception e) {
             return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, json);
@@ -792,16 +743,13 @@ class CliApp {
     }
 
     private static void emitRevokeResult(ProjectRevoked revoked, boolean json) {
-        java.util.List<String> shortRoles = revoked.revokedRoles().stream()
-                .map(CliApp::stripPrefix)
-                .toList();
+        java.util.List<String> shortRoles = revoked.revokedRoles().stream().map(CliApp::stripPrefix).toList();
         if (json) {
-            printJsonOrFallback(java.util.Map.ofEntries(
-                            java.util.Map.entry("project", revoked.name()),
-                            java.util.Map.entry("user", revoked.userLogin()),
-                            java.util.Map.entry("revokedRoles", shortRoles),
-                            java.util.Map.entry("noop", revoked.noop())),
-                    fallbackRevokeLine(revoked, shortRoles));
+            printJsonOrFallback(java.util.Map.ofEntries(java.util.Map.entry("project", revoked.name()),
+                                                        java.util.Map.entry("user", revoked.userLogin()),
+                                                        java.util.Map.entry("revokedRoles", shortRoles),
+                                                        java.util.Map.entry("noop", revoked.noop())),
+                                fallbackRevokeLine(revoked, shortRoles));
             return;
         }
         System.out.println(fallbackRevokeLine(revoked, shortRoles));
@@ -811,18 +759,16 @@ class CliApp {
         if (revoked.noop()) {
             return "'" + revoked.userLogin() + "' has no roles on '" + revoked.name() + "' (no-op)";
         }
-        return "revoked " + String.join(", ", shortRoles)
-                + " from '" + revoked.userLogin() + "' on '" + revoked.name() + "'";
+        return "revoked " + String.join(", ", shortRoles) + " from '" + revoked.userLogin() + "' on '" +
+               revoked.name() + "'";
     }
 
     private static void emitRevokeAborted(String project, String user, boolean json) {
         if (json) {
-            java.util.Map<String, Object> payload = java.util.Map.ofEntries(
-                    java.util.Map.entry("revoked", false),
-                    java.util.Map.entry("noop", false),
-                    java.util.Map.entry("aborted", true),
-                    java.util.Map.entry("project", project),
-                    java.util.Map.entry("user", user));
+            java.util.Map<String, Object> payload =
+                    java.util.Map.ofEntries(java.util.Map.entry("revoked", false), java.util.Map.entry("noop", false),
+                                            java.util.Map.entry("aborted", true),
+                                            java.util.Map.entry("project", project), java.util.Map.entry("user", user));
             try {
                 System.out.println(MAPPER.writeValueAsString(payload));
             } catch (Exception e) {
@@ -836,8 +782,7 @@ class CliApp {
     private static int error(String message, String code, int exit, boolean json) {
         if (json) {
             try {
-                System.err.println(MAPPER.writeValueAsString(Map.of(
-                        "error", code, "message", message)));
+                System.err.println(MAPPER.writeValueAsString(Map.of("error", code, "message", message)));
             } catch (Exception e) {
                 System.err.println("error: " + message);
             }

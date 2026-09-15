@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.icij.datashare.text.PathSerializer;
 import org.icij.datashare.text.ProjectProxy;
-
 import java.nio.file.Path;
 import java.util.Date;
 import java.util.Objects;
@@ -22,14 +21,18 @@ public class SearchResult {
     public final Date creationDate;
     public final int documentNumber;
 
-    public SearchResult(String query, String documentId, String rootId, Path documentPath, Date creationDate, String contentType, long contentLength, int documentNumber) {
+    public SearchResult(String query, String documentId, String rootId, Path documentPath, Date creationDate,
+                        String contentType, long contentLength, int documentNumber) {
         this(query, null, documentId, rootId, documentPath, creationDate, contentType, contentLength, documentNumber);
     }
 
     @JsonCreator
-    public SearchResult(@JsonProperty("query") String query, @JsonProperty("project") final ProjectProxy project, @JsonProperty("documentId") String documentId, @JsonProperty("rootId") String rootId,
-                        @JsonProperty("documentPath") Path documentPath, @JsonProperty("creationDate") Date creationDate,
-                        @JsonProperty("contentType") String contentType, @JsonProperty("contentLength") long contentLength,
+    public SearchResult(@JsonProperty("query") String query, @JsonProperty("project") final ProjectProxy project,
+                        @JsonProperty("documentId") String documentId, @JsonProperty("rootId") String rootId,
+                        @JsonProperty("documentPath") Path documentPath,
+                        @JsonProperty("creationDate") Date creationDate,
+                        @JsonProperty("contentType") String contentType,
+                        @JsonProperty("contentLength") long contentLength,
                         @JsonProperty("documentNumber") int documentNumber) {
         this.query = query;
         this.project = project;
@@ -44,11 +47,12 @@ public class SearchResult {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         SearchResult that = (SearchResult) o;
-        return query.equals(that.query) &&
-                documentId.equals(that.documentId);
+        return query.equals(that.query) && documentId.equals(that.documentId);
     }
 
     @Override
@@ -58,9 +62,6 @@ public class SearchResult {
 
     @Override
     public String toString() {
-        return "SearchResult{" +
-                "query='" + query + '\'' +
-                ", documentId='" + documentId + '\'' +
-                '}';
+        return "SearchResult{" + "query='" + query + '\'' + ", documentId='" + documentId + '\'' + '}';
     }
 }

@@ -10,9 +10,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.nio.file.Files;
-
 import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
 
 /**
@@ -20,9 +18,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNL
  */
 public class DocumentVerifier {
     private static final Logger logger = LoggerFactory.getLogger(DocumentVerifier.class);
-
     private static final String DEFAULT_MAX_SIZE = "1G";
-
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
     private final SourceExtractor sources;
@@ -68,7 +64,7 @@ public class DocumentVerifier {
         // the root) must not NPE into a 500: refuse the download, it's safe and diagnosable.
         if (rootDocument == null) {
             logger.warn("cannot verify root document size for document {}: root document {} not found",
-                    document.getId(), document.getRootDocument());
+                        document.getId(), document.getRootDocument());
             return false;
         }
         return rootDocument.getContentLength() < maxSizeBytes;

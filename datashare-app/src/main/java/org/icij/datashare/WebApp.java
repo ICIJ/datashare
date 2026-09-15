@@ -12,12 +12,10 @@ import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.utils.WebBrowserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
@@ -36,15 +34,13 @@ public class WebApp {
     static void start(CommonMode mode) throws Exception {
         String host = resolveBindHost(mode);
         LOGGER.info("binding HTTP server to {}:{}", host,
-                mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT));
-        new BindableWebServer(host)
-                .withThreadCount(10)
-                .withSelectThreads(2)
-                .withWebSocketThreads(1)
-                .configure(mode.createWebConfiguration())
-                .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
+                    mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT));
+        new BindableWebServer(host).withThreadCount(10).withSelectThreads(2).withWebSocketThreads(1)
+                                   .configure(mode.createWebConfiguration()).start(parseInt(
+                                           mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
 
-        ScheduledExecutorService cleanupScheduler = BatchDownloadApp.scheduleCleanup(mode.get(BatchDownloadCleaner.class));
+        ScheduledExecutorService cleanupScheduler =
+                BatchDownloadApp.scheduleCleanup(mode.get(BatchDownloadCleaner.class));
         mode.addCloseable(() -> {
             cleanupScheduler.shutdown();
             try {
@@ -65,11 +61,13 @@ public class WebApp {
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
     }
 
-    private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, TaskManager taskManager) throws IOException {
+    private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, TaskManager taskManager) throws
+            IOException {
         for (String batchSearchUuid : repository.getQueued()) {
             BatchSearch batchSearch = repository.get(batchSearchUuid);
             try {
-                taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user, Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
+                taskManager.startTask(batchSearchUuid, BatchSearchRunner.class, batchSearch.user,
+                                      Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
             } catch (TaskAlreadyExists e) {
                 LOGGER.info("ignoring already started task <{}>", batchSearchUuid);
             }

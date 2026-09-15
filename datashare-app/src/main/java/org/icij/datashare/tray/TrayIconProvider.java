@@ -3,13 +3,11 @@ package org.icij.datashare.tray;
 import dorkbox.systemTray.SystemTray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.imageio.ImageIO;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-
 import static org.icij.datashare.tray.SystemThemeDetector.Theme;
 
 /**
@@ -155,8 +153,9 @@ public class TrayIconProvider {
             }
         }
         int largest = AVAILABLE_SIZES[AVAILABLE_SIZES.length - 1];
-        LOGGER.debug("Requested tray size {} exceeds the largest pre-rendered icon ({}px); "
-                + "the tray will upscale it", targetSize, largest);
+        LOGGER.debug(
+                "Requested tray size {} exceeds the largest pre-rendered icon ({}px); " + "the tray will upscale it",
+                targetSize, largest);
         return largest;
     }
 

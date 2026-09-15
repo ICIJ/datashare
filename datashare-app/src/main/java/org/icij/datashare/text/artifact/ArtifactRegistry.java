@@ -1,7 +1,6 @@
 package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.PropertiesProvider;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,9 +31,8 @@ public class ArtifactRegistry {
      *  such a deployment has to pin ownership with an explicit {@code --artifacts raw}. page has no
      *  such rival producer: the pages/ payload is Java's alone. */
     public static ArtifactRegistry withDefaults(PropertiesProvider propertiesProvider) {
-        return new ArtifactRegistry(
-                List.of(new RawArtifact(), new StructureArtifact(propertiesProvider),
-                        new PageArtifact(propertiesProvider)));
+        return new ArtifactRegistry(List.of(new RawArtifact(), new StructureArtifact(propertiesProvider),
+                                            new PageArtifact(propertiesProvider)));
     }
 
     public List<Artifact> select(String flagValue) {
@@ -52,7 +50,8 @@ public class ArtifactRegistry {
             ArtifactType type = ArtifactType.fromToken(token);
             Artifact artifact = byType.get(type);
             if (artifact == null) {
-                throw new IllegalArgumentException("no producer registered for artifact type '" + type.token() + "'; available: " + tokens());
+                throw new IllegalArgumentException(
+                        "no producer registered for artifact type '" + type.token() + "'; available: " + tokens());
             }
             selected.add(artifact);
         }

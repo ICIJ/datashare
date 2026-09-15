@@ -3,7 +3,6 @@ package org.icij.datashare.extension;
 import org.icij.datashare.DynamicClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -18,7 +17,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
-
 import static java.util.Optional.ofNullable;
 
 public class ExtensionLoader {
@@ -40,11 +38,12 @@ public class ExtensionLoader {
             }
         } else {
             LOGGER.info("system class loader {} is not an instance of {} extension loading is disabled",
-                    ClassLoader.getSystemClassLoader(), DynamicClassLoader.class);
+                        ClassLoader.getSystemClassLoader(), DynamicClassLoader.class);
         }
     }
 
-    public synchronized void load(Consumer<Class<?>> registerFunc, Predicate<Class<?>> predicate) throws FileNotFoundException {
+    public synchronized void load(Consumer<Class<?>> registerFunc, Predicate<Class<?>> predicate) throws
+            FileNotFoundException {
         eagerLoadJars();
         if (jars != null) {
             for (File jar : jars) {
@@ -59,19 +58,21 @@ public class ExtensionLoader {
         }
     }
 
-    synchronized List<Class<?>> findAllClassesInJar(Predicate<Class<?>> predicate, final File jarFile) throws IOException {
+    synchronized List<Class<?>> findAllClassesInJar(Predicate<Class<?>> predicate, final File jarFile) throws
+            IOException {
         List<Class<?>> matches = new ArrayList<>();
-        URLClassLoader ucl = new URLClassLoader(new URL[]{jarFile.toURI().toURL()}, getClass().getClassLoader());
+        URLClassLoader ucl = new URLClassLoader(new URL[] {jarFile.toURI().toURL()}, getClass().getClassLoader());
         JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFile));
-        for (JarEntry jarEntry = jarInputStream.getNextJarEntry(); jarEntry != null; jarEntry = jarInputStream.getNextJarEntry()) {
+        for (JarEntry jarEntry = jarInputStream.getNextJarEntry(); jarEntry != null;
+             jarEntry = jarInputStream.getNextJarEntry()) {
             if (jarEntry.getName().endsWith(CLASS_SUFFIX)) {
                 String classname = jarEntry.getName().replaceAll("/", "\\.");
                 classname = classname.substring(0, classname.length() - CLASS_SUFFIX.length());
                 if (!classname.contains("$") && !classname.startsWith("META-INF")) {
                     try {
                         final Class<?> myLoadedClass = Class.forName(classname, false, ucl);
-                        if (predicate.test(myLoadedClass) &&
-                                !myLoadedClass.isInterface() && !Modifier.isAbstract(myLoadedClass.getModifiers())) {
+                        if (predicate.test(myLoadedClass) && !myLoadedClass.isInterface() &&
+                            !Modifier.isAbstract(myLoadedClass.getModifiers())) {
                             matches.add(myLoadedClass);
                         }
                     } catch (ClassNotFoundException | LinkageError e) {
@@ -96,7 +97,8 @@ public class ExtensionLoader {
     }
 
     File[] getJars() throws FileNotFoundException {
-        return ofNullable(extensionsDir.toFile().listFiles(file -> file.toString().endsWith(".jar") && file.canExecute())).
-                orElseThrow(() -> new FileNotFoundException("invalid path for extensions: " + extensionsDir));
+        return ofNullable(extensionsDir.toFile().listFiles(
+                file -> file.toString().endsWith(".jar") && file.canExecute())).orElseThrow(
+                () -> new FileNotFoundException("invalid path for extensions: " + extensionsDir));
     }
 }

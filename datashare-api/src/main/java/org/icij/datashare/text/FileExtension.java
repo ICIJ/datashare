@@ -1,10 +1,8 @@
 package org.icij.datashare.text;
 
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Properties;
-
 
 public class FileExtension {
     private static final Properties mimeTypesExtensions;

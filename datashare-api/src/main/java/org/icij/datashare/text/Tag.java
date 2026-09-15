@@ -2,17 +2,14 @@ package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import org.icij.datashare.user.User;
-
 import java.util.Date;
 import java.util.Objects;
-
 import static org.icij.datashare.user.User.nullUser;
 
 public class Tag {
     public final String label;
     public final Date creationDate;
     public final User user;
-
 
     public Tag(final String label) {
         this(label, nullUser());
@@ -35,8 +32,10 @@ public class Tag {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         Tag tag = (Tag) o;
         return Objects.equals(label, tag.label);
     }

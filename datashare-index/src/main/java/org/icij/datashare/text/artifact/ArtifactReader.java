@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
@@ -17,7 +16,6 @@ import java.util.List;
  *  servable, where a page lives, and what a missing payload means. */
 public class ArtifactReader {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtifactReader.class);
-
     private final ManifestRepository manifests;
 
     public ArtifactReader(ManifestRepository manifests) {
@@ -55,21 +53,22 @@ public class ArtifactReader {
         if (pages != null && pages.total() > 0) {
             return pages.total();
         }
-        LOGGER.warn("complete '{}' entry in {} advertises no usable page count: its pages block is "
-                + "absent, renamed, or carries a total below 1", type.token(), docArtifactDir);
+        LOGGER.warn("complete '{}' entry in {} advertises no usable page count: its pages block is " +
+                    "absent, renamed, or carries a total below 1", type.token(), docArtifactDir);
         return null;
     }
 
     /** One page's bytes, or null when the page is out of range or its payload is missing. */
-    public byte[] page(Path docArtifactDir, ArtifactType type, ManifestEntry entry, int page, String extension) throws IOException {
+    public byte[] page(Path docArtifactDir, ArtifactType type, ManifestEntry entry, int page, String extension) throws
+            IOException {
         Integer total = servableTotal(docArtifactDir, type, entry);
         if (total == null || page < 1 || page > total) {
             return null;
         }
         ByteRangePagination byteRanges = byteRanges(entry);
         if (byteRanges != null) {
-            return slice(ArtifactPath.payloadContent(docArtifactDir, type, extension),
-                    byteRanges.ranges(), page, type, total);
+            return slice(ArtifactPath.payloadContent(docArtifactDir, type, extension), byteRanges.ranges(), page, type,
+                         total);
         }
         Path file = ArtifactPath.payloadPage(docArtifactDir, type, page, extension);
         // Read and let it fail, rather than stat then read: on the shared artifactDir this is
@@ -86,34 +85,35 @@ public class ArtifactReader {
             // DEBUG, not WARN: a caller walking every page would turn one disagreement into one
             // line per page, replayable by any project member, so StructureSearch reports it once
             // per scan and the single-page route answers 404.
-            LOGGER.debug("manifest advertises {} page(s) for '{}' but {} is missing or unreadable", total, type.token(), file);
+            LOGGER.debug("manifest advertises {} page(s) for '{}' but {} is missing or unreadable", total, type.token(),
+                         file);
             return null;
         }
     }
 
     /** Which extensions are actually on disk, in the candidate order given. Probes per scheme,
      *  because the two schemes keep an extension in different files. */
-    public List<String> formats(Path docArtifactDir, ArtifactType type, ManifestEntry entry, Collection<String> candidates) {
+    public List<String> formats(Path docArtifactDir, ArtifactType type, ManifestEntry entry,
+                                Collection<String> candidates) {
         boolean byteRanges = byteRanges(entry) != null;
-        return candidates.stream()
-                .filter(extension -> Files.isReadable(byteRanges
-                        ? ArtifactPath.payloadContent(docArtifactDir, type, extension)
-                        : ArtifactPath.payloadPage(docArtifactDir, type, 1, extension)))
-                .toList();
+        return candidates.stream().filter(extension -> Files.isReadable(
+                byteRanges ? ArtifactPath.payloadContent(docArtifactDir, type, extension) :
+                ArtifactPath.payloadPage(docArtifactDir, type, 1, extension))).toList();
     }
 
     // The scheme when it is the byte-range one, else null: every other case (filesystem, or a pages
     // block with no pagination at all) is served as one file per page.
     private ByteRangePagination byteRanges(ManifestEntry entry) {
-        return entry.pages() != null && entry.pages().pagination() instanceof ByteRangePagination ranges
-                ? ranges : null;
+        return entry.pages() != null && entry.pages().pagination() instanceof ByteRangePagination ranges ? ranges :
+               null;
     }
 
     // Half-open [start, end). A range outside the file means manifest and payload disagree, which
     // is a 404 for that page rather than a truncated body.
     private byte[] slice(Path content, List<long[]> ranges, int page, ArtifactType type, int total) {
         if (ranges == null || ranges.size() < page || ranges.get(page - 1).length != 2) {
-            LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but range {} is malformed", total, type.token(), page);
+            LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but range {} is malformed", total,
+                        type.token(), page);
             return null;
         }
         long[] range = ranges.get(page - 1);
@@ -134,7 +134,7 @@ public class ArtifactReader {
             file.readFully(slice);   // handles the partial-read loop; EOF means the range runs past the file
         } catch (IOException unreadable) {
             LOGGER.warn("manifest advertises {} byte-range page(s) for '{}' but [{}, {}) of {} could not be read",
-                    total, type.token(), start, end, content);
+                        total, type.token(), start, end, content);
             return null;
         }
         return slice;

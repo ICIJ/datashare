@@ -8,7 +8,6 @@ import java.util.function.Function;
  */
 @FunctionalInterface
 public interface ThrowingSupplier<T> {
-
     default T get() {
         try {
             return getThrows();
@@ -18,7 +17,6 @@ public interface ThrowingSupplier<T> {
     }
 
     T getThrows() throws Exception;
-
 
     default <R> ThrowingSupplier<R> andThen(ThrowingFunction<? super T, ? extends R> after) {
         Objects.requireNonNull(after);

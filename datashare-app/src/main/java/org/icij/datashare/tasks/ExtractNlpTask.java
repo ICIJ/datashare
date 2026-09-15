@@ -2,10 +2,8 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -24,19 +22,15 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.List;
-
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.MAX_CONTENT_LENGTH_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
-
 import org.icij.datashare.asynctasks.TaskGroupType;
-
 import static org.icij.extract.document.Identifier.shorten;
 
 @TemporalSingleActivityWorkflow(name = "ner", activityOptions = @ActivityOpts(timeout = "P7D"))
@@ -52,16 +46,23 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final AtomicInteger processed = new AtomicInteger(0);
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
-        this(indexer, registry.get(Pipeline.Type.parse((String) taskView.args.get(NLP_PIPELINE_OPT))), factory, gateFactory.forTask(taskView), taskView, progressCallback);
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory,
+                          final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
+                          @Assisted final Function<Double, Void> progressCallback) {
+        this(indexer, registry.get(Pipeline.Type.parse((String) taskView.args.get(NLP_PIPELINE_OPT))), factory,
+             gateFactory.forTask(taskView), taskView, progressCallback);
     }
 
-
-    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, final UpstreamGate gate, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
+    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory,
+                   final UpstreamGate gate, @Assisted Task<Long> taskView,
+                   @Assisted final Function<Double, Void> progressCallback) {
         super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class, gate);
         this.nlpPipeline = pipeline;
-        project = Project.project(ofNullable((String) taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
-        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String) taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
+        project = Project.project(
+                ofNullable((String) taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+        maxContentLengthChars = (int) HumanReadableSize.parse(
+                ofNullable((String) taskView.args.get(MAX_CONTENT_LENGTH_OPT)).orElse(
+                        valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
         this.indexer = indexer;
         this.progressCallback = progressCallback;
     }
@@ -69,7 +70,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     @Override
     public Long call() throws Exception {
         super.call();
-        logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
+        logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project,
+                    inputQueue.getName());
         long nbMessages = 0;
         while (!Thread.currentThread().isInterrupted()) {
             String queueEntry;
@@ -131,7 +133,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                         int nbChunks = doc.getContent().length() / this.maxContentLengthChars + 1;
                         logger.info("document is too large, extracting entities for {} document chunks", nbChunks);
                         for (int chunkIndex = 0; chunkIndex < nbChunks; chunkIndex++) {
-                            List<NamedEntity> namedEntities = nlpPipeline.process(doc, maxContentLengthChars, chunkIndex * maxContentLengthChars);
+                            List<NamedEntity> namedEntities =
+                                    nlpPipeline.process(doc, maxContentLengthChars, chunkIndex * maxContentLengthChars);
                             if (chunkIndex < nbChunks - 1) {
                                 indexer.bulkAdd(project.getName(), namedEntities);
                             } else {
