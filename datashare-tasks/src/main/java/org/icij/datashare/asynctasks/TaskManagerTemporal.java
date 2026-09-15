@@ -23,7 +23,6 @@ public class TaskManagerTemporal implements TaskManager {
     private final TaskRepository taskRepository;
     protected final ConcurrentHashMap<String, CompletableFuture<Serializable>> pendingListeners =
             new ConcurrentHashMap<>();
-
     // TODO: add support for continue-as-new https://docs.temporal.io/develop/java/continue-as-new
     public static final String WORKFLOWS_DEFAULT = "default-java";
 
