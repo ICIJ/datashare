@@ -6,12 +6,10 @@ import org.icij.datashare.cli.DigestAlgorithm;
 import org.icij.datashare.cli.QueueType;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.ScopeType;
-
 import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Properties;
-
 import static org.icij.datashare.PropertiesProvider.*;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_CAPACITY_OPT;
@@ -26,115 +24,102 @@ import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_CAPACITY_OPT;
  * on each leaf subcommand help page, separate from the subcommand-specific options.
  */
 public class GlobalOptions {
-
     private static String userHome() {
         return System.getProperty("user.home", "");
     }
 
     @Option(names = {"-s", "--settings"}, description = "Property settings file", scope = ScopeType.INHERIT)
     String settings;
-
     @Option(names = {"--logLevel"}, description = "Log level", defaultValue = "INFO", scope = ScopeType.INHERIT)
     String logLevel;
-
     @Option(names = {"--charset"}, description = "Datashare default charset", scope = ScopeType.INHERIT)
     String charset = Charset.defaultCharset().toString();
-
-    @Option(names = {"-P", "--defaultProject"}, description = "Default project name", defaultValue = "local-datashare", scope = ScopeType.INHERIT)
+    @Option(names = {"-P", "--defaultProject"}, description = "Default project name", defaultValue = "local-datashare",
+            scope = ScopeType.INHERIT)
     String defaultProject;
-
-    @Option(names = {"--digestAlgorithm"}, description = "Digest algorithm", defaultValue = "SHA384", converter = DigestAlgorithm.PicocliConverter.class, scope = ScopeType.INHERIT)
+    @Option(names = {"--digestAlgorithm"}, description = "Digest algorithm", defaultValue = "SHA384",
+            converter = DigestAlgorithm.PicocliConverter.class, scope = ScopeType.INHERIT)
     DigestAlgorithm digestAlgorithm;
-
-    @Option(names = {"--digestProjectName"}, description = "Include project name in document hash", scope = ScopeType.INHERIT)
+    @Option(names = {"--digestProjectName"}, description = "Include project name in document hash",
+            scope = ScopeType.INHERIT)
     String digestProjectName;
-
-    @Option(names = {"--noDigestProject"}, description = "Disable project name in document hash", defaultValue = "false", scope = ScopeType.INHERIT)
+    @Option(names = {"--noDigestProject"}, description = "Disable project name in document hash",
+            defaultValue = "false", scope = ScopeType.INHERIT)
     boolean noDigestProject;
-
     @Option(names = {"--elasticsearchAddress"}, description = "Elasticsearch host address", scope = ScopeType.INHERIT)
     String elasticsearchAddress = EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200");
-
-    @Option(names = {"--elasticsearchPath"}, description = "Path for launching Elasticsearch", scope = ScopeType.INHERIT)
+    @Option(names = {"--elasticsearchPath"}, description = "Path for launching Elasticsearch",
+            scope = ScopeType.INHERIT)
     String elasticsearchPath = Paths.get(userHome(), ".local/share/datashare", "elasticsearch").toString();
-
-    @Option(names = {"--elasticsearchDataPath"}, description = "Data path for embedded Elasticsearch", scope = ScopeType.INHERIT)
+    @Option(names = {"--elasticsearchDataPath"}, description = "Data path for embedded Elasticsearch",
+            scope = ScopeType.INHERIT)
     String elasticsearchDataPath = Paths.get(userHome(), ".local/share/datashare", "es").toString();
-
-    @Option(names = {"--elasticsearchSettings"}, description = "Path to elasticsearch.yml settings", scope = ScopeType.INHERIT)
+    @Option(names = {"--elasticsearchSettings"}, description = "Path to elasticsearch.yml settings",
+            scope = ScopeType.INHERIT)
     String elasticsearchSettings = Paths.get(userHome(), ".local/share/datashare", "elasticsearch.yml").toString();
-
-    @Option(names = {"--elasticsearchMaxIdleConnectionTime"}, defaultValue = "349000", description = "Max idling time for a TCP connection to ES to be reused", scope = ScopeType.INHERIT)
+    @Option(names = {"--elasticsearchMaxIdleConnectionTime"}, defaultValue = "349000",
+            description = "Max idling time for a TCP connection to ES to be reused", scope = ScopeType.INHERIT)
     int elasticsearchMaxIdleConnectionTime;
-
     @Option(names = {"--redisAddress"}, description = "Redis address", scope = ScopeType.INHERIT)
     String redisAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
-
     // No defaultValue on purpose: when unset the field stays null and putIfNotNull omits the key, so
     // CommonMode computes the pool size from parallelism (parallelism + overhead). An explicit value
     // is honored but raised to that floor if it would leave blocking workers unable to get a connection.
-    @Option(names = {"--redisPoolSize"}, description = "Redis pool size (default: parallelism + overhead)", scope = ScopeType.INHERIT)
+    @Option(names = {"--redisPoolSize"}, description = "Redis pool size (default: parallelism + overhead)",
+            scope = ScopeType.INHERIT)
     Integer redisPoolSize;
-
     @Option(names = {"--messageBusAddress"}, description = "Message bus address", scope = ScopeType.INHERIT)
     String messageBusAddress = EnvUtils.resolveUri("redis", "redis://redis:6379");
-
-    @Option(names = {"--busType"}, description = "Backend data bus type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
+    @Option(names = {"--busType"}, description = "Backend data bus type", defaultValue = "MEMORY",
+            scope = ScopeType.INHERIT)
     QueueType busType;
-
-    @Option(names = {"--policyReloadInterval"}, description = "Interval in milliseconds for Casbin policy reload. In non-Redis mode defaults to 30s; in Redis mode defaults to 0 (event-driven only). Set to 0 to disable.", scope = ScopeType.INHERIT)
+    @Option(names = {"--policyReloadInterval"},
+            description = "Interval in milliseconds for Casbin policy reload. In non-Redis mode defaults to 30s; in Redis mode defaults to 0 (event-driven only). Set to 0 to disable.",
+            scope = ScopeType.INHERIT)
     Integer policyReloadInterval;
-
-    @Option(names = {"--queueName"}, description = "Extract queue name", defaultValue = "extract:queue", scope = ScopeType.INHERIT)
+    @Option(names = {"--queueName"}, description = "Extract queue name", defaultValue = "extract:queue",
+            scope = ScopeType.INHERIT)
     String queueName;
-
-    @Option(names = {"--queueType"}, description = "Backend queues type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
+    @Option(names = {"--queueType"}, description = "Backend queues type", defaultValue = "MEMORY",
+            scope = ScopeType.INHERIT)
     QueueType queueType;
-
-    @Option(names = {"--queueCapacity"}, description = "Queue capacity", defaultValue = "1000000", scope = ScopeType.INHERIT)
+    @Option(names = {"--queueCapacity"}, description = "Queue capacity", defaultValue = "1000000",
+            scope = ScopeType.INHERIT)
     int queueCapacity;
-
     @Option(names = {"--dataSourceUrl"}, description = "Datasource URL", scope = ScopeType.INHERIT)
     String dataSourceUrl = "jdbc:sqlite:file:" + Paths.get(userHome(), ".local/share/datashare", "dist/datashare.db");
-
-    @Option(names = {"--clusterName"}, description = "Cluster name", defaultValue = "datashare", scope = ScopeType.INHERIT)
+    @Option(names = {"--clusterName"}, description = "Cluster name", defaultValue = "datashare",
+            scope = ScopeType.INHERIT)
     String clusterName;
-
     @Option(names = {"--pluginsDir"}, description = "Plugins directory", scope = ScopeType.INHERIT)
     String pluginsDir = Paths.get(userHome(), ".local/share/datashare", "plugins").toString();
-
     @Option(names = {"--extensionsDir"}, description = "Extensions directory", scope = ScopeType.INHERIT)
     String extensionsDir = Paths.get(userHome(), ".local/share/datashare", "extensions").toString();
-
-    @Option(names = {"-u", "--defaultUserName"}, description = "Default local user name", defaultValue = "local", scope = ScopeType.INHERIT)
+    @Option(names = {"-u", "--defaultUserName"}, description = "Default local user name", defaultValue = "local",
+            scope = ScopeType.INHERIT)
     String defaultUserName;
-
-    @Option(names = {"--oauthUserProjectsAttribute"}, description = "OAuth user projects key", defaultValue = "groups_by_applications.datashare", scope = ScopeType.INHERIT)
+    @Option(names = {"--oauthUserProjectsAttribute"}, description = "OAuth user projects key",
+            defaultValue = "groups_by_applications.datashare", scope = ScopeType.INHERIT)
     String oauthUserProjectsAttribute;
-
     @Option(names = {"--ext"}, description = "Run CLI extension", scope = ScopeType.INHERIT)
     String ext;
-
     @Option(names = {"-d", "--dataDir"}, description = "Document source files directory", scope = ScopeType.INHERIT)
     File dataDir = new File(Paths.get(userHome(), "Datashare").toString());
-
     @Option(names = {"-l", "--language"}, description = "Indexing language", scope = ScopeType.INHERIT)
     String language;
-
     @Option(names = {"--authUsersProvider"}, description = "Auth users provider class", scope = ScopeType.INHERIT)
     String authUsersProvider;
-
-    @Option(names = {"--no-color"}, description = "Disable ANSI color output", defaultValue = "false", scope = ScopeType.INHERIT)
+    @Option(names = {"--no-color"}, description = "Disable ANSI color output", defaultValue = "false",
+            scope = ScopeType.INHERIT)
     boolean noColor;
-
     // Batch / Download
-    @Option(names = {"--batchQueueType"}, description = "Batch queue type", defaultValue = "MEMORY", scope = ScopeType.INHERIT)
+    @Option(names = {"--batchQueueType"}, description = "Batch queue type", defaultValue = "MEMORY",
+            scope = ScopeType.INHERIT)
     QueueType batchQueueType;
-
     @Option(names = {"--temporalAddress"}, description = "Temporal address", scope = ScopeType.INHERIT)
     String temporalAddress = EnvUtils.resolveUri("temporal", "temporal:7233");
-
-    @Option(names = {"--temporalNamespace"}, description = "Temporal namespace", defaultValue = "datashare-default", scope = ScopeType.INHERIT)
+    @Option(names = {"--temporalNamespace"}, description = "Temporal namespace", defaultValue = "datashare-default",
+            scope = ScopeType.INHERIT)
     String temporalNamespace;
 
     /** Converts the parsed global option fields into a Properties map for the rest of the application. */
@@ -145,14 +130,16 @@ public class GlobalOptions {
         DatashareOptions.putIfNotNull(props, LOG_LEVEL_OPT, logLevel);
         DatashareOptions.putIfNotNull(props, CHARSET_OPT, charset);
         DatashareOptions.putIfNotNull(props, DEFAULT_PROJECT_OPT, defaultProject);
-        DatashareOptions.putIfNotNull(props, DIGEST_ALGORITHM_OPT, digestAlgorithm != null ? digestAlgorithm.toString() : null);
+        DatashareOptions.putIfNotNull(props, DIGEST_ALGORITHM_OPT,
+                                      digestAlgorithm != null ? digestAlgorithm.toString() : null);
         DatashareOptions.putIfNotNull(props, DIGEST_PROJECT_NAME_OPT, digestProjectName);
         DatashareOptions.put(props, NO_DIGEST_PROJECT_OPT, noDigestProject);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_ADDRESS_OPT, elasticsearchAddress);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_PATH_OPT, elasticsearchPath);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_DATA_PATH_OPT, elasticsearchDataPath);
         DatashareOptions.putIfNotNull(props, ELASTICSEARCH_SETTINGS_OPT, elasticsearchSettings);
-        DatashareOptions.putIfNotNull(props, ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT, elasticsearchMaxIdleConnectionTime);
+        DatashareOptions.putIfNotNull(props, ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT,
+                                      elasticsearchMaxIdleConnectionTime);
         DatashareOptions.putIfNotNull(props, REDIS_ADDRESS_OPT, redisAddress);
         DatashareOptions.putIfNotNull(props, REDIS_POOL_SIZE_OPT, redisPoolSize);
         DatashareOptions.putIfNotNull(props, MESSAGE_BUS_OPT, messageBusAddress);

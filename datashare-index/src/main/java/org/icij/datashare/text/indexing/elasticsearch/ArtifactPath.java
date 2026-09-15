@@ -1,7 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.icij.datashare.text.artifact.ArtifactType;
-
 import java.nio.file.Path;
 import java.util.Locale;
 

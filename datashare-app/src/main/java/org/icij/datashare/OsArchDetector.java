@@ -3,7 +3,6 @@ package org.icij.datashare;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-
 import java.util.regex.Pattern;
 
 public class OsArchDetector {
@@ -38,9 +37,8 @@ public class OsArchDetector {
 
         static OS fromSystemString(String osName) {
             String normalizedOsName = normalize(osName);
-            return stream(values()).filter(os -> os.osPattern.matcher(normalizedOsName).matches())
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException(format("Unknown OS: %s", osName)));
+            return stream(values()).filter(os -> os.osPattern.matcher(normalizedOsName).matches()).findFirst()
+                                   .orElseThrow(() -> new IllegalArgumentException(format("Unknown OS: %s", osName)));
         }
     }
 
@@ -58,16 +56,15 @@ public class OsArchDetector {
 
         static ARCH fromSystemString(String archName) {
             String normalizedArchName = normalize(archName);
-            return stream(values()).filter(os -> os.archPattern.matcher(normalizedArchName).matches())
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException(format("Unknown ARCH: %s", archName)));
+            return stream(values()).filter(os -> os.archPattern.matcher(normalizedArchName).matches()).findFirst()
+                                   .orElseThrow(
+                                           () -> new IllegalArgumentException(format("Unknown ARCH: %s", archName)));
         }
     }
 
     static String normalize(String string) {
         return ofNullable(string).orElse("").toLowerCase();
     }
-
 
     String osArchSuffix() {
         return os + "-" + arch;

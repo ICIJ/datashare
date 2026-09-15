@@ -10,7 +10,6 @@ import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.web.WebResponse;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-
 import java.io.Closeable;
 import java.util.Comparator;
 import java.util.List;
@@ -18,9 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import static org.icij.datashare.user.User.fromJson;
-
 
 @Singleton
 public class UsersInRedis implements UserStore, Closeable {
@@ -43,7 +40,8 @@ public class UsersInRedis implements UserStore, Closeable {
     public User find(String login, String password) {
         try (Jedis jedis = redis.getResource()) {
             org.icij.datashare.user.User user = fromJson(jedis.get(login));
-            return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user) : null;
+            return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ?
+                   new DatashareUser(user) : null;
         }
     }
 
@@ -68,7 +66,9 @@ public class UsersInRedis implements UserStore, Closeable {
     }
 
     @Override
-    public WebResponse<org.icij.datashare.user.User> listUsers(UserFilter filter, Comparator<org.icij.datashare.user.User> sort, int from, int size) {
+    public WebResponse<org.icij.datashare.user.User> listUsers(UserFilter filter,
+                                                               Comparator<org.icij.datashare.user.User> sort, int from,
+                                                               int size) {
         try (Jedis jedis = redis.getResource()) {
             Set<String> logins = jedis.smembers("_datashare_users");
             if (logins.isEmpty()) {
@@ -76,14 +76,16 @@ public class UsersInRedis implements UserStore, Closeable {
             }
             List<String> jsons = jedis.mget(logins.toArray(new String[0]));
             Stream<org.icij.datashare.user.User> stream = parseUsers(jsons).filter(filter::matches);
-            if (sort != null) stream = stream.sorted(sort);
+            if (sort != null)
+                stream = stream.sorted(sort);
             return WebResponse.fromStream(stream, from, size);
         }
     }
 
     @Override
     public List<org.icij.datashare.user.User> getUsersByIds(Set<String> ids) {
-        if (ids.isEmpty()) return List.of();
+        if (ids.isEmpty())
+            return List.of();
         try (Jedis jedis = redis.getResource()) {
             List<String> jsons = jedis.mget(ids.toArray(new String[0]));
             return parseUsers(jsons).collect(Collectors.toList());
@@ -91,11 +93,8 @@ public class UsersInRedis implements UserStore, Closeable {
     }
 
     private Stream<org.icij.datashare.user.User> parseUsers(List<String> jsons) {
-        return jsons.stream()
-                .filter(Objects::nonNull)
-                .map(json -> fromJson(json))
-                .filter(Objects::nonNull)
-                .map(DatashareUser::new);
+        return jsons.stream().filter(Objects::nonNull).map(json -> fromJson(json)).filter(Objects::nonNull)
+                    .map(DatashareUser::new);
     }
 
     @Override

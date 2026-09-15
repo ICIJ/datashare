@@ -1,7 +1,6 @@
 package org.icij.datashare.text;
 
 import me.xuender.unidecode.Unidecode;
-
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;

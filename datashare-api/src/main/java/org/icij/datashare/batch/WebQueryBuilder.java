@@ -1,6 +1,5 @@
 package org.icij.datashare.batch;
 
-
 import java.util.List;
 
 public class WebQueryBuilder {
@@ -21,7 +20,6 @@ public class WebQueryBuilder {
 
     private WebQueryBuilder() {
     }
-
 
     public static WebQueryBuilder createWebQuery() {
         return new WebQueryBuilder();
@@ -100,7 +98,7 @@ public class WebQueryBuilder {
     }
 
     public BatchSearchRepository.WebQuery build() {
-        return new BatchSearchRepository.WebQuery(size, from, sort, order, query, field,
-                queries, project, batchDate, state, publishState, withQueries, queriesExcluded, contentTypes);
+        return new BatchSearchRepository.WebQuery(size, from, sort, order, query, field, queries, project, batchDate,
+                                                  state, publishState, withQueries, queriesExcluded, contentTypes);
     }
 }

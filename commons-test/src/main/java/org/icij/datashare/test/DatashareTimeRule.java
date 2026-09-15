@@ -3,12 +3,10 @@ package org.icij.datashare.test;
 import org.icij.datashare.time.DatashareDateUtils;
 import org.icij.datashare.time.DatashareTime;
 import org.junit.rules.ExternalResource;
-
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
-
 
 public class DatashareTimeRule extends ExternalResource {
     public final Date now;

@@ -5,7 +5,6 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexType;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,8 +13,8 @@ import java.util.Set;
 /** An entity rebuilt from the statement store, in the shape the "&lt;project&gt;.entities" index holds:
  *  the property keys are the namespaced wire form ("ftm_birthDate") the statements were stored under. */
 @IndexType("StructuredEntity")
-public record StructuredEntity(@IndexId String entityId, String model, Set<String> types, Set<String> modelVersions,
-                               Set<String> documentIds, Map<String, List<String>> properties) implements Entity {
+public record StructuredEntity(@IndexId String entityId, String model, Set<String> types, Set<String> modelVersions, Set<String> documentIds, Map<String, List<String>> properties)
+        implements Entity {
     /** Not the colon {@link org.icij.datashare.model.Statement#qualifiedProperty()} stores: a colon is
      *  the field/value delimiter of elasticsearch's query_string, so "properties.ftm:name:Jane" is a
      *  parse error and every client would have to escape the separator to reach a single property. */
@@ -27,10 +26,10 @@ public record StructuredEntity(@IndexId String entityId, String model, Set<Strin
     // consume on the bare form.
     public static StructuredEntity from(ModelEntity entity) {
         Map<String, List<String>> namespaced = new LinkedHashMap<>();
-        entity.properties().forEach((property, values) ->
-                namespaced.put(entity.model() + NAMESPACE_SEPARATOR + property, values));
+        entity.properties()
+              .forEach((property, values) -> namespaced.put(entity.model() + NAMESPACE_SEPARATOR + property, values));
         return new StructuredEntity(entity.id(), entity.model(), entity.types(), entity.modelVersions(),
-                entity.documentIds(), namespaced);
+                                    entity.documentIds(), namespaced);
     }
 
     /** The document id, which the entity id alone cannot be: the statement store emits one entity per

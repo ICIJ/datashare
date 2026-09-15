@@ -2,7 +2,6 @@ package org.icij.datashare.time;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.security.AccessControlException;
 import java.util.Date;
 
@@ -16,7 +15,6 @@ import java.util.Date;
  * to be able to override its behaviour for test purpose.</p>
  */
 public class DatashareTime implements Time {
-
     private static final Logger logger = LoggerFactory.getLogger(DatashareTime.class);
     /** property key for "org.icij.datashare.time.class" */
     public static final String DATASHARE_TIME_CLASS_PROPERTY = "datashare.time";
@@ -53,10 +51,9 @@ public class DatashareTime implements Time {
         }
         if (datashareTimeClassName != null) {
             try {
-                @SuppressWarnings("rawtypes")
-                Class datashareMockTimeClass = Class.forName(datashareTimeClassName);
-                if (systemPropertyInstance == null
-                        || !datashareTimeClassName.equals(systemPropertyInstance.getClass().getName())) {
+                @SuppressWarnings("rawtypes") Class datashareMockTimeClass = Class.forName(datashareTimeClassName);
+                if (systemPropertyInstance == null ||
+                    !datashareTimeClassName.equals(systemPropertyInstance.getClass().getName())) {
                     systemPropertyInstance = (Time) datashareMockTimeClass.newInstance();
                     if (logger.isDebugEnabled()) {
                         logger.debug("time instance for datashare : <" + datashareTimeClassName + ">");

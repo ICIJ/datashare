@@ -6,7 +6,6 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 
 /**
@@ -54,10 +53,13 @@ public interface UpstreamGate {
                 try {
                     return !taskRepository.getTask(upstreamTaskId).getState().isFinal();
                 } catch (UnknownTask e) {
-                    LoggerFactory.getLogger(Factory.class).warn("upstream task {} is unknown, treating it as finished", upstreamTaskId, e);
+                    LoggerFactory.getLogger(Factory.class)
+                                 .warn("upstream task {} is unknown, treating it as finished", upstreamTaskId, e);
                     return false;
                 } catch (IOException | RuntimeException e) {
-                    LoggerFactory.getLogger(Factory.class).warn("cannot read upstream task {} state, treating it as still running", upstreamTaskId, e);
+                    LoggerFactory.getLogger(Factory.class)
+                                 .warn("cannot read upstream task {} state, treating it as still running",
+                                       upstreamTaskId, e);
                     return true;
                 }
             };

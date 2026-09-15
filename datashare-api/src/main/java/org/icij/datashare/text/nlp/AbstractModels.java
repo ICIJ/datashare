@@ -1,12 +1,10 @@
 package org.icij.datashare.text.nlp;
 
-
 import org.icij.datashare.DynamicClassLoader;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -16,7 +14,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
-
 import static java.lang.Boolean.parseBoolean;
 
 public abstract class AbstractModels<T> {
@@ -60,7 +57,8 @@ public abstract class AbstractModels<T> {
         Semaphore l = modelLock.get(language);
         l.acquire();
         try {
-            if (isLoaded(language)) return;
+            if (isLoaded(language))
+                return;
             if (isSync()) {
                 downloadIfNecessary(language);
             }
@@ -74,10 +72,8 @@ public abstract class AbstractModels<T> {
     }
 
     public Path getModelsBasePath(Language language) {
-        return BASE_CLASSPATH.
-                resolve(type.name().toLowerCase()).
-                resolve(getVersion().replace('.', '-')).
-                resolve(language.iso6391Code());
+        return BASE_CLASSPATH.resolve(type.name().toLowerCase()).resolve(getVersion().replace('.', '-'))
+                             .resolve(language.iso6391Code());
     }
 
     public Path getModelsFilesystemPath(Language language) {
@@ -92,7 +88,8 @@ public abstract class AbstractModels<T> {
     }
 
     protected boolean isPresent(Language language) {
-        return Thread.currentThread().getContextClassLoader().getResource(getModelsBasePath(language).toString()) != null;
+        return Thread.currentThread().getContextClassLoader().getResource(getModelsBasePath(language).toString()) !=
+               null;
     }
 
     protected void downloadIfNecessary(Language language) {

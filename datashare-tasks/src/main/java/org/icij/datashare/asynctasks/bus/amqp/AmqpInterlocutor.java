@@ -7,7 +7,6 @@ import com.rabbitmq.client.impl.ForgivingExceptionHandler;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
@@ -30,7 +29,6 @@ public class AmqpInterlocutor implements Closeable {
     private final Connection connection;
     private final ConcurrentHashMap<AmqpQueue, AmqpChannel> publishChannels = new ConcurrentHashMap<>();
 
-
     public AmqpInterlocutor(Configuration configuration, AmqpQueue[] queues) throws IOException {
         this.configuration = configuration;
         ConnectionFactory connectionFactory = createConnectionFactory(configuration);
@@ -38,8 +36,10 @@ public class AmqpInterlocutor implements Closeable {
         createPublishChannels(queues);
     }
 
-    public AmqpInterlocutor(PropertiesProvider propertiesProvider, AmqpQueue[] queues) throws IOException, URISyntaxException {
-        this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://rabbitmq:5672"))), queues);
+    public AmqpInterlocutor(PropertiesProvider propertiesProvider, AmqpQueue[] queues) throws IOException,
+            URISyntaxException {
+        this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://rabbitmq:5672"))),
+             queues);
 
     }
 
@@ -109,7 +109,8 @@ public class AmqpInterlocutor implements Closeable {
     AmqpChannel createAmqpChannelForConsume(AmqpQueue queue, String key) throws IOException {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue, key);
         channel.initForConsume(configuration.rabbitMq, configuration.nbMaxMessages);
-        logger.info("consume channel {} has been created for queue {}", channel, channel.queueName(AmqpChannel.WORKER_PREFIX));
+        logger.info("consume channel {} has been created for queue {}", channel,
+                    channel.queueName(AmqpChannel.WORKER_PREFIX));
         return channel;
     }
 
@@ -123,7 +124,8 @@ public class AmqpInterlocutor implements Closeable {
         factory.setRequestedHeartbeat(60);
         factory.setAutomaticRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(configuration.connectionRecoveryDelay);
-        factory.setExceptionHandler(new ForgivingExceptionHandler()); // avoid chanel close when exception in handleDelivery
+        factory.setExceptionHandler(
+                new ForgivingExceptionHandler()); // avoid chanel close when exception in handleDelivery
         return factory;
     }
 

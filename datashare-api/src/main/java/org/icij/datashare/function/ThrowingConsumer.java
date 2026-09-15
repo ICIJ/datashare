@@ -9,7 +9,6 @@ import java.util.function.Function;
  */
 @FunctionalInterface
 public interface ThrowingConsumer<T> extends Consumer<T> {
-
     @Override
     default void accept(T t) {
         try {
@@ -21,7 +20,6 @@ public interface ThrowingConsumer<T> extends Consumer<T> {
     }
 
     void acceptThrows(T t) throws Exception;
-
 
     default <V> ThrowingConsumer<V> compose(ThrowingFunction<? super V, ? extends T> before) {
         Objects.requireNonNull(before);

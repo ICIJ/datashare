@@ -21,13 +21,11 @@ import org.icij.datashare.EnvUtils;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.StringUtils;
 import org.junit.rules.ExternalResource;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.IntStream;
-
 import static com.google.common.io.ByteStreams.toByteArray;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -45,7 +43,7 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     public ElasticsearchRule(String host, int port, boolean withLegacyHeaders) {
-        this(new String[]{generateIndexName()}, create("%s:%d".formatted(host, port)), withLegacyHeaders);
+        this(new String[] {generateIndexName()}, create("%s:%d".formatted(host, port)), withLegacyHeaders);
     }
 
     public ElasticsearchRule(int nbIndices) {
@@ -64,18 +62,16 @@ public class ElasticsearchRule extends ExternalResource {
             if (withLegacyHeaders) {
                 httpAsyncClientBuilder.setDefaultHeaders(
                         singletonList(new BasicHeader("Content-type", "application/json")));
-                httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
-                        (response, context) ->
-                                // This header is expected from the client, versions of ES server below 7.14 don't provide it
-                                // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
-                                response.addHeader("X-Elastic-Product", "Elasticsearch"));
+                httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor) (response, context) ->
+                        // This header is expected from the client, versions of ES server below 7.14 don't provide it
+                        // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
+                        response.addHeader("X-Elastic-Product", "Elasticsearch"));
             }
             return httpAsyncClientBuilder;
         };
-        RestClient rest = RestClient.builder(elasticHost)
-                .setHttpClientConfigCallback(xElasticProductCallback)
-                .build();
-        client = new ElasticsearchClient(new RestClientTransport(rest, new JacksonJsonpMapper(JsonObjectMapper.getMapper())));
+        RestClient rest = RestClient.builder(elasticHost).setHttpClientConfigCallback(xElasticProductCallback).build();
+        client = new ElasticsearchClient(
+                new RestClientTransport(rest, new JacksonJsonpMapper(JsonObjectMapper.getMapper())));
     }
 
     @Override
@@ -84,9 +80,11 @@ public class ElasticsearchRule extends ExternalResource {
             ExistsRequest existsRequest = ExistsRequest.of(er -> er.index(index));
             if (!client.indices().exists(existsRequest).value()) {
                 Builder createReq = new Builder().index(index);
-                String settings = new String(toByteArray(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME))));
+                String settings = new String(toByteArray(Objects.requireNonNull(
+                        getClass().getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME))));
                 createReq.settings(IndexSettings.of(is -> is.withJson(new StringReader(settings))));
-                String mappings = new String(toByteArray(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME))));
+                String mappings = new String(toByteArray(Objects.requireNonNull(
+                        getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME))));
                 createReq.mappings(TypeMapping.of(tm -> tm.withJson(new StringReader(mappings))));
                 client.indices().create(createReq.build());
             }
@@ -120,7 +118,8 @@ public class ElasticsearchRule extends ExternalResource {
             RestClient restClient = ((RestClientTransport) client._transport()).restClient();
             Response response = restClient.performRequest(post);
             if (response.getStatusLine().getStatusCode() != 200) {
-                throw new RuntimeException("error while executing delete by query status : " + response.getStatusLine().getStatusCode());
+                throw new RuntimeException(
+                        "error while executing delete by query status : " + response.getStatusLine().getStatusCode());
             }
         }
     }

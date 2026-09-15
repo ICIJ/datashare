@@ -19,11 +19,9 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
@@ -45,17 +43,22 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
     private final Project project;
 
     @Inject
-    public CategorizeTask(final Indexer indexer, final DocumentCollectionFactory<String> factory, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> progressCallback) {
-        super(Stage.CATEGORIZE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class, gateFactory.forTask(taskView));
+    public CategorizeTask(final Indexer indexer, final DocumentCollectionFactory<String> factory,
+                          final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
+                          @Assisted final Function<Double, Void> progressCallback) {
+        super(Stage.CATEGORIZE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class,
+              gateFactory.forTask(taskView));
         this.progressCallback = progressCallback;
         this.indexer = indexer;
-        project = Project.project(ofNullable((String) taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+        project = Project.project(
+                ofNullable((String) taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
     }
 
     @Override
     public Long call() throws Exception {
         super.call();
-        logger.info("enriching {} docs from inputQueue {} and adding them in {}", inputQueue.size(), inputQueue.getName(), outputQueue.getName());
+        logger.info("enriching {} docs from inputQueue {} and adding them in {}", inputQueue.size(),
+                    inputQueue.getName(), outputQueue.getName());
         long nbMessages = 0;
 
         while (!Thread.currentThread().isInterrupted()) {
@@ -118,9 +121,12 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
     }
 
     private void enrichWithType(Document doc) throws IOException {
-        Document enrichedDoc = DocumentBuilder.from(doc).with(ContentTypeCategory.fromContentType(doc.getContentType())).build();
+        Document enrichedDoc =
+                DocumentBuilder.from(doc).with(ContentTypeCategory.fromContentType(doc.getContentType())).build();
         indexer.update(project.getName(), enrichedDoc);
-        logger.atDebug().setMessage(() -> String.format("Added type %s to %s", enrichedDoc.getContentTypeCategory(), enrichedDoc.getId())).log();
+        logger.atDebug().setMessage(
+                      () -> String.format("Added type %s to %s", enrichedDoc.getContentTypeCategory(), enrichedDoc.getId()))
+              .log();
     }
 }
 

@@ -19,7 +19,6 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -38,7 +37,6 @@ import java.util.stream.Stream;
 
 @Singleton
 public class ProjectAdminServiceImpl implements ProjectAdminService {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectAdminServiceImpl.class);
     private static final String DEFAULT_ALLOW_FROM_MASK = "*.*.*.*";
     // Keys into User.details: per-application membership lists. The "datashare"
@@ -48,7 +46,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private static final String DATASHARE_APP = "datashare";
     // Lower ordinal == higher tier in Role enum (INSTANCE_ADMIN=0, ..., NONE=6).
     private static final Comparator<Role> ROLE_BY_TIER = Comparator.comparingInt(Enum::ordinal);
-
     private final Repository repository;
     private final Indexer indexer;
     private final Authorizer authorizer;
@@ -58,13 +55,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private final PropertiesProvider propertiesProvider;
 
     @Inject
-    public ProjectAdminServiceImpl(Repository repository,
-                                   Indexer indexer,
-                                   Authorizer authorizer,
+    public ProjectAdminServiceImpl(Repository repository, Indexer indexer, Authorizer authorizer,
                                    DocumentCollectionFactory<Path> documentCollectionFactory,
-                                   PropertiesProvider propertiesProvider,
-                                   Users users,
-                                   UserStore userStore) {
+                                   PropertiesProvider propertiesProvider, Users users, UserStore userStore) {
         this.repository = repository;
         this.indexer = indexer;
         this.authorizer = authorizer;
@@ -75,8 +68,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    public ProjectCreated create(ProjectCreateRequest request)
-            throws ProjectExistsException, ValidationException, IOException {
+    public ProjectCreated create(ProjectCreateRequest request) throws ProjectExistsException, ValidationException,
+            IOException {
         validate(request);
         if (repository.getProject(request.name()) != null) {
             throw new ProjectExistsException(request.name());
@@ -85,8 +78,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    public ProjectCreated createIfNotExists(ProjectCreateRequest request)
-            throws ValidationException, IOException {
+    public ProjectCreated createIfNotExists(ProjectCreateRequest request) throws ValidationException, IOException {
         validate(request);
         Project existing = repository.getProject(request.name());
         if (existing != null) {
@@ -100,21 +92,16 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         if (repository.getProject(name) == null) {
             throw new ProjectNotFoundException(name);
         }
-        OptionalLong indexedDocuments = includeIndexCount
-                ? OptionalLong.of(indexer.count(name))
-                : OptionalLong.empty();
-        int memberCount = (int) authorizer
-                .getGroupPermissions(Domain.DEFAULT, name)
-                .stream()
-                .map(CasbinRule::getV0)
-                .distinct()
-                .count();
+        OptionalLong indexedDocuments = includeIndexCount ? OptionalLong.of(indexer.count(name)) : OptionalLong.empty();
+        int memberCount =
+                (int) authorizer.getGroupPermissions(Domain.DEFAULT, name).stream().map(CasbinRule::getV0).distinct()
+                                .count();
         return new ProjectStats(name, indexedDocuments, memberCount);
     }
 
     @Override
-    public ProjectDeleted delete(String name, ProjectDeleteOptions options)
-            throws ProjectNotFoundException, IOException {
+    public ProjectDeleted delete(String name, ProjectDeleteOptions options) throws ProjectNotFoundException,
+            IOException {
         Project project = repository.getProject(name);
         if (project == null) {
             throw new ProjectNotFoundException(name);
@@ -132,19 +119,19 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    public ProjectGranted grant(String projectName, String userLogin, Role role)
-            throws ProjectNotFoundException, UserNotFoundException, ValidationException {
+    public ProjectGranted grant(String projectName, String userLogin, Role role) throws ProjectNotFoundException,
+            UserNotFoundException, ValidationException {
         return doGrant(projectName, userLogin, role, false);
     }
 
     @Override
-    public ProjectGranted grantIfNotExists(String projectName, String userLogin, Role role)
-            throws ProjectNotFoundException, UserNotFoundException, ValidationException {
+    public ProjectGranted grantIfNotExists(String projectName, String userLogin, Role role) throws
+            ProjectNotFoundException, UserNotFoundException, ValidationException {
         return doGrant(projectName, userLogin, role, true);
     }
 
-    private ProjectGranted doGrant(String projectName, String userLogin, Role role, boolean ifNotExists)
-            throws ProjectNotFoundException, UserNotFoundException, ValidationException {
+    private ProjectGranted doGrant(String projectName, String userLogin, Role role, boolean ifNotExists) throws
+            ProjectNotFoundException, UserNotFoundException, ValidationException {
         validateProjectRole(role);
         Project project = requireProject(projectName);
         User user = requireUser(userLogin);
@@ -162,16 +149,15 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    public ProjectRevoked revoke(String projectName, String userLogin)
-            throws ProjectNotFoundException, UserNotFoundException {
+    public ProjectRevoked revoke(String projectName, String userLogin) throws ProjectNotFoundException,
+            UserNotFoundException {
         Project project = requireProject(projectName);
         User user = requireUser(userLogin);
         return doRevoke(project, user, userLogin, readProjectRoles(user, project));
     }
 
     @Override
-    public ProjectRevoked revokeIfExists(String projectName, String userLogin)
-            throws ProjectNotFoundException {
+    public ProjectRevoked revokeIfExists(String projectName, String userLogin) throws ProjectNotFoundException {
         Project project = requireProject(projectName);
 
         // revokeIfExists swallows a missing user (unlike revoke); resolve directly
@@ -193,23 +179,19 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     private List<Role> readProjectRoles(User user, Project project) {
-        return authorizer.getRolesForUserInProject(user, Domain.DEFAULT, project)
-                .stream()
-                .map(name -> {
-                    try {
-                        return Role.valueOf(name);
-                    } catch (IllegalArgumentException e) {
-                        // Casbin row holds a role string this codebase doesn't recognise
-                        // (stale enum value, hand-edited row, custom role from an extension).
-                        // Surface it in the log so operators can investigate, but don't
-                        // break grant/revoke on an unparseable peer entry.
-                        LOGGER.warn("ignoring unparseable role '{}' for user {} on project {}",
-                                name, user.id, project.getName());
-                        return null;
-                    }
-                })
-                .filter(r -> r != null)
-                .collect(Collectors.toList());
+        return authorizer.getRolesForUserInProject(user, Domain.DEFAULT, project).stream().map(name -> {
+            try {
+                return Role.valueOf(name);
+            } catch (IllegalArgumentException e) {
+                // Casbin row holds a role string this codebase doesn't recognise
+                // (stale enum value, hand-edited row, custom role from an extension).
+                // Surface it in the log so operators can investigate, but don't
+                // break grant/revoke on an unparseable peer entry.
+                LOGGER.warn("ignoring unparseable role '{}' for user {} on project {}", name, user.id,
+                            project.getName());
+                return null;
+            }
+        }).filter(r -> r != null).collect(Collectors.toList());
     }
 
     private static Role highestRole(List<Role> roles) {
@@ -217,8 +199,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     private static void validateProjectRole(Role role) throws ValidationException {
-        if (role == null || (role != Role.PROJECT_ADMIN && role != Role.PROJECT_EDITOR
-                && role != Role.PROJECT_MEMBER && role != Role.PROJECT_VISITOR)) {
+        if (role == null || (role != Role.PROJECT_ADMIN && role != Role.PROJECT_EDITOR && role != Role.PROJECT_MEMBER &&
+                             role != Role.PROJECT_VISITOR)) {
             throw new ValidationException("role", "role must be a PROJECT_* role");
         }
     }
@@ -284,8 +266,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     // without an inventory entry is the only end-state we cannot self-heal from.
     // If Casbin throws, restore the pre-mutation snapshot of the user row.
 
-    private void swapCasbinRole(User original, User updated, Project project,
-                                List<Role> existing, Role newRole) {
+    private void swapCasbinRole(User original, User updated, Project project, List<Role> existing, Role newRole) {
         casbinWithRollback(original, () -> {
             for (Role r : existing) {
                 authorizer.deleteRoleForUserInProject(updated, r, Domain.DEFAULT, project);
@@ -356,15 +337,16 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean documentsDeleted = !options.keepIndex() && runStep("index", name, () -> indexer.deleteAll(name));
         String entitiesIndex = Project.entitiesIndex(name);
         boolean entitiesDeleted = !options.keepIndex() && runStep("entities index", name,
-                () -> !indexer.exists(entitiesIndex) || indexer.deleteAll(entitiesIndex));
+                                                                  () -> !indexer.exists(entitiesIndex) ||
+                                                                        indexer.deleteAll(entitiesIndex));
         boolean indexDeleted = documentsDeleted && entitiesDeleted;
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
         boolean artifactsDeleted = deleteArtifacts(name);
 
-        return new ProjectDeleted(name, dbDeleted, indexDeleted,
-                queuesDeleted, reportMapDeleted, artifactsDeleted, false);
+        return new ProjectDeleted(name, dbDeleted, indexDeleted, queuesDeleted, reportMapDeleted, artifactsDeleted,
+                                  false);
     }
 
     @FunctionalInterface
@@ -383,10 +365,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private boolean deleteQueues(Project project) {
         String name = project.getName();
-        Properties properties = propertiesProvider.createOverriddenWith(
-                Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, name));
-        String defaultQueueName = properties.getOrDefault(
-                PropertiesProvider.QUEUE_NAME_OPT, "extract:queue").toString();
+        Properties properties =
+                propertiesProvider.createOverriddenWith(Map.of(PropertiesProvider.DEFAULT_PROJECT_OPT, name));
+        String defaultQueueName =
+                properties.getOrDefault(PropertiesProvider.QUEUE_NAME_OPT, "extract:queue").toString();
         // Two lookups: legacy queues stored under the bare prefix
         // "extract:queue:<name>" and per-stage queues under
         // "extract:queue:<name>:*" (one per stage). Both must be drained on
@@ -396,10 +378,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // reduce() rather than allMatch() so every queue.delete() runs even
         // if an earlier one fails; we want the cascade-containment property,
         // not allMatch's short-circuit.
-        return Stream.concat(
-                        documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
-                        documentCollectionFactory.getQueues(queuePattern, Path.class).stream())
-                .reduce(true, (acc, q) -> q.delete() && acc, Boolean::logicalAnd);
+        return Stream.concat(documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
+                             documentCollectionFactory.getQueues(queuePattern, Path.class).stream())
+                     .reduce(true, (acc, q) -> q.delete() && acc, Boolean::logicalAnd);
     }
 
     private boolean deleteReportMap(Project project) {
@@ -408,29 +389,26 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     private boolean deleteArtifacts(String name) {
-        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT)
-                .map(dir -> {
-                    try {
-                        File projectArtifactDir = Path.of(dir).resolve(name).toFile();
-                        FileUtils.deleteDirectory(projectArtifactDir);
-                        return true;
-                    } catch (IOException e) {
-                        LOGGER.error("cannot delete project {} artifact dir", name, e);
-                        return false;
-                    }
-                })
-                .orElse(false);
+        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> {
+            try {
+                File projectArtifactDir = Path.of(dir).resolve(name).toFile();
+                FileUtils.deleteDirectory(projectArtifactDir);
+                return true;
+            } catch (IOException e) {
+                LOGGER.error("cannot delete project {} artifact dir", name, e);
+                return false;
+            }
+        }).orElse(false);
     }
 
     private void validate(ProjectCreateRequest request) throws ValidationException {
         if (request.name() == null || !Project.NAME_PATTERN.matcher(request.name()).matches()) {
-            throw new ValidationException("name",
-                    "project name must match " + Project.NAME_REGEX);
+            throw new ValidationException("name", "project name must match " + Project.NAME_REGEX);
         }
-        if (request.allowFromMask() != null
-                && !Project.ALLOW_FROM_MASK_PATTERN.matcher(request.allowFromMask()).matches()) {
+        if (request.allowFromMask() != null &&
+            !Project.ALLOW_FROM_MASK_PATTERN.matcher(request.allowFromMask()).matches()) {
             throw new ValidationException("allowFromMask",
-                    "allow-from-mask must match " + Project.ALLOW_FROM_MASK_REGEX);
+                                          "allow-from-mask must match " + Project.ALLOW_FROM_MASK_REGEX);
         }
         if (request.sourceUrl() != null) {
             validateUri(request.sourceUrl(), "sourceUrl");
@@ -456,12 +434,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private ProjectCreated persist(ProjectCreateRequest request) throws IOException {
         String label = request.label() == null ? request.name() : request.label();
-        Path sourcePath = request.sourcePath() == null
-                ? new DataDirVerifier(propertiesProvider).path()
-                : request.sourcePath();
-        String allowFromMask = request.allowFromMask() == null
-                ? DEFAULT_ALLOW_FROM_MASK
-                : request.allowFromMask();
+        Path sourcePath =
+                request.sourcePath() == null ? new DataDirVerifier(propertiesProvider).path() : request.sourcePath();
+        String allowFromMask = request.allowFromMask() == null ? DEFAULT_ALLOW_FROM_MASK : request.allowFromMask();
         // Auto-stamp on create. Backfill operators can override via explicit
         // request.creationDate()/updateDate(); otherwise both fields share the
         // same "now" timestamp (typical fresh-row pattern: a freshly created
@@ -469,19 +444,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         Date creationDate = request.creationDate() == null ? new Date() : request.creationDate();
         Date updateDate = request.updateDate() == null ? creationDate : request.updateDate();
 
-        Project project = new Project(
-                request.name(),
-                label,
-                request.description(),
-                sourcePath,
-                request.sourceUrl(),
-                request.maintainerName(),
-                request.publisherName(),
-                request.logoUrl(),
-                allowFromMask,
-                creationDate,
-                updateDate
-        );
+        Project project = new Project(request.name(), label, request.description(), sourcePath, request.sourceUrl(),
+                                      request.maintainerName(), request.publisherName(), request.logoUrl(),
+                                      allowFromMask, creationDate, updateDate);
 
         if (!repository.save(project)) {
             throw new IllegalStateException("repository.save(Project) returned false for " + request.name());
@@ -493,20 +458,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     private static ProjectCreated toCreated(Project project, boolean indexCreated, boolean noop) {
-        return new ProjectCreated(
-                project.getName(),
-                project.getLabel(),
-                project.getDescription(),
-                project.getSourcePath(),
-                project.getAllowFromMask(),
-                project.getSourceUrl(),
-                project.getMaintainerName(),
-                project.getPublisherName(),
-                project.getLogoUrl(),
-                project.creationDate,
-                project.updateDate,
-                indexCreated,
-                noop);
+        return new ProjectCreated(project.getName(), project.getLabel(), project.getDescription(),
+                                  project.getSourcePath(), project.getAllowFromMask(), project.getSourceUrl(),
+                                  project.getMaintainerName(), project.getPublisherName(), project.getLogoUrl(),
+                                  project.creationDate, project.updateDate, indexCreated, noop);
     }
 
     /**
@@ -525,7 +480,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             } catch (RuntimeException rollback) {
                 e.addSuppressed(rollback);
             }
-            if (e instanceof IOException io) throw io;
+            if (e instanceof IOException io)
+                throw io;
             throw (RuntimeException) e;
         }
     }

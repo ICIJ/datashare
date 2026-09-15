@@ -4,7 +4,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 
@@ -37,17 +36,16 @@ public class Configuration {
             password = "";
         }
         String query = ofNullable(amqpAddress.getQuery()).orElse("");
-        Map<String, String> properties = query.isBlank() ?
-                Collections.emptyMap() :
-                stream(query.split("&")).
-                        collect(Collectors.toMap(kv -> kv.split("=")[0], kv -> kv.split("=")[1]));
+        Map<String, String> properties = query.isBlank() ? Collections.emptyMap() : stream(query.split("&")).collect(
+                Collectors.toMap(kv -> kv.split("=")[0], kv -> kv.split("=")[1]));
         rabbitMq = Boolean.parseBoolean(ofNullable(properties.get("rabbitMq")).orElse("true"));
         monitoring = Boolean.parseBoolean(ofNullable(properties.get("monitoring")).orElse("false"));
-        nbMaxMessages = Integer.parseInt(ofNullable(properties.get("nbMaxMessages")).orElse(String.valueOf(DEFAULT_PREFETCH_NUMBER)));
+        nbMaxMessages = Integer.parseInt(
+                ofNullable(properties.get("nbMaxMessages")).orElse(String.valueOf(DEFAULT_PREFETCH_NUMBER)));
         requeueDelay = Integer.parseInt(ofNullable(properties.get("requeueDelay")).orElse("30"));
         String connectionRecoveryDelayStr = properties.get("recoveryDelay");
-        connectionRecoveryDelay = connectionRecoveryDelayStr == null ?
-                DEFAULT_CONNECTION_RECOVERY_DELAY : Integer.parseInt(connectionRecoveryDelayStr);
+        connectionRecoveryDelay = connectionRecoveryDelayStr == null ? DEFAULT_CONNECTION_RECOVERY_DELAY :
+                                  Integer.parseInt(connectionRecoveryDelayStr);
     }
 
     public Configuration(String host, int port, String user, String password, int nbMessageMax) {
@@ -64,7 +62,6 @@ public class Configuration {
 
     @Override
     public String toString() {
-        return user + "@" + host + ":" + port + "-" + nbMaxMessages
-                + " max requeueDelay=" + requeueDelay;
+        return user + "@" + host + ":" + port + "-" + nbMaxMessages + " max requeueDelay=" + requeueDelay;
     }
 }

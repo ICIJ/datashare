@@ -4,7 +4,6 @@ import net.codestory.http.security.Users;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.web.WebResponse;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;

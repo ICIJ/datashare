@@ -2,7 +2,6 @@ package org.icij.datashare.extract;
 
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.report.ReportMap;
-
 import java.util.List;
 
 public interface DocumentCollectionFactory<T> {

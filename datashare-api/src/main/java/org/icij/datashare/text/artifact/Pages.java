@@ -7,5 +7,4 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *  `pagination`: per the convention an omitted one means "single document, {@code content.<ext>}", while a
  *  `"pagination": null` is a third state nothing defines. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record Pages(int total, Pagination pagination) {
-}
+public record Pages(int total, Pagination pagination) {}

@@ -2,7 +2,6 @@ package org.icij.datashare.text;
 
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.text.nlp.Pipeline;
-
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -15,9 +14,7 @@ public class NamedEntitiesBuilder {
     private final Language language;
     private final Map<Pair<String, NamedEntity.Category>, List<Long>> mentionIndicesMap = new LinkedHashMap<>();
     private Map<String, Object> metadata;
-
     private String rootId;
-
 
     public NamedEntitiesBuilder(Pipeline.Type type, String docId, Language language, Map<String, Object> metadata) {
         this.type = type;
@@ -32,9 +29,10 @@ public class NamedEntitiesBuilder {
     }
 
     public List<NamedEntity> build() {
-        return mentionIndicesMap.entrySet().stream().map(e ->
-                        NamedEntity.create(e.getKey()._2(), e.getKey()._1(), e.getValue(), docId, rootId, type, language, metadata)).
-                collect(Collectors.toList());
+        return mentionIndicesMap.entrySet().stream()
+                                .map(e -> NamedEntity.create(e.getKey()._2(), e.getKey()._1(), e.getValue(), docId,
+                                                             rootId, type, language, metadata))
+                                .collect(Collectors.toList());
     }
 
     public NamedEntitiesBuilder add(NamedEntity.Category category, String mention, long index) {

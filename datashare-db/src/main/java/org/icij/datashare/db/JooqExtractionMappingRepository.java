@@ -13,7 +13,6 @@ import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -23,7 +22,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-
 import static org.icij.datashare.db.Tables.EXTRACTION_MAPPING;
 
 public class JooqExtractionMappingRepository implements ExtractionMappingRepository {
@@ -42,23 +40,20 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
         if (!violations.isEmpty()) {
             throw new InvalidExtractionMapping(mapping.id(), violations);
         }
-        return create().insertInto(EXTRACTION_MAPPING)
-                .set(EXTRACTION_MAPPING.ID, mapping.id())
-                .set(EXTRACTION_MAPPING.PRJ_ID, mapping.projectId())
-                .set(EXTRACTION_MAPPING.USER_ID, mapping.userId())
-                .set(EXTRACTION_MAPPING.NAME, mapping.name())
-                .set(EXTRACTION_MAPPING.DEFINITION, write(mapping))
-                .set(EXTRACTION_MAPPING.CREATED_AT,
-                        new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime())
-                .onConflict(EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.PRJ_ID).doNothing().execute() > 0;
+        return create().insertInto(EXTRACTION_MAPPING).set(EXTRACTION_MAPPING.ID, mapping.id())
+                       .set(EXTRACTION_MAPPING.PRJ_ID, mapping.projectId())
+                       .set(EXTRACTION_MAPPING.USER_ID, mapping.userId()).set(EXTRACTION_MAPPING.NAME, mapping.name())
+                       .set(EXTRACTION_MAPPING.DEFINITION, write(mapping)).set(EXTRACTION_MAPPING.CREATED_AT,
+                                                                               new Timestamp(DatashareTime.getInstance()
+                                                                                                          .currentTimeMillis()).toLocalDateTime())
+                       .onConflict(EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.PRJ_ID).doNothing().execute() > 0;
     }
 
     @Override
     public Optional<ExtractionMapping> get(String projectId, String id) {
         return create().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
-                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
-                .fetchOptional(EXTRACTION_MAPPING.DEFINITION)
-                .map(definition -> read(id, definition));
+                       .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
+                       .fetchOptional(EXTRACTION_MAPPING.DEFINITION).map(definition -> read(id, definition));
     }
 
     // created_at holds milliseconds, so two mappings authored in the same millisecond tie and the
@@ -67,25 +62,23 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
     @Override
     public List<ExtractionMapping> list(String projectId) {
         return create().select(EXTRACTION_MAPPING.CREATED_AT, EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.DEFINITION)
-                .from(EXTRACTION_MAPPING)
-                .where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
-                .fetch().stream()
-                .sorted(Comparator.<Record3<LocalDateTime, String, String>, LocalDateTime>comparing(Record3::value1)
-                        .thenComparing(Record3::value2, Comparator.naturalOrder()))
-                .flatMap(row -> {
-                    try {
-                        return Stream.of(read(row.value2(), row.value3()));
-                    } catch (UnreadableExtractionMapping e) {
-                        logger.warn("skipping unreadable extraction mapping '{}'", row.value2(), e);
-                        return Stream.empty();
-                    }
-                }).toList();
+                       .from(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).fetch().stream()
+                       .sorted(Comparator.<Record3<LocalDateTime, String, String>, LocalDateTime>comparing(
+                               Record3::value1).thenComparing(Record3::value2, Comparator.naturalOrder()))
+                       .flatMap(row -> {
+                           try {
+                               return Stream.of(read(row.value2(), row.value3()));
+                           } catch (UnreadableExtractionMapping e) {
+                               logger.warn("skipping unreadable extraction mapping '{}'", row.value2(), e);
+                               return Stream.empty();
+                           }
+                       }).toList();
     }
 
     @Override
     public boolean delete(String projectId, String id) {
-        return create().deleteFrom(EXTRACTION_MAPPING)
-                .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute() > 0;
+        return create().deleteFrom(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.ID.eq(id))
+                       .and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute() > 0;
     }
 
     private DSLContext create() {

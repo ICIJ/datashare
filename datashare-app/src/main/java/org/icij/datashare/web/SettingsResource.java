@@ -16,11 +16,9 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.text.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
-
 import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
@@ -127,7 +125,6 @@ public class SettingsResource {
         }
         return languages;
     }
-
 
     private List<Map<String, String>> languageListToMap(Language[] languages) {
         String[] languageStrings = Stream.of(languages).map(Language::name).toArray(String[]::new);

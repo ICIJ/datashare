@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.icij.datashare.ExtensionService;
 import org.icij.datashare.OsArchDetector;
 import org.icij.datashare.nlp.PythonNlpWorkerPool;
@@ -15,10 +14,8 @@ import org.icij.datashare.process.Process;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.Properties;
-
 import static java.lang.String.format;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.cli.DatashareCliOptions.ELASTICSEARCH_DATA_PATH_OPT;
@@ -37,22 +34,19 @@ public class EmbeddedMode extends LocalMode {
 
     @Override
     protected void configure() {
-        String elasticsearchSettings = propertiesProvider.get(ELASTICSEARCH_SETTINGS_OPT).orElse(DEFAULT_ELASTICSEARCH_SETTINGS);
+        String elasticsearchSettings =
+                propertiesProvider.get(ELASTICSEARCH_SETTINGS_OPT).orElse(DEFAULT_ELASTICSEARCH_SETTINGS);
         String elasticsearchDir = propertiesProvider.get(ELASTICSEARCH_PATH_OPT).orElse(DEFAULT_ELASTICSEARCH_PATH);
         String elasticsearchDataPath = propertiesProvider.get(ELASTICSEARCH_DATA_PATH_OPT).orElseThrow(
-                () -> new IllegalArgumentException(
-                        format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT))
-        );
+                () -> new IllegalArgumentException(format("Missing required option %s.", ELASTICSEARCH_DATA_PATH_OPT)));
         createDefaultSettingsFileIfNeeded(elasticsearchSettings, elasticsearchDataPath);
 
         List<String> args = buildElasticsearchArgs(Path.of(elasticsearchSettings));
         String elasticsearchScript = new OsArchDetector().isWindows() ? "elasticsearch.bat" : "elasticsearch";
         args.add(0, format("%s/current/bin/%s", elasticsearchDir, elasticsearchScript));
         logger.info("Starting Elasticsearch from local install {} within a new JVM.", elasticsearchDir);
-        Process elasticsearchProcess = new Process(elasticsearchDir,
-                "elasticsearch",
-                args.toArray(new String[0]),
-                9200);
+        Process elasticsearchProcess =
+                new Process(elasticsearchDir, "elasticsearch", args.toArray(new String[0]), 9200);
         elasticsearchProcess.start();
         // Register the process so the JVM shutdown hook kills it (and its descendant server
         // JVM) on exit. Without this, stopping datashare relied on the OS propagating SIGHUP
@@ -63,9 +57,7 @@ public class EmbeddedMode extends LocalMode {
             addCloseable(new QpidAmqpServer(AMQP_PORT).start());
             ExtensionService extensionService = new ExtensionService(propertiesProvider);
             bind(ExtensionService.class).toInstance(extensionService);
-            boolean isSpacyInstalled = !extensionService
-                    .listInstalled("datashare-extension-nlp-spacy.*")
-                    .isEmpty();
+            boolean isSpacyInstalled = !extensionService.listInstalled("datashare-extension-nlp-spacy.*").isEmpty();
             if (isSpacyInstalled) {
                 PythonNlpWorkerPool workerPool = new PythonNlpWorkerPool(extensionService, propertiesProvider);
                 try {
@@ -109,7 +101,8 @@ public class EmbeddedMode extends LocalMode {
             Files.writeString(settingsFile, defaultContent);
             logger.info("Created default elasticsearch settings file at {}", settingsFile);
         } catch (IOException e) {
-            throw new RuntimeException(format("failed to create default elasticsearch settings file at %s", settingsFile), e);
+            throw new RuntimeException(
+                    format("failed to create default elasticsearch settings file at %s", settingsFile), e);
         }
     }
 

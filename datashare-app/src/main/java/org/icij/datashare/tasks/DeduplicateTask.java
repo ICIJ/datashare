@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
@@ -14,7 +13,6 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,8 +29,10 @@ public class DeduplicateTask extends PipelineTask<Path> {
     private final DocumentCollectionFactory<Path> factory;
 
     @Inject
-    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.DEDUPLICATE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class, gateFactory.forTask(taskView));
+    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, final UpstreamGate.Factory gateFactory,
+                           @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
+        super(Stage.DEDUPLICATE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class,
+              gateFactory.forTask(taskView));
         this.factory = factory;
     }
 

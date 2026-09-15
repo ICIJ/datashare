@@ -3,11 +3,9 @@ package org.icij.datashare.asynctasks;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
-
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
@@ -15,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-
 import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
 
@@ -24,7 +21,6 @@ import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
  */
 public interface TaskManager extends Closeable {
     int POLLING_INTERVAL = 5000;
-
     Logger logger = LoggerFactory.getLogger(TaskManager.class);
 
     <V extends Serializable> String startTask(Task<V> taskView, Group group) throws IOException, TaskAlreadyExists;
@@ -65,7 +61,8 @@ public interface TaskManager extends Closeable {
         return waitTasksToBeDone(timeout, timeUnit) == 0L;
     }
 
-    default boolean awaitTermination(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws InterruptedException, IOException {
+    default boolean awaitTermination(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws
+            InterruptedException, IOException {
         return waitTasksToBeDone(timeout, timeUnit, scopeTaskIds) == 0L;
     }
 
@@ -96,12 +93,15 @@ public interface TaskManager extends Closeable {
 
     // TaskResource and pipeline tasks
     default String startTask(Class<?> taskClass, User user, Map<String, Object> properties) throws IOException {
-        return startTask(new Task<>(taskClass.getName(), user, properties), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
+        return startTask(new Task<>(taskClass.getName(), user, properties),
+                         new Group(taskClass.getAnnotation(TaskGroup.class).value()));
     }
 
     // BatchSearchResource and WebApp for batch searches
-    default String startTask(String uuid, Class<?> taskClass, User user, Map<String, Object> properties) throws IOException, TaskAlreadyExists {
-        return startTask(new Task<>(uuid, taskClass.getName(), user, properties), new Group(taskClass.getAnnotation(TaskGroup.class).value()));
+    default String startTask(String uuid, Class<?> taskClass, User user, Map<String, Object> properties) throws
+            IOException, TaskAlreadyExists {
+        return startTask(new Task<>(uuid, taskClass.getName(), user, properties),
+                         new Group(taskClass.getAnnotation(TaskGroup.class).value()));
     }
 
     // for tests
@@ -110,7 +110,8 @@ public interface TaskManager extends Closeable {
     }
 
     // for tests
-    default String startTask(String taskName, User user, Group group, Map<String, Object> properties) throws IOException {
+    default String startTask(String taskName, User user, Group group, Map<String, Object> properties) throws
+            IOException {
         return startTask(new Task<>(taskName, user, properties), group);
     }
 

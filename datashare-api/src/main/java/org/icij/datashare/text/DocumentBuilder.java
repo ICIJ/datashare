@@ -1,11 +1,9 @@
 package org.icij.datashare.text;
 
 import org.icij.datashare.text.nlp.Pipeline;
-
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
-
 import static java.nio.file.Paths.get;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.text.Language.ENGLISH;
@@ -55,28 +53,17 @@ public class DocumentBuilder {
         if (doc == null) {
             return new DocumentBuilder();
         }
-        return new DocumentBuilder()
-                .with(doc.getProject())
-                .withId(doc.getId())
-                .with(doc.getPath())
-                .with(doc.getContentEncoding())
-                .with(doc.getContent())
-                .with(doc.getContentTranslated())
-                .with(doc.getLanguage())
-                .extractedAt(doc.getExtractionDate())
-                .ofContentType(doc.getContentType())
-                .withExtractionLevel(doc.getExtractionLevel())
-                .with(doc.getMetadata())
-                .with(doc.getStatus())
-                .withPipelines(doc.getNerTags())
-                .withParentId(doc.getParentDocument())
-                .withRootId(doc.getRootDocument())
-                .withContentLength(doc.getContentLength())
-                .withTags(doc.getTags())
-                .with(doc.getContentTypeCategory())
-                .with(doc.getRecoveryStatus())
-                .withPstCounts(doc.getPstExpected(), doc.getPstEmitted(), doc.getPstUnrecovered())
-                .withNbChildrenEmitted(doc.getNbChildrenEmitted());
+        return new DocumentBuilder().with(doc.getProject()).withId(doc.getId()).with(doc.getPath())
+                                    .with(doc.getContentEncoding()).with(doc.getContent())
+                                    .with(doc.getContentTranslated()).with(doc.getLanguage())
+                                    .extractedAt(doc.getExtractionDate()).ofContentType(doc.getContentType())
+                                    .withExtractionLevel(doc.getExtractionLevel()).with(doc.getMetadata())
+                                    .with(doc.getStatus()).withPipelines(doc.getNerTags())
+                                    .withParentId(doc.getParentDocument()).withRootId(doc.getRootDocument())
+                                    .withContentLength(doc.getContentLength()).withTags(doc.getTags())
+                                    .with(doc.getContentTypeCategory()).with(doc.getRecoveryStatus())
+                                    .withPstCounts(doc.getPstExpected(), doc.getPstEmitted(), doc.getPstUnrecovered())
+                                    .withNbChildrenEmitted(doc.getNbChildrenEmitted());
     }
 
     public DocumentBuilder withDefaultValues(String id) {
@@ -222,11 +209,10 @@ public class DocumentBuilder {
         if (id == null && project == null && path == null && content == null) {
             throw new NullPointerException("Id, Project, Path or content are missing.");
         }
-        return new Document(project, id, path, content, content_translated, language,
-                charset, contentType, metadata, documentStatus,
-                pipelines, extractionDate, parentId, rootId, extractionLevel,
-                contentLength, tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered,
-                nbChildrenEmitted);
+        return new Document(project, id, path, content, content_translated, language, charset, contentType, metadata,
+                            documentStatus, pipelines, extractionDate, parentId, rootId, extractionLevel, contentLength,
+                            tags, contentTypeCategory, recoveryStatus, pstExpected, pstEmitted, pstUnrecovered,
+                            nbChildrenEmitted);
     }
 
 }

@@ -3,7 +3,6 @@ package org.icij.datashare.cli;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
-
 import org.icij.datashare.cli.spi.CliExtension;
 
 public class CliExtensionService {

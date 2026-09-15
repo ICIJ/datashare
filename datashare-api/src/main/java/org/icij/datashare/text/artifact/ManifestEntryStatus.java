@@ -7,9 +7,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  *  config fingerprint means "already processed" (skip regeneration). Only COMPLETE is servable;
  *  EMPTY records "processed, but this node has no payload here" so it is not reprocessed forever. */
 public enum ManifestEntryStatus {
-    COMPLETE("complete", true, true),
-    EMPTY("empty", true, false);
-
+    COMPLETE("complete", true, true), EMPTY("empty", true, false);
     private final String value;
     private final boolean terminal;
     private final boolean servable;

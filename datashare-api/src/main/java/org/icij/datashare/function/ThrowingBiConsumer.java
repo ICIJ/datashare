@@ -6,10 +6,8 @@ import java.util.function.BiConsumer;
 /**
  * Created by julien on 7/12/16.
  */
-
 @FunctionalInterface
 public interface ThrowingBiConsumer<T, U> extends BiConsumer<T, U> {
-
     @Override
     default void accept(T t, U u) {
         try {
@@ -21,7 +19,6 @@ public interface ThrowingBiConsumer<T, U> extends BiConsumer<T, U> {
     }
 
     void acceptThrows(T t, U u) throws Exception;
-
 
     default ThrowingBiConsumer<T, U> andThen(ThrowingBiConsumer<? super T, ? super U> after) {
         Objects.requireNonNull(after);

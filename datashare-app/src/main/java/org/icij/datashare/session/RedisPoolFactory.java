@@ -6,11 +6,9 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Protocol;
 import redis.clients.jedis.exceptions.InvalidURIException;
 import redis.clients.jedis.util.JedisURIHelper;
-
 import javax.net.ssl.SSLParameters;
 import java.net.URI;
 import java.util.Set;
-
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_REDIS_ADDRESS;
 import static org.icij.datashare.cli.DatashareCliOptions.REDIS_ADDRESS_OPT;
 
@@ -18,7 +16,6 @@ final class RedisPoolFactory {
     /** Lowercase only, because that is what Redisson accepts from the same option: an address one
      *  client takes and the other rejects boots the app halfway. */
     private static final Set<String> SUPPORTED_SCHEMES = Set.of("redis", "rediss");
-
     private static final String USER_INFO = "://[^@/]*@";
     private static final String REDACTED_USER_INFO = "://***@";
 
@@ -37,8 +34,8 @@ final class RedisPoolFactory {
         // without this the next command on it fails with "Unexpected end of stream".
         poolConfig.setTestOnBorrow(true);
         URI address = validAddress(propertiesProvider.get(REDIS_ADDRESS_OPT).orElse(DEFAULT_REDIS_ADDRESS));
-        return new JedisPool(poolConfig, address, Protocol.DEFAULT_TIMEOUT, Protocol.DEFAULT_TIMEOUT,
-                null, hostVerifyingParameters(), null);
+        return new JedisPool(poolConfig, address, Protocol.DEFAULT_TIMEOUT, Protocol.DEFAULT_TIMEOUT, null,
+                             hostVerifyingParameters(), null);
     }
 
     private static SSLParameters hostVerifyingParameters() {
@@ -91,7 +88,7 @@ final class RedisPoolFactory {
      *  into the logs: this exception escapes createPool with a full stack trace at startup. */
     private static InvalidURIException invalidAddress(String redisAddress, Throwable cause) {
         String message = "invalid %s \"%s\"".formatted(REDIS_ADDRESS_OPT,
-                redisAddress.replaceFirst(USER_INFO, REDACTED_USER_INFO));
+                                                       redisAddress.replaceFirst(USER_INFO, REDACTED_USER_INFO));
         return cause == null ? new InvalidURIException(message) : new InvalidURIException(message, cause);
     }
 }

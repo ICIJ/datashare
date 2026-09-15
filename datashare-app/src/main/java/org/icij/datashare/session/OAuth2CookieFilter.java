@@ -22,7 +22,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.annotation.Nullable;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -34,7 +33,6 @@ import java.util.HexFormat;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
@@ -59,12 +57,9 @@ import static java.util.Optional.ofNullable;
 @Singleton
 public class OAuth2CookieFilter extends DatashareAuthFilter {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-
     public static final String REQUEST_CODE_KEY = "code";
     public static final String REQUEST_STATE_KEY = "state";
-
     private static final String HMAC_ALGO = "HmacSHA256";
-
     protected final String oauthDefaultProject;
     private final DefaultApi20 defaultOauthApi;
     private final Integer oauthTtl;
@@ -84,7 +79,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     private final UserStore userStore;
 
     @Inject
-    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersIdProviderCache users, UserStore userStore, SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
+    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersIdProviderCache users, UserStore userStore,
+                              SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
         this.usersCache = users;
         this.userStore = userStore;
@@ -93,18 +89,22 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         this.oauthApiUrl = propertiesProvider.get("oauthApiUrl").orElse("http://localhost");
         this.oauthClientId = propertiesProvider.get("oauthClientId").orElse("");
         this.oauthClientSecret = propertiesProvider.get("oauthClientSecret").orElse("");
-        this.sessionSigningKey = deriveSigningKey(propertiesProvider.get("sessionSigningKey").orElse(this.oauthClientSecret));
+        this.sessionSigningKey =
+                deriveSigningKey(propertiesProvider.get("sessionSigningKey").orElse(this.oauthClientSecret));
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthSigninPath = propertiesProvider.get("oauthSigninPath").orElse("/auth/signin");
-        this.oauthTtl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
+        this.oauthTtl = Integer.valueOf(
+                ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
         this.oauthDefaultProject = propertiesProvider.get("oauthDefaultProject").orElse("");
         this.oauthClaimIdAttribute = propertiesProvider.get("oauthClaimIdAttribute").orElse("");
         this.oauthScope = propertiesProvider.get("oauthScope").orElse("");
         this.postLoginEnroller = postLoginEnroller;
         logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
-                oauthAuthorizeUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthSigninPath);
+                    oauthAuthorizeUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthSigninPath);
         if (this.oauthCallbackPath.startsWith(this.oauthSigninPath)) {
-            throw new IllegalStateException(format("oauthCallbackPath (%s) cannot start with oauthSigninPath (%s)", oauthCallbackPath, oauthSigninPath));
+            throw new IllegalStateException(
+                    format("oauthCallbackPath (%s) cannot start with oauthSigninPath (%s)", oauthCallbackPath,
+                           oauthSigninPath));
         }
         this.defaultOauthApi = new DefaultApi20() {
             @Override
@@ -126,21 +126,23 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         } else if (uri.startsWith(oauthCallbackPath)) {
             return this.callback(context);
         } else {
-            return uri.startsWith("/auth/signout") && "GET".equals(context.method()) ? this.signout(context) : nextFilter.get();
+            return uri.startsWith("/auth/signout") && "GET".equals(context.method()) ? this.signout(context) :
+                   nextFilter.get();
         }
     }
 
     private Payload callback(Context context) throws IOException, ExecutionException, InterruptedException {
-        logger.info("callback called with {}={} {}={}", REQUEST_CODE_KEY, context.get(REQUEST_CODE_KEY), REQUEST_STATE_KEY, context.get(REQUEST_STATE_KEY));
-        if (context.get(REQUEST_CODE_KEY) == null || context.get(REQUEST_STATE_KEY) == null || !"GET".equals(context.method()) ||
-                sessionIdStore.getLogin(context.get(REQUEST_STATE_KEY)) == null) {
+        logger.info("callback called with {}={} {}={}", REQUEST_CODE_KEY, context.get(REQUEST_CODE_KEY),
+                    REQUEST_STATE_KEY, context.get(REQUEST_STATE_KEY));
+        if (context.get(REQUEST_CODE_KEY) == null || context.get(REQUEST_STATE_KEY) == null ||
+            !"GET".equals(context.method()) || sessionIdStore.getLogin(context.get(REQUEST_STATE_KEY)) == null) {
             return Payload.badRequest();
         }
         // Consume the state token so it cannot be reused as a session cookie.
         sessionIdStore.remove(context.get(REQUEST_STATE_KEY));
-        OAuth20Service service = new ServiceBuilder(oauthClientId).apiSecret(oauthClientSecret).
-                callback(getCallbackUrl(context)).
-                build(defaultOauthApi);
+        OAuth20Service service =
+                new ServiceBuilder(oauthClientId).apiSecret(oauthClientSecret).callback(getCallbackUrl(context))
+                                                 .build(defaultOauthApi);
 
         logger.info("getting an access token from {} and code value", service);
         OAuth2AccessToken accessToken = service.getAccessToken(context.get(REQUEST_CODE_KEY));
@@ -153,14 +155,13 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         logger.info("received response code from user API : {}", oauthApiResponse.getCode());
         DatashareUser datashareUser = processOAuthApiResponse(oauthApiResponse);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context)))
-                .withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
+                      .withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
     }
 
     protected DatashareUser processOAuthApiResponse(Response oauthApiResponse) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode root = (ObjectNode) mapper.readTree(oauthApiResponse.getBody());
-        Map<String, Object> userMap = mapper.convertValue(root, new TypeReference<>() {
-        });
+        Map<String, Object> userMap = mapper.convertValue(root, new TypeReference<>() {});
         if (!oauthClaimIdAttribute.isEmpty()) {
             if (userMap.get(oauthClaimIdAttribute) == null) {
                 logger.error("The attribute {} does not exist in the response body.", oauthClaimIdAttribute);
@@ -186,7 +187,9 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
 
     @Override
     protected Payload signin(Context context) {
-        String oauthAuthorizeQS = format("?client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(getCallbackUrl(context), StandardCharsets.UTF_8), createState());
+        String oauthAuthorizeQS = format("?client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId,
+                                         URLEncoder.encode(getCallbackUrl(context), StandardCharsets.UTF_8),
+                                         createState());
         if (!Objects.equals(oauthScope, "")) {
             oauthAuthorizeQS = oauthAuthorizeQS + "&scope=" + oauthScope;
         }
@@ -195,7 +198,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
 
     private String getCallbackUrl(Context context) {
         String host = ofNullable(context.request().header("x-forwarded-host")).orElse(context.request().header("Host"));
-        String proto = ofNullable(context.request().header("x-forwarded-proto")).orElse(context.request().isSecure() ? "https" : "http");
+        String proto = ofNullable(context.request().header("x-forwarded-proto")).orElse(
+                context.request().isSecure() ? "https" : "http");
         String url = proto + "://" + host + this.oauthCallbackPath;
         logger.info("oauth callback url = {}", url);
         return url;

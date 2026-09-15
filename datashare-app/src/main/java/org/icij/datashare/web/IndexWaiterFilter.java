@@ -9,9 +9,7 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import jakarta.inject.Inject;
-
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,8 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class IndexWaiterFilter implements Filter {
     private final Logger LOGGER = LoggerFactory.getLogger(getClass());
     private static final int TIMEOUT_SECONDS = 120;
-    private static final String WAIT_CONTENT = "<!DOCTYPE html>" +
-            "<head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"2\"><title>Datashare</title></head>" +
+    private static final String WAIT_CONTENT =
+            "<!DOCTYPE html>" + "<head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"2\"><title>Datashare</title></head>" +
             "<body>waiting for Datashare to be up...</body>";
     private final Indexer indexer;
     private final AtomicBoolean indexOk = new AtomicBoolean(false);

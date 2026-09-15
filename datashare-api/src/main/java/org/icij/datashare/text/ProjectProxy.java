@@ -4,18 +4,14 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import static com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING;
 import static java.util.stream.Collectors.toList;
 
-
 public class ProjectProxy implements Entity {
     private static final long serialVersionUID = 6220480617838134179L;
-
     public final String name;
 
     @JsonCreator(mode = DELEGATING)
@@ -35,8 +31,10 @@ public class ProjectProxy implements Entity {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         ProjectProxy project = (ProjectProxy) o;
         return name.equals(project.name);
     }

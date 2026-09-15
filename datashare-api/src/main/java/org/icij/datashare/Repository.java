@@ -7,7 +7,6 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserFilter;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -30,7 +29,8 @@ public interface Repository {
 
     boolean renameSavedSearch(User user, int eventId, String newName);
 
-    List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds);
+    List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc,
+                                   String... projectIds);
 
     List<UserEvent> getUserEvents(User user);
 
@@ -132,11 +132,12 @@ public interface Repository {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof Aggregate)) return false;
+            if (this == o)
+                return true;
+            if (!(o instanceof Aggregate))
+                return false;
             Aggregate<?> aggregate = (Aggregate<?>) o;
-            return count == aggregate.count &&
-                    Objects.equals(item, aggregate.item);
+            return count == aggregate.count && Objects.equals(item, aggregate.item);
         }
 
         @Override

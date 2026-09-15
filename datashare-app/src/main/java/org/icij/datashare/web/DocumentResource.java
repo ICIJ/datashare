@@ -16,9 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.errors.ForbiddenException;
-
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
-
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
@@ -36,12 +34,10 @@ import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.PageIndices;
 import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -67,12 +63,10 @@ public class DocumentResource {
     }
 
     @Operation(description = "Fetches original datashare document json.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
-            }
-    )
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "Datashare Document JSON", useReturnTypeSchema = true)
     @Get("/:project/documents/:id?routing=:routing")
     public Document getDoc(String project, String id, String routing, final Context context) {
@@ -80,72 +74,80 @@ public class DocumentResource {
         return notFoundIfNull(indexer.get(project, id, ofNullable(routing).orElse(id)));
     }
 
-    @Operation(description = " Returns the file from the index with the index id and the root document (if embedded document).",
-            parameters = {
-                    @Parameter(name = "project", description = "project id", in = ParameterIn.PATH),
+    @Operation(
+            description = " Returns the file from the index with the index id and the root document (if embedded document).",
+            parameters = {@Parameter(name = "project", description = "project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "hash of the document", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
-                    @Parameter(name = "inline", description = "if true returns the document as attachment", in = ParameterIn.QUERY),
-                    @Parameter(name = "filter_metadata", description = "if true, do not send document metadata", in = ParameterIn.QUERY),
-            }
-    )
-    @ApiResponse(responseCode = "200", content = {@Content(mediaType = "document mime type (from the contentType field or file extension).")},
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY),
+                    @Parameter(name = "inline", description = "if true returns the document as attachment",
+                            in = ParameterIn.QUERY),
+                    @Parameter(name = "filter_metadata", description = "if true, do not send document metadata",
+                            in = ParameterIn.QUERY),})
+    @ApiResponse(responseCode = "200",
+            content = {@Content(mediaType = "document mime type (from the contentType field or file extension).")},
             description = "returns the source of the document.")
     @ApiResponse(responseCode = "404", description = "if no document is found")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
-    @ApiResponse(responseCode = "413", description = "if the root document is too large and no raw artifact is cached for this embedded document")
+    @ApiResponse(responseCode = "413",
+            description = "if the root document is too large and no raw artifact is cached for this embedded document")
     @Get("/:project/documents/src/:id?routing=:routing&filter_metadata=:filter_metadata")
-    public Payload getSourceFile(final String project, final String id,
-                                 final String routing, final String filterMetadata, final Context context) throws IOException {
+    public Payload getSourceFile(final String project, final String id, final String routing,
+                                 final String filterMetadata, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
         return sources.gated(project, id, routing, context,
-                document -> sources.source(document, project, inline, parseBoolean(filterMetadata)));
+                             document -> sources.source(document, project, inline, parseBoolean(filterMetadata)));
     }
 
-    @Operation(description = "Tells whether the source of a document can be downloaded, without transferring it. Same decision as GET on the same route (permissions, existence, and the embedded-document size limit), so clients don't have to reimplement the rule.",
-            parameters = {
-                    @Parameter(name = "project", description = "project id", in = ParameterIn.PATH),
+    @Operation(
+            description = "Tells whether the source of a document can be downloaded, without transferring it. Same decision as GET on the same route (permissions, existence, and the embedded-document size limit), so clients don't have to reimplement the rule.",
+            parameters = {@Parameter(name = "project", description = "project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "hash of the document", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
-            }
-    )
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY),})
     @ApiResponse(responseCode = "200", description = "the source can be downloaded")
-    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project or downloads are restricted")
+    @ApiResponse(responseCode = "403",
+            description = "forbidden if the user doesn't have access to the project or downloads are restricted")
     @ApiResponse(responseCode = "404", description = "if no document is found")
-    @ApiResponse(responseCode = "413", description = "if the root document is too large and no raw artifact is cached for this embedded document")
+    @ApiResponse(responseCode = "413",
+            description = "if the root document is too large and no raw artifact is cached for this embedded document")
     // HEAD requests also match the @Get route above, and fluent-http picks the route with the
     // fewest query params on a tie: keep this route's param count below the GET route's
     // (currently 3 vs 4, "filter_metadata" is GET-only) or GET starts silently handling HEAD again.
     @Head("/:project/documents/src/:id?routing=:routing")
     public Payload headSourceFile(final String project, final String id, final String routing, final Context context) {
         return sources.gated(project, id, routing, context,
-                document -> sources.isSourceAvailable(document, project(project)) ? ok() : Payload.notFound());
+                             document -> sources.isSourceAvailable(document, project(project)) ? ok() :
+                                         Payload.notFound());
     }
 
     @Operation(description = "Fetches extracted text by slice (pagination)",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY),
                     @Parameter(name = "offset", description = "starting byte (starts at 0)", in = ParameterIn.QUERY),
-                    @Parameter(name = "limit", description = "size of the extracted text slice in bytes", in = ParameterIn.QUERY),
-                    @Parameter(name = "targetLanguage", description = "target language (like \"ENGLISH\") to get slice from translated content", in = ParameterIn.QUERY)
-            }
-    )
-    @ApiResponse(responseCode = "200", description = "JSON containing the extracted text content (\"content\":text), the max offset as last rank index (\"maxOffset\":number), start (\"start\":number) and size (\"size\":number) parameters")
+                    @Parameter(name = "limit", description = "size of the extracted text slice in bytes",
+                            in = ParameterIn.QUERY), @Parameter(name = "targetLanguage",
+                    description = "target language (like \"ENGLISH\") to get slice from translated content",
+                    in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200",
+            description = "JSON containing the extracted text content (\"content\":text), the max offset as last rank index (\"maxOffset\":number), start (\"start\":number) and size (\"size\":number) parameters")
     @Get("/:project/documents/content/:id?routing=:routing&offset=:offset&limit=:limit&targetLanguage=:targetLanguage")
-    public Payload getExtractedText(
-            final String project, final String id, final String routing,
-            final Integer offset, final Integer limit, final String targetLanguage, final Context context) throws IOException {
+    public Payload getExtractedText(final String project, final String id, final String routing, final Integer offset,
+                                    final Integer limit, final String targetLanguage, final Context context) throws
+            IOException {
         if (((DatashareUser) context.currentUser()).isGranted(project)) {
             try {
                 ExtractedText extractedText;
                 if (offset == null && limit == null) {
                     extractedText = getAllExtractedText(id, targetLanguage);
                 } else {
-                    extractedText = indexer.getExtractedText(project, id, routing,
-                            Objects.requireNonNull(offset, "offset parameter cannot be null"),
-                            Objects.requireNonNull(limit, "limit parameter cannot be null"), targetLanguage);
+                    extractedText = indexer.getExtractedText(project, id, routing, Objects.requireNonNull(offset,
+                                                                                                          "offset parameter cannot be null"),
+                                                             Objects.requireNonNull(limit,
+                                                                                    "limit parameter cannot be null"),
+                                                             targetLanguage);
                 }
                 return new Payload(extractedText).withCode(200);
             } catch (StringIndexOutOfBoundsException e) {
@@ -158,15 +160,15 @@ public class DocumentResource {
     }
 
     @Operation(description = "Fetches original document pages indices of extracted text.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
-            }
-    )
-    @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters", useReturnTypeSchema = true)
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", description = "JSON containing pages indices parameters",
+            useReturnTypeSchema = true)
     @Get("/:project/documents/pages/:id?routing=:routing")
-    public PageIndices getPages(final String project, final String id, final String routing, final Context context) throws IOException {
+    public PageIndices getPages(final String project, final String id, final String routing,
+                                final Context context) throws IOException {
         requireGranted(context, project);
         Document doc = indexer.get(project, id, routing, List.of("content", "content_translated"));
         try (Extractor extractor = getExtractor(doc)) {
@@ -180,24 +182,24 @@ public class DocumentResource {
                 return extractor.extractPageIndices(doc.getPath(), PageArtifact.ownTextOf(doc.getPath()), doc.getId());
             } else {
                 return extractor.extractPageIndices(doc.getPath(),
-                        metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
-                                "INLINE".equals(metadata.get("embeddedResourceType")), doc.getId());
+                                                    metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
+                                                                "INLINE".equals(metadata.get("embeddedResourceType")),
+                                                    doc.getId());
             }
         }
     }
 
     @Operation(deprecated = true,
             description = "Deprecated: use GET /:project/artifacts/page/:id/:page, which serves the persisted page artifact instead of reparsing the source on every request. This route still reparses live and is kept until clients migrate.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
-            }
-    )
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "JSON containing text pages array", useReturnTypeSchema = true)
     @Deprecated
     @Get("/:project/documents/content/pages/:id?routing=:routing")
-    public List<String> getContentByPage(final String project, final String id, final String routing, final Context context) throws IOException {
+    public List<String> getContentByPage(final String project, final String id, final String routing,
+                                         final Context context) throws IOException {
         requireGranted(context, project);
         Document doc = indexer.get(project, id, routing, List.of("content", "content_translated"));
         try (Extractor extractor = getExtractor(doc)) {
@@ -210,26 +212,26 @@ public class DocumentResource {
                 return extractor.extractPages(doc.getPath(), PageArtifact.ownTextOf(doc.getPath()));
             } else {
                 return extractor.extractPages(doc.getPath(),
-                        metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
-                                "INLINE".equals(metadata.get("embeddedResourceType")));
+                                              metadata -> doc.getTitle().equals(metadata.get("resourceName")) ||
+                                                          "INLINE".equals(metadata.get("embeddedResourceType")));
             }
         }
     }
 
     @Operation(description = "Searches for query occurrences in content or translated content (pagination)",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
-                    @Parameter(name = "query", description = "query string to search occurrences", in = ParameterIn.QUERY),
-                    @Parameter(name = "targetLanguage", description = "Target language (like \"ENGLISH\") to search in translated content", in = ParameterIn.QUERY)
-            }
-    )
-    @ApiResponse(responseCode = "200", description = "JSON containing the occurrences offsets in the text, and the count of occurrences.")
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY),
+                    @Parameter(name = "query", description = "query string to search occurrences",
+                            in = ParameterIn.QUERY), @Parameter(name = "targetLanguage",
+                    description = "Target language (like \"ENGLISH\") to search in translated content",
+                    in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200",
+            description = "JSON containing the occurrences offsets in the text, and the count of occurrences.")
     @Get("/:project/documents/searchContent/:id?routing=:routing&query=:query&targetLanguage=:targetLanguage")
-    public Payload searchOccurrences(
-            final String project, final String id, final String routing,
-            final String query, final String targetLanguage, final Context context) throws IOException {
+    public Payload searchOccurrences(final String project, final String id, final String routing, final String query,
+                                     final String targetLanguage, final Context context) throws IOException {
         if (((DatashareUser) context.currentUser()).isGranted(project)) {
             try {
                 SearchedText searchedText;
@@ -249,12 +251,11 @@ public class DocumentResource {
         throw new ForbiddenException();
     }
 
-    @Operation(description = "'Stars' documents in batch. The list of ids is passed in the request body as a JSON list.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-            },
-            requestBody = @RequestBody(content = @Content(mediaType = "application/json", examples = {@ExampleObject(value = "[\"docId1\",\"docId2\"]")}))
-    )
+    @Operation(
+            description = "'Stars' documents in batch. The list of ids is passed in the request body as a JSON list.",
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),},
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json",
+                    examples = {@ExampleObject(value = "[\"docId1\",\"docId2\"]")})))
     @ApiResponse(responseCode = "200", description = "returns the number of stared documents")
     @Post("/:project/documents/batchUpdate/star")
     public Result<Integer> groupStarProject(final String projectId, final List<String> docIds, Context context) {
@@ -262,12 +263,11 @@ public class DocumentResource {
         return new Result<>(repository.star(project(projectId), (DatashareUser) context.currentUser(), docIds));
     }
 
-    @Operation(description = "'Unstars' documents in batch. The list of ids is passed in the request body as a JSON list.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)
-            },
-            requestBody = @RequestBody(content = @Content(mediaType = "application/json", examples = {@ExampleObject(value = "[\"docId1\",\"docId2\"]")}))
-    )
+    @Operation(
+            description = "'Unstars' documents in batch. The list of ids is passed in the request body as a JSON list.",
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)},
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json",
+                    examples = {@ExampleObject(value = "[\"docId1\",\"docId2\"]")})))
     @ApiResponse(responseCode = "200", description = "returns the number of unstared documents")
     @Post("/:project/documents/batchUpdate/unstar")
     public Result<Integer> groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
@@ -276,8 +276,7 @@ public class DocumentResource {
     }
 
     @Operation(description = "Retrieves the list of starred documents for a given project.",
-            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)}
-    )
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:project/documents/starred")
     public List<String> getProjectStarredDocuments(final String projectId, Context context) {
@@ -285,26 +284,23 @@ public class DocumentResource {
         return repository.getStarredDocuments(project(projectId), (DatashareUser) context.currentUser());
     }
 
-    @Operation(description = "Retrieves the list of tagged documents for a given project id filtered by a given string of coma-separated list of tags.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-                    @Parameter(name = "comaSeparatedTags", description = "comma separated tags", in = ParameterIn.PATH)
-            }
-    )
+    @Operation(
+            description = "Retrieves the list of tagged documents for a given project id filtered by a given string of coma-separated list of tags.",
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "comaSeparatedTags", description = "comma separated tags",
+                            in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:projects/documents/tagged/:coma_separated_tags")
-    public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags, final Context context) {
+    public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags,
+                                                  final Context context) {
         requireGranted(context, projectId);
         return repository.getDocuments(project(projectId),
-                stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
+                                       stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
     }
 
     @Operation(description = "Preflight request for document tagging",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
-            }
-    )
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "200", description = "returns 200 with PUT")
     @Options("/:project/documents/tags/:docId")
     public Payload tagDocument(final String projectId, final String docId) {
@@ -312,17 +308,16 @@ public class DocumentResource {
     }
 
     @Operation(description = "Sets tags for a given document id",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "document routing if not a root document", in = ParameterIn.QUERY)
-            },
-            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
-    )
+                    @Parameter(name = "routing", description = "document routing if not a root document",
+                            in = ParameterIn.QUERY)}, requestBody = @RequestBody(
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class))))
     @ApiResponse(responseCode = "200", description = "if tag was already in database")
     @ApiResponse(responseCode = "201", description = "if tag was created")
     @Put("/:project/documents/tags/:docId?routing=:routing")
-    public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags, final Context context) throws IOException {
+    public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags,
+                               final Context context) throws IOException {
         requireGranted(context, projectId);
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
@@ -330,11 +325,8 @@ public class DocumentResource {
     }
 
     @Operation(description = "Gets tags by document id",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
-            }
-    )
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:project/documents/tags/:docId")
     public List<Tag> getDocumentTags(final String projectId, final String docId, final Context context) {
@@ -342,19 +334,14 @@ public class DocumentResource {
         return repository.getTags(project(projectId), docId);
     }
 
-    @Operation(description = "Tags documents in batch. The document id list and the tag list are passed in the request body.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)
-            },
-            requestBody = @RequestBody(
-                    content = @Content(mediaType = "application/json",
-                            schemaProperties = {
-                                    @SchemaProperty(name = "docIds", schema = @Schema(implementation = List.class)),
-                                    @SchemaProperty(name = "tags", schema = @Schema(implementation = List.class))
-                            },
-                            examples = {@ExampleObject(value = "{\"docIds\": [\"bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f\", \"7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61\"], \"tags\": [\"foo\", \"bar\"]}")}
-                    ))
-    )
+    @Operation(
+            description = "Tags documents in batch. The document id list and the tag list are passed in the request body.",
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)},
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json",
+                    schemaProperties = {@SchemaProperty(name = "docIds", schema = @Schema(implementation = List.class)),
+                            @SchemaProperty(name = "tags", schema = @Schema(implementation = List.class))}, examples = {
+                    @ExampleObject(
+                            value = "{\"docIds\": [\"bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f\", \"7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61\"], \"tags\": [\"foo\", \"bar\"]}")})))
     @ApiResponse(responseCode = "200")
     @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
@@ -364,20 +351,14 @@ public class DocumentResource {
         return Payload.ok();
     }
 
-    @Operation(description = "Untags documents in batch. The document id list and the tag list are passed in the request body.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)
-            },
-            requestBody = @RequestBody(
-                    content = @Content(mediaType = "application/json",
-                            schemaProperties = {
-                                    @SchemaProperty(name = "docIds", schema = @Schema(implementation = List.class)),
-                                    @SchemaProperty(name = "tags", schema = @Schema(implementation = List.class))
-                            },
-                            examples = {@ExampleObject(value = "{\"docIds\": [\"bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f\", \"7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61\"], \"tags\": [\"foo\", \"bar\"]}")}
-                    )
-            )
-    )
+    @Operation(
+            description = "Untags documents in batch. The document id list and the tag list are passed in the request body.",
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)},
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json",
+                    schemaProperties = {@SchemaProperty(name = "docIds", schema = @Schema(implementation = List.class)),
+                            @SchemaProperty(name = "tags", schema = @Schema(implementation = List.class))}, examples = {
+                    @ExampleObject(
+                            value = "{\"docIds\": [\"bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f\", \"7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61\"], \"tags\": [\"foo\", \"bar\"]}")})))
     @ApiResponse(responseCode = "200")
     @Post("/:project/documents/batchUpdate/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
@@ -388,11 +369,8 @@ public class DocumentResource {
     }
 
     @Operation(description = "Preflight request for document untagging",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
-            }
-    )
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "200", description = "returns 200 with PUT")
     @Options("/:project/documents/untag/:docId")
     public Payload untagDocument(final String projectId, final String docId) {
@@ -400,17 +378,16 @@ public class DocumentResource {
     }
 
     @Operation(description = "Removes tags from a document id in a given project",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "document routing if not a root document", in = ParameterIn.QUERY)
-            },
-            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
-    )
+                    @Parameter(name = "routing", description = "document routing if not a root document",
+                            in = ParameterIn.QUERY)}, requestBody = @RequestBody(
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class))))
     @ApiResponse(responseCode = "200", description = "Document untagged")
     @ApiResponse(responseCode = "201", description = "Document had tags; Document tag was deleted")
     @Put("/:project/documents/untag/:docId?routing=:routing")
-    public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags, final Context context) throws IOException {
+    public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags,
+                                 final Context context) throws IOException {
         requireGranted(context, projectId);
         boolean untagSaved = repository.untag(project(projectId), docId, tags);
         indexer.untag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
@@ -424,9 +401,9 @@ public class DocumentResource {
         return repository.getStarredDocuments((DatashareUser) context.currentUser());
     }
 
-    @Operation(description = "Retrieves the list of users who recommended a document with the total count of recommended documents for the given project id",
-            parameters = {@Parameter(name = "project", description = "project id")}
-    )
+    @Operation(
+            description = "Retrieves the list of users who recommended a document with the total count of recommended documents for the given project id",
+            parameters = {@Parameter(name = "project", description = "project id")})
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/users/recommendations?project=:project")
     public AggregateList<User> getProjectRecommendations(final String projectId, final Context context) {
@@ -434,35 +411,36 @@ public class DocumentResource {
         return repository.getRecommendations(project(projectId));
     }
 
-    @Operation(description = "Gets all users who recommended a document with the count of all recommended documents for project and documents ids.",
-            parameters = {
-                    @Parameter(name = "project", in = ParameterIn.QUERY),
-                    @Parameter(name = "docIds", in = ParameterIn.QUERY, description = "comma separated document ids")
-            }
-    )
+    @Operation(
+            description = "Gets all users who recommended a document with the count of all recommended documents for project and documents ids.",
+            parameters = {@Parameter(name = "project", in = ParameterIn.QUERY),
+                    @Parameter(name = "docIds", in = ParameterIn.QUERY, description = "comma separated document ids")})
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/users/recommendationsby?project=:project&docIds=:coma_separated_docIds")
-    public AggregateList<User> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds, final Context context) {
+    public AggregateList<User> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds,
+                                                         final Context context) {
         requireGranted(context, projectId);
-        return repository.getRecommendations(project(projectId), stream(comaSeparatedDocIds.split(",")).map(String::new).collect(Collectors.toList()));
+        return repository.getRecommendations(project(projectId), stream(comaSeparatedDocIds.split(",")).map(String::new)
+                                                                                                       .collect(
+                                                                                                               Collectors.toList()));
     }
 
     @Operation(description = "Retrieves the set of recommended documents for the given project id and a list of users",
-            parameters = {
-                    @Parameter(name = "project", in = ParameterIn.PATH),
-                    @Parameter(name = "userids", in = ParameterIn.QUERY, description = "comma separated users")
-            }
-    )
+            parameters = {@Parameter(name = "project", in = ParameterIn.PATH),
+                    @Parameter(name = "userids", in = ParameterIn.QUERY, description = "comma separated users")})
     @Get("/:project/documents/recommendations?userids=:coma_separated_users")
-    public Set<String> getProjectRecommendationsBy(final String projectId, final String comaSeparatedUsers, final Context context) {
+    public Set<String> getProjectRecommendationsBy(final String projectId, final String comaSeparatedUsers,
+                                                   final Context context) {
         requireGranted(context, projectId);
-        return repository.getRecommendationsBy(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
+        return repository.getRecommendationsBy(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new)
+                                                                                                        .collect(
+                                                                                                                Collectors.toList()));
     }
 
-    @Operation(description = "Marks the documents as recommended in batch. The id list is passed in the request body as a json list.",
-            parameters = {@Parameter(name = "project", in = ParameterIn.PATH)},
-            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
-    )
+    @Operation(
+            description = "Marks the documents as recommended in batch. The id list is passed in the request body as a json list.",
+            parameters = {@Parameter(name = "project", in = ParameterIn.PATH)}, requestBody = @RequestBody(
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class))))
     @ApiResponse(responseCode = "200", description = "the number of marked documents", useReturnTypeSchema = true)
     @Post("/:project/documents/batchUpdate/recommend")
     public Result<Integer> groupRecommend(final String projectId, final List<String> docIds, Context context) {
@@ -470,10 +448,10 @@ public class DocumentResource {
         return new Result<>(repository.recommend(project(projectId), (DatashareUser) context.currentUser(), docIds));
     }
 
-    @Operation(description = "Unmarks the documents as recommended in batch. The id list is passed in the request body as a JSON list.",
-            parameters = {@Parameter(name = "project", in = ParameterIn.PATH)},
-            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
-    )
+    @Operation(
+            description = "Unmarks the documents as recommended in batch. The id list is passed in the request body as a JSON list.",
+            parameters = {@Parameter(name = "project", in = ParameterIn.PATH)}, requestBody = @RequestBody(
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class))))
     @ApiResponse(responseCode = "200", description = "the number of unmarked documents", useReturnTypeSchema = true)
     @Post("/:project/documents/batchUpdate/unrecommend")
     public Result<Integer> groupUnrecommend(final String projectId, final List<String> docIds, Context context) {
@@ -484,7 +462,8 @@ public class DocumentResource {
     @NotNull
     private Extractor getExtractor(Document doc) {
         Hasher hasher = Hasher.valueOf(doc.getId().length());
-        DocumentFactory documentFactory = new DocumentFactory().configure(org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toStringWithoutDash())));
+        DocumentFactory documentFactory = new DocumentFactory().configure(
+                org.icij.task.Options.from(Map.of("digestAlgorithm", hasher.toStringWithoutDash())));
         // we need to set the embedOutput from the project
         Properties props = new Properties() {{
             ofNullable(getArtifactPath(doc.getProject())).ifPresent(p -> put("embedOutput", p));
@@ -495,14 +474,16 @@ public class DocumentResource {
         return new Extractor(documentFactory, options);
     }
 
-    private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws IllegalArgumentException {
+    private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws
+            IllegalArgumentException {
         //original content (no targetLanguage specified)
         if (targetLanguage == null || targetLanguage.isBlank()) {
             String content = repository.getDocument(id).getContent();
             return new ExtractedText(content, 0, content.length(), content.length());
         }
         //translated content with targetLanguage
-        Iterator<Map<String, String>> translationsIterator = repository.getDocument(id).getContentTranslated().iterator();
+        Iterator<Map<String, String>> translationsIterator =
+                repository.getDocument(id).getContentTranslated().iterator();
         while (translationsIterator.hasNext()) {
             Map<String, String> translation = translationsIterator.next();
             if (translation.get("target_language").equals(targetLanguage)) {
@@ -531,6 +512,7 @@ public class DocumentResource {
     }
 
     private Path getArtifactPath(Project project) {
-        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> Path.of(dir).resolve(project.name)).orElse(null);
+        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT)
+                                 .map(dir -> Path.of(dir).resolve(project.name)).orElse(null);
     }
 }

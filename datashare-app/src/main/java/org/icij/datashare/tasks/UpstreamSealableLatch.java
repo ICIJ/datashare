@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import org.icij.concurrent.SealableLatch;
-
 import java.util.function.BooleanSupplier;
 
 /**

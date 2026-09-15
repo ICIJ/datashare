@@ -1,6 +1,5 @@
 package org.icij.datashare.batch;
 
-
 import java.lang.reflect.Field;
 import java.util.Comparator;
 import java.util.Map;
@@ -9,7 +8,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.batch.WebQueryPagination.OrderDirection.ASC;
@@ -38,11 +36,10 @@ public class WebQueryPagination {
     }
 
     public static WebQueryPagination fromMap(Map<String, Object> paginationMap) {
-        return new WebQueryPagination(
-                (String) paginationMap.get("sort"),
-                (String) paginationMap.get("order"),
-                Integer.parseInt(ofNullable(paginationMap.get("from")).orElse("0").toString()),
-                Integer.parseInt(ofNullable(paginationMap.get("size")).orElse(Integer.MAX_VALUE).toString()));
+        return new WebQueryPagination((String) paginationMap.get("sort"), (String) paginationMap.get("order"),
+                                      Integer.parseInt(ofNullable(paginationMap.get("from")).orElse("0").toString()),
+                                      Integer.parseInt(ofNullable(paginationMap.get("size")).orElse(Integer.MAX_VALUE)
+                                                                                            .toString()));
     }
 
     public <T> Stream<T> paginate(Stream<T> stream, Function<WebQueryPagination, Comparator<T>> comparatorFactory) {
@@ -51,9 +48,11 @@ public class WebQueryPagination {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass())
+            return false;
         WebQueryPagination that = (WebQueryPagination) o;
-        return from == that.from && size == that.size && Objects.equals(sort, that.sort) && Objects.equals(order, that.order);
+        return from == that.from && size == that.size && Objects.equals(sort, that.sort) &&
+               Objects.equals(order, that.order);
     }
 
     @Override

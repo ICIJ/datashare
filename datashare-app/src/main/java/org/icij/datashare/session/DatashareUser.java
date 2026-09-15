@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import net.codestory.http.security.Users;
 import org.icij.datashare.user.User;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +33,7 @@ public class DatashareUser extends User implements net.codestory.http.security.U
 
     @Override
     public String[] roles() {
-        return isLocal() ? new String[]{LOCAL} : new String[0];
+        return isLocal() ? new String[] {LOCAL} : new String[0];
     }
 
     public Object get(String key) {

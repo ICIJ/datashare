@@ -11,51 +11,35 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
-
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.USER_DELETE_IF_EXISTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.USER_DELETE_JSON_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.USER_DELETE_OPT;
 
-@Command(name = "delete", mixinStandardHelpOptions = true, description = {
-        "Delete a Datashare user and all their owned data.",
-        "",
-        "Examples:",
-        "  datashare user delete alice --yes",
-        "  datashare user delete alice --if-exists --no-input"
-})
+@Command(name = "delete", mixinStandardHelpOptions = true,
+        description = {"Delete a Datashare user and all their owned data.", "", "Examples:",
+                "  datashare user delete alice --yes", "  datashare user delete alice --if-exists --no-input"})
 public class UserDeleteCommand implements Runnable, DatashareSubcommand {
-
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
     @Parameters(index = "0", arity = "0..1", description = "Login (positional)")
     String loginPositional;
-
     @Option(names = "--login", description = "Login (alternative to positional)")
     String loginFlag;
-
     @Option(names = {"--yes", "-y"}, description = "Skip confirmation prompt")
     boolean yes;
-
     @Option(names = "--if-exists", description = "Idempotent: exit 0 if user missing")
     boolean ifExists;
-
     @Option(names = "--no-input", description = "Disable interactive prompts (forces --yes)")
     boolean noInput;
-
     @Option(names = "--json", description = "Emit JSON result on stdout")
     boolean json;
-
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;
-
     // Package-visible for test injection; when non-null the TTY check is skipped.
     Prompter prompterOverride;
-
     private String resolvedLogin;
     private boolean ready;
 
@@ -63,19 +47,18 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
     public void run() {
         String login = loginPositional != null ? loginPositional : loginFlag;
         try {
-            if (login != null) Validators.login(login);
+            if (login != null)
+                Validators.login(login);
 
             Prompter prompter = null;
             if (login == null) {
                 if (noInput) {
-                    spec.commandLine().getErr().println(
-                            "error: --login is required when --no-input is set");
+                    spec.commandLine().getErr().println("error: --login is required when --no-input is set");
                     throw new CliExitException(2);
                 }
                 prompter = prompterOverride != null ? prompterOverride : new Prompter();
                 if (prompterOverride == null && !prompter.isInteractive()) {
-                    spec.commandLine().getErr().println(
-                            "error: --login is required and no TTY available");
+                    spec.commandLine().getErr().println("error: --login is required and no TTY available");
                     throw new CliExitException(2);
                 }
                 try {
@@ -91,9 +74,8 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
             // prompterOverride. --yes and --no-input both skip the prompt.
             boolean confirmed = yes || noInput;
             if (!confirmed) {
-                Prompter confirmPrompter = prompter != null
-                        ? prompter
-                        : (prompterOverride != null ? prompterOverride : new Prompter());
+                Prompter confirmPrompter =
+                        prompter != null ? prompter : (prompterOverride != null ? prompterOverride : new Prompter());
                 confirmed = confirmPrompter.confirm("Really delete user '" + login + "'?");
             }
             if (!confirmed) {

@@ -5,7 +5,6 @@ import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 
 @Singleton

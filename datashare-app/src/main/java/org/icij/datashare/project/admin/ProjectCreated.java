@@ -11,19 +11,4 @@ import java.util.Date;
  * always {@code false} in that case (we did not create an index in this call,
  * regardless of whether the existing project has one).
  */
-public record ProjectCreated(
-        String name,
-        String label,
-        String description,
-        Path sourcePath,
-        String allowFromMask,
-        String sourceUrl,
-        String maintainerName,
-        String publisherName,
-        String logoUrl,
-        Date creationDate,
-        Date updateDate,
-        boolean indexCreated,
-        boolean noop
-) {
-}
+public record ProjectCreated(String name, String label, String description, Path sourcePath, String allowFromMask, String sourceUrl, String maintainerName, String publisherName, String logoUrl, Date creationDate, Date updateDate, boolean indexCreated, boolean noop) {}

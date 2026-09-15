@@ -1,7 +1,6 @@
 package org.icij.datashare.project.admin;
 
 import org.icij.datashare.policies.Role;
-
 import java.util.List;
 
 /**
@@ -10,9 +9,4 @@ import java.util.List;
  * {@code revokeIfExists} when the user did not exist or held no roles on
  * the project.
  */
-public record ProjectRevoked(
-        String name,
-        String userLogin,
-        List<Role> revokedRoles,
-        boolean noop) {
-}
+public record ProjectRevoked(String name, String userLogin, List<Role> revokedRoles, boolean noop) {}

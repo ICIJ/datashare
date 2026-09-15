@@ -23,10 +23,8 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.utils.PayloadFormatter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -34,7 +32,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
@@ -53,7 +50,6 @@ public class ArtifactResource {
     private static final String MARKDOWN = "md";
     private static final String XHTML = "xhtml";
     private static final Map<String, String> STRUCTURE_CONTENT_TYPES = structureContentTypes();
-
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
     private final DocumentSourceAccess sources;
@@ -67,68 +63,65 @@ public class ArtifactResource {
     }
 
     @Operation(description = "Fetches the number of persisted plain-text pages for a document.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
-            }
-    )
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "JSON {\"pages\": N}")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
-    @ApiResponse(responseCode = "404", description = "if the document, artifactDir, or a complete page artifact is not found")
+    @ApiResponse(responseCode = "404",
+            description = "if the document, artifactDir, or a complete page artifact is not found")
     @Get("/:project/artifacts/page/:id?routing=:routing")
-    public Payload pageManifest(final String project, final String id, final String routing, final Context context) throws IOException {
+    public Payload pageManifest(final String project, final String id, final String routing,
+                                final Context context) throws IOException {
         requireGranted(context, project);
         return manifest(project, id, routing, ArtifactType.PAGE, List.of());
     }
 
     @Operation(description = "Fetches one persisted plain-text page of a document.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
                     @Parameter(name = "page", description = "1-based page number", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
-            }
-    )
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "the page as text/plain")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
     @ApiResponse(responseCode = "404", description = "if the document, the artifact, or the page is not found")
     @Get("/:project/artifacts/page/:id/:page?routing=:routing")
-    public Payload pageContent(final String project, final String id, final String page,
-                               final String routing, final Context context) throws IOException {
+    public Payload pageContent(final String project, final String id, final String page, final String routing,
+                               final Context context) throws IOException {
         requireGranted(context, project);
         return payload(project, id, page, routing, ArtifactType.PAGE, "txt", "text/plain;charset=UTF-8");
     }
 
     @Operation(description = "Fetches the number of structure pages for a document and the formats available on disk.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
-            }
-    )
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "JSON {\"pages\": N, \"formats\": [\"md\", \"xhtml\"]}")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
-    @ApiResponse(responseCode = "404", description = "if the document, artifactDir, or a complete structure artifact is not found")
+    @ApiResponse(responseCode = "404",
+            description = "if the document, artifactDir, or a complete structure artifact is not found")
     @Get("/:project/artifacts/structure/:id?routing=:routing")
-    public Payload structureManifest(final String project, final String id, final String routing, final Context context) throws IOException {
+    public Payload structureManifest(final String project, final String id, final String routing,
+                                     final Context context) throws IOException {
         requireGranted(context, project);
         return manifest(project, id, routing, ArtifactType.STRUCTURE, STRUCTURE_CONTENT_TYPES.keySet());
     }
 
     @Operation(description = "Fetches one structure page of a document, as Markdown (default) or XHTML.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
                     @Parameter(name = "page", description = "1-based page number", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
-                    @Parameter(name = "format", description = "md (default) or xhtml", in = ParameterIn.QUERY)
-            }
-    )
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY),
+                    @Parameter(name = "format", description = "md (default) or xhtml", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "the page as text/markdown or application/xhtml+xml")
     @ApiResponse(responseCode = "400", description = "if format is not one of md, xhtml")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
-    @ApiResponse(responseCode = "404", description = "if the document, the artifact, the page, or that format is not found")
+    @ApiResponse(responseCode = "404",
+            description = "if the document, the artifact, the page, or that format is not found")
     @Get("/:project/artifacts/structure/:id/:page?routing=:routing&format=:format")
     public Payload structurePage(final String project, final String id, final String page, final String routing,
                                  final String format, final Context context) throws IOException {
@@ -141,29 +134,27 @@ public class ArtifactResource {
             return unsupportedFormat(format);
         }
         Payload payload = payload(project, id, page, routing, ArtifactType.STRUCTURE, extension,
-                STRUCTURE_CONTENT_TYPES.get(extension));
+                                  STRUCTURE_CONTENT_TYPES.get(extension));
         // The on-disk XHTML is written pre-sanitized by the structure producer; this is the serving
         // side's defense in depth for a payload written by another producer.
-        return XHTML.equals(extension)
-                ? payload.withHeader("Content-Security-Policy", "default-src 'none'; sandbox")
-                : payload;
+        return XHTML.equals(extension) ? payload.withHeader("Content-Security-Policy", "default-src 'none'; sandbox") :
+               payload;
     }
 
-    @Operation(description = "Counts a query's occurrences in a document's Markdown structure pages, per page. "
-            + "Markdown only: the XHTML the page route serves is markup, so counting over it reports tag "
-            + "names, class names and link targets as occurrences of the user's term. Counts the document's "
-            + "original language: structure pages are rendered from the source bytes, so unlike "
-            + "/documents/searchContent this route has no targetLanguage and never counts a translation.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+    @Operation(description = "Counts a query's occurrences in a document's Markdown structure pages, per page. " +
+                             "Markdown only: the XHTML the page route serves is markup, so counting over it reports tag " +
+                             "names, class names and link targets as occurrences of the user's term. Counts the document's " +
+                             "original language: structure pages are rendered from the source bytes, so unlike " +
+                             "/documents/searchContent this route has no targetLanguage and never counts a translation.",
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "query", description = "the term to count, matched literally", in = ParameterIn.QUERY),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY)
-            }
-    )
-    @ApiResponse(responseCode = "200", description = "JSON {\"count\": N, \"pages\": P, \"scanned\": S, "
-            + "\"hits\": [{\"page\": P, \"count\": N}]}. scanned below pages means the artifact lost pages "
-            + "between its manifest and disk, so the counts are a floor rather than a total.")
+                    @Parameter(name = "query", description = "the term to count, matched literally",
+                            in = ParameterIn.QUERY),
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", description = "JSON {\"count\": N, \"pages\": P, \"scanned\": S, " +
+                                                     "\"hits\": [{\"page\": P, \"count\": N}]}. scanned below pages means the artifact lost pages " +
+                                                     "between its manifest and disk, so the counts are a floor rather than a total.")
     @ApiResponse(responseCode = "400", description = "if the query is blank")
     @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
     @ApiResponse(responseCode = "404", description = "if the document, the artifact, or its markdown is not found")
@@ -176,8 +167,8 @@ public class ArtifactResource {
     // params positionally, so the count is set by the URL and not by this signature. Bundling them
     // would only move the binding problem into a factory.
     @Get("/:project/artifacts/structure/search/:id?query=:query&routing=:routing")
-    public Payload structureSearch(final String project, final String id, final String query,
-                                   final String routing, final Context context) throws IOException {
+    public Payload structureSearch(final String project, final String id, final String query, final String routing,
+                                   final Context context) throws IOException {
         requireGranted(context, project);
         if (query == null || query.isBlank()) {
             // Not the 404 /documents/searchContent gives an empty query: a missing parameter is a
@@ -187,24 +178,26 @@ public class ArtifactResource {
         return search(project, id, routing, query);
     }
 
-    @Operation(description = "Fetches a document's raw (embedded or source) bytes. Same access rules as /documents/src: project membership, the project's download restriction, and the root-document size limit.",
-            parameters = {
-                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+    @Operation(
+            description = "Fetches a document's raw (embedded or source) bytes. Same access rules as /documents/src: project membership, the project's download restriction, and the root-document size limit.",
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
-                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
-                    @Parameter(name = "inline", description = "if true, serve without the attachment disposition", in = ParameterIn.QUERY)
-            }
-    )
+                    @Parameter(name = "routing", description = "routing key if not a root document",
+                            in = ParameterIn.QUERY),
+                    @Parameter(name = "inline", description = "if true, serve without the attachment disposition",
+                            in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "the raw bytes, with the document's content type")
-    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project or downloads are restricted")
+    @ApiResponse(responseCode = "403",
+            description = "forbidden if the user doesn't have access to the project or downloads are restricted")
     @ApiResponse(responseCode = "404", description = "if no document is found or its bytes cannot be read")
-    @ApiResponse(responseCode = "413", description = "if the root document is too large and no raw artifact is cached for this embedded document")
+    @ApiResponse(responseCode = "413",
+            description = "if the root document is too large and no raw artifact is cached for this embedded document")
     @Get("/:project/artifacts/raw/:id?routing=:routing&inline=:inline")
-    public Payload raw(final String project, final String id, final String routing,
-                       final String inline, final Context context) {
+    public Payload raw(final String project, final String id, final String routing, final String inline,
+                       final Context context) {
         boolean serveInline = parseBoolean(inline);
         return sources.gated(project, id, routing, context,
-                document -> sources.source(document, project, serveInline, false));
+                             document -> sources.source(document, project, serveInline, false));
     }
 
     // Resolves the content-addressed dir of an existing document, for a route that has already
@@ -212,7 +205,8 @@ public class ArtifactResource {
     // (both 404). The document is always resolved through the indexer first, so a URL cannot probe
     // arbitrary digests or another project's data.
     private Path docArtifactDir(final String project, final String id, final String routing) {
-        Document document = indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated"));
+        Document document =
+                indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated"));
         if (document == null) {
             return null;
         }
@@ -221,7 +215,7 @@ public class ArtifactResource {
             // Without artifactDir every artifact route answers 404 for every document, which reads
             // exactly like "this document has no artifacts": say so once per request instead.
             LOGGER.warn("{} is unset, so no artifact can be served for document {} of project {}",
-                    DatashareCliOptions.ARTIFACT_DIR_OPT, id, project);
+                        DatashareCliOptions.ARTIFACT_DIR_OPT, id, project);
             return null;
         }
         return ArtifactPath.dir(ArtifactPath.projectRoot(Path.of(artifactDir.get()), project), document.getId());
@@ -244,12 +238,12 @@ public class ArtifactResource {
     }
 
     private static Payload unsupportedFormat(final String format) {
-        return PayloadFormatter.error("unsupported format '" + format + "'; supported formats: "
-                + String.join(", ", STRUCTURE_CONTENT_TYPES.keySet()), HttpStatus.BAD_REQUEST);
+        return PayloadFormatter.error("unsupported format '" + format + "'; supported formats: " +
+                                      String.join(", ", STRUCTURE_CONTENT_TYPES.keySet()), HttpStatus.BAD_REQUEST);
     }
 
-    private Payload manifest(final String project, final String id, final String routing,
-                             final ArtifactType type, final Collection<String> formats) throws IOException {
+    private Payload manifest(final String project, final String id, final String routing, final ArtifactType type,
+                             final Collection<String> formats) throws IOException {
         Path docArtifactDir = docArtifactDir(project, id, routing);
         if (docArtifactDir == null) {
             return Payload.notFound();
@@ -268,8 +262,8 @@ public class ArtifactResource {
     }
 
     private Payload payload(final String project, final String id, final String page, final String routing,
-                            final ArtifactType type, final String extension,
-                            final String contentType) throws IOException {
+                            final ArtifactType type, final String extension, final String contentType) throws
+            IOException {
         Path docArtifactDir = docArtifactDir(project, id, routing);
         if (docArtifactDir == null) {
             return Payload.notFound();
@@ -288,8 +282,8 @@ public class ArtifactResource {
     }
 
     // Same (project, id, routing) shape as manifest() and payload(), so all three routes read alike.
-    private Payload search(final String project, final String id, final String routing,
-                           final String query) throws IOException {
+    private Payload search(final String project, final String id, final String routing, final String query) throws
+            IOException {
         Path docArtifactDir = docArtifactDir(project, id, routing);
         if (docArtifactDir == null) {
             return Payload.notFound();

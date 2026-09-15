@@ -5,10 +5,8 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Spec;
 
 @Command(name = "worker", mixinStandardHelpOptions = true,
-        description = "Manage task workers for background processing.",
-        subcommands = {WorkerRunCommand.class})
+        description = "Manage task workers for background processing.", subcommands = {WorkerRunCommand.class})
 public class WorkerCommand implements Runnable {
-
     @Spec
     CommandLine.Model.CommandSpec spec;
 

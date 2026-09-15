@@ -8,10 +8,8 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
-
 import javax.annotation.Nullable;
 import java.util.HashMap;
-
 import static java.util.Collections.singletonList;
 
 public class YesBasicAuthFilter extends BasicAuthFilter {
@@ -19,7 +17,8 @@ public class YesBasicAuthFilter extends BasicAuthFilter {
     private final PostLoginEnroller postLoginEnroller;
 
     @Inject
-    public YesBasicAuthFilter(final PropertiesProvider propertiesProvider, @Nullable PostLoginEnroller postLoginEnroller) {
+    public YesBasicAuthFilter(final PropertiesProvider propertiesProvider,
+                              @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), "datashare", new DummyUsers());
         this.postLoginEnroller = postLoginEnroller;
     }

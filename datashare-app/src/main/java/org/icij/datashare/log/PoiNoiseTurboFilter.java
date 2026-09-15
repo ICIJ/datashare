@@ -25,10 +25,11 @@ public class PoiNoiseTurboFilter extends TurboFilter {
         return switch (logger.getName()) {
             case "org.apache.poi.hwmf.record.HwmfText" -> deny(format.startsWith("META_EXTTEXTOUT"));
             case "org.apache.poi.hslf.usermodel.HSLFTextParagraph" ->
-                    deny(format.startsWith("MasterSheet is not available")
-                            || format.startsWith("bytes nor chars atom doesn't exist"));
-            case "org.apache.poi.hslf.record.Record" -> deny(format.startsWith("Problem reading paragraph style runs")
-                    || format.startsWith("Problem reading character style runs"));
+                    deny(format.startsWith("MasterSheet is not available") ||
+                         format.startsWith("bytes nor chars atom doesn't exist"));
+            case "org.apache.poi.hslf.record.Record" ->
+                    deny(format.startsWith("Problem reading paragraph style runs") ||
+                         format.startsWith("Problem reading character style runs"));
             case "org.apache.poi.hdgf.chunks.Chunk" -> deny(format.startsWith("Command offset"));
             case "org.apache.poi.hslf.model.textproperties.BitMaskTextProp" ->
                     deny(format.startsWith("Style properties of"));

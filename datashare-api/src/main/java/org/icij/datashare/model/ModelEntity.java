@@ -10,9 +10,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-public record ModelEntity(String model, String id, Set<String> types, Set<String> modelVersions,
-                          Set<String> documentIds, Map<String, List<String>> properties) {
-
+public record ModelEntity(String model, String id, Set<String> types, Set<String> modelVersions, Set<String> documentIds, Map<String, List<String>> properties) {
     public ModelEntity {
         Objects.requireNonNull(model, "model");
         Objects.requireNonNull(id, "id");

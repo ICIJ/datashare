@@ -1,8 +1,7 @@
 package org.icij.datashare.session;
 
 public interface UsersIdProviderCache extends UsersWritable {
-    UsersIdProviderCache NO_CACHE = new UsersIdProviderCache() {
-    };
+    UsersIdProviderCache NO_CACHE = new UsersIdProviderCache() {};
 
     @Override
     default net.codestory.http.security.User find(String login) {

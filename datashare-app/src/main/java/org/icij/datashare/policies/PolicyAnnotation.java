@@ -7,12 +7,9 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.ApplyAroundAnnotation;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.DatashareUser;
-
 import java.io.IOException;
 import java.util.function.Function;
-
 import static org.icij.datashare.policies.Authorizer.requireDomain;
-
 
 public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -35,7 +32,8 @@ public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
         } else {
             domain = requireDomain(annotation.domain(), true);
             try {
-                projectId = annotation.role() == Role.DOMAIN_ADMIN ? "*" : resolveProjectId(context, annotation.idParam());
+                projectId =
+                        annotation.role() == Role.DOMAIN_ADMIN ? "*" : resolveProjectId(context, annotation.idParam());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

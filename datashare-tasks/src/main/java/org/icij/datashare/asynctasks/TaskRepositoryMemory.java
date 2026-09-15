@@ -23,9 +23,8 @@ public class TaskRepositoryMemory extends ConcurrentHashMap<String, TaskGroupMet
 
     @Override
     public Stream<Task<? extends Serializable>> getTasks(TaskFilters filters) throws IOException, UnknownTask {
-        return super.values().stream().map(TaskGroupMetadata::task)
-                .filter(filters::filter)
-                .map(t -> (Task<? extends Serializable>) t);
+        return super.values().stream().map(TaskGroupMetadata::task).filter(filters::filter)
+                    .map(t -> (Task<? extends Serializable>) t);
     }
 
     @Override

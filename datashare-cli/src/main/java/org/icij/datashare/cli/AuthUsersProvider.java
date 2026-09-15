@@ -16,9 +16,7 @@ import java.util.Optional;
  * fall through to class-name interpretation.</p>
  */
 public enum AuthUsersProvider {
-    DATABASE("database"),
-    REDIS("redis");
-
+    DATABASE("database"), REDIS("redis");
     public final String cliName;
 
     AuthUsersProvider(String cliName) {
@@ -51,8 +49,8 @@ public enum AuthUsersProvider {
         if (s == null) {
             throw new IllegalArgumentException("Auth users provider must not be null");
         }
-        return tryFromString(s).orElseThrow(() -> new IllegalArgumentException(
-                "Unknown auth users provider: " + s + " (valid: database, redis)"));
+        return tryFromString(s).orElseThrow(
+                () -> new IllegalArgumentException("Unknown auth users provider: " + s + " (valid: database, redis)"));
     }
 
     @Override

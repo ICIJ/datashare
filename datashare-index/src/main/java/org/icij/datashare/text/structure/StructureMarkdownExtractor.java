@@ -30,7 +30,6 @@ import org.jsoup.safety.Safelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -48,7 +47,6 @@ import java.util.regex.Pattern;
  * the caller passes it and records it in the artifact's fingerprint.
  */
 public class StructureMarkdownExtractor {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(StructureMarkdownExtractor.class);
 
     /** The OCR the INDEX stage applied to this document, so a page holds the text the content field
@@ -59,15 +57,11 @@ public class StructureMarkdownExtractor {
     }
 
     private static final String GENERIC_CONTENT_TYPE = "application/octet-stream";
-
     // Containers Tika wraps an embedded part's output in: a mail part, an archived file, or a generic
     // embedded object (PDF-in-PDF, OLE objects in Office files, ...).
     private static final String EMBEDDED_CONTAINERS = "div.embedded, div.email-entry, div.package-entry";
-
     private static final String PAGE_DIVS = "div.page";
-
     private static final String XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
-
     // Relaxed minus <u>, which is unwrapped to avoid flexmark's non-standard "++text++". An <img> keeps
     // everything but its src: a stored page is rendered, so a remote image is a beacon reporting the
     // reader's IP and which document they opened, and no protocol allowlist can tell one from a benign
@@ -78,34 +72,29 @@ public class StructureMarkdownExtractor {
     // fence back. jsoup cannot filter attribute values, and html2md writes this one straight into the
     // markdown fence info string with no re-sanitization after (see keepOnlyLanguageClass), so what
     // reaches Jsoup.clean is already reduced to a single recognized language token or nothing.
-    private static final Safelist SAFELIST = Safelist.relaxed().removeTags("u").addTags("del", "hr")
-            .addAttributes("code", "class")
-            .removeAttributes("img", "src").preserveRelativeLinks(true);
-
+    private static final Safelist SAFELIST =
+            Safelist.relaxed().removeTags("u").addTags("del", "hr").addAttributes("code", "class")
+                    .removeAttributes("img", "src").preserveRelativeLinks(true);
     // Pretty-printing would bake jsoup's indentation into the stored XHTML, so the page bytes would
     // depend on formatting defaults nothing tracks. Cloned per use so no page can mutate it.
     private static final Document.OutputSettings COMPACT_OUTPUT = new Document.OutputSettings().prettyPrint(false);
-
     // jsoup's protocol allowlist runs on the resolved URL, so a relative href with no base to resolve
     // against is dropped as an unknown scheme. jsoup's 3-argument clean() substitutes its own dummy
     // host for that reason; the overload taking output settings does not. Never reaches the stored
     // bytes, since preserveRelativeLinks keeps the attribute's original value.
     private static final String RELATIVE_LINK_BASE = "https://dummy.example/";
-
     // ToXMLContentHandler buffers the whole rendering, and the pipeline then holds it several times over
     // (buffer, string, jsoup DOM, every page's XHTML and Markdown), times --parallelism. Nothing on the
     // produce path catches an OutOfMemoryError, so the parse is stopped instead.
     private static final int DEFAULT_MAX_OUTPUT_CHARS = 16_000_000;
-
     // The same parser set the INDEX stage uses: extract-lib swaps Tika's stock OutlookPSTParser, which
     // abandons the rest of a PST or OST once one message fails, for the resilient one (Extractor.java:259).
     // Off Tika's stock set, a mail container's structure would stop at its first bad message. Null-checked
     // because replaceParser returns null for a non-composite parser, which would then NPE per document.
     private static final Parser RESILIENT_PARSER = Objects.requireNonNull(
             Extractor.replaceParser(TikaConfig.getDefaultConfig().getParser(), OutlookPSTParser.class,
-                    parser -> new ResilientOutlookPSTParser()),
+                                    parser -> new ResilientOutlookPSTParser()),
             "Tika's default parser is not a CompositeParser, so the resilient PST parser cannot be swapped in");
-
     private final int maxOutputChars;
 
     public StructureMarkdownExtractor() {
@@ -120,44 +109,37 @@ public class StructureMarkdownExtractor {
     // pinned to what a Markdown source writes them as, since flexmark's defaults ("*", and
     // "*** ** * ** ***") would rewrite a README's own syntax on the way back out.
     private static final FlexmarkHtmlConverter MARKDOWN_CONVERTER = FlexmarkHtmlConverter.builder(
-            new MutableDataSet()
-                    .set(FlexmarkHtmlConverter.SETEXT_HEADINGS, false)
-                    .set(FlexmarkHtmlConverter.UNORDERED_LIST_DELIMITER, '-')
-                    .set(FlexmarkHtmlConverter.THEMATIC_BREAK, "---")
-                    .set(FlexmarkHtmlConverter.MAX_BLANK_LINES, 1)).build();
-
+            new MutableDataSet().set(FlexmarkHtmlConverter.SETEXT_HEADINGS, false)
+                                .set(FlexmarkHtmlConverter.UNORDERED_LIST_DELIMITER, '-')
+                                .set(FlexmarkHtmlConverter.THEMATIC_BREAK, "---")
+                                .set(FlexmarkHtmlConverter.MAX_BLANK_LINES, 1)).build();
     // Tika has no Markdown parser: a Markdown document goes through TextAndCSVParser, which hands back
     // the whole file as a single literal text node, so every "**" reaching the converter above is text
     // and comes out escaped as "\*\*". Parsing that text as Markdown first makes it real elements, which
     // the converter then writes back unescaped. Tables and strikethrough are both on because the
     // converter renders them back as GFM syntax (a table, "~~struck~~") and would otherwise see a wall
     // of escaped pipes or literal tildes.
-    private static final MutableDataSet MARKDOWN_OPTIONS = new MutableDataSet()
-            .set(com.vladsch.flexmark.parser.Parser.EXTENSIONS,
-                    List.of(TablesExtension.create(), StrikethroughExtension.create()));
-
+    private static final MutableDataSet MARKDOWN_OPTIONS =
+            new MutableDataSet().set(com.vladsch.flexmark.parser.Parser.EXTENSIONS,
+                                     List.of(TablesExtension.create(), StrikethroughExtension.create()));
     private static final com.vladsch.flexmark.parser.Parser MARKDOWN_PARSER =
             com.vladsch.flexmark.parser.Parser.builder(MARKDOWN_OPTIONS).build();
-
     private static final HtmlRenderer MARKDOWN_RENDERER = HtmlRenderer.builder(MARKDOWN_OPTIONS).build();
-
     // What Tika 3.3.0 detects Markdown as. The IANA name (text/markdown, RFC 7763) is deliberately not
     // listed too: Tika never emits it, so it would be an untested branch standing in for a rename that
     // has not happened.
     private static final String MARKDOWN_TYPE = "text/x-web-markdown";
-
     private static final Set<String> INLINE_BODY_TYPES = Set.of("text/plain", "text/html");
 
-    public record Page(String xhtml, String markdown) {
-    }
+    public record Page(String xhtml, String markdown) {}
 
     /**
      * Parses {@code source} once and returns one {@link Page} per page of the root document. The
      * caller owns {@code source}: this method reads but does not close it. {@code contentType} and
      * {@code filename} are detection hints, either of which may be null.
      */
-    public List<Page> extract(InputStream source, String contentType, String filename, OcrSettings ocr)
-            throws IOException, SAXException, TikaException {
+    public List<Page> extract(InputStream source, String contentType, String filename, OcrSettings ocr) throws
+            IOException, SAXException, TikaException {
         // Kept rather than built inside toXhtml: the parse fills it with the type Tika detected.
         Metadata metadata = buildMetadata(contentType, filename);
         org.jsoup.nodes.Document document = Jsoup.parse(toXhtml(source, metadata, ocr));
@@ -213,8 +195,7 @@ public class StructureMarkdownExtractor {
     // the rendering of the page holding it, so taking it as a page too would emit its content twice.
     private static boolean isRootPage(Element pageDiv) {
         Element parent = pageDiv.parent();
-        return pageDiv.closest(EMBEDDED_CONTAINERS) == null
-                && (parent == null || parent.closest(PAGE_DIVS) == null);
+        return pageDiv.closest(EMBEDDED_CONTAINERS) == null && (parent == null || parent.closest(PAGE_DIVS) == null);
     }
 
     // Content can sit outside the page divs (Tika appends the bookmark outline and AcroForm fields after
@@ -234,25 +215,22 @@ public class StructureMarkdownExtractor {
     // a bare body fragment. The re-parse is also what turns the cleaned HTML into XML (void elements
     // self-closed). jsoup inserts an empty <head>: harmless, still valid XHTML.
     private static org.jsoup.nodes.Document asXhtmlDocument(String sanitizedFragment) {
-        return Jsoup.parse(
-                "<html xmlns=\"" + XHTML_NAMESPACE + "\"><body>" + sanitizedFragment + "</body></html>");
+        return Jsoup.parse("<html xmlns=\"" + XHTML_NAMESPACE + "\"><body>" + sanitizedFragment + "</body></html>");
     }
 
     // Applied after the Markdown conversion, so no output setting can reach the converter.
     private static String serializeAsXhtml(org.jsoup.nodes.Document page) {
-        page.outputSettings()
-                .syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml)
-                .prettyPrint(false);
+        page.outputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml).prettyPrint(false);
         return page.html();
     }
 
-    String toXhtml(InputStream source, Metadata metadata, OcrSettings ocr)
-            throws IOException, SAXException, TikaException {
+    String toXhtml(InputStream source, Metadata metadata, OcrSettings ocr) throws IOException, SAXException,
+            TikaException {
         ToXMLContentHandler xhtmlHandler = new ToXMLContentHandler();
         try {
             new AutoDetectParser(RESILIENT_PARSER).parse(source,
-                    new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
-                    metadata, buildParseContext(ocr));
+                                                         new WriteOutContentHandler(xhtmlHandler, maxOutputChars),
+                                                         metadata, buildParseContext(ocr));
         } catch (SAXException | TikaException failure) {
             // The cap is ours, so reaching it is truncation and not content no parser can read. Read off
             // the cause chain, as Tika's own parseToString does, and off both types: CompositeParser
@@ -262,7 +240,7 @@ public class StructureMarkdownExtractor {
                 throw failure;
             }
             LOGGER.warn("rendering of \"{}\" stopped at the {}-character output cap: the text up to it is kept",
-                    metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY), maxOutputChars);
+                        metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY), maxOutputChars);
         }
         return xhtmlHandler.toString();
     }
@@ -317,8 +295,8 @@ public class StructureMarkdownExtractor {
     // Content-Disposition header. Accepted consequence: a nameless attachment text part is inlined,
     // duplicating text that has its own artifact, while every named part is still refused.
     public static boolean isOwnBody(Metadata metadata) {
-        return metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY) == null
-                && INLINE_BODY_TYPES.contains(baseContentType(metadata));
+        return metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY) == null &&
+               INLINE_BODY_TYPES.contains(baseContentType(metadata));
     }
 
     private static String baseContentType(Metadata metadata) {
@@ -363,10 +341,12 @@ public class StructureMarkdownExtractor {
 
     private static void keepOnlyLanguageClass(Element page) {
         for (Element code : page.select("code[class]")) {
-            String language = code.classNames().stream().filter(c -> LANGUAGE_CLASS.matcher(c).matches())
-                    .findFirst().orElse(null);
-            if (language == null) code.removeAttr("class");
-            else code.attr("class", language);
+            String language = code.classNames().stream().filter(c -> LANGUAGE_CLASS.matcher(c).matches()).findFirst()
+                                  .orElse(null);
+            if (language == null)
+                code.removeAttr("class");
+            else
+                code.attr("class", language);
         }
     }
 

@@ -18,7 +18,6 @@ public class FileReport extends AbstractFileReport {
         return Type.FILE;
     }
 
-
     public String getProt() {
         return "-" + super.fileProt();
     }

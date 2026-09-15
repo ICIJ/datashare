@@ -2,10 +2,8 @@ package org.icij.datashare.cli.spi;
 
 import com.google.inject.Injector;
 import com.google.inject.Module;
-
 import java.util.Properties;
 import java.util.function.Function;
-
 import joptsimple.OptionParser;
 
 public interface CliExtension {

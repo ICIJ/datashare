@@ -8,7 +8,6 @@ package org.icij.datashare.function;
  * Created by julien on 7/12/16.
  */
 public class Pair<T1, T2> {
-
     private final T1 first;
     private final T2 second;
 
@@ -36,8 +35,7 @@ public class Pair<T1, T2> {
             return false;
         }
         Pair objPair = (Pair) o;
-        return first.equals(objPair._1()) &&
-                second.equals(objPair._2());
+        return first.equals(objPair._1()) && second.equals(objPair._2());
     }
 
     @Override

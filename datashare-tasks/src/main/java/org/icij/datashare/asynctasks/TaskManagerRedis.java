@@ -5,9 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-
 import java.util.List;
-
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
@@ -27,7 +25,6 @@ import org.redisson.client.protocol.Decoder;
 import org.redisson.client.protocol.Encoder;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -36,7 +33,6 @@ import java.nio.charset.Charset;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.asynctasks.Task.State.FINAL_STATES;
 
@@ -54,11 +50,13 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
         this(redissonClient, tasks, RoutingStrategy.UNIQUE, null);
     }
 
-    public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback) {
+    public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy,
+                            Runnable eventCallback) {
         this(redissonClient, tasks, routingStrategy, eventCallback, DEFAULT_TASK_POLLING_INTERVAL_MS);
     }
 
-    public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy, Runnable eventCallback, int taskPollingIntervalMs) {
+    public TaskManagerRedis(RedissonClient redissonClient, TaskRepository tasks, RoutingStrategy routingStrategy,
+                            Runnable eventCallback, int taskPollingIntervalMs) {
         this.redissonClient = redissonClient;
         this.routingStrategy = routingStrategy;
         this.tasks = tasks;
@@ -90,14 +88,13 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
     @Override
     public List<Task<?>> clearDoneTasks(TaskFilters filters) throws IOException {
         // Require tasks to be in final state and apply user filters
-        Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES))
-                .map(t -> {
-                    try {
-                        return tasks.delete(t.id);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        Stream<Task<?>> taskStream = tasks.getTasks(filters.withStates(FINAL_STATES)).map(t -> {
+            try {
+                return tasks.delete(t.id);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
         return taskStream.toList();
     }
 
@@ -134,19 +131,25 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
     BlockingQueue<Task<?>> taskQueue(Task<?> task) throws IOException {
         switch (routingStrategy) {
             case GROUP -> {
-                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), tasks.getTaskGroup(task.id).id()), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(),
+                                                   String.format("%s.%s", AmqpQueue.TASK.name(),
+                                                                 tasks.getTaskGroup(task.id).id()), redissonClient);
             }
             case NAME -> {
-                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), String.format("%s.%s", AmqpQueue.TASK.name(), task.name), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(),
+                                                   String.format("%s.%s", AmqpQueue.TASK.name(), task.name),
+                                                   redissonClient);
             }
             default -> {
-                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), AmqpQueue.TASK.name(), redissonClient);
+                return new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(),
+                                                   AmqpQueue.TASK.name(), redissonClient);
             }
         }
     }
 
     private CommandSyncService getCommandSyncService() {
-        return new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
+        return new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
+                                      new RedissonObjectBuilder(redissonClient));
     }
 
     @Override
@@ -191,10 +194,8 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
     private void clearTaskQueues() {
         RKeys keys = redissonClient.getKeys();
         Iterable<String> iterable = keys.getKeysByPattern(AmqpQueue.TASK.name() + "*", 100);
-        StreamSupport
-                .stream(iterable.spliterator(), false)
-                .filter(k -> keys.getType(k) == RType.LIST)
-                .forEach(k -> redissonClient.getQueue(k).delete());
+        StreamSupport.stream(iterable.spliterator(), false).filter(k -> keys.getType(k) == RType.LIST)
+                     .forEach(k -> redissonClient.getQueue(k).delete());
     }
 
     @Override
@@ -242,7 +243,6 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
                 }
             }
         };
-
         private final Decoder<Object> decoder = new Decoder<>() {
             @Override
             public T decode(ByteBuf buf, State state) throws IOException {

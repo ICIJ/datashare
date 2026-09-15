@@ -2,14 +2,12 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import static java.util.Optional.ofNullable;
 
 public class DeliverablePackage implements Comparable<DeliverablePackage> {
@@ -19,7 +17,8 @@ public class DeliverablePackage implements Comparable<DeliverablePackage> {
     private final Deliverable installedDeliverable;
     private final Deliverable deliverableFromRegistry;
 
-    public DeliverablePackage(Deliverable installedDeliverable, Path deliverableDir, Deliverable deliverableFromRegistry) {
+    public DeliverablePackage(Deliverable installedDeliverable, Path deliverableDir,
+                              Deliverable deliverableFromRegistry) {
         if (installedDeliverable == null && deliverableFromRegistry == null) {
             throw new IllegalStateException("cannot create deliverable package with both null deliverables");
         }
@@ -56,14 +55,13 @@ public class DeliverablePackage implements Comparable<DeliverablePackage> {
         // Use Arrays.asList to allow null elements
         List<Deliverable> deliverables = Arrays.asList(installedDeliverable, deliverableFromRegistry);
         // Stream the list, filter out nulls, and collect into a list
-        return deliverables.parallelStream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        return deliverables.parallelStream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     public void displayInformation() {
         Deliverable deliverable = ofNullable(deliverableFromRegistry).orElse(installedDeliverable);
-        System.out.println(deliverable.getClass().getSimpleName() + " " + deliverable.getId() + (isInstalled() ? " **INSTALLED** " : ""));
+        System.out.println(deliverable.getClass().getSimpleName() + " " + deliverable.getId() +
+                           (isInstalled() ? " **INSTALLED** " : ""));
         System.out.println("\t" + deliverable.getName());
         System.out.println("\t" + deliverable.getDescription());
         if (isInstalled()) {
@@ -99,14 +97,15 @@ public class DeliverablePackage implements Comparable<DeliverablePackage> {
 
     @Override
     public String toString() {
-        return "Package id=" + reference().getId() +
-                " version=" + reference().getVersion();
+        return "Package id=" + reference().getId() + " version=" + reference().getVersion();
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         DeliverablePackage that = (DeliverablePackage) o;
         return compareTo(that) == 0;
     }
@@ -119,7 +118,8 @@ public class DeliverablePackage implements Comparable<DeliverablePackage> {
     @Override
     public int compareTo(@NotNull DeliverablePackage deliverablePackage) {
         Deliverable myDeliverable = ofNullable(installedDeliverable).orElse(deliverableFromRegistry);
-        Deliverable otherDeliverable = ofNullable(deliverablePackage.installedDeliverable).orElse(deliverablePackage.deliverableFromRegistry);
+        Deliverable otherDeliverable =
+                ofNullable(deliverablePackage.installedDeliverable).orElse(deliverablePackage.deliverableFromRegistry);
         return myDeliverable.getId().compareTo(otherDeliverable.getId());
     }
 }

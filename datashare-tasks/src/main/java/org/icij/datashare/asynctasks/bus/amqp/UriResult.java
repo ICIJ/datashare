@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.icij.datashare.asynctasks.DownloadableResult;
-
 import java.io.Serializable;
 import java.net.URI;
 

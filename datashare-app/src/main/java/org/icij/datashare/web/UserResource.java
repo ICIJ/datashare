@@ -38,7 +38,6 @@ import org.icij.datashare.user.admin.UserUpdateRequest;
 import org.icij.datashare.user.admin.ValidationException;
 import org.icij.datashare.utils.PayloadFormatter;
 import org.jetbrains.annotations.NotNull;
-
 import java.net.URI;
 import java.util.Collections;
 import java.util.Comparator;
@@ -48,7 +47,6 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Objects.isNull;
 import static net.codestory.http.payload.Payload.ok;
@@ -66,14 +64,14 @@ public class UserResource {
         List<String> projectNames = datashareUser.getProjectNames();
         List<Project> projects = datashareUser.getProjects();
         List<Project> repositoryProjects = repository.getProjects(projectNames);
-        return projects.stream().map(project -> repositoryProjects.stream()
-                .filter(p -> p.name.equals(project.name))
-                .findFirst()
-                .orElse(project)).collect(Collectors.toList());
+        return projects.stream()
+                       .map(project -> repositoryProjects.stream().filter(p -> p.name.equals(project.name)).findFirst()
+                                                         .orElse(project)).collect(Collectors.toList());
     }
 
     @Inject
-    public UserResource(Repository repository, Authorizer authorizer, UserAdminService userAdminService, ProjectAdminService projectAdminService) {
+    public UserResource(Repository repository, Authorizer authorizer, UserAdminService userAdminService,
+                        ProjectAdminService projectAdminService) {
         this.repository = repository;
         this.authorizer = authorizer;
         this.userAdminService = userAdminService;
@@ -81,8 +79,8 @@ public class UserResource {
     }
 
     @Operation(description = "Lists users. Optional scope: ?domain=X or ?domain=X&index=Y. " +
-            "Filters: q (free-text on uid/name/email), noRole (true=include no-role users, false=exclude them). " +
-            "Sort: uid | email | name | role, desc=true for descending. Paginated with from/size.")
+                             "Filters: q (free-text on uid/name/email), noRole (true=include no-role users, false=exclude them). " +
+                             "Sort: uid | email | name | role, desc=true for descending. Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "invalid sort parameter")
     @ApiResponse(responseCode = "501", description = "store does not support listing")
@@ -101,11 +99,9 @@ public class UserResource {
         boolean isScoped = domain != null || index != null;
 
         // 0. Validate sort param early
-        if (sortParam != null && !sortParam.isBlank()
-                && !"uid".equalsIgnoreCase(sortParam)
-                && !"email".equalsIgnoreCase(sortParam)
-                && !"name".equalsIgnoreCase(sortParam)
-                && !"role".equalsIgnoreCase(sortParam)) {
+        if (sortParam != null && !sortParam.isBlank() && !"uid".equalsIgnoreCase(sortParam) &&
+            !"email".equalsIgnoreCase(sortParam) && !"name".equalsIgnoreCase(sortParam) &&
+            !"role".equalsIgnoreCase(sortParam)) {
             return PayloadFormatter.error("sort must be one of: uid, email, name, role", HttpStatus.BAD_REQUEST);
         }
 
@@ -119,24 +115,26 @@ public class UserResource {
         }
 
         // 2. Build userId -> rules map from Casbin
-        Map<String, List<CasbinRule>> rulesByUserId = authorizer.getGroupPermissions().stream()
-                .collect(Collectors.groupingBy(CasbinRule::getV0));
+        Map<String, List<CasbinRule>> rulesByUserId =
+                authorizer.getGroupPermissions().stream().collect(Collectors.groupingBy(CasbinRule::getV0));
 
         // 3. Build UserListItem stream: scope-filter permissions per user
         Stream<UserListItem> stream = users.stream().map(user -> {
-            List<UserListItem.Permission> permissions = rulesByUserId
-                    .getOrDefault(user.id, List.of())
-                    .stream()
-                    .filter(r -> matchesScope(r.getV2(), domain, index))
-                    .map(r -> new UserListItem.Permission(r.getV1(), r.getV2()))
-                    .collect(Collectors.toList());
+            List<UserListItem.Permission> permissions = rulesByUserId.getOrDefault(user.id, List.of()).stream()
+                                                                     .filter(r -> matchesScope(r.getV2(), domain,
+                                                                                               index))
+                                                                     .map(r -> new UserListItem.Permission(r.getV1(),
+                                                                                                           r.getV2()))
+                                                                     .collect(Collectors.toList());
             return new UserListItem(user.id, user.name, user.email, permissions);
         });
 
         // 4. Apply scope + noRole filter
         stream = stream.filter(item -> {
-            if (!item.permissions().isEmpty()) return true;
-            if (noRole == null) return !isScoped;
+            if (!item.permissions().isEmpty())
+                return true;
+            if (noRole == null)
+                return !isScoped;
             return noRole;
         });
 
@@ -146,18 +144,20 @@ public class UserResource {
             if ("uid".equalsIgnoreCase(sortParam)) {
                 comparator = Comparator.comparing(UserListItem::uid, String.CASE_INSENSITIVE_ORDER);
             } else if ("email".equalsIgnoreCase(sortParam)) {
-                comparator = Comparator.comparing(UserListItem::email, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+                comparator =
+                        Comparator.comparing(UserListItem::email, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
             } else if ("name".equalsIgnoreCase(sortParam)) {
-                comparator = Comparator.comparing(UserListItem::name, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+                comparator =
+                        Comparator.comparing(UserListItem::name, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
             } else if ("role".equalsIgnoreCase(sortParam)) {
-                comparator = Comparator.comparingInt(item -> item.permissions().stream()
-                        .mapToInt(p -> roleOrdinal(p.v1()))
-                        .min()
-                        .orElse(Integer.MAX_VALUE));
+                comparator = Comparator.comparingInt(
+                        item -> item.permissions().stream().mapToInt(p -> roleOrdinal(p.v1())).min()
+                                    .orElse(Integer.MAX_VALUE));
             } else {
                 return PayloadFormatter.error("sort must be one of: uid, email, name, role", HttpStatus.BAD_REQUEST);
             }
-            if (desc) comparator = comparator.reversed();
+            if (desc)
+                comparator = comparator.reversed();
             stream = stream.sorted(comparator);
         }
 
@@ -166,9 +166,11 @@ public class UserResource {
     }
 
     private static boolean matchesScope(String v2, String domain, String index) {
-        if (domain == null && index == null) return true;
+        if (domain == null && index == null)
+            return true;
         String effectiveDomain = domain != null ? domain : Domain.DEFAULT.id();
-        if ("*::*".equals(v2)) return true;
+        if ("*::*".equals(v2))
+            return true;
         if (index != null) {
             return v2.equals(effectiveDomain + "::" + index) || v2.equals(effectiveDomain + "::*");
         }
@@ -241,7 +243,8 @@ public class UserResource {
         return new Payload(204);
     }
 
-    @Operation(description = "Grants a project role to a user. role query param must be one of admin|editor|member|visitor. " +
+    @Operation(description =
+            "Grants a project role to a user. role query param must be one of admin|editor|member|visitor. " +
             "Set ifNotExists=true for the idempotent variant (no-op if the user already holds exactly that role).",
             parameters = {@Parameter(name = "userId", in = ParameterIn.PATH),
                     @Parameter(name = "index", in = ParameterIn.PATH),
@@ -256,9 +259,8 @@ public class UserResource {
         boolean ifNotExists = Boolean.parseBoolean(context.get("ifNotExists"));
         try {
             Role role = Validators.projectRole(context.get("role"));
-            ProjectGranted granted = ifNotExists
-                    ? projectAdminService.grantIfNotExists(index, userId, role)
-                    : projectAdminService.grant(index, userId, role);
+            ProjectGranted granted = ifNotExists ? projectAdminService.grantIfNotExists(index, userId, role) :
+                                     projectAdminService.grant(index, userId, role);
             return new Payload(granted);
         } catch (Validators.InvalidValueException | org.icij.datashare.project.admin.ValidationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -268,7 +270,7 @@ public class UserResource {
     }
 
     @Operation(description = "Revokes every role a user holds on a project. " +
-            "Set ifExists=true for the idempotent variant (no-op if the user does not exist or holds no role).",
+                             "Set ifExists=true for the idempotent variant (no-op if the user does not exist or holds no role).",
             parameters = {@Parameter(name = "userId", in = ParameterIn.PATH),
                     @Parameter(name = "index", in = ParameterIn.PATH),
                     @Parameter(name = "ifExists", in = ParameterIn.QUERY)})
@@ -279,9 +281,8 @@ public class UserResource {
     public Payload revokeProjectFromUser(String userId, String index, Context context) {
         boolean ifExists = Boolean.parseBoolean(context.get("ifExists"));
         try {
-            ProjectRevoked revoked = ifExists
-                    ? projectAdminService.revokeIfExists(index, userId)
-                    : projectAdminService.revoke(index, userId);
+            ProjectRevoked revoked = ifExists ? projectAdminService.revokeIfExists(index, userId) :
+                                     projectAdminService.revoke(index, userId);
             return new Payload(revoked);
         } catch (ProjectNotFoundException | org.icij.datashare.project.admin.UserNotFoundException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
@@ -300,7 +301,8 @@ public class UserResource {
     }
 
     @Operation(description = "Gets the current user's permissions.")
-    @ApiResponse(responseCode = "200", description = "returns the list of casbin rules for the current user", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "200", description = "returns the list of casbin rules for the current user",
+            useReturnTypeSchema = true)
     @Get("/me/permissions")
     public List<CasbinRule> getUserPermissions(Context context) {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
@@ -314,23 +316,28 @@ public class UserResource {
         return ok().withAllowMethods("OPTIONS", "GET", "PUT", "DELETE");
     }
 
-    @Operation(description = "Gets the user's history by type",
-            parameters = {@Parameter(name = "from", description = "the offset of the list, starting from 0", in = ParameterIn.QUERY),
-                    @Parameter(name = "size", description = "the number of element retrieved", in = ParameterIn.QUERY),
-                    @Parameter(name = "type", description = "string included in 'document' or 'search'", in = ParameterIn.QUERY),
-                    @Parameter(name = "sort", description = "the name of the parameter to sort on (default: modificationDate)", in = ParameterIn.QUERY),
-                    @Parameter(name = "desc", description = "the list is sorted in descending order (default: true)", in = ParameterIn.QUERY),
-                    @Parameter(name = "projects", description = "projectIds separated by comma to filter by projects (default: none)", in = ParameterIn.QUERY)})
+    @Operation(description = "Gets the user's history by type", parameters = {
+            @Parameter(name = "from", description = "the offset of the list, starting from 0", in = ParameterIn.QUERY),
+            @Parameter(name = "size", description = "the number of element retrieved", in = ParameterIn.QUERY),
+            @Parameter(name = "type", description = "string included in 'document' or 'search'",
+                    in = ParameterIn.QUERY),
+            @Parameter(name = "sort", description = "the name of the parameter to sort on (default: modificationDate)",
+                    in = ParameterIn.QUERY),
+            @Parameter(name = "desc", description = "the list is sorted in descending order (default: true)",
+                    in = ParameterIn.QUERY), @Parameter(name = "projects",
+            description = "projectIds separated by comma to filter by projects (default: none)",
+            in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns the user's list of events and the total number of events")
     @Get("/me/history?type=:type&from=:from&size=:size&sort=:sort&desc=:desc&projects=:projects")
-    public Payload getUserHistory(String type, int from, int size, String sort, String desc, String projects, Context context) {
+    public Payload getUserHistory(String type, int from, int size, String sort, String desc, String projects,
+                                  Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         Type eventType = Type.valueOf(type.toUpperCase());
         String sortBy = getStringValue(sort).orElse(USER_HISTORY.MODIFICATION_DATE.getName());
         try {
             WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(
-                    repository.getUserHistory(user, eventType, from, size, sortBy, parseBooleanQueryArg(desc), parseProjectIdsQueryArg(projects)),
-                    from, size,
+                    repository.getUserHistory(user, eventType, from, size, sortBy, parseBooleanQueryArg(desc),
+                                              parseProjectIdsQueryArg(projects)), from, size,
                     repository.getUserHistorySize(user, eventType, parseProjectIdsQueryArg(projects)));
             return new Payload(userEventWebResponse);
         } catch (IllegalArgumentException e) {
@@ -344,7 +351,7 @@ public class UserResource {
 
     @NotNull
     private static String[] parseProjectIdsQueryArg(String projects) {
-        return getStringValue(projects).isEmpty() ? new String[]{} : projects.trim().split(",");
+        return getStringValue(projects).isEmpty() ? new String[] {} : projects.trim().split(",");
     }
 
     private static boolean parseBooleanQueryArg(String desc) {
@@ -359,19 +366,26 @@ public class UserResource {
             """)
     @ApiResponse(responseCode = "200", description = "returns 200 when event is added or updated.")
     @Put("/me/history")
-    public Payload addToUserHistory(@Parameter(name = "query", description = "user history query to save", in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
+    public Payload addToUserHistory(@Parameter(name = "query", description = "user history query to save",
+            in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
         if (!isNull(query.eventId)) {
-            boolean updated = repository.renameSavedSearch((DatashareUser) context.currentUser(), query.eventId, query.name);
+            boolean updated =
+                    repository.renameSavedSearch((DatashareUser) context.currentUser(), query.eventId, query.name);
             return updated ? ok() : new Payload(400);
         }
-        repository.addToUserHistory(query.projects, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
+        repository.addToUserHistory(query.projects,
+                                    new UserEvent((DatashareUser) context.currentUser(), query.type, query.name,
+                                                  query.uri));
         return ok();
     }
 
     @Operation(description = "Delete user history by type.")
-    @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent",
+            useReturnTypeSchema = true)
     @Delete("/me/history?type=:type")
-    public Payload deleteUserHistory(@Parameter(name = "type", description = "type of user history event", in = ParameterIn.QUERY) String type, Context context) {
+    public Payload deleteUserHistory(
+            @Parameter(name = "type", description = "type of user history event", in = ParameterIn.QUERY) String type,
+            Context context) {
         repository.deleteUserHistory((DatashareUser) context.currentUser(), Type.valueOf(type.toUpperCase()));
         return new Payload(204);
     }
@@ -386,7 +400,8 @@ public class UserResource {
     @Operation(description = "Delete user event by id.")
     @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent")
     @Delete("/me/history/event?id=:eventId")
-    public Payload deleteUserEvent(@Parameter(name = "eventId", description = "user history event id to delete", in = ParameterIn.QUERY) String eventId, Context context) {
+    public Payload deleteUserEvent(@Parameter(name = "eventId", description = "user history event id to delete",
+            in = ParameterIn.QUERY) String eventId, Context context) {
         repository.deleteUserHistoryEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
         return new Payload(204);
     }
@@ -396,13 +411,15 @@ public class UserResource {
         final List<Project> projects;
         final String name;
         final URI uri;
-
         final Integer eventId;
 
         @JsonCreator
-        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("name") String name, @JsonProperty("projectIds") List<String> projectIds, @JsonProperty("uri") String uri, @JsonProperty("eventId") Integer id) {
+        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("name") String name,
+                                 @JsonProperty("projectIds") List<String> projectIds, @JsonProperty("uri") String uri,
+                                 @JsonProperty("eventId") Integer id) {
             this.type = Type.valueOf(type);
-            this.projects = projectIds == null ? Collections.emptyList() : projectIds.stream().map(Project::project).collect(Collectors.toList());
+            this.projects = projectIds == null ? Collections.emptyList() :
+                            projectIds.stream().map(Project::project).collect(Collectors.toList());
             this.name = name;
             this.uri = uri == null ? null : URI.create(uri);
             this.eventId = id;

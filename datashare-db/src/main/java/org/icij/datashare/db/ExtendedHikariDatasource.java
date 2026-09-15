@@ -2,11 +2,9 @@ package org.icij.datashare.db;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.regex.Pattern;
-
 import org.sqlite.Function;
 import org.sqlite.jdbc4.JDBC4Connection;
 

@@ -16,7 +16,6 @@ import org.jooq.SQLDialect;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.jooq.tools.jdbc.JDBCUtils;
-
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -35,16 +34,15 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import static java.util.stream.Collectors.toCollection;
 import static org.icij.datashare.db.Tables.STATEMENT;
 
 public class JooqStatementRepository implements StatementRepository {
     private static final int FETCH_SIZE = 1_000;
-    private static final Field<?>[] READ_FIELDS = {
-            STATEMENT.ID, STATEMENT.MODEL, STATEMENT.MODEL_VERSION, STATEMENT.ENTITY_ID, STATEMENT.ENTITY_TYPE,
-            STATEMENT.PROPERTY, STATEMENT.VALUE, STATEMENT.DOC_ID, STATEMENT.SHEET, STATEMENT.ROW_NUMBER,
-            STATEMENT.COLUMN_NAME};
+    private static final Field<?>[] READ_FIELDS =
+            {STATEMENT.ID, STATEMENT.MODEL, STATEMENT.MODEL_VERSION, STATEMENT.ENTITY_ID, STATEMENT.ENTITY_TYPE,
+                    STATEMENT.PROPERTY, STATEMENT.VALUE, STATEMENT.DOC_ID, STATEMENT.SHEET, STATEMENT.ROW_NUMBER,
+                    STATEMENT.COLUMN_NAME};
     private final DataSource dataSource;
     private final SQLDialect dialect;
     private final int chunkSize;
@@ -59,16 +57,14 @@ public class JooqStatementRepository implements StatementRepository {
         this.chunkSize = chunkSize;
     }
 
-    private record Write(String projectId, String runId, LocalDateTime now) {
-    }
+    private record Write(String projectId, String runId, LocalDateTime now) {}
 
-    private record Row(Statement statement, String modelVersion) {
-    }
+    private record Row(Statement statement, String modelVersion) {}
 
     @Override
     public int save(String projectId, String runId, Stream<Statement> statements) {
         Write write = new Write(projectId, runId,
-                new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime());
+                                new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime());
         DSLContext create = create();
         int written = 0;
         try (statements) {
@@ -78,8 +74,7 @@ public class JooqStatementRepository implements StatementRepository {
                 while (chunk.size() < chunkSize && source.hasNext()) {
                     chunk.add(source.next());
                 }
-                written += create.transactionResult(configuration ->
-                        saveChunk(DSL.using(configuration), write, chunk));
+                written += create.transactionResult(configuration -> saveChunk(DSL.using(configuration), write, chunk));
             }
         }
         return written;
@@ -92,11 +87,11 @@ public class JooqStatementRepository implements StatementRepository {
     // cannot drift, and the conflict branch reads the row being inserted through EXCLUDED rather than
     // binding its own values, which would not line up with the record's positional binds.
     private static int saveChunk(DSLContext create, Write write, List<Statement> chunk) {
-        BatchBindStep batch = create.batch(create.insertInto(STATEMENT).set(row(write, chunk.get(0)))
-                .onConflict(STATEMENT.ID, STATEMENT.PRJ_ID).doUpdate()
-                .set(STATEMENT.RUN_ID, DSL.excluded(STATEMENT.RUN_ID))
-                .set(STATEMENT.MODEL_VERSION, DSL.excluded(STATEMENT.MODEL_VERSION))
-                .set(STATEMENT.LAST_SEEN, DSL.excluded(STATEMENT.LAST_SEEN)));
+        BatchBindStep batch = create.batch(
+                create.insertInto(STATEMENT).set(row(write, chunk.get(0))).onConflict(STATEMENT.ID, STATEMENT.PRJ_ID)
+                      .doUpdate().set(STATEMENT.RUN_ID, DSL.excluded(STATEMENT.RUN_ID))
+                      .set(STATEMENT.MODEL_VERSION, DSL.excluded(STATEMENT.MODEL_VERSION))
+                      .set(STATEMENT.LAST_SEEN, DSL.excluded(STATEMENT.LAST_SEEN)));
         for (Statement statement : chunk) {
             batch.bind(row(write, statement).intoArray());
         }
@@ -132,10 +127,8 @@ public class JooqStatementRepository implements StatementRepository {
 
     @Override
     public Optional<ModelEntity> entity(String projectId, String entityId) {
-        List<Row> rows = create()
-                .select(READ_FIELDS).from(STATEMENT)
-                .where(STATEMENT.PRJ_ID.eq(projectId)).and(STATEMENT.ENTITY_ID.eq(entityId))
-                .fetch(JooqStatementRepository::toRow);
+        List<Row> rows = create().select(READ_FIELDS).from(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId))
+                                 .and(STATEMENT.ENTITY_ID.eq(entityId)).fetch(JooqStatementRepository::toRow);
         // The model an id shared by two models resolves to is picked here rather than with an ORDER
         // BY, because a database collation would otherwise decide it, and SQLite and Postgres do not
         // sort text alike.
@@ -164,12 +157,9 @@ public class JooqStatementRepository implements StatementRepository {
         }
         Connection connection = openStreamingConnection();
         try {
-            Cursor<Record> cursor = read(DSL.using(connection, dialect), projectId)
-                    .fetchSize(FETCH_SIZE)
-                    .fetchLazy();
-            return group(cursor.stream()
-                    .map(JooqStatementRepository::toRow)
-                    .onClose(() -> release(connection, cursor)));
+            Cursor<Record> cursor = read(DSL.using(connection, dialect), projectId).fetchSize(FETCH_SIZE).fetchLazy();
+            return group(
+                    cursor.stream().map(JooqStatementRepository::toRow).onClose(() -> release(connection, cursor)));
         } catch (RuntimeException e) {
             JDBCUtils.safeClose(connection);
             throw e;
@@ -177,9 +167,8 @@ public class JooqStatementRepository implements StatementRepository {
     }
 
     private static ResultQuery<Record> read(DSLContext create, String projectId) {
-        return create.select(READ_FIELDS).from(STATEMENT)
-                .where(STATEMENT.PRJ_ID.eq(projectId))
-                .orderBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL);
+        return create.select(READ_FIELDS).from(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId))
+                     .orderBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL);
     }
 
     private Connection openStreamingConnection() {
@@ -218,14 +207,16 @@ public class JooqStatementRepository implements StatementRepository {
         String prefix = model + ":";
         String property = row.get(STATEMENT.PROPERTY);
         if (!property.startsWith(prefix)) {
-            throw new DataAccessException("statement '" + row.get(STATEMENT.ID) + "' holds property '" + property
-                    + "', which is not namespaced under its model '" + model + "'");
+            throw new DataAccessException("statement '" + row.get(STATEMENT.ID) + "' holds property '" + property +
+                                          "', which is not namespaced under its model '" + model + "'");
         }
         return new Row(new Statement(row.get(STATEMENT.ID), model, row.get(STATEMENT.ENTITY_ID),
-                row.get(STATEMENT.ENTITY_TYPE), property.substring(prefix.length()), row.get(STATEMENT.VALUE),
-                new Statement.Provenance(row.get(STATEMENT.DOC_ID), row.get(STATEMENT.SHEET),
-                        row.get(STATEMENT.ROW_NUMBER), row.get(STATEMENT.COLUMN_NAME))),
-                row.get(STATEMENT.MODEL_VERSION));
+                                     row.get(STATEMENT.ENTITY_TYPE), property.substring(prefix.length()),
+                                     row.get(STATEMENT.VALUE),
+                                     new Statement.Provenance(row.get(STATEMENT.DOC_ID), row.get(STATEMENT.SHEET),
+                                                              row.get(STATEMENT.ROW_NUMBER),
+                                                              row.get(STATEMENT.COLUMN_NAME))),
+                       row.get(STATEMENT.MODEL_VERSION));
     }
 
     private static Set<String> versions(List<Row> rows) {
@@ -240,7 +231,7 @@ public class JooqStatementRepository implements StatementRepository {
     private static Stream<ModelEntity> group(Stream<Row> rows) {
         Iterator<ModelEntity> entities = new Groups(rows.iterator());
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(entities, Spliterator.ORDERED), false)
-                .onClose(rows::close);
+                            .onClose(rows::close);
     }
 
     private static class Groups implements Iterator<ModelEntity> {
@@ -295,8 +286,8 @@ public class JooqStatementRepository implements StatementRepository {
 
                 private Row sameGroupAs(Statement current) {
                     Row row = rows.next();
-                    if (row.statement().entityId().equals(current.entityId())
-                            && row.statement().model().equals(current.model())) {
+                    if (row.statement().entityId().equals(current.entityId()) &&
+                        row.statement().model().equals(current.model())) {
                         return row;
                     }
                     pending = row;

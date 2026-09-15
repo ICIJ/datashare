@@ -11,7 +11,6 @@ import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -21,7 +20,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
-
 import static java.util.Arrays.asList;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.INDEX_ADDRESS_PROP;
 
@@ -40,9 +38,11 @@ public class DocumentIngestor {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(INDEX_ADDRESS_PROP, elasticsearchUrl);
         }});
-        Indexer indexer = new ElasticsearchIndexer(ElasticsearchConfiguration.createESClient(propertiesProvider), propertiesProvider);
+        Indexer indexer = new ElasticsearchIndexer(ElasticsearchConfiguration.createESClient(propertiesProvider),
+                                                   propertiesProvider);
 
-        logger.info("ingest {} documents in elasticsearch {} with bulk of {} and {} threads", nbDocuments, elasticsearchUrl, bulkSize, nbThreads);
+        logger.info("ingest {} documents in elasticsearch {} with bulk of {} and {} threads", nbDocuments,
+                    elasticsearchUrl, bulkSize, nbThreads);
         executorService = Executors.newFixedThreadPool(nbThreads);
         new DocumentProducer(nbDocuments, bulkSize).run();
         IntStream.range(0, nbThreads).forEach(n -> executorService.submit(new DocumentConsumer(indexer, indexName)));
@@ -52,31 +52,15 @@ public class DocumentIngestor {
     private static OptionSet parseArgs(String[] args) {
         OptionParser parser = new OptionParser();
         AbstractOptionSpec<Void> optionSpec = parser.acceptsAll(asList("h", "help"), "this help").forHelp();
-        parser.acceptsAll(
-                        asList("u", "elasticsearchAddress"), "Elasticsearch url")
-                .withRequiredArg()
-                .ofType(String.class)
-                .defaultsTo(EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200"));
-        parser.acceptsAll(
-                        asList("i", "indexName"), "Name of the index")
-                .withRequiredArg()
-                .ofType(String.class)
-                .defaultsTo("local-datashare");
-        parser.acceptsAll(
-                        asList("n", "nbDocuments"), "Number of documents")
-                .withRequiredArg()
-                .ofType(Integer.class)
-                .defaultsTo(1000);
-        parser.acceptsAll(
-                        asList("b", "bulkSize"), "Bulk size")
-                .withRequiredArg()
-                .ofType(Integer.class)
-                .defaultsTo(10);
-        parser.acceptsAll(
-                        asList("t", "nbThread"), "number of threads")
-                .withRequiredArg()
-                .ofType(Integer.class)
-                .defaultsTo(Runtime.getRuntime().availableProcessors());
+        parser.acceptsAll(asList("u", "elasticsearchAddress"), "Elasticsearch url").withRequiredArg()
+              .ofType(String.class).defaultsTo(EnvUtils.resolveUri("elasticsearch", "http://elasticsearch:9200"));
+        parser.acceptsAll(asList("i", "indexName"), "Name of the index").withRequiredArg().ofType(String.class)
+              .defaultsTo("local-datashare");
+        parser.acceptsAll(asList("n", "nbDocuments"), "Number of documents").withRequiredArg().ofType(Integer.class)
+              .defaultsTo(1000);
+        parser.acceptsAll(asList("b", "bulkSize"), "Bulk size").withRequiredArg().ofType(Integer.class).defaultsTo(10);
+        parser.acceptsAll(asList("t", "nbThread"), "number of threads").withRequiredArg().ofType(Integer.class)
+              .defaultsTo(Runtime.getRuntime().availableProcessors());
         try {
             OptionSet optionSet = parser.parse(args);
             if (optionSet.has(optionSpec)) {
@@ -151,5 +135,6 @@ public class DocumentIngestor {
         }
     }
 
-    static String CONTENT = " Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?";
+    static String CONTENT =
+            " Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?";
 }

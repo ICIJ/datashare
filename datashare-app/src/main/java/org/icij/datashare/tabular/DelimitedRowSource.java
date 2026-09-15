@@ -3,7 +3,6 @@ package org.icij.datashare.tabular;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +22,6 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 public class DelimitedRowSource implements RowSource {
@@ -31,12 +29,8 @@ public class DelimitedRowSource implements RowSource {
      *  name does not end in .tsv; text/tab-separated-values is the one it keeps for the extension. */
     public static final Set<String> SUPPORTED =
             Set.of("text/csv", "text/tab-separated-values", "text/tsv", "text/plain");
-
-    private static final Set<String> TAB_SEPARATED_TYPES =
-            Set.of("text/tab-separated-values", "text/tsv");
-
+    private static final Set<String> TAB_SEPARATED_TYPES = Set.of("text/tab-separated-values", "text/tsv");
     private static final char DEFAULT_DELIMITER = ',';
-
     // Thousands of rows, so the first accented character of a realistic export falls inside it. A file
     // that is pure ascii this far and latin-1 afterwards decodes as utf-8 and shows replacement
     // characters, which is a visible failure rather than the silent mojibake this probe prevents.
@@ -94,13 +88,11 @@ public class DelimitedRowSource implements RowSource {
     }
 
     private static boolean decodesAsUtf8(byte[] head) {
-        CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
-                .onMalformedInput(CodingErrorAction.REPORT)
-                .onUnmappableCharacter(CodingErrorAction.REPORT);
+        CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+                                                       .onUnmappableCharacter(CodingErrorAction.REPORT);
         // endOfInput false, so a multi-byte sequence cut in half by the probe boundary underflows
         // instead of counting as malformed.
-        CoderResult result = decoder.decode(
-                ByteBuffer.wrap(head), CharBuffer.allocate(head.length + 1), false);
+        CoderResult result = decoder.decode(ByteBuffer.wrap(head), CharBuffer.allocate(head.length + 1), false);
         return !result.isError();
     }
 
@@ -132,8 +124,8 @@ public class DelimitedRowSource implements RowSource {
         if (options.delimiter() != null) {
             return options.delimiter();
         }
-        return options.contentType() != null && TAB_SEPARATED_TYPES.contains(options.contentType())
-                ? '\t' : DEFAULT_DELIMITER;
+        return options.contentType() != null && TAB_SEPARATED_TYPES.contains(options.contentType()) ? '\t' :
+               DEFAULT_DELIMITER;
     }
 
     private static Stream<Row> stream(Iterator<CSVRecord> records, List<String> headers) {
@@ -175,8 +167,7 @@ public class DelimitedRowSource implements RowSource {
             }
         };
         return StreamSupport.stream(
-                Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL),
-                false);
+                Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL), false);
     }
 
     private static void close(CSVParser parser) {

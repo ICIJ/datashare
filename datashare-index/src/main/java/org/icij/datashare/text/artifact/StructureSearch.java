@@ -3,13 +3,11 @@ package org.icij.datashare.text.artifact;
 import org.icij.datashare.text.ContentOccurrences;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -26,7 +24,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class StructureSearch {
     private static final Logger LOGGER = LoggerFactory.getLogger(StructureSearch.class);
     private static final ArtifactType TYPE = ArtifactType.STRUCTURE;
-
     /**
      * Wall clock a single scan may spend before it answers with what it has. Deliberately far above
      * any real document, which the {@link #MAX_SCANNED_PAGES} cap is not: that cap still allows a
@@ -35,7 +32,6 @@ public class StructureSearch {
      * {@code pages} tells the client the count is a floor when it does.
      */
     private static final Duration SCAN_BUDGET = Duration.ofSeconds(10);
-
     /**
      * The most pages one scan walks, however many the manifest advertises. Past this a total is
      * hostile input rather than a long document: manifest.json is written by other producers, and an
@@ -45,7 +41,6 @@ public class StructureSearch {
      * run past a hundred thousand pages, and the manifest and page routes serve it page by page.
      */
     private static final int MAX_SCANNED_PAGES = 100_000;
-
     private final ArtifactReader reader;
     private final Path docArtifactDir;
     private final String extension;
@@ -115,14 +110,13 @@ public class StructureSearch {
     private void reportIncompleteScan(int scanned, int reached, int last, int total) {
         if (reached < last) {
             LOGGER.warn("stopped searching '{}' in {} after {} of {} page(s): the {}s scan budget ran out",
-                    TYPE.token(), docArtifactDir, reached, total, scanBudget.toSeconds());
+                        TYPE.token(), docArtifactDir, reached, total, scanBudget.toSeconds());
         } else if (last < total) {
-            LOGGER.warn("searched the first {} of the {} page(s) the '{}' manifest advertises in {}: one "
-                            + "scan walks at most {} page(s)", last, total, TYPE.token(), docArtifactDir,
-                    MAX_SCANNED_PAGES);
+            LOGGER.warn("searched the first {} of the {} page(s) the '{}' manifest advertises in {}: one " +
+                        "scan walks at most {} page(s)", last, total, TYPE.token(), docArtifactDir, MAX_SCANNED_PAGES);
         } else if (scanned < total) {
-            LOGGER.warn("searched {} of the {} page(s) the '{}' manifest advertises in {}: the rest are "
-                    + "missing or unreadable", scanned, total, TYPE.token(), docArtifactDir);
+            LOGGER.warn("searched {} of the {} page(s) the '{}' manifest advertises in {}: the rest are " +
+                        "missing or unreadable", scanned, total, TYPE.token(), docArtifactDir);
         }
     }
 
@@ -142,9 +136,7 @@ public class StructureSearch {
 
     /** The response body. {@code scanned} is below {@code pages} when the artifact lost pages between
      *  the manifest and disk: the counts are then a floor, not a total, and only this field says so. */
-    public record Hits(int count, int pages, int scanned, List<PageHits> hits) {
-    }
+    public record Hits(int count, int pages, int scanned, List<PageHits> hits) {}
 
-    public record PageHits(int page, int count) {
-    }
+    public record PageHits(int page, int count) {}
 }

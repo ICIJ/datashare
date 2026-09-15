@@ -4,14 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
-
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 @Singleton
@@ -40,8 +38,7 @@ public class ExtensionService extends DeliverableService<Extension> {
     @Override
     DeliverableRegistry<Extension> createRegistry(InputStream pluginJsonContent) {
         try {
-            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<>() {
-            });
+            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<>() {});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
