@@ -40,6 +40,9 @@ String normalizeLetters(String input) {
 
 ArrayList getOffsets(String query, String content) {
     def offsets = new ArrayList();
+    if (content == null) {
+        return offsets;
+    }
     String contentInLower = normalizeLetters(content.toLowerCase());
     String queryInLower = normalizeLetters(query.toLowerCase());
     int queryLength = query.length();

@@ -783,6 +783,19 @@ public class ElasticsearchIndexerTest {
         assertArrayEquals(actual.offsets, new int[]{5,13,22,30});
     }
     @Test
+    public void test_search_occurrences_of_query_in_document_with_null_content_returns_no_offsets() throws Exception {
+        Document doc = createDoc("id").with("this content contains content containing john doe").withContentLength(49L).build();
+        indexer.add(es.getIndexName(), doc);
+        UpdateRequest<Object, Object> nullifyContentRequest = UpdateRequest.of(r -> r.index(es.getIndexName()).
+                id(doc.getId()).refresh(Refresh.True).
+                script(Script.of(s -> s.lang("painless").source("ctx._source.content = null").params(new HashMap<>()))));
+        es.client.update(nullifyContentRequest, Document.class);
+
+        SearchedText actual = indexer.searchTextOccurrences(es.getIndexName(), "id", "cont",null);
+        assertThat(actual.count).isEqualTo(0);
+        assertArrayEquals(actual.offsets, new int[]{});
+    }
+    @Test
     public void test_search_occurrences_of_query_with_diacritics() throws Exception {
         Document doc = createDoc("id").with("contigüe et accentué s'est tueTuE").withContentLength(38L).build();
         indexer.add(es.getIndexName(), doc);
