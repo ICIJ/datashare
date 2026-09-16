@@ -34,6 +34,7 @@ import org.icij.datashare.user.admin.UserExistsException;
 import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.user.admin.UserListItem;
 import org.icij.datashare.user.admin.RoleGranted;
+import org.icij.datashare.user.admin.RoleRevoked;
 import org.icij.datashare.user.admin.UserNotFoundException;
 import org.icij.datashare.user.admin.UserUpdateRequest;
 import org.icij.datashare.user.admin.ValidationException;
@@ -320,6 +321,40 @@ public class UserResource {
                 }
             }
             return new Payload(new RoleGranted(role, userId, alreadyGranted ? role : null, alreadyGranted));
+        } catch (Validators.InvalidValueException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (UserNotFoundException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Operation(description = "Revokes a domain or instance admin role from a user. " +
+                             "role query param must be one of domain_admin|instance_admin. " +
+                             "domain query param is optional (only relevant for domain_admin) and defaults to the default domain.",
+            parameters = {@Parameter(name = "userId", in = ParameterIn.PATH),
+                    @Parameter(name = "role", in = ParameterIn.QUERY),
+                    @Parameter(name = "domain", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "400", description = "invalid role")
+    @ApiResponse(responseCode = "404", description = "user not found")
+    @Policy(role = Role.INSTANCE_ADMIN)
+    @Delete("/:userId/role")
+    public Payload revokeRoleFromUser(String userId, Context context) {
+        try {
+            Role role = Validators.instanceOrDomainRole(context.get("role"));
+            Domain domain = Domain.of(getStringValue(context.get("domain")).orElse(Domain.DEFAULT.id()));
+            User user = userAdminService.get(userId);
+
+            Domain scopeDomain = role == Role.INSTANCE_ADMIN ? Domain.of("*") : domain;
+            boolean currentlyGranted = authorizer.getRolesForUserInDomain(user, scopeDomain).contains(role.name());
+            if (currentlyGranted) {
+                if (role == Role.INSTANCE_ADMIN) {
+                    authorizer.deleteRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
+                } else {
+                    authorizer.deleteRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
+                }
+            }
+            return new Payload(new RoleRevoked(role, userId, currentlyGranted ? role : null, !currentlyGranted));
         } catch (Validators.InvalidValueException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (UserNotFoundException e) {
