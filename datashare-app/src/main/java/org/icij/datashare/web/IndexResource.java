@@ -85,8 +85,6 @@ public class IndexResource {
             Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         try {
-            // a ".entities" name is granted through its base project, so it reaches here; createIndex
-            // picks the entity mappings for it rather than the document ones
             return indexer.createIndex(checkGrantedIndices(index, context)) ? created() : ok();
         } catch (HttpException e) {
             // checkGrantedIndices refuses an ungranted project with a 403 that must not collapse to 400
