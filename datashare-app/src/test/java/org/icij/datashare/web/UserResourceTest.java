@@ -938,6 +938,80 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         put("/api/users/bob/role?role=instance_admin").should().respond(403);
     }
 
+    // DELETE /api/users/:userId/role - revoke instance/domain admin
+
+    @Test
+    public void test_revoke_instance_admin_role_returns_200() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInInstance(bob, Role.INSTANCE_ADMIN);
+
+        delete("/api/users/bob/role?role=instance_admin")
+                .should().respond(200)
+                .contain("\"userLogin\":\"bob\"")
+                .contain("\"role\":\"INSTANCE_ADMIN\"")
+                .contain("\"noop\":false");
+
+        assertFalse(authorizer.getRolesForUserInDomain(bob, Domain.of("*")).contains("INSTANCE_ADMIN"));
+    }
+
+    @Test
+    public void test_revoke_domain_admin_role_with_explicit_domain() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInDomain(bob, Role.DOMAIN_ADMIN, Domain.of("icij"));
+
+        delete("/api/users/bob/role?role=domain_admin&domain=icij")
+                .should().respond(200)
+                .contain("\"role\":\"DOMAIN_ADMIN\"")
+                .contain("\"noop\":false");
+
+        assertFalse(authorizer.getRolesForUserInDomain(bob, Domain.of("icij")).contains("DOMAIN_ADMIN"));
+    }
+
+    @Test
+    public void test_revoke_domain_admin_role_defaults_to_default_domain() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInDomain(bob, Role.DOMAIN_ADMIN, Domain.DEFAULT);
+
+        delete("/api/users/bob/role?role=domain_admin").should().respond(200);
+
+        assertFalse(authorizer.getRolesForUserInDomain(bob, Domain.DEFAULT).contains("DOMAIN_ADMIN"));
+    }
+
+    @Test
+    public void test_revoke_role_is_noop_when_user_does_not_have_role() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+
+        delete("/api/users/bob/role?role=instance_admin")
+                .should().respond(200)
+                .contain("\"noop\":true")
+                .contain("\"previousRole\":null");
+    }
+
+    @Test
+    public void test_revoke_role_returns_400_on_invalid_role() throws Exception {
+        delete("/api/users/bob/role?role=bogus").should().respond(400);
+    }
+
+    @Test
+    public void test_revoke_role_returns_404_when_user_not_found() throws Exception {
+        when(userAdminService.get("ghost")).thenThrow(new UserNotFoundException("ghost"));
+
+        delete("/api/users/ghost/role?role=instance_admin").should().respond(404);
+    }
+
+    @Test
+    public void test_revoke_role_returns_403_for_non_instance_admin() throws Exception {
+        configureWithSingleProjectAdmin();
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+
+        delete("/api/users/bob/role?role=instance_admin").should().respond(403);
+    }
+
     @Test
     public void test_list_users_response_has_pagination() {
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
