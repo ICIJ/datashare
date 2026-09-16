@@ -288,8 +288,8 @@ public class IndexResource {
             return PayloadFormatter.allowMethods("OPTIONS", "GET", "DELETE");
         }
         try {
-            IndexAccessVerifier.checkIndices(index);
-            return PayloadFormatter.allowMethods(indexer.executeRaw("OPTIONS", path, null));
+            return PayloadFormatter.allowMethods(
+                    indexer.executeRaw("OPTIONS", checkGrantedIndices(index, context), null));
         } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }

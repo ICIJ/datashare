@@ -118,6 +118,13 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_options_refuses_an_ungranted_index() {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        options("/api/index/search/hacker").withPreemptiveAuthentication("cecile", "").should().respond(403);
+    }
+
+    @Test
     public void test_delete_should_return_method_not_allowed() {
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         delete("/api/index/search/foo/bar").should().respond(405);
