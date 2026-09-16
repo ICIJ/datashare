@@ -110,18 +110,6 @@ public class IndexResource {
         }
     }
 
-    @Operation(description = "Head request useful for JavaScript API (for example to test if an index exists)")
-    @ApiResponse(responseCode = "200", description = "returns 200")
-    @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
-    @Head("/search/:path:")
-    public Payload esHead(final String path) throws IOException {
-        try {
-            return new Payload(indexer.executeRaw("HEAD", path, null));
-        } catch (IllegalArgumentException e) {
-            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
-        }
-    }
-
     @Operation(description = """
             The search endpoint is just a proxy in front of Elasticsearch, everything sent is forwarded to Elasticsearch.
             
