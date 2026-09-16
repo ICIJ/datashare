@@ -108,6 +108,16 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_head_is_authorized_by_the_get_route() throws IOException {
+        configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider))
+                .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        indexer.add("cecile-datashare", DocumentBuilder.createDoc("1234567890abcdef").build());
+        head("/api/index/search/cecile-datashare/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        head("/api/index/search/hacker/_search").withPreemptiveAuthentication("cecile", "").should().respond(401);
+        head("/api/index/search/hacker/_doc/1234567890abcdef").withPreemptiveAuthentication("cecile", "").should().respond(401);
+    }
+
+    @Test
     public void test_delete_should_return_method_not_allowed() {
         configure(routes -> routes.add(new IndexResource(indexer, propertiesProvider)).filter(new LocalUserFilter(propertiesProvider, jooqRepository, es.getIndexNames())));
         delete("/api/index/search/foo/bar").should().respond(405);
