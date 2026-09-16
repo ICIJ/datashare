@@ -855,6 +855,89 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         get("/api/users").should().respond(501);
     }
 
+    // PUT /api/users/:userId/role - grant instance/domain admin
+
+    @Test
+    public void test_grant_instance_admin_role_returns_200() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+
+        put("/api/users/bob/role?role=instance_admin")
+                .should().respond(200)
+                .contain("\"userLogin\":\"bob\"")
+                .contain("\"role\":\"INSTANCE_ADMIN\"")
+                .contain("\"noop\":false");
+
+        assertTrue(authorizer.getRolesForUserInDomain(bob, Domain.of("*")).contains("INSTANCE_ADMIN"));
+    }
+
+    @Test
+    public void test_grant_domain_admin_role_with_explicit_domain() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+
+        put("/api/users/bob/role?role=domain_admin&domain=icij")
+                .should().respond(200)
+                .contain("\"role\":\"DOMAIN_ADMIN\"");
+
+        assertTrue(authorizer.getRolesForUserInDomain(bob, Domain.of("icij")).contains("DOMAIN_ADMIN"));
+    }
+
+    @Test
+    public void test_grant_domain_admin_role_defaults_to_default_domain() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+
+        put("/api/users/bob/role?role=domain_admin").should().respond(200);
+
+        assertTrue(authorizer.getRolesForUserInDomain(bob, Domain.DEFAULT).contains("DOMAIN_ADMIN"));
+    }
+
+    @Test
+    public void test_grant_instance_admin_role_succeeds_for_second_instance_admin() throws Exception {
+        // setUp() already granted INSTANCE_ADMIN to User.local()
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+
+        put("/api/users/bob/role?role=instance_admin").should().respond(200).contain("\"noop\":false");
+
+        assertTrue(authorizer.getRolesForUserInDomain(User.local(), Domain.of("*")).contains("INSTANCE_ADMIN"));
+        assertTrue(authorizer.getRolesForUserInDomain(bob, Domain.of("*")).contains("INSTANCE_ADMIN"));
+    }
+
+    @Test
+    public void test_grant_role_is_noop_when_user_already_has_role() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInInstance(bob, Role.INSTANCE_ADMIN);
+
+        put("/api/users/bob/role?role=instance_admin")
+                .should().respond(200)
+                .contain("\"noop\":true")
+                .contain("\"previousRole\":\"INSTANCE_ADMIN\"");
+    }
+
+    @Test
+    public void test_grant_role_returns_400_on_invalid_role() throws Exception {
+        put("/api/users/bob/role?role=bogus").should().respond(400);
+    }
+
+    @Test
+    public void test_grant_role_returns_404_when_user_not_found() throws Exception {
+        when(userAdminService.get("ghost")).thenThrow(new UserNotFoundException("ghost"));
+
+        put("/api/users/ghost/role?role=instance_admin").should().respond(404);
+    }
+
+    @Test
+    public void test_grant_role_returns_403_for_non_instance_admin() throws Exception {
+        configureWithSingleProjectAdmin();
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+
+        put("/api/users/bob/role?role=instance_admin").should().respond(403);
+    }
+
     @Test
     public void test_list_users_response_has_pagination() {
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))

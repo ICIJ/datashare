@@ -33,6 +33,7 @@ import org.icij.datashare.user.admin.UserCreateRequest;
 import org.icij.datashare.user.admin.UserExistsException;
 import org.icij.datashare.user.admin.UserFilter;
 import org.icij.datashare.user.admin.UserListItem;
+import org.icij.datashare.user.admin.RoleGranted;
 import org.icij.datashare.user.admin.UserNotFoundException;
 import org.icij.datashare.user.admin.UserUpdateRequest;
 import org.icij.datashare.user.admin.ValidationException;
@@ -285,6 +286,43 @@ public class UserResource {
                                      projectAdminService.revoke(index, userId);
             return new Payload(revoked);
         } catch (ProjectNotFoundException | org.icij.datashare.project.admin.UserNotFoundException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Operation(description = "Grants a domain or instance admin role to a user. " +
+                             "role query param must be one of domain_admin|instance_admin. " +
+                             "domain query param is optional (only relevant for domain_admin) and defaults to the default domain.",
+            parameters = {@Parameter(name = "userId", in = ParameterIn.PATH),
+                    @Parameter(name = "role", in = ParameterIn.QUERY),
+                    @Parameter(name = "domain", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "400", description = "invalid role")
+    @ApiResponse(responseCode = "404", description = "user not found")
+    @Policy(role = Role.INSTANCE_ADMIN)
+    @Put("/:userId/role")
+    public Payload grantRoleToUser(String userId, Context context) {
+        try {
+            Role role = Validators.instanceOrDomainRole(context.get("role"));
+            Domain domain = Domain.of(getStringValue(context.get("domain")).orElse(Domain.DEFAULT.id()));
+            User user = userAdminService.get(userId);
+
+            // A scope only ever holds the one role type it was granted with (an instance scope only ever
+            // holds INSTANCE_ADMIN, a domain scope only ever holds DOMAIN_ADMIN), so the previous role at
+            // that scope is either this same role, or none.
+            Domain scopeDomain = role == Role.INSTANCE_ADMIN ? Domain.of("*") : domain;
+            boolean alreadyGranted = authorizer.getRolesForUserInDomain(user, scopeDomain).contains(role.name());
+            if (!alreadyGranted) {
+                if (role == Role.INSTANCE_ADMIN) {
+                    authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
+                } else {
+                    authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
+                }
+            }
+            return new Payload(new RoleGranted(role, userId, alreadyGranted ? role : null, alreadyGranted));
+        } catch (Validators.InvalidValueException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (UserNotFoundException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
