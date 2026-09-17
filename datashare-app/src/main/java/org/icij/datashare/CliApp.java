@@ -193,8 +193,8 @@ class CliApp {
             Map.of(Stage.SCAN, ScanTask.class, Stage.SCANIDX, ScanIndexTask.class, Stage.DEDUPLICATE,
                    DeduplicateTask.class, Stage.INDEX, IndexTask.class, Stage.ENQUEUEIDX, EnqueueFromIndexTask.class,
                    Stage.CATEGORIZE, CategorizeTask.class, Stage.CREATENLPBATCHESFROMIDX,
-                   CreateNlpBatchesFromIndex.class, Stage.NLP, ExtractNlpTask.class, Stage.ARTIFACT,
-                   ArtifactTask.class, Stage.LANGUAGE, LanguageDetectTask.class);
+                   CreateNlpBatchesFromIndex.class, Stage.NLP, ExtractNlpTask.class, Stage.ARTIFACT, ArtifactTask.class,
+                   Stage.LANGUAGE, LanguageDetectTask.class);
 
     /**
      * Starts every configured stage, then awaits them all at once. Each stage carries the previous
