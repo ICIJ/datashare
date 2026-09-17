@@ -18,7 +18,9 @@ import org.icij.extract.extractor.EmbeddedDocumentExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.function.Function;
 import static java.util.Optional.ofNullable;
@@ -68,7 +70,8 @@ public class DocumentSourceAccess {
 
     public Payload source(Document doc, String index, boolean inline, boolean filterMetadata) {
         try {
-            InputStream from = new SourceExtractor(propertiesProvider, filterMetadata).getSource(project(index), doc);
+            SourceExtractor sources = new SourceExtractor(propertiesProvider, filterMetadata);
+            InputStream from = sources.getSource(project(index), doc);
             String contentType =
                     ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
             // OCR-routed embedded images are stored with a synthetic "image/ocr-<fmt>" content type
@@ -78,8 +81,13 @@ public class DocumentSourceAccess {
                 contentType = "image/" + contentType.substring("image/ocr-".length());
             }
             Payload payload = new Payload(contentType, from);
-            if (!filterMetadata && doc.getContentLength() > 0) {
-                payload.withHeader(CONTENT_LENGTH, String.valueOf(doc.getContentLength()));
+            // filter_metadata rewrites the payload, so the on-disk byte count is wrong for it:
+            // send no header at all rather than a length the response will not honor.
+            if (!filterMetadata) {
+                long contentLength = servedContentLength(sources, doc, project(index));
+                if (contentLength > 0) {
+                    payload.withHeader(CONTENT_LENGTH, String.valueOf(contentLength));
+                }
             }
             String fileName = doc.isRootDocument() ? doc.getName() :
                               doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
@@ -88,6 +96,30 @@ public class DocumentSourceAccess {
         } catch (FileNotFoundException | EmbeddedDocumentExtractor.ContentNotFoundException fnf) {
             logger.error("unable to read document source file", fnf);
             return Payload.notFound();
+        }
+    }
+
+    // The length of the bytes about to be served, not the indexed contentLength: the indexed
+    // value goes stale when a root file changes on disk and is usually absent for embedded
+    // documents. Same fork as the download gate (root / cached artifact / live parse), one
+    // stat on a path the request just opened.
+    private long servedContentLength(SourceExtractor sources, Document doc, Project servingProject) {
+        if (!doc.isRootDocument()) {
+            long cachedLength = sources.cachedEmbeddedSourceLength(servingProject, doc);
+            return cachedLength > 0 ? cachedLength : doc.getContentLength();
+        }
+        try {
+            long diskLength = Files.size(doc.getPath());
+            // Tika indexed Files.size at extraction time, so a mismatch means the file changed
+            // under us and is worth a manual look. Roots only: for embeds, a Tika-declared size
+            // can legitimately differ from the bytes we cached, comparing would just be noise.
+            if (diskLength != doc.getContentLength()) {
+                logger.warn("document {} changed on disk: indexed contentLength is {} but serving {} bytes",
+                            doc.getId(), doc.getContentLength(), diskLength);
+            }
+            return diskLength;
+        } catch (IOException e) {
+            return doc.getContentLength();
         }
     }
 }
