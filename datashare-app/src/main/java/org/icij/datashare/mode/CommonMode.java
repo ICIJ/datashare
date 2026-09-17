@@ -35,7 +35,7 @@ import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.nlp.EmailPipeline;
-import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
+import org.icij.datashare.nlp.LinguaLanguageGuesser;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.PolicyWatcher;
@@ -486,8 +486,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides
     @Singleton
-    LanguageGuesser provideLanguageGuesser() throws IOException {
-        return new OptimaizeLanguageGuesser();
+    LanguageGuesser provideLanguageGuesser() {
+        return new LinguaLanguageGuesser();
     }
 
     @Provides
