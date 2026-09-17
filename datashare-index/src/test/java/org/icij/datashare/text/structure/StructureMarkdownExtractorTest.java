@@ -122,6 +122,37 @@ public class StructureMarkdownExtractorTest {
     }
 
     @Test
+    public void test_the_stored_xhtml_keeps_the_nested_table_the_markdown_conversion_flattens() throws Exception {
+        Page page = extract(stream("<html><body><table><tr><td><table><tr><td>inner text</td></tr>" +
+                "</table></td><td>host cell</td></tr></table></body></html>"), "text/html").get(0);
+
+        assertThat(page.markdown()).contains("inner text");
+        assertThat(page.markdown()).contains("host cell");
+        // TikaTableRowSource reads nested tables out of the stored XHTML, so only the converter's own
+        // copy is flattened and the page keeps the real markup
+        assertThat(Jsoup.parse(page.xhtml(), "", Parser.xmlParser()).select("table table")).hasSize(1);
+    }
+
+    @Test(timeout = 30000)
+    public void test_a_nested_table_is_flattened_before_conversion_can_choke_on_it() throws Exception {
+        Page page = extract(stream("<html><body>" + tableNestingAWideCell() + "</body></html>"),
+                            "text/html").get(0);
+
+        assertThat(page.markdown()).contains("deep text");
+        assertThat(Jsoup.parse(page.xhtml(), "", Parser.xmlParser()).select("table table")).hasSize(1);
+    }
+
+    // The shape of the calypso 2026-09 wedge: flexmark's html2md pads a markdown table's columns to the
+    // widest cell, so the nested table's short second row comes back padded with ~200k spaces, and that
+    // rendering becomes the host cell's text, on which flexmark runs a whitespace regex that is quadratic
+    // over the padding runs. Without the flattening this input alone outlives the test timeout.
+    private static String tableNestingAWideCell() {
+        String wideTable = "<table><tr><td>deep text " + "y".repeat(200_000) + "</td></tr>" +
+                           "<tr><td>short row</td></tr></table>";
+        return "<table><tr><td>" + wideTable + "</td><td>side</td></tr></table>";
+    }
+
+    @Test
     public void test_markdown_lists_and_links_survive_without_escaping() throws Exception {
         Page page = markdownPage("- item one\n- item two\n\nA [link](http://example.com).\n");
 
