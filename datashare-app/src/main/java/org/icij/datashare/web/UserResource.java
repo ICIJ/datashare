@@ -86,7 +86,7 @@ public class UserResource {
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "invalid sort parameter")
     @ApiResponse(responseCode = "501", description = "store does not support listing")
-    @Get("")
+    @Get("/admin")
     @Policy(role = Role.PROJECT_ADMIN)
     public Payload listUsers(Context context) {
         String q = context.get("q");
@@ -208,7 +208,7 @@ public class UserResource {
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "user not found")
     @Policy(role = Role.INSTANCE_ADMIN)
-    @Get("/:userId")
+    @Get("/admin/:userId")
     public Payload getUserByUid(String userId) {
         try {
             return new Payload(userAdminService.get(userId));
@@ -223,7 +223,7 @@ public class UserResource {
     @ApiResponse(responseCode = "400", description = "validation error")
     @ApiResponse(responseCode = "404", description = "user not found")
     @Policy(role = Role.INSTANCE_ADMIN)
-    @Put("/:userId")
+    @Put("/admin/:userId")
     public Payload updateUser(String userId, UserUpdateRequest request) {
         try {
             return new Payload(userAdminService.update(userId, request));
@@ -238,7 +238,7 @@ public class UserResource {
             parameters = @Parameter(name = "uid", in = ParameterIn.PATH))
     @ApiResponse(responseCode = "204", description = "user deleted or did not exist")
     @Policy(role = Role.INSTANCE_ADMIN)
-    @Delete("/:userId")
+    @Delete("/admin/:userId")
     public Payload deleteUser(String userId) {
         userAdminService.deleteIfExists(userId);
         authorizer.removeAllPoliciesForUser(userId);
@@ -256,7 +256,7 @@ public class UserResource {
     @ApiResponse(responseCode = "400", description = "invalid role")
     @ApiResponse(responseCode = "404", description = "user or project not found")
     @Policy(role = Role.PROJECT_ADMIN)
-    @Put("/:userId/index/:index")
+    @Put("/admin/:userId/index/:index")
     public Payload grantProjectToUser(String userId, String index, Context context) {
         boolean ifNotExists = Boolean.parseBoolean(context.get("ifNotExists"));
         try {
@@ -279,7 +279,7 @@ public class UserResource {
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "user or project not found")
     @Policy(role = Role.PROJECT_ADMIN)
-    @Delete("/:userId/index/:index")
+    @Delete("/admin/:userId/index/:index")
     public Payload revokeProjectFromUser(String userId, String index, Context context) {
         boolean ifExists = Boolean.parseBoolean(context.get("ifExists"));
         try {
@@ -301,7 +301,7 @@ public class UserResource {
     @ApiResponse(responseCode = "400", description = "invalid role")
     @ApiResponse(responseCode = "404", description = "user not found")
     @Policy(role = Role.INSTANCE_ADMIN)
-    @Put("/:userId/role")
+    @Put("/admin/:userId/role")
     public Payload grantRoleToUser(String userId, Context context) {
         try {
             Role role = Validators.instanceOrDomainRole(context.get("role"));
@@ -338,7 +338,7 @@ public class UserResource {
     @ApiResponse(responseCode = "400", description = "invalid role")
     @ApiResponse(responseCode = "404", description = "user not found")
     @Policy(role = Role.INSTANCE_ADMIN)
-    @Delete("/:userId/role")
+    @Delete("/admin/:userId/role")
     public Payload revokeRoleFromUser(String userId, Context context) {
         try {
             Role role = Validators.instanceOrDomainRole(context.get("role"));
