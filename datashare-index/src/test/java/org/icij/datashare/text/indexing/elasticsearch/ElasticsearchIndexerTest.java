@@ -200,6 +200,22 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_update_fields_with_routing_updates_an_embedded_document() throws IOException {
+        Document root = createDoc("routingUpdateRoot").build();
+        indexer.add(es.getIndexName(), root);
+        indexer.add(es.getIndexName(), createDoc("routingUpdateChild")
+                .withParentId(root.getId()).withRootId(root.getId())
+                .with(Language.ENGLISH).build());
+
+        indexer.update(es.getIndexName(), "routingUpdateChild",
+                Map.of("language", Language.FRENCH.name()), root.getId());
+
+        Document updated = (Document) indexer.get(es.getIndexName(), "routingUpdateChild", root.getId());
+        assertThat(updated.getLanguage()).isEqualTo(Language.FRENCH);
+        assertThat(updated.getRootDocument()).isEqualTo(root.getId());
+    }
+
+    @Test
     public void test_search_no_results() throws IOException {
         List<? extends Entity> lst = indexer.search(singletonList(es.getIndexName()), Document.class).execute().collect(toList());
         assertThat(lst).isEmpty();

@@ -186,9 +186,15 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public void update(String indexName, String id, Map<String, Object> fields) throws IOException {
+        update(indexName, id, fields, null);
+    }
+
+    @Override
+    public void update(String indexName, String id, Map<String, Object> fields, String routing) throws IOException {
         UpdateRequest.Builder<Map<String, Object>, Object> req =
                 new UpdateRequest.Builder<Map<String, Object>, Object>().index(indexName).id(id)
                                                                         .refresh(esCfg.refreshPolicy).doc(fields);
+        ofNullable(routing).ifPresent(req::routing);
         client.update(req.build(), Object.class);
     }
 
