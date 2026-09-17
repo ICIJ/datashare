@@ -18,7 +18,6 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +27,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
@@ -66,8 +64,8 @@ public class LanguageDetectTask extends PipelineTask<String> {
     @Override
     public Long call() throws Exception {
         super.call();
-        logger.info("re-detecting document languages for project {} from queue {} with {} worker(s)",
-                    project.name, inputQueue.getName(), parallelism);
+        logger.info("re-detecting document languages for project {} from queue {} with {} worker(s)", project.name,
+                    inputQueue.getName(), parallelism);
         AtomicLong nbUpdated = new AtomicLong(0);
         AtomicLong nbUnchanged = new AtomicLong(0);
         AtomicLong nbSkipped = new AtomicLong(0);
@@ -101,8 +99,8 @@ public class LanguageDetectTask extends PipelineTask<String> {
         } finally {
             executor.shutdownNow();
         }
-        logger.info("language re-detection done: {} updated, {} unchanged, {} skipped, {} failed",
-                    nbUpdated.get(), nbUnchanged.get(), nbSkipped.get(), nbFailed.get());
+        logger.info("language re-detection done: {} updated, {} unchanged, {} skipped, {} failed", nbUpdated.get(),
+                    nbUnchanged.get(), nbSkipped.get(), nbFailed.get());
         if (nbSkipped.get() + nbFailed.get() > 0) {
             logger.error("{} document(s) were skipped or failed, re-run the LANGUAGE stage for them",
                          nbSkipped.get() + nbFailed.get());

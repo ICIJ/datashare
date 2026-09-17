@@ -13,8 +13,8 @@ public enum TaskType {
     CREATE_NLP_BATCHES("org.icij.datashare.tasks.CreateNlpBatchesFromIndex"),
     CATEGORIZE("org.icij.datashare.tasks.CategorizeTask"), DEDUPLICATE("org.icij.datashare.tasks.DeduplicateTask"),
     ARTIFACT("org.icij.datashare.tasks.ArtifactTask"), LANGUAGE("org.icij.datashare.tasks.LanguageDetectTask"),
-    GEN_API_KEY("org.icij.datashare.tasks.GenApiKeyTask"),
-    DEL_API_KEY("org.icij.datashare.tasks.DelApiKeyTask"), GET_API_KEY("org.icij.datashare.tasks.GetApiKeyTask"),
+    GEN_API_KEY("org.icij.datashare.tasks.GenApiKeyTask"), DEL_API_KEY("org.icij.datashare.tasks.DelApiKeyTask"),
+    GET_API_KEY("org.icij.datashare.tasks.GetApiKeyTask"),
     GRANT_ADMIN_POLICY("org.icij.datashare.tasks.GrantAdminPolicyTask");
     private final Set<String> names;
 
