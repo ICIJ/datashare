@@ -101,9 +101,9 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_source_file_without_indexed_content_length() throws Exception {
-        // embedded documents don't have their contentLength indexed (it defaults to -1):
-        // Content-Length must not be sent with a bogus "-1" value while real content is written
+    public void test_get_root_source_file_without_indexed_content_length_serves_the_disk_size() throws Exception {
+        // Roots indexed without a contentLength (legacy indexes) used to get no header at all:
+        // the disk size is now the source of truth for a root, so the header is served anyway.
         File txtFile = new File(temp.getRoot(), "/my/path/to/file.ods");
         MockIndexer.write(txtFile, "content");
         Document docWithoutContentLength = DocumentBuilder.createDoc().withId("id_ods_no_length").with(txtFile.toPath()).with(new Project("local-datashare"))
@@ -111,7 +111,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         mockIndexer.indexFile("local-datashare", docWithoutContentLength);
 
         get("/api/local-datashare/documents/src/id_ods_no_length").should()
-                .haveHeader("Content-Length", null);
+                .haveHeader("Content-Length", "7");
     }
 
     @Test
@@ -123,6 +123,56 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         get("/api/local-datashare/documents/src/id_ods?filter_metadata=true").should()
                 .succeed()
                 .haveHeader("Content-Length", null);
+    }
+
+    @Test
+    public void test_get_source_file_with_stale_indexed_content_length_serves_disk_size_and_warns() throws Exception {
+        File txtFile = new File(temp.getRoot(), "/my/path/to/stale.ods");
+        MockIndexer.write(txtFile, "content");
+        Document staleDoc = DocumentBuilder.createDoc("id_stale").with(txtFile.toPath()).with(new Project("local-datashare"))
+                .ofContentType("application/vnd.oasis.opendocument.spreadsheet").withContentLength(999).build();
+        mockIndexer.indexFile("local-datashare", staleDoc);
+
+        get("/api/local-datashare/documents/src/id_stale").should()
+                .haveHeader("Content-Length", "7");
+        assertThat(logback.logs(Level.WARN))
+                .contains("document id_stale changed on disk: indexed contentLength is 999 but serving 7 bytes");
+    }
+
+    @Test
+    public void test_get_embedded_source_file_with_cached_raw_artifact_serves_the_raw_size() throws Exception {
+        String embeddedId = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2";
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        Project index = new Project("local-datashare");
+        Document documentBar = createDoc("bar").with(index).withContentLength(2L * 1024 * 1024 * 1024).build();
+        Document embedded = createDoc(embeddedId).with(index).with(Paths.get(path))
+                .ofContentType("application/vnd.oasis.opendocument.spreadsheet")
+                .withParentId("bar").withRootId("bar").build();
+        mockIndexer.indexFile("local-datashare", documentBar, embedded);
+        File artifactDir = temp.newFolder("artifacts_get_raw");
+        java.nio.file.Path rawFile = artifactDir.toPath().resolve("local-datashare").resolve("a1").resolve("b2").resolve(embeddedId).resolve("raw");
+        Files.createDirectories(rawFile.getParent());
+        Files.write(rawFile, "embedded bytes".getBytes());
+        Files.write(rawFile.resolveSibling("raw.json"), "{}".getBytes());
+        when(propertiesProvider.get(ARTIFACT_DIR_OPT)).thenReturn(Optional.of(artifactDir.toString()));
+
+        get("/api/local-datashare/documents/src/" + embeddedId + "?routing=bar").should()
+                .respond(200)
+                .haveHeader("Content-Length", "14");
+        // The mismatch warning is for roots only: a Tika-declared embed size legitimately
+        // differs from the cached bytes, so no WARN may fire here.
+        assertThat(logback.logs(Level.WARN).stream().anyMatch(log -> log.contains("changed on disk"))).isFalse();
+    }
+
+    @Test
+    public void test_get_embedded_source_file_without_cached_artifact_keeps_the_indexed_length() {
+        // MockIndexer stamps contentLength=10 on the embed; no artifact dir is configured, so the
+        // live-parse path must keep sending the indexed value even though the served PDF is bigger.
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        mockIndexer.indexFile("local-datashare", "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623", Paths.get(path), "application/pdf", "id_eml");
+
+        get("/api/local-datashare/documents/src/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml")
+                .should().respond(200).haveHeader("Content-Length", "10");
     }
 
     @Test
