@@ -134,6 +134,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         mockIndexer.indexFile("local-datashare", staleDoc);
 
         get("/api/local-datashare/documents/src/id_stale").should()
+                .contain("content")
                 .haveHeader("Content-Length", "7");
         assertThat(logback.logs(Level.WARN))
                 .contains("document id_stale changed on disk: indexed contentLength is 999 but serving 7 bytes");
@@ -158,6 +159,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
         get("/api/local-datashare/documents/src/" + embeddedId + "?routing=bar").should()
                 .respond(200)
+                .contain("embedded bytes")
                 .haveHeader("Content-Length", "14");
         // The mismatch warning is for roots only: a Tika-declared embed size legitimately
         // differs from the cached bytes, so no WARN may fire here.

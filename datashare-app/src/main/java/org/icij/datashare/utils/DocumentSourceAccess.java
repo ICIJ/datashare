@@ -113,7 +113,7 @@ public class DocumentSourceAccess {
             // Tika indexed Files.size at extraction time, so a mismatch means the file changed
             // under us and is worth a manual look. Roots only: for embeds, a Tika-declared size
             // can legitimately differ from the bytes we cached, comparing would just be noise.
-            if (diskLength != doc.getContentLength()) {
+            if (doc.getContentLength() > 0 && diskLength != doc.getContentLength()) {
                 logger.warn("document {} changed on disk: indexed contentLength is {} but serving {} bytes",
                             doc.getId(), doc.getContentLength(), diskLength);
             }
