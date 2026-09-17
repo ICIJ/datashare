@@ -510,4 +510,29 @@ public class SourceExtractorTest {
 
         assertThat(extractor.hasCachedEmbeddedSource(project("prj"), embedded)).isFalse();
     }
+
+    @Test
+    public void test_cached_embedded_source_length_is_the_raw_file_byte_count() throws Exception {
+        String embeddedId = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2";
+        File artifactDir = tmpDir.newFolder("artifacts_length");
+        Path rawFile = artifactDir.toPath().resolve("prj").resolve("a1").resolve("b2").resolve(embeddedId).resolve("raw");
+        Files.createDirectories(rawFile.getParent());
+        Files.write(rawFile, "embedded bytes".getBytes());
+        Files.write(rawFile.resolveSibling("raw.json"), "{}".getBytes());
+        Document embedded = DocumentBuilder.createDoc(embeddedId).with(project("prj")).build();
+
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of(ARTIFACT_DIR_OPT, artifactDir.toString())));
+
+        assertThat(extractor.cachedEmbeddedSourceLength(project("prj"), embedded)).isEqualTo(14L);
+    }
+
+    @Test
+    public void test_cached_embedded_source_length_minus_one_when_not_cached() {
+        String embeddedId = "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0a1b2";
+        Document embedded = DocumentBuilder.createDoc(embeddedId).with(project("prj")).build();
+
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(Map.of()));
+
+        assertThat(extractor.cachedEmbeddedSourceLength(project("prj"), embedded)).isEqualTo(-1L);
+    }
 }

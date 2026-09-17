@@ -192,19 +192,30 @@ public class SourceExtractor {
     }
 
     public boolean hasCachedEmbeddedSource(final Project project, final Document document) {
+        return cachedEmbeddedSourceLength(project, document) > 0;
+    }
+
+    /** Byte count of the cached raw artifact for an embedded document, or -1 when there is no
+     *  usable cache entry. extract-lib writes the raw payload uncompressed, so this is exactly
+     *  the number of bytes a cache-hit read serves. */
+    public long cachedEmbeddedSourceLength(final Project project, final Document document) {
         Path artifactPath = getArtifactPath(project);
         if (artifactPath == null) {
-            return false;
+            return -1;
         }
         Path documentArtifactDir = ArtifactPath.dir(artifactPath, document.getId());
         Path rawPayload = documentArtifactDir.resolve(ArtifactPath.RAW_FILE);
         Path rawSidecar = documentArtifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE);
         // Readable, not merely present: the files are written 0600 by whichever process produced
         // them, and an unreadable artifact sends extract-lib back to a live parse of the root.
+        if (!Files.isReadable(rawPayload) || !Files.isReadable(rawSidecar)) {
+            return -1;
+        }
         // Non-empty too: extract-lib records a zero-byte payload for embeds whose bytes it could
         // not read, and serving those as a cache hit would return an empty 200 where the size
         // limit used to return 413.
-        return Files.isReadable(rawPayload) && Files.isReadable(rawSidecar) && rawPayload.toFile().length() > 0;
+        long length = rawPayload.toFile().length();
+        return length > 0 ? length : -1;
     }
 
     private Path getArtifactPath(Project project) {
