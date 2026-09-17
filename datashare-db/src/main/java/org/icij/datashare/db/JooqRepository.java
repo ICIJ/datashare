@@ -173,7 +173,7 @@ public class JooqRepository implements Repository {
                                DOCUMENT_USER_RECOMMENDATION.CREATION_DATE);
         LocalDateTime now = Timestamp.from(Instant.now()).toLocalDateTime();
         documentIds.forEach(t -> query.values(t, user.id, project.getId(), now));
-        return query.execute();
+        return query.onConflictDoNothing().execute();
 
     }
 

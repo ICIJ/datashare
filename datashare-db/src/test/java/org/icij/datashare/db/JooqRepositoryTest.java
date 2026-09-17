@@ -194,6 +194,17 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_recommend_a_document_already_recommended_is_a_noop() {
+        User user = new User("user1");
+
+        assertThat(repository.recommend(project("prj"), user, singletonList("id1"))).isEqualTo(1);
+        assertThat(repository.recommend(project("prj"), user, singletonList("id1"))).isEqualTo(0);
+
+        Repository.AggregateList<User> recommendations = repository.getRecommendations(project("prj"), singletonList("id1"));
+        assertThat(recommendations.aggregates).containsExactly(new Repository.Aggregate<>(user, 1));
+    }
+
+    @Test
     public void test_tag_untag_a_document() {
         assertThat(repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"))).isTrue();
         assertThat(repository.getDocuments(project("prj"), tag("tag1"))).containsExactly("doc_id");
