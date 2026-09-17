@@ -417,8 +417,9 @@ public class DocumentResource {
                     @Parameter(name = "docIds", in = ParameterIn.QUERY, description = "comma separated document ids")})
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/users/recommendationsby?project=:project&docIds=:coma_separated_docIds")
-    public AggregateList<User> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds,
-                                                         final Context context) {
+    public AggregateList<User> getProjectRecommendationsByDocIds(final String projectId,
+                                                                 final String comaSeparatedDocIds,
+                                                                 final Context context) {
         requireGranted(context, projectId);
         return repository.getRecommendations(project(projectId), stream(comaSeparatedDocIds.split(",")).map(String::new)
                                                                                                        .collect(

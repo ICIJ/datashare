@@ -282,7 +282,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
 
-        get("/api/users").should().respond(200).contain("alice");
+        get("/api/users/admin").should().respond(200).contain("alice");
     }
 
     @Test
@@ -290,7 +290,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenThrow(new UnsupportedOperationException("not supported"));
 
-        get("/api/users").should().respond(501);
+        get("/api/users/admin").should().respond(501);
     }
 
     @Test
@@ -298,7 +298,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
-        get("/api/users").should().respond(200);
+        get("/api/users/admin").should().respond(200);
     }
 
     @Test
@@ -307,7 +307,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
         // from/size are applied in-memory via WebResponse.fromStream; just check 200
-        get("/api/users?from=0&size=5").should().respond(200);
+        get("/api/users/admin?from=0&size=5").should().respond(200);
     }
 
     @Test
@@ -316,7 +316,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
 
-        get("/api/users").should().respond(200).contain("alice");
+        get("/api/users/admin").should().respond(200).contain("alice");
     }
 
     @Test
@@ -324,14 +324,14 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
         when(userAdminService.get("alice")).thenReturn(alice);
 
-        get("/api/users/alice").should().respond(200).contain("alice");
+        get("/api/users/admin/alice").should().respond(200).contain("alice");
     }
 
     @Test
     public void test_get_user_by_userId_returns_404_when_not_found() throws Exception {
         when(userAdminService.get("ghost")).thenThrow(new UserNotFoundException("ghost"));
 
-        get("/api/users/ghost").should().respond(404);
+        get("/api/users/admin/ghost").should().respond(404);
     }
 
     @Test
@@ -339,7 +339,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         UserCreated updated = new UserCreated("alice", "new@example.org", "Alice B", "local", List.of(), false);
         when(userAdminService.update(eq("alice"), any())).thenReturn(updated);
 
-        put("/api/users/alice", "{\"email\":\"new@example.org\",\"name\":\"Alice B\"}")
+        put("/api/users/admin/alice", "{\"email\":\"new@example.org\",\"name\":\"Alice B\"}")
                 .should().respond(200).contain("\"login\":\"alice\"");
     }
 
@@ -347,28 +347,28 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void test_update_user_returns_404_when_not_found() throws Exception {
         when(userAdminService.update(eq("ghost"), any())).thenThrow(new UserNotFoundException("ghost"));
 
-        put("/api/users/ghost", "{\"email\":\"e@e.com\"}").should().respond(404);
+        put("/api/users/admin/ghost", "{\"email\":\"e@e.com\"}").should().respond(404);
     }
 
     @Test
     public void test_update_user_returns_400_on_validation_error() throws Exception {
         when(userAdminService.update(eq("alice"), any())).thenThrow(new ValidationException("password", "cannot be empty"));
 
-        put("/api/users/alice", "{\"password\":\"\"}").should().respond(400);
+        put("/api/users/admin/alice", "{\"password\":\"\"}").should().respond(400);
     }
 
     @Test
     public void test_delete_user_returns_204() throws Exception {
         when(userAdminService.delete("alice")).thenReturn(true);
 
-        delete("/api/users/alice").should().respond(204);
+        delete("/api/users/admin/alice").should().respond(204);
     }
 
     @Test
     public void test_delete_user_is_idempotent_when_not_found() throws Exception {
         when(userAdminService.delete("ghost")).thenThrow(new UserNotFoundException("ghost"));
 
-        delete("/api/users/ghost").should().respond(204);
+        delete("/api/users/admin/ghost").should().respond(204);
     }
 
     @Test
@@ -376,7 +376,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInInstance(new User("alice"), Role.PROJECT_MEMBER);
         when(userAdminService.delete("alice")).thenReturn(true);
 
-        delete("/api/users/alice").should().respond(204);
+        delete("/api/users/admin/alice").should().respond(204);
 
         assertTrue(authorizer.getGroupPermissions(localUser("alice")).isEmpty());
     }
@@ -386,7 +386,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         ProjectGranted granted = new ProjectGranted("someproject", "alice", Role.PROJECT_ADMIN, null, false);
         when(projectAdminService.grant("someproject", "alice", Role.PROJECT_ADMIN)).thenReturn(granted);
 
-        put("/api/users/alice/index/someproject?role=admin")
+        put("/api/users/admin/alice/index/someproject?role=admin")
                 .should().respond(200).contain("\"userLogin\":\"alice\"");
     }
 
@@ -395,13 +395,13 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         ProjectGranted granted = new ProjectGranted("someproject", "alice", Role.PROJECT_ADMIN, null, true);
         when(projectAdminService.grantIfNotExists("someproject", "alice", Role.PROJECT_ADMIN)).thenReturn(granted);
 
-        put("/api/users/alice/index/someproject?role=admin&ifNotExists=true")
+        put("/api/users/admin/alice/index/someproject?role=admin&ifNotExists=true")
                 .should().respond(200).contain("\"noop\":true");
     }
 
     @Test
     public void test_grant_project_returns_400_on_invalid_role() throws Exception {
-        put("/api/users/alice/index/someproject?role=bogus").should().respond(400);
+        put("/api/users/admin/alice/index/someproject?role=bogus").should().respond(400);
     }
 
     @Test
@@ -409,7 +409,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(projectAdminService.grant("ghost", "alice", Role.PROJECT_ADMIN))
                 .thenThrow(new ProjectNotFoundException("ghost"));
 
-        put("/api/users/alice/index/ghost?role=admin").should().respond(404);
+        put("/api/users/admin/alice/index/ghost?role=admin").should().respond(404);
     }
 
     @Test
@@ -417,7 +417,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(projectAdminService.grant("someproject", "ghost", Role.PROJECT_ADMIN))
                 .thenThrow(new org.icij.datashare.project.admin.UserNotFoundException("ghost"));
 
-        put("/api/users/ghost/index/someproject?role=admin").should().respond(404);
+        put("/api/users/admin/ghost/index/someproject?role=admin").should().respond(404);
     }
 
     @Test
@@ -425,7 +425,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         ProjectGranted granted = new ProjectGranted("someproject", "me", Role.PROJECT_ADMIN, null, false);
         when(projectAdminService.grant("someproject", "me", Role.PROJECT_ADMIN)).thenReturn(granted);
 
-        put("/api/users/me/index/someproject?role=admin")
+        put("/api/users/admin/me/index/someproject?role=admin")
                 .should().respond(200).contain("\"userLogin\":\"me\"");
         verify(projectAdminService).grant("someproject", "me", Role.PROJECT_ADMIN);
     }
@@ -437,7 +437,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         ProjectRevoked revoked = new ProjectRevoked("someproject", "alice", List.of(Role.PROJECT_ADMIN), false);
         when(projectAdminService.revoke("someproject", "alice")).thenReturn(revoked);
 
-        delete("/api/users/alice/index/someproject").should().respond(200).contain("\"userLogin\":\"alice\"");
+        delete("/api/users/admin/alice/index/someproject").should().respond(200).contain("\"userLogin\":\"alice\"");
     }
 
     @Test
@@ -445,14 +445,14 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         ProjectRevoked revoked = new ProjectRevoked("someproject", "alice", List.of(), true);
         when(projectAdminService.revokeIfExists("someproject", "alice")).thenReturn(revoked);
 
-        delete("/api/users/alice/index/someproject?ifExists=true").should().respond(200).contain("\"noop\":true");
+        delete("/api/users/admin/alice/index/someproject?ifExists=true").should().respond(200).contain("\"noop\":true");
     }
 
     @Test
     public void test_revoke_project_returns_404_when_project_not_found() throws Exception {
         when(projectAdminService.revoke("ghost", "alice")).thenThrow(new ProjectNotFoundException("ghost"));
 
-        delete("/api/users/alice/index/ghost").should().respond(404);
+        delete("/api/users/admin/alice/index/ghost").should().respond(404);
     }
 
     @Test
@@ -460,7 +460,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(projectAdminService.revoke("someproject", "ghost"))
                 .thenThrow(new org.icij.datashare.project.admin.UserNotFoundException("ghost"));
 
-        delete("/api/users/ghost/index/someproject").should().respond(404);
+        delete("/api/users/admin/ghost/index/someproject").should().respond(404);
     }
 
     @Test
@@ -470,13 +470,13 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
             .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=uid").response().content();
+        String body = get("/api/users/admin?sort=uid").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("bob"));
     }
 
     @Test
     public void test_list_users_sort_invalid_value_returns_400() {
-        get("/api/users?sort=unknown").should().respond(400);
+        get("/api/users/admin?sort=unknown").should().respond(400);
     }
 
     @Test
@@ -484,7 +484,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
             .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
-        get("/api/users").should().respond(200);
+        get("/api/users/admin").should().respond(200);
     }
 
     @Test
@@ -494,7 +494,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
             .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
 
-        get("/api/users?sort=role").should().respond(200).contain("alice");
+        get("/api/users/admin?sort=role").should().respond(200).contain("alice");
     }
 
     @Test
@@ -512,7 +512,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .add(new UserResource(jooqRepository, restrictedAuthorizer, userAdminService, projectAdminService))
                 .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
 
-        get("/api/users").should().respond(403);
+        get("/api/users/admin").should().respond(403);
     }
 
     @Test
@@ -521,7 +521,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
-        get("/api/users").should().respond(200);
+        get("/api/users/admin").should().respond(200);
     }
 
     // Security regression: the global user-inventory endpoints (create/get/update/delete) require
@@ -560,21 +560,21 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void test_get_user_returns_403_for_single_project_admin_even_with_index() throws IOException {
         configureWithSingleProjectAdmin();
 
-        get("/api/users/victim?index=cantina").should().respond(403);
+        get("/api/users/admin/victim?index=cantina").should().respond(403);
     }
 
     @Test
     public void test_update_user_returns_403_for_single_project_admin_even_with_index() throws IOException {
         configureWithSingleProjectAdmin();
 
-        put("/api/users/victim?index=cantina", "{\"password\":\"newpass\"}").should().respond(403);
+        put("/api/users/admin/victim?index=cantina", "{\"password\":\"newpass\"}").should().respond(403);
     }
 
     @Test
     public void test_delete_user_returns_403_for_single_project_admin_even_with_index() throws IOException {
         configureWithSingleProjectAdmin();
 
-        delete("/api/users/victim?index=cantina").should().respond(403);
+        delete("/api/users/admin/victim?index=cantina").should().respond(403);
     }
 
     @Test
@@ -584,7 +584,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=uid").response().content();
+        String body = get("/api/users/admin?sort=uid").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("bob"));
     }
 
@@ -595,7 +595,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=uid&desc=true").response().content();
+        String body = get("/api/users/admin?sort=uid&desc=true").response().content();
         // desc=true reverses: bob before alice
         assertTrue(body.indexOf("bob") < body.indexOf("alice"));
     }
@@ -607,7 +607,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=email").response().content();
+        String body = get("/api/users/admin?sort=email").response().content();
         // bob's email a@a.com sorts before alice's z@z.com
         assertTrue(body.indexOf("bob") < body.indexOf("alice"));
     }
@@ -619,7 +619,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=email&desc=true").response().content();
+        String body = get("/api/users/admin?sort=email&desc=true").response().content();
         assertTrue(body.indexOf("bob") < body.indexOf("alice"));
     }
 
@@ -630,7 +630,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=name").response().content();
+        String body = get("/api/users/admin?sort=name").response().content();
         // bob's name "Adam" sorts before alice's "Zed"
         assertTrue(body.indexOf("bob") < body.indexOf("alice"));
     }
@@ -642,7 +642,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=name&desc=true").response().content();
+        String body = get("/api/users/admin?sort=name&desc=true").response().content();
         assertTrue(body.indexOf("bob") < body.indexOf("alice"));
     }
 
@@ -653,7 +653,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(alice, bob), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=name").response().content();
+        String body = get("/api/users/admin?sort=name").response().content();
         assertTrue(body.indexOf("bob") < body.indexOf("alice"));
     }
 
@@ -662,7 +662,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
                 .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
-        get("/api/users?sort=uid").should().respond(200);
+        get("/api/users/admin?sort=uid").should().respond(200);
     }
 
     @Test
@@ -675,7 +675,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .thenReturn(new WebResponse<>(List.of(bob, alice), 0, Integer.MAX_VALUE, 2));
 
         // INSTANCE_ADMIN ordinal < PROJECT_MEMBER ordinal → alice before bob
-        String body = get("/api/users?sort=role").response().content();
+        String body = get("/api/users/admin?sort=role").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("bob"));
     }
 
@@ -687,7 +687,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
 
-        get("/api/users").should().respond(200).contain("alice");
+        get("/api/users/admin").should().respond(200).contain("alice");
     }
 
     @Test
@@ -695,7 +695,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(new UserFilter("ali"), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
-        get("/api/users?q=ali").should().respond(200);
+        get("/api/users/admin?q=ali").should().respond(200);
         // verify service received the filter
         ArgumentCaptor<UserFilter> captor = ArgumentCaptor.forClass(UserFilter.class);
         verify(userAdminService).list(captor.capture(), isNull(), eq(0), eq(Integer.MAX_VALUE));
@@ -711,7 +711,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         // toto has *::* (instance-wide) → matches any domain filter
         authorizer.addRoleForUserInInstance(User.localUser("toto"), Role.INSTANCE_ADMIN);
 
-        get("/api/users?domain=icij").should().respond(200)
+        get("/api/users/admin?domain=icij").should().respond(200)
                 .contain("toto").not().contain("bob");
     }
 
@@ -724,7 +724,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInProject(User.localUser("tutu"), Role.PROJECT_MEMBER, Domain.of("other"), new Project("papers"));
 
         // scoped to icij, tutu only has other::papers → excluded
-        get("/api/users?domain=icij").should().respond(200)
+        get("/api/users/admin?domain=icij").should().respond(200)
                 .not().contain("tutu");
     }
 
@@ -737,7 +737,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_EDITOR, Domain.DEFAULT, new Project("local-datashare"));
 
         // scoped to default::cantina → only cantina permission should appear
-        String body = get("/api/users?domain=default&index=cantina").response().content();
+        String body = get("/api/users/admin?domain=default&index=cantina").response().content();
         assertTrue(body.contains("PROJECT_ADMIN"));
         assertTrue(body.contains("default::cantina"));
         assertFalse(body.contains("local-datashare"));
@@ -752,7 +752,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_EDITOR, Domain.DEFAULT, new Project("local-datashare"));
 
         // scoped to index=cantina only (no domain param) → only cantina permission should appear
-        String body = get("/api/users?index=cantina").response().content();
+        String body = get("/api/users/admin?index=cantina").response().content();
         assertTrue(body.contains("PROJECT_ADMIN"));
         assertTrue(body.contains("default::cantina"));
         assertFalse(body.contains("local-datashare"));
@@ -766,7 +766,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         // titi's cantina role was revoked, but they still hold a role on another project
         authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_EDITOR, Domain.DEFAULT, new Project("local-datashare"));
 
-        get("/api/users?index=cantina").should().respond(200)
+        get("/api/users/admin?index=cantina").should().respond(200)
                 .not().contain("titi");
     }
 
@@ -778,7 +778,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .thenReturn(new WebResponse<>(List.of(dudu, toto), 0, Integer.MAX_VALUE, 2));
         authorizer.addRoleForUserInInstance(User.localUser("toto"), Role.INSTANCE_ADMIN);
 
-        get("/api/users?noRole=false").should().respond(200)
+        get("/api/users/admin?noRole=false").should().respond(200)
                 .contain("toto").not().contain("dudu");
     }
 
@@ -789,7 +789,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .thenReturn(new WebResponse<>(List.of(dudu), 0, Integer.MAX_VALUE, 1));
         // dudu has no rules → with noRole=true they should still appear
 
-        get("/api/users?noRole=true").should().respond(200).contain("dudu");
+        get("/api/users/admin?noRole=true").should().respond(200).contain("dudu");
     }
 
     @Test
@@ -800,7 +800,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         // dudu has no rules for icij domain → excluded when scoped
 
         // scoped but no noRole param → dudu has no matching permissions → excluded
-        get("/api/users?domain=icij").should().respond(200).not().contain("dudu");
+        get("/api/users/admin?domain=icij").should().respond(200).not().contain("dudu");
     }
 
     @Test
@@ -810,7 +810,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(charlie, alice), 0, Integer.MAX_VALUE, 2));
 
-        String body = get("/api/users?sort=uid").response().content();
+        String body = get("/api/users/admin?sort=uid").response().content();
         assertTrue(body.indexOf("alice") < body.indexOf("charlie"));
     }
 
@@ -823,7 +823,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInInstance(User.localUser("toto"), Role.INSTANCE_ADMIN);
         authorizer.addRoleForUserInProject(User.localUser("titi"), Role.PROJECT_MEMBER, Domain.DEFAULT, new Project("cantina"));
 
-        String body = get("/api/users?sort=role").response().content();
+        String body = get("/api/users/admin?sort=role").response().content();
         assertTrue(body.indexOf("toto") < body.indexOf("titi"));
     }
 
@@ -835,7 +835,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .thenReturn(new WebResponse<>(List.of(dudu, toto), 0, Integer.MAX_VALUE, 2));
         authorizer.addRoleForUserInInstance(User.localUser("toto"), Role.INSTANCE_ADMIN);
 
-        String body = get("/api/users?sort=role&noRole=true").response().content();
+        String body = get("/api/users/admin?sort=role&noRole=true").response().content();
         assertTrue(body.indexOf("toto") < body.indexOf("dudu"));
     }
 
@@ -844,7 +844,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(), any(), anyInt(), anyInt()))
                 .thenReturn(new WebResponse<>(List.of(), 0, 100, 0));
 
-        get("/api/users?sort=unknown").should().respond(400);
+        get("/api/users/admin?sort=unknown").should().respond(400);
     }
 
     @Test
@@ -852,7 +852,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(any(), any(), anyInt(), anyInt()))
                 .thenThrow(new UnsupportedOperationException("not supported"));
 
-        get("/api/users").should().respond(501);
+        get("/api/users/admin").should().respond(501);
     }
 
     // PUT /api/users/:userId/role - grant instance/domain admin
@@ -862,7 +862,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);
 
-        put("/api/users/bob/role?role=instance_admin")
+        put("/api/users/admin/bob/role?role=instance_admin")
                 .should().respond(200)
                 .contain("\"userLogin\":\"bob\"")
                 .contain("\"role\":\"INSTANCE_ADMIN\"")
@@ -876,7 +876,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);
 
-        put("/api/users/bob/role?role=domain_admin&domain=icij")
+        put("/api/users/admin/bob/role?role=domain_admin&domain=icij")
                 .should().respond(200)
                 .contain("\"role\":\"DOMAIN_ADMIN\"");
 
@@ -888,7 +888,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);
 
-        put("/api/users/bob/role?role=domain_admin").should().respond(200);
+        put("/api/users/admin/bob/role?role=domain_admin").should().respond(200);
 
         assertTrue(authorizer.getRolesForUserInDomain(bob, Domain.DEFAULT).contains("DOMAIN_ADMIN"));
     }
@@ -899,7 +899,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);
 
-        put("/api/users/bob/role?role=instance_admin").should().respond(200).contain("\"noop\":false");
+        put("/api/users/admin/bob/role?role=instance_admin").should().respond(200).contain("\"noop\":false");
 
         assertTrue(authorizer.getRolesForUserInDomain(User.local(), Domain.of("*")).contains("INSTANCE_ADMIN"));
         assertTrue(authorizer.getRolesForUserInDomain(bob, Domain.of("*")).contains("INSTANCE_ADMIN"));
@@ -911,7 +911,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.get("bob")).thenReturn(bob);
         authorizer.addRoleForUserInInstance(bob, Role.INSTANCE_ADMIN);
 
-        put("/api/users/bob/role?role=instance_admin")
+        put("/api/users/admin/bob/role?role=instance_admin")
                 .should().respond(200)
                 .contain("\"noop\":true")
                 .contain("\"previousRole\":\"INSTANCE_ADMIN\"");
@@ -919,14 +919,14 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_grant_role_returns_400_on_invalid_role() throws Exception {
-        put("/api/users/bob/role?role=bogus").should().respond(400);
+        put("/api/users/admin/bob/role?role=bogus").should().respond(400);
     }
 
     @Test
     public void test_grant_role_returns_404_when_user_not_found() throws Exception {
         when(userAdminService.get("ghost")).thenThrow(new UserNotFoundException("ghost"));
 
-        put("/api/users/ghost/role?role=instance_admin").should().respond(404);
+        put("/api/users/admin/ghost/role?role=instance_admin").should().respond(404);
     }
 
     @Test
@@ -935,7 +935,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);
 
-        put("/api/users/bob/role?role=instance_admin").should().respond(403);
+        put("/api/users/admin/bob/role?role=instance_admin").should().respond(403);
     }
 
     // DELETE /api/users/:userId/role - revoke instance/domain admin
@@ -946,7 +946,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.get("bob")).thenReturn(bob);
         authorizer.addRoleForUserInInstance(bob, Role.INSTANCE_ADMIN);
 
-        delete("/api/users/bob/role?role=instance_admin")
+        delete("/api/users/admin/bob/role?role=instance_admin")
                 .should().respond(200)
                 .contain("\"userLogin\":\"bob\"")
                 .contain("\"role\":\"INSTANCE_ADMIN\"")
@@ -961,7 +961,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.get("bob")).thenReturn(bob);
         authorizer.addRoleForUserInDomain(bob, Role.DOMAIN_ADMIN, Domain.of("icij"));
 
-        delete("/api/users/bob/role?role=domain_admin&domain=icij")
+        delete("/api/users/admin/bob/role?role=domain_admin&domain=icij")
                 .should().respond(200)
                 .contain("\"role\":\"DOMAIN_ADMIN\"")
                 .contain("\"noop\":false");
@@ -975,7 +975,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.get("bob")).thenReturn(bob);
         authorizer.addRoleForUserInDomain(bob, Role.DOMAIN_ADMIN, Domain.DEFAULT);
 
-        delete("/api/users/bob/role?role=domain_admin").should().respond(200);
+        delete("/api/users/admin/bob/role?role=domain_admin").should().respond(200);
 
         assertFalse(authorizer.getRolesForUserInDomain(bob, Domain.DEFAULT).contains("DOMAIN_ADMIN"));
     }
@@ -985,7 +985,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);
 
-        delete("/api/users/bob/role?role=instance_admin")
+        delete("/api/users/admin/bob/role?role=instance_admin")
                 .should().respond(200)
                 .contain("\"noop\":true")
                 .contain("\"previousRole\":null");
@@ -993,14 +993,14 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_revoke_role_returns_400_on_invalid_role() throws Exception {
-        delete("/api/users/bob/role?role=bogus").should().respond(400);
+        delete("/api/users/admin/bob/role?role=bogus").should().respond(400);
     }
 
     @Test
     public void test_revoke_role_returns_404_when_user_not_found() throws Exception {
         when(userAdminService.get("ghost")).thenThrow(new UserNotFoundException("ghost"));
 
-        delete("/api/users/ghost/role?role=instance_admin").should().respond(404);
+        delete("/api/users/admin/ghost/role?role=instance_admin").should().respond(404);
     }
 
     @Test
@@ -1009,7 +1009,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);
 
-        delete("/api/users/bob/role?role=instance_admin").should().respond(403);
+        delete("/api/users/admin/bob/role?role=instance_admin").should().respond(403);
     }
 
     @Test
@@ -1017,7 +1017,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
-        get("/api/users?from=5&size=10").should().respond(200)
+        get("/api/users/admin?from=5&size=10").should().respond(200)
                 .contain("\"from\":5").contain("\"size\":10");
     }
 }
