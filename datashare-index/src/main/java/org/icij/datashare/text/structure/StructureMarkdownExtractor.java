@@ -148,12 +148,29 @@ public class StructureMarkdownExtractor {
         }
         List<Page> pages = new ArrayList<>();
         for (Element page : selectRootPages(document)) {
-            // Both formats come from the same DOM, so they can never disagree about a page's content.
+            // Both formats come from the same DOM, so they can never disagree about a page's text.
             org.jsoup.nodes.Document sanitized = asXhtmlDocument(sanitize(page));
-            String markdown = MARKDOWN_CONVERTER.convert(sanitized).strip();
+            String markdown = toMarkdown(sanitized);
             pages.add(new Page(serializeAsXhtml(sanitized), markdown));
         }
         return pages;
+    }
+
+    // flexmark's html2md pads a markdown table's columns to its widest cell, and a nested table's padded
+    // rendering becomes its host cell's text, on which flexmark runs a whitespace regex that is quadratic
+    // over the padding runs: one wide cell in a table one level down is enough to make the conversion run
+    // for hours on kilobytes of HTML (it pinned every artifact worker of a 32-core box on Word
+    // attachments, 2026-09). Markdown cannot represent a table inside a table anyway, so the converter
+    // gets a copy with every nested table flattened to paragraphs. Only the copy is flattened: the stored
+    // XHTML keeps the real markup, which TikaTableRowSource reads nested tables from. Cloned only when a
+    // nested table exists, so an ordinary page is not held in heap twice.
+    private static String toMarkdown(org.jsoup.nodes.Document sanitized) {
+        org.jsoup.nodes.Document convertible = sanitized;
+        if (!sanitized.select("table table").isEmpty()) {
+            convertible = sanitized.clone();
+            flattenNestedTables(convertible);
+        }
+        return MARKDOWN_CONVERTER.convert(convertible).strip();
     }
 
     // The type Tika settled on rather than the caller's hint: AutoDetectParser writes what it detected
@@ -320,6 +337,31 @@ public class StructureMarkdownExtractor {
         holder.outputSettings(COMPACT_OUTPUT.clone());
         holder.body().insertChildren(0, new ArrayList<>(page.childNodes()));
         return Jsoup.clean(holder.body().html(), RELATIVE_LINK_BASE, SAFELIST, COMPACT_OUTPUT.clone());
+    }
+
+    // Document order visits a host table first, and flattening it detaches the tables it held, whose
+    // parents() is then empty: a snapshot element already unwrapped by its host's pass has no table
+    // ancestor left and is skipped rather than flattened twice.
+    private static void flattenNestedTables(Element page) {
+        for (Element table : page.select("table")) {
+            if (hasTableAncestor(table)) {
+                flattenToParagraphs(table);
+            }
+        }
+    }
+
+    private static boolean hasTableAncestor(Element table) {
+        return table.parents().stream().anyMatch(parent -> "table".equals(parent.normalName()));
+    }
+
+    // Cells become paragraphs so their content survives in reading order; the table markup, including
+    // any table nested deeper still, is unwrapped away. A colgroup holds no text, so it is dropped
+    // rather than left as stray <col> elements outside any table.
+    private static void flattenToParagraphs(Element table) {
+        table.select("col, colgroup").forEach(Element::remove);
+        table.select("td, th").forEach(cell -> cell.tagName("p"));
+        // select matches the table itself along with any table nested deeper, so one pass unwraps them all
+        table.select("table, thead, tbody, tfoot, tr, caption").forEach(Element::unwrap);
     }
 
     // Tika emits empty paragraphs (<p/>, <p><br/></p>) between blocks. A paragraph holding only an image
