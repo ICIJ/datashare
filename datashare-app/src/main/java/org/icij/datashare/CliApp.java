@@ -18,6 +18,7 @@ import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.project.admin.ProjectStats;
 import org.icij.datashare.tasks.ArtifactTask;
+import org.icij.datashare.tasks.LanguageDetectTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
@@ -193,7 +194,7 @@ class CliApp {
                    DeduplicateTask.class, Stage.INDEX, IndexTask.class, Stage.ENQUEUEIDX, EnqueueFromIndexTask.class,
                    Stage.CATEGORIZE, CategorizeTask.class, Stage.CREATENLPBATCHESFROMIDX,
                    CreateNlpBatchesFromIndex.class, Stage.NLP, ExtractNlpTask.class, Stage.ARTIFACT,
-                   ArtifactTask.class);
+                   ArtifactTask.class, Stage.LANGUAGE, LanguageDetectTask.class);
 
     /**
      * Starts every configured stage, then awaits them all at once. Each stage carries the previous
