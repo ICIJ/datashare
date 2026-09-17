@@ -29,6 +29,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class LanguageDetectTaskTest {
     private static final String FRENCH_CONTENT =
             "Le petit chat noir dort paisiblement sur le canape pres de la fenetre ensoleillee.";
+    private static final String GIBBERISH_CONTENT = "1234567890 42 -- !!! ??? ... 2026/09/17 +33 06 07";
     private static final List<String> EXCLUDES = List.of("content_translated");
     @Mock Indexer mockEs;
     private final MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
@@ -58,6 +59,18 @@ public class LanguageDetectTaskTest {
         assertThat(runTask()).isEqualTo(1);
 
         verify(mockEs, never()).update(anyString(), anyString(), anyMap(), anyString());
+    }
+
+    @Test(timeout = 30000)
+    public void test_unknown_overwrites_a_wrong_english_language() throws Exception {
+        Document doc = DocumentBuilder.createDoc("docId").with(new Project("prj"))
+                .with(GIBBERISH_CONTENT).with(Language.ENGLISH).build();
+        when(mockEs.get("prj", "docId", "docId", EXCLUDES)).thenReturn(doc);
+        factory.createQueue("extract:queue:language", String.class).add("docId");
+
+        assertThat(runTask()).isEqualTo(1);
+
+        verify(mockEs).update("prj", "docId", Map.of("language", "UNKNOWN"), "docId");
     }
 
     @Test(timeout = 30000)
