@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -53,7 +54,7 @@ public class LanguageDetectTask extends PipelineTask<String> {
         this.languageGuesser = languageGuesser;
         project = Project.project((String) taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT));
         parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
-        executor = Executors.newFixedThreadPool(parallelism);
+        executor = Executors.newFixedThreadPool(parallelism, namedThreadFactory("language-worker"));
     }
 
     @Override
@@ -76,11 +77,26 @@ public class LanguageDetectTask extends PipelineTask<String> {
             for (int i = 0; i < parallelism; i++) {
                 futures.add(executor.submit(() -> runWorker(nbUpdated, nbUnchanged, nbSkipped, nbFailed)));
             }
+            int nbFailures = 0;
+            Throwable firstCause = null;
             for (Future<?> future : futures) {
-                future.get();
+                try {
+                    future.get();
+                } catch (ExecutionException e) {
+                    logger.error("language worker terminated abnormally", e.getCause());
+                    if (nbFailures == 0) {
+                        firstCause = e.getCause();
+                    }
+                    nbFailures++;
+                }
             }
             if (Thread.interrupted()) {
                 throw new InterruptedException("cancelled while draining " + inputQueue.getName());
+            }
+            if (nbFailures > 0) {
+                throw new IllegalStateException(
+                        String.format("%d of %d language worker(s) terminated abnormally", nbFailures, futures.size()),
+                        firstCause);
             }
         } finally {
             executor.shutdownNow();
