@@ -15,6 +15,8 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.Optional.ofNullable;
 
 public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableTask {
@@ -122,6 +124,15 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     // entry in a String queue. Callers skip it instead of resolving it as a doc reference.
     protected static boolean isLegacySentinel(String queueEntry) {
         return "POISON".equals(queueEntry);
+    }
+
+    protected static ThreadFactory namedThreadFactory(String prefix) {
+        AtomicInteger counter = new AtomicInteger(0);
+        return runnable -> {
+            Thread thread = new Thread(runnable);
+            thread.setName(prefix + "-" + counter.incrementAndGet());
+            return thread;
+        };
     }
 
     private Document warnIfNull(Document document, String projectName, String docId) {

@@ -31,8 +31,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
@@ -224,14 +222,5 @@ public class ArtifactTask extends PipelineTask<String> {
 
     protected SourceExtractor createSourceExtractor() {
         return new SourceExtractor(propertiesProvider);
-    }
-
-    private static ThreadFactory namedThreadFactory(String prefix) {
-        AtomicInteger counter = new AtomicInteger(0);
-        return runnable -> {
-            Thread thread = new Thread(runnable);
-            thread.setName(prefix + "-" + counter.incrementAndGet());
-            return thread;
-        };
     }
 }
