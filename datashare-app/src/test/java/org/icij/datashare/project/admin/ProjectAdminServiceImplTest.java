@@ -5,6 +5,7 @@ import org.icij.datashare.Repository;
 import net.codestory.http.security.Users;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.session.UserStore;
+import org.icij.datashare.session.UsersIdProviderCache;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
@@ -43,6 +44,7 @@ public class ProjectAdminServiceImplTest {
     private Authorizer authorizer;
     private Users users;
     private UserStore userStore;
+    private UsersIdProviderCache usersIdProviderCache;
     private DocumentCollectionFactory<Path> documentCollectionFactory;
     private PropertiesProvider propertiesProvider;
     private ProjectAdminServiceImpl service;
@@ -54,10 +56,12 @@ public class ProjectAdminServiceImplTest {
         authorizer = mock(Authorizer.class);
         users = mock(Users.class);
         userStore = mock(UserStore.class);
+        usersIdProviderCache = mock(UsersIdProviderCache.class);
         documentCollectionFactory = mock(DocumentCollectionFactory.class);
         propertiesProvider = mock(PropertiesProvider.class);
         service = new ProjectAdminServiceImpl(
-                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, users, userStore);
+                repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, users, userStore,
+                usersIdProviderCache);
     }
 
     private ProjectCreateRequest minimalRequest(String name) {
@@ -663,6 +667,57 @@ public class ProjectAdminServiceImplTest {
         List<String> ds = (List<String>) apps.get("datashare");
         assertThat(ds).containsOnly("local-datashare");
         verify(repository, never()).save(any(User.class));
+    }
+
+    @Test
+    public void test_grant_updates_session_cache_so_oauth_sessions_see_it_without_relogin() throws Exception {
+        // Regression: grant must write through to the OAuth session cache (UsersIdProviderCache),
+        // otherwise an already-logged-in user's cached DatashareUser never learns about a new
+        // grant and isGranted() keeps returning stale/false until they log out and back in.
+        Project project = new Project("local-datashare");
+        when(repository.getProject("local-datashare")).thenReturn(project);
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", new HashMap<>());
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of());
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        service.grant("local-datashare", "jdoe", org.icij.datashare.policies.Role.PROJECT_MEMBER);
+
+        ArgumentCaptor<net.codestory.http.security.User> cached =
+                ArgumentCaptor.forClass(net.codestory.http.security.User.class);
+        verify(usersIdProviderCache).saveOrUpdate(cached.capture());
+        DatashareUser cachedUser = (DatashareUser) cached.getValue();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) cachedUser.details.get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) apps.get("datashare");
+        assertThat(ds).containsOnly("local-datashare");
+    }
+
+    @Test
+    public void test_revoke_updates_session_cache_so_oauth_sessions_see_it_without_relogin() throws Exception {
+        Project project = new Project("local-datashare");
+        when(repository.getProject("local-datashare")).thenReturn(project);
+        Map<String, Object> details = new HashMap<>();
+        details.put("groups_by_applications", Map.of("datashare", List.of("local-datashare")));
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", details);
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), eq(project)))
+                .thenReturn(List.of("PROJECT_MEMBER"));
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        service.revoke("local-datashare", "jdoe");
+
+        ArgumentCaptor<net.codestory.http.security.User> cached =
+                ArgumentCaptor.forClass(net.codestory.http.security.User.class);
+        verify(usersIdProviderCache).saveOrUpdate(cached.capture());
+        DatashareUser cachedUser = (DatashareUser) cached.getValue();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) cachedUser.details.get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) apps.get("datashare");
+        assertThat(ds).excludes("local-datashare");
     }
 
     @Test

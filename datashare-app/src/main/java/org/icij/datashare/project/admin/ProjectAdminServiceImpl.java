@@ -6,7 +6,9 @@ import org.apache.commons.io.FileUtils;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.UserStore;
+import org.icij.datashare.session.UsersIdProviderCache;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.utils.DataDirVerifier;
@@ -51,18 +53,21 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private final Authorizer authorizer;
     private final Users users;
     private final UserStore userStore;
+    private final UsersIdProviderCache usersIdProviderCache;
     private final DocumentCollectionFactory<Path> documentCollectionFactory;
     private final PropertiesProvider propertiesProvider;
 
     @Inject
     public ProjectAdminServiceImpl(Repository repository, Indexer indexer, Authorizer authorizer,
                                    DocumentCollectionFactory<Path> documentCollectionFactory,
-                                   PropertiesProvider propertiesProvider, Users users, UserStore userStore) {
+                                   PropertiesProvider propertiesProvider, Users users, UserStore userStore,
+                                   UsersIdProviderCache usersIdProviderCache) {
         this.repository = repository;
         this.indexer = indexer;
         this.authorizer = authorizer;
         this.users = users;
         this.userStore = userStore;
+        this.usersIdProviderCache = usersIdProviderCache;
         this.documentCollectionFactory = documentCollectionFactory;
         this.propertiesProvider = propertiesProvider;
     }
@@ -246,6 +251,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         userStore.save(updated);
+        usersIdProviderCache.saveOrUpdate(new DatashareUser(updated));
         return updated;
     }
 
@@ -258,6 +264,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
         userStore.save(updated);
+        usersIdProviderCache.saveOrUpdate(new DatashareUser(updated));
         return updated;
     }
 
@@ -289,6 +296,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         } catch (RuntimeException casbinFailure) {
             try {
                 userStore.save(original);
+                usersIdProviderCache.saveOrUpdate(new DatashareUser(original));
             } catch (RuntimeException rollback) {
                 casbinFailure.addSuppressed(rollback);
             }
