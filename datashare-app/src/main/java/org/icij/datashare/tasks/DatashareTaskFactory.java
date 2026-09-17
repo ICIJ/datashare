@@ -31,6 +31,8 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
 
     ArtifactTask createArtifactTask(Task<Long> taskView, Function<Double, Void> updateCallback);
 
+    LanguageDetectTask createLanguageDetectTask(Task<Long> taskView, Function<Double, Void> updateCallback);
+
     GenApiKeyTask createGenApiKey(User user);
 
     DelApiKeyTask createDelApiKey(User user);
