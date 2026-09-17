@@ -31,8 +31,7 @@ public class LinguaLanguageGuesser implements LanguageGuesser {
         int slice = MAX_DETECTION_LENGTH / 3;
         int mid = (int) (text.length() * 0.45);
         int end = (int) (text.length() * 0.90);
-        return text.substring(0, slice)
-                + text.substring(mid, mid + slice)
-                + text.substring(end, Math.min(end + slice, text.length()));
+        return text.substring(0, slice) + text.substring(mid, mid + slice) +
+               text.substring(end, Math.min(end + slice, text.length()));
     }
 }
