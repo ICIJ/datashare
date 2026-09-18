@@ -43,10 +43,10 @@ public class DatabaseSpewer extends Spewer {
         Document document =
                 DocumentBuilder.createDoc().with(project).withId(tikaDocument.getId()).with(tikaDocument.getPath())
                                .with(Document.Status.PARSED).with(content)
-                               .with(languageGuesser.guess(content, tikaDocument.getPath())).with(charset)
-                               .ofContentType(contentType).with(getMetadata(tikaDocument)).with(new ArrayList<>())
-                               .extractedAt(new Date()).withParentId(parentId).withRootId(rootId)
-                               .withExtractionLevel((short) level).withContentLength(contentLength)
+                               .with(languageGuesser.guess(content, tikaDocument.getPath()))
+                               .with(charset).ofContentType(contentType).with(getMetadata(tikaDocument))
+                               .with(new ArrayList<>()).extractedAt(new Date()).withParentId(parentId)
+                               .withRootId(rootId).withExtractionLevel((short) level).withContentLength(contentLength)
                                .with(new Pipeline.Type[] {}).build();
         repository.create(document);
     }

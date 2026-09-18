@@ -27,13 +27,7 @@ public interface LanguageGuesser {
         if (language != Language.UNKNOWN || path == null || path.getFileName() == null) {
             return language;
         }
-        String words = wordsFromFilename(path.getFileName().toString());
+        String words = NON_LETTER_RUN.matcher(path.getFileName().toString()).replaceAll(" ").trim();
         return words.length() < MIN_FILENAME_LENGTH ? Language.UNKNOWN : guess(words);
-    }
-
-    private static String wordsFromFilename(String filename) {
-        int dot = filename.lastIndexOf('.');
-        String withoutExtension = dot > 0 ? filename.substring(0, dot) : filename;
-        return NON_LETTER_RUN.matcher(withoutExtension).replaceAll(" ").trim();
     }
 }
