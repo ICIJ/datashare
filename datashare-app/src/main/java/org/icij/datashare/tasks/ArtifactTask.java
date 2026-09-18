@@ -26,14 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PARSE_TIMEOUT;
-import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PARSE_TIMEOUT_OPT;
 
 @TemporalSingleActivityWorkflow(name = "artifact", activityOptions = @ActivityOpts(timeout = "P1D"))
@@ -44,8 +41,6 @@ public class ArtifactTask extends PipelineTask<String> {
     private final Indexer indexer;
     private final Project project;
     private final Path artifactDir;
-    private final int parallelism;
-    private final ExecutorService executor;
     private final String taskId;
 
     @Inject
@@ -57,31 +52,20 @@ public class ArtifactTask extends PipelineTask<String> {
         this.indexer = indexer;
         taskId = taskView.id;
         project = Project.project(ArtifactStages.resolveProjectName(propertiesProvider));
-        parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
         artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(
                 String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
-        executor = Executors.newFixedThreadPool(parallelism, namedThreadFactory("artifact-worker"));
-    }
-
-    @Override
-    public void cancel(boolean requeue) {
-        // interrupt the task thread first (PipelineTask): that is what makes the blocking
-        // future.get() in call() throw InterruptedException and surface the cancellation.
-        // Then stop the worker pool so the workers themselves wind down promptly.
-        super.cancel(requeue);
-        executor.shutdownNow();
     }
 
     @Override
     public Long call() throws Exception {
         super.call();
         logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s)", artifactDir,
-                    project, inputQueue.getName(), parallelism);
+                    project, inputQueue.getName(), nbWorkers);
         warnIfParseTimeoutIsIgnored();
         AtomicLong nbDocs = new AtomicLong(0);
         AtomicLong nbSkipped = new AtomicLong(0);
         AtomicLong nbFailed = new AtomicLong(0);
-        runWorkers(executor, parallelism, () -> runWorker(nbDocs, nbSkipped, nbFailed));
+        runWorkers(() -> runWorker(nbDocs, nbSkipped, nbFailed));
         if (nbSkipped.get() > 0) {
             logger.error(
                     "{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them",
@@ -108,7 +92,7 @@ public class ArtifactTask extends PipelineTask<String> {
         // The producer owns what counts as a cancellation (see ArtifactProducer#isCancellation), so this
         // loop and the produce loop it drives cannot disagree about it.
         ArtifactProducer producer =
-                new ArtifactProducer(new FilesystemManifestRepository(), executor::isShutdown, taskId);
+                new ArtifactProducer(new FilesystemManifestRepository(), workerPool::isShutdown, taskId);
         Path projectRoot = ArtifactPath.projectRoot(artifactDir, project.name);
         drainQueue(producer::isCancellation, queueEntry -> {
             try {
