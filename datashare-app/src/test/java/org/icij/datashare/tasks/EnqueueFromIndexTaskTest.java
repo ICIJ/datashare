@@ -144,6 +144,38 @@ public class EnqueueFromIndexTaskTest {
     }
 
     @Test
+    public void test_next_stage_without_queue_consumer_is_rejected() throws Exception {
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "nextStage", "CREATENLPBATCHESFROMIDX",
+                "queueName", "test:queue");
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        try {
+            enqueueFromIndex.call();
+            // CreateNlpBatchesFromIndex reads the index, it never drains test:queue:createnlpbatchesfromidx
+            fail("a stage with no queue consumer must be rejected");
+        } catch (IllegalArgumentException expected) {
+            assertThat(expected.getMessage()).contains("CREATENLPBATCHESFROMIDX");
+        }
+    }
+
+    @Test
+    public void test_next_stage_creates_no_queue_for_the_chain_default() throws Exception {
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "nextStage", "ARTIFACT",
+                "queueName", "test:queue");
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        new EnqueueFromIndexTask(factory, indexer,
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
+        assertThat(factory.queues.keySet()).excludes("test:queue:nlp");
+    }
+
+    @Test
     public void test_next_stage_before_enqueueidx_is_rejected() throws Exception {
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
