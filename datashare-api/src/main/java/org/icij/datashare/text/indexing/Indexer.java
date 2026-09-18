@@ -69,6 +69,10 @@ public interface Indexer extends Closeable {
     // unset fields to their defaults), this merges only the supplied fields.
     void update(String indexName, String id, Map<String, Object> fields) throws IOException;
 
+    // Same partial update, routed explicitly: embedded documents live on their root's shard
+    // (join field), so updating them by id requires the root id as routing.
+    void update(String indexName, String id, Map<String, Object> fields, String routing) throws IOException;
+
     boolean exists(String indexName) throws IOException;
 
     boolean exists(String indexName, String id) throws IOException;

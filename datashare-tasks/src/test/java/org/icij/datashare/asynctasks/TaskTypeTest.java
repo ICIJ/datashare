@@ -22,6 +22,12 @@ public class TaskTypeTest {
     }
 
     @Test
+    public void test_fromName_language_fqdn_returns_type() {
+        assertThat(TaskType.fromName("org.icij.datashare.tasks.LanguageDetectTask"))
+            .isEqualTo(Optional.of(TaskType.LANGUAGE));
+    }
+
+    @Test
     public void test_fromName_unknown_fqdn_returns_empty() {
         assertThat(TaskType.fromName("org.unknown.SomeTask")).isEqualTo(Optional.empty());
     }

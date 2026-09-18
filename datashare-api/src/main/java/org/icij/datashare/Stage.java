@@ -6,7 +6,7 @@ import java.util.Optional;
 
 public enum Stage {
     SCAN(true), SCANIDX(false), DEDUPLICATE(false), INDEX(true), ENQUEUEIDX(false), CATEGORIZE(false), NLP(true),
-    CREATENLPBATCHESFROMIDX(false), BATCHNLP(false), ARTIFACT(false);
+    CREATENLPBATCHESFROMIDX(false), BATCHNLP(false), ARTIFACT(false), LANGUAGE(false);
     public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
     private final boolean isMainStage;
 
