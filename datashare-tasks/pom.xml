@@ -138,6 +138,13 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <proc>none</proc>
+                    <!-- With incremental compilation on, the plain testCompile execution below (proc=none) clears
+                         the generated-test-sources directory before compiling, since it does not know about the
+                         annotation processor and treats those files as stale leftovers. That deletes the sources
+                         the process-test-annotations execution just generated before they are ever compiled, so
+                         any @TemporalSingleActivityWorkflow-annotated test fixture silently never gets its
+                         WorkflowImpl/ActivityImpl generated. -->
+                    <useIncrementalCompilation>false</useIncrementalCompilation>
                     <!-- your existing config -->
                     <compilerArgument>-Xlint:all</compilerArgument>
                     <compilerArgument>-parameters</compilerArgument>

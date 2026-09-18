@@ -61,7 +61,7 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
     private static final ClassName ACT_OPTIONS_TYPE = ClassName.get(ActivityOptions.class);
     private static final ClassName DURATION_TYPE = ClassName.get(Duration.class);
     private static final String WF_IMPL_CONSTRUCTOR_CODE =
-            "this.activity = $T.newActivityStub($T.class, $T.newBuilder().setTaskQueue(\"$L\").setStartToCloseTimeout($L.parse(\"$L\")).build());";
+            "this.activity = $T.newActivityStub($T.class, $T.newBuilder().setTaskQueue(Workflow.getInfo().getTaskQueue()).setStartToCloseTimeout($L.parse(\"$L\")).build());";
     private static final ParameterizedTypeName ARG_TYPE =
             ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class),
                                       ClassName.get(Object.class));
@@ -88,14 +88,13 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
             ClassName datashareTaskType = ClassName.get(getPackageName(classElement.getQualifiedName().toString()),
                                                         classElement.getSimpleName().toString());
             String actTimeout = annotation.activityOptions().timeout();
-            String actTaskQueue = annotation.activityOptions().taskQueue();
             Set<TypeName> retriables = parseRetriables(annotation.activityOptions());
 
             Map<String, JavaFile> generated =
                     Map.of(wfInterface, generateWorkflowInterface(packageName, wfInterface, wfType, outputType),
                            actInterface, generateActivity(packageName, actInterface, wfType, outputType), wfImpl,
-                           generateWorkflowImpl(packageName, wfInterface, outputType, actInterface, actTaskQueue,
-                                                actTimeout), actImpl,
+                           generateWorkflowImpl(packageName, wfInterface, outputType, actInterface, actTimeout),
+                           actImpl,
                            generateActivityImpl(packageName, actInterface, outputType, datashareTaskType, retriables));
 
             try {
@@ -150,12 +149,12 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
     }
 
     private JavaFile generateWorkflowImpl(String packageName, String wfInterface, TypeName outputType,
-                                          String actInterface, String actTaskQueue, String actTimeout) {
+                                          String actInterface, String actTimeout) {
         String workflow = wfInterface + "Impl";
         ClassName actInterfaceType = ClassName.get(packageName, actInterface);
         MethodSpec constructor = MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC)
                                            .addCode(WF_IMPL_CONSTRUCTOR_CODE, WF_TYPE, actInterfaceType,
-                                                    ACT_OPTIONS_TYPE, actTaskQueue, DURATION_TYPE, actTimeout).build();
+                                                    ACT_OPTIONS_TYPE, DURATION_TYPE, actTimeout).build();
         MethodSpec run = MethodSpec.methodBuilder("run").addAnnotation(Override.class).addModifiers(Modifier.PUBLIC)
                                    .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
                                    .addCode("return this.activity.run(args);").returns(outputType)
