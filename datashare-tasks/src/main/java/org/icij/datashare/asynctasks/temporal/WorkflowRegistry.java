@@ -9,6 +9,8 @@ import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.function.ThrowingSupplier;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.reflections.Reflections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,6 +30,7 @@ import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQue
  * Not thread safe: register everything (manually or through {@link #discoverWorkflows}) before starting workers.
  */
 public class WorkflowRegistry {
+    private static final Logger logger = LoggerFactory.getLogger(WorkflowRegistry.class);
     private static final String WORKFLOW_SUFFIX = "Workflow";
     private static final String WORKFLOW_METHOD_CLASS_NAME = WorkflowMethod.class.getName();
     private final Map<String, Set<Class<?>>> workflowsByQueue = new LinkedHashMap<>();
@@ -54,12 +57,20 @@ public class WorkflowRegistry {
     }
 
     /**
-     * Register an activity instance to be served on the given queue name.
+     * Register an activity instance to be served on the given queue name. Deduplicates by class rather than
+     * instance identity, since {@link TemporalActivityImpl} has no {@code equals()}: running discovery twice on
+     * the same queue would otherwise register two instances of the same activity class and later blow up with
+     * {@code TypeAlreadyRegisteredException}.
      */
     public void registerActivity(Object activity, String queue) {
         Objects.requireNonNull(activity, "activity");
         Objects.requireNonNull(queue, "queue");
-        activitiesByQueue.computeIfAbsent(queue, q -> new LinkedHashSet<>()).add(activity);
+        Set<Object> activities = activitiesByQueue.computeIfAbsent(queue, q -> new LinkedHashSet<>());
+        if (activities.stream().noneMatch(a -> a.getClass().equals(activity.getClass()))) {
+            activities.add(activity);
+        } else {
+            logger.info("skipping duplicate registration of activity {} on queue {}", activity.getClass(), queue);
+        }
     }
 
     /**
