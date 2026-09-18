@@ -192,6 +192,14 @@
                 <artifactId>ftm.java</artifactId>
                 <version>${ftm.version}</version>
             </dependency>
+            <!-- lingua drags kotlin-stdlib 1.6.21 in and wins nearest-first over dorkbox SystemTray's
+                 1.8.0, while the jdk7/jdk8 artifacts are empty stubs since 1.8.0: without this pin the
+                 classes they used to hold end up on no jar at all. -->
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-stdlib</artifactId>
+                <version>1.8.0</version>
+            </dependency>
             <dependency>
                 <groupId>net.sf.jopt-simple</groupId>
                 <artifactId>jopt-simple</artifactId>

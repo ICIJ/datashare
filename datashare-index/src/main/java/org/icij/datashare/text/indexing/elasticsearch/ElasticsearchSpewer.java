@@ -290,7 +290,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
         String content = readContent(document);
         if (document.getLanguage() == null) {
-            builder.with(languageGuesser.guess(content));
+            builder.with(languageGuesser.guess(content, document.getPath()));
         } else {
             builder.with(Language.parse(document.getLanguage()));
         }
