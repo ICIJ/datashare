@@ -18,13 +18,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
 
 public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableTask {
     /**
@@ -40,6 +41,9 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     protected final User user;
     protected final PropertiesProvider propertiesProvider;
     protected final UpstreamGate gate;
+    /** Workers a parallel consumer stage runs, from --parallelism. A stage that never calls {@link #runWorkers} ignores it. */
+    protected final int nbWorkers;
+    protected final ExecutorService workerPool;
     private final DocumentCollectionFactory<T> factory;
     private volatile Thread taskThread;
 
@@ -58,11 +62,21 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
         this.gate = gate;
         this.inputQueue = getInputQueue(clazz);
         this.outputQueue = getOutputQueue(clazz);
+        this.nbWorkers = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
+        this.workerPool = Executors.newFixedThreadPool(nbWorkers, namedThreadFactory(workerNamePrefix()));
+    }
+
+    private String workerNamePrefix() {
+        return stage.name().toLowerCase() + "-worker";
     }
 
     @Override
     public void cancel(boolean requeue) {
+        // interrupt the task thread first: that is what makes the blocking wait on the workers in
+        // runWorkers() throw InterruptedException and surface the cancellation. Then stop the pool
+        // so the workers themselves wind down promptly.
         ofNullable(taskThread).ifPresent(Thread::interrupt);
+        workerPool.shutdownNow();
     }
 
     public Long call() throws Exception {
@@ -189,17 +203,17 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     }
 
     /**
-     * Runs {@code parallelism} copies of {@code worker} on {@code executor} and waits for all of
-     * them, failing the run with {@link WorkersFailed} if any died. The executor is shut down on
-     * every path: normal completion, worker failure, and cancellation (where the
-     * InterruptedException propagates out and TaskWorkerLoop records the run as cancelled). No
-     * awaitTermination(): waiting would only delay cancellation, and workers leave nothing behind.
+     * Runs {@link #nbWorkers} copies of {@code worker} on the stage's pool and waits for all of
+     * them, failing the run with {@link WorkersFailed} if any died. The pool is shut down on every
+     * path: normal completion, worker failure, and cancellation (where the InterruptedException
+     * propagates out and TaskWorkerLoop records the run as cancelled). No awaitTermination():
+     * waiting would only delay cancellation, and workers leave nothing behind.
      */
-    protected void runWorkers(ExecutorService executor, int parallelism, Runnable worker) throws InterruptedException {
+    protected void runWorkers(Runnable worker) throws InterruptedException {
         try {
-            awaitWorkers(IntStream.range(0, parallelism).<Future<?>>mapToObj(i -> executor.submit(worker)).toList());
+            awaitWorkers(IntStream.range(0, nbWorkers).<Future<?>>mapToObj(i -> workerPool.submit(worker)).toList());
         } finally {
-            executor.shutdownNow();
+            workerPool.shutdownNow();
         }
     }
 
@@ -231,13 +245,8 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
         }
     }
 
-    protected static ThreadFactory namedThreadFactory(String prefix) {
-        AtomicInteger counter = new AtomicInteger(0);
-        return runnable -> {
-            Thread thread = new Thread(runnable);
-            thread.setName(prefix + "-" + counter.incrementAndGet());
-            return thread;
-        };
+    private static ThreadFactory namedThreadFactory(String prefix) {
+        return Thread.ofPlatform().name(prefix + "-", 1).factory();
     }
 
     private Document warnIfNull(Document document, String projectName, String docId) {
