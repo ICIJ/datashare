@@ -1,5 +1,6 @@
 package org.icij.datashare.nlp;
 
+import java.nio.file.Paths;
 import org.icij.datashare.text.Language;
 import org.junit.Test;
 
@@ -64,6 +65,25 @@ public class LinguaLanguageGuesserTest {
                     .as(linguaLanguage.name())
                     .isNotEqualTo(Language.UNKNOWN);
         }
+    }
+
+    @Test(timeout = 30000)
+    public void test_guesses_from_the_file_name_when_there_is_no_content() {
+        assertThat(guesser.guess("", Paths.get("/tmp/Contrat_de_travail_et_conditions_generales.pdf")))
+                .isEqualTo(Language.FRENCH);
+    }
+
+    @Test(timeout = 30000)
+    public void test_content_wins_over_the_file_name() {
+        assertThat(guesser.guess("Le petit chat noir dort paisiblement sur le canape pres de la fenetre ensoleillee.",
+                                 Paths.get("/tmp/annual_report_summary_of_the_year.pdf"))).isEqualTo(Language.FRENCH);
+    }
+
+    @Test(timeout = 30000)
+    public void test_short_file_names_stay_unknown() {
+        assertThat(guesser.guess("", Paths.get("/tmp/IMG_20240101_123456.jpg"))).isEqualTo(Language.UNKNOWN);
+        assertThat(guesser.guess("", Paths.get("/tmp/scan.pdf"))).isEqualTo(Language.UNKNOWN);
+        assertThat(guesser.guess("", null)).isEqualTo(Language.UNKNOWN);
     }
 
     @Test(timeout = 30000)
