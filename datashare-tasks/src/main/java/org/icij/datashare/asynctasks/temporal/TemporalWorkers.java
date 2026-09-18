@@ -3,6 +3,7 @@ package org.icij.datashare.asynctasks.temporal;
 import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
+import io.temporal.worker.WorkerFactoryOptions;
 import io.temporal.worker.WorkerOptions;
 import io.temporal.worker.WorkflowImplementationOptions;
 import java.io.Closeable;
@@ -22,8 +23,10 @@ public class TemporalWorkers {
             WorkflowImplementationOptions.newBuilder()
                                          .setFailWorkflowExceptionTypes(Error.class) // Unregistered workflows
                                          .build();
-    private static final int MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION = 200;
-    //This value is hardcoded for now as workflow tasks are not very costly but it is necessary to keep it high enough
+    // Workflow tasks are just orchestration decisions (dispatch to an activity, return its result), not the actual
+    // work, so this stays modest per queue; the factory-wide thread pool below is sized to fit every worker's
+    // share, so this cap is a real admission limit rather than one silently starved by shared-pool contention.
+    private static final int MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION = 20;
 
     private TemporalWorkers() {
     }
@@ -42,14 +45,19 @@ public class TemporalWorkers {
         Objects.requireNonNull(client, "client");
         Objects.requireNonNull(registry, "registry");
 
-        WorkerFactory workerFactory = WorkerFactory.newInstance(client);
+        Set<String> queues = new LinkedHashSet<>(listeningQueues);
+        // one worker is created per queue below, and they all share this factory's workflow thread pool; size it
+        // so every worker can actually reach its own MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION instead of the workers
+        // silently starving each other under a fixed factory-wide default
+        WorkerFactoryOptions workerFactoryOptions = WorkerFactoryOptions.newBuilder()
+                .setMaxWorkflowThreadCount(queues.size() * MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION).build();
+        WorkerFactory workerFactory = WorkerFactory.newInstance(client, workerFactoryOptions);
         WorkerOptions workerOptions = WorkerOptions.newBuilder().setMaxConcurrentWorkflowTaskExecutionSize(
                 MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION).setMaxConcurrentActivityExecutionSize(
                 options.maxConcurrentActivitySize()).build();
         Map<String, Worker> workers = new HashMap<>();
 
-        // deduplicated: registering the same type twice on a worker is a TypeAlreadyRegisteredException
-        new LinkedHashSet<>(listeningQueues).forEach(queue -> {
+        queues.forEach(queue -> {
             Set<Class<?>> workflowClasses = registry.registeredWorkflows(queue);
             if (!workflowClasses.isEmpty()) {
                 workers.computeIfAbsent(queue, q -> workerFactory.newWorker(q, workerOptions))
