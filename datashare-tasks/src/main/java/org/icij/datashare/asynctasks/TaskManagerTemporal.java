@@ -37,9 +37,9 @@ public class TaskManagerTemporal implements TaskManager {
     public <V extends Serializable> String startTask(Task<V> taskView, Group group) throws IOException,
             TaskAlreadyExists {
         String taskId = taskView.id;
-        logger.atInfo().log("Starting task {} of type {}", taskView.id, taskView.type);
         try {
             taskRepository.insert(taskView, group);
+            logger.atInfo().log("Starting task {} of type {}", taskView.id, taskView.type);
             temporal.createWorkflow(taskId, taskView.name, resolveWfTaskQueue(taskView.name, group),
                                     generateSearchAttributes(taskView), taskView.args);
             taskView.setState(Task.State.RUNNING);
