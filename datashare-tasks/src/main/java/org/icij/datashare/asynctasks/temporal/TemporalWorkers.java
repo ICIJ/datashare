@@ -1,12 +1,10 @@
 package org.icij.datashare.asynctasks.temporal;
 
-
 import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 import io.temporal.worker.WorkerOptions;
 import io.temporal.worker.WorkflowImplementationOptions;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
@@ -20,11 +18,13 @@ import java.util.Set;
  * Starts the Temporal workers serving what a {@link WorkflowRegistry} holds.
  */
 public class TemporalWorkers {
-    private static final WorkflowImplementationOptions WF_IMPLEMENTATION_DEFAULT_OPTIONS = WorkflowImplementationOptions.newBuilder()
-            .setFailWorkflowExceptionTypes(Error.class) // Unregistered workflows
-            .build();
-    private static final int MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION = 200; //This value is hardcoded for now as workflow tasks are not very costly but it is necessary to keep it high enough
-    
+    private static final WorkflowImplementationOptions WF_IMPLEMENTATION_DEFAULT_OPTIONS =
+            WorkflowImplementationOptions.newBuilder()
+                                         .setFailWorkflowExceptionTypes(Error.class) // Unregistered workflows
+                                         .build();
+    private static final int MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION = 200;
+    //This value is hardcoded for now as workflow tasks are not very costly but it is necessary to keep it high enough
+
     private TemporalWorkers() {
     }
 
@@ -37,17 +37,15 @@ public class TemporalWorkers {
      * @param options the concurrency limits applied to every started worker
      * @return a handle closing the started worker factory
      */
-    public static Closeable start(
-            WorkflowClient client, WorkflowRegistry registry,
-            Collection<String> listeningQueues, TemporalWorkerOptions options) {
+    public static Closeable start(WorkflowClient client, WorkflowRegistry registry, Collection<String> listeningQueues,
+                                  TemporalWorkerOptions options) {
         Objects.requireNonNull(client, "client");
         Objects.requireNonNull(registry, "registry");
 
         WorkerFactory workerFactory = WorkerFactory.newInstance(client);
-        WorkerOptions workerOptions = WorkerOptions.newBuilder()
-                .setMaxConcurrentWorkflowTaskExecutionSize(MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION)
-                .setMaxConcurrentActivityExecutionSize(options.maxConcurrentActivitySize())
-                .build();
+        WorkerOptions workerOptions = WorkerOptions.newBuilder().setMaxConcurrentWorkflowTaskExecutionSize(
+                MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION).setMaxConcurrentActivityExecutionSize(
+                options.maxConcurrentActivitySize()).build();
         Map<String, Worker> workers = new HashMap<>();
 
         // deduplicated: registering the same type twice on a worker is a TypeAlreadyRegisteredException
@@ -55,12 +53,13 @@ public class TemporalWorkers {
             Set<Class<?>> workflowClasses = registry.registeredWorkflows(queue);
             if (!workflowClasses.isEmpty()) {
                 workers.computeIfAbsent(queue, q -> workerFactory.newWorker(q, workerOptions))
-                        .registerWorkflowImplementationTypes(WF_IMPLEMENTATION_DEFAULT_OPTIONS, workflowClasses.toArray(Class<?>[]::new));
+                       .registerWorkflowImplementationTypes(WF_IMPLEMENTATION_DEFAULT_OPTIONS,
+                                                            workflowClasses.toArray(Class<?>[]::new));
             }
             Set<Object> activities = registry.registeredActivities(queue);
             if (!activities.isEmpty()) {
                 workers.computeIfAbsent(queue, q -> workerFactory.newWorker(q, workerOptions))
-                        .registerActivitiesImplementations(activities.toArray());
+                       .registerActivitiesImplementations(activities.toArray());
             }
         });
 

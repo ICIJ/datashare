@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks.temporal;
 
-
 import io.temporal.client.WorkflowClient;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
@@ -10,7 +9,6 @@ import org.icij.datashare.asynctasks.TaskRepository;
 import org.icij.datashare.function.ThrowingSupplier;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.reflections.Reflections;
-
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,7 +19,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
-
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
 
 /**
@@ -33,7 +30,6 @@ import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQue
 public class WorkflowRegistry {
     private static final String WORKFLOW_SUFFIX = "Workflow";
     private static final String WORKFLOW_METHOD_CLASS_NAME = WorkflowMethod.class.getName();
-
     private final Map<String, Set<Class<?>>> workflowsByQueue = new LinkedHashMap<>();
     private final Map<String, Set<Object>> activitiesByQueue = new LinkedHashMap<>();
 
@@ -104,20 +100,17 @@ public class WorkflowRegistry {
      * @throws WorkflowRegistrationException if a discovered workflow does not follow the convention, so that a
      *      misnamed or missing implementation fails at startup rather than leaving workflows unserved forever.
      */
-    public void discoverWorkflows(
-            String packageName, ActivityInstantiator activityInstantiator,
-            RoutingStrategy routingStrategy, Group group) {
+    public void discoverWorkflows(String packageName, ActivityInstantiator activityInstantiator,
+                                  RoutingStrategy routingStrategy, Group group) {
 
         Reflections reflections = new Reflections(packageName);
         // We rely on naming convention rather than on inspection, that's OK as code is generated
-        reflections.getTypesAnnotatedWith(WorkflowInterface.class)
-                .stream()
-                .filter(workflowInterfaceFilter())
-                .forEach(c -> {
-                    String taskQueue = resolveWfTaskQueue(routingStrategy, buildWorkflowKeyFrom(c), group);
-                    registerWorkflow(workflowImplementation(c), taskQueue);
-                    registerActivity(activityInstance(c, activityInstantiator), taskQueue);
-                });
+        reflections.getTypesAnnotatedWith(WorkflowInterface.class).stream().filter(workflowInterfaceFilter())
+                   .forEach(c -> {
+                       String taskQueue = resolveWfTaskQueue(routingStrategy, buildWorkflowKeyFrom(c), group);
+                       registerWorkflow(workflowImplementation(c), taskQueue);
+                       registerActivity(activityInstance(c, activityInstantiator), taskQueue);
+                   });
     }
 
     /**
@@ -133,15 +126,11 @@ public class WorkflowRegistry {
      * @param <A>
      */
     public static <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactoryForSingleActivitiesWorkflow(
-            Class<A> activityCls,
-            TaskFactory taskFactory,
-            WorkflowClient client,
-            TaskRepository taskRepository,
-            double progressWeight
-    ) {
-        return () -> activityCls
-                .getConstructor(TaskFactory.class, WorkflowClient.class, TaskRepository.class, Double.class)
-                .newInstance(taskFactory, client, taskRepository, progressWeight);
+            Class<A> activityCls, TaskFactory taskFactory, WorkflowClient client, TaskRepository taskRepository,
+            double progressWeight) {
+        return () -> activityCls.getConstructor(TaskFactory.class, WorkflowClient.class, TaskRepository.class,
+                                                Double.class)
+                                .newInstance(taskFactory, client, taskRepository, progressWeight);
     }
 
     private static Class<?> workflowImplementation(Class<?> workflowInterface) {
@@ -153,8 +142,8 @@ public class WorkflowRegistry {
         String workflowClassName = workflowInterface.getName();
         if (!workflowClassName.endsWith(WORKFLOW_SUFFIX)) {
             throw new WorkflowRegistrationException(
-                    "workflow interface " + workflowClassName + " does not end with " + WORKFLOW_SUFFIX
-                            + ", cannot derive its activity implementation name");
+                    "workflow interface " + workflowClassName + " does not end with " + WORKFLOW_SUFFIX +
+                    ", cannot derive its activity implementation name");
         }
         String baseName = workflowClassName.substring(0, workflowClassName.length() - WORKFLOW_SUFFIX.length());
         Class<?> activityClass = loadClass(baseName + "ActivityImpl", workflowInterface);
@@ -171,8 +160,8 @@ public class WorkflowRegistry {
             return Class.forName(className);
         } catch (ClassNotFoundException e) {
             throw new WorkflowRegistrationException(
-                    "cannot find " + className + " expected by the naming convention for workflow "
-                            + workflowInterface.getName(), e);
+                    "cannot find " + className + " expected by the naming convention for workflow " +
+                    workflowInterface.getName(), e);
         }
     }
 
@@ -190,12 +179,12 @@ public class WorkflowRegistry {
         };
     }
 
-     static String buildWorkflowKeyFrom(Class<?> workflowInterface) {
+    static String buildWorkflowKeyFrom(Class<?> workflowInterface) {
         // We have to get method by name because of the dynamic class loader and proxies... inspection doesn't work
         // properly: m.isAnnotationPresent(WorkflowMethod.class) fails
-        List<Method> annotated = Arrays.stream(workflowInterface.getDeclaredMethods())
-                .filter(WorkflowRegistry::isWorkflowMethod)
-                .toList();
+        List<Method> annotated =
+                Arrays.stream(workflowInterface.getDeclaredMethods()).filter(WorkflowRegistry::isWorkflowMethod)
+                      .toList();
         if (annotated.size() != 1) {
             throw new WorkflowRegistrationException("expected exactly one workflow method for " + workflowInterface);
         }
@@ -204,7 +193,7 @@ public class WorkflowRegistry {
 
     private static boolean isWorkflowMethod(Method method) {
         return Arrays.stream(method.getAnnotations())
-                .anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME));
+                     .anyMatch(a -> a.annotationType().getName().equals(WORKFLOW_METHOD_CLASS_NAME));
     }
 
     public static class WorkflowRegistrationException extends RuntimeException {

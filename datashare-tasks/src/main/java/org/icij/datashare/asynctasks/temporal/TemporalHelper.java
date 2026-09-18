@@ -17,7 +17,6 @@ import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
 import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
 
 public class TemporalHelper {
-
     private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
 
     public static Task.State asTaskState(WorkflowExecutionStatus status) {

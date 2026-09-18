@@ -304,8 +304,6 @@ public class TemporalInterlocutor {
         return unknownIfNotFound(t -> createWorkflowStub(taskId).describe(), taskId);
     }
 
-
-
     /**
      * Get the information of a Workflow running in Temporal represented as a Task
      * @param taskId

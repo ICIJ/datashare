@@ -589,13 +589,15 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             TemporalInterlocutor temporal = get(TemporalInterlocutor.class);
             DatashareTaskFactory taskFactory = get(DatashareTaskFactory.class);
             TaskRepository taskRepository = get(TaskRepository.class);
-                                      WorkflowRegistry registry = new WorkflowRegistry();
+            WorkflowRegistry registry = new WorkflowRegistry();
             registry.discoverWorkflows("org.icij.datashare.tasks",
-                    activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(activityClass, taskFactory, temporal.getClient(), taskRepository,  1d).getThrows(),
-                    Utils.getRoutingStrategy(propertiesProvider), new Group(TaskGroupType.Java));
+                                       activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
+                                                                                activityClass, taskFactory, temporal.getClient(), taskRepository, 1d)
+                                                                        .getThrows(),
+                                       Utils.getRoutingStrategy(propertiesProvider), new Group(TaskGroupType.Java));
             // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
             addCloseable(TemporalWorkers.start(temporal.getClient(), registry, registry.registeredQueues(),
-                    new TemporalWorkerOptions(getTaskWorkersNb())));
+                                               new TemporalWorkerOptions(getTaskWorkersNb())));
         }
         return executorService;
     }
