@@ -10,7 +10,6 @@ public interface LanguageGuesser {
      * detecting on it returns a confident wrong language instead of no answer.
      */
     int MIN_FILENAME_LENGTH = 15;
-
     /** Runs of digits, separators and punctuation, which a file name uses where a sentence uses spaces. */
     Pattern NON_LETTER_RUN = Pattern.compile("[^\\p{L}]+");
 
