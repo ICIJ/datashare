@@ -91,6 +91,18 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_next_stage() {
+        Properties props = parse("stage", "run", "--stages", "ENQUEUEIDX", "--nextStage", "ARTIFACT");
+        assertThat(props).includes(entry("nextStage", "ARTIFACT"));
+    }
+
+    @Test
+    public void test_next_stage_absent_by_default() {
+        Properties props = parse("stage", "run", "--stages", "ENQUEUEIDX");
+        assertThat(props.containsKey("nextStage")).isFalse();
+    }
+
+    @Test
     public void test_report_name() {
         Properties props = parse("stage", "run", "--stages", "SCAN,INDEX", "--reportName", "my-report");
         assertThat(props).includes(entry("reportName", "my-report"));

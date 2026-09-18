@@ -18,7 +18,9 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
                 "  ARTIFACT       Generate document artifacts (thumbnails, etc.)", "", "Examples:",
                 "  datashare stage run --stages SCAN,INDEX",
                 "  datashare stage run --stages SCAN,INDEX,NLP --nlpPipeline OPENNLP",
-                "  datashare stage run --stages ENQUEUEIDX,CATEGORIZE", "  datashare stage run --stages INDEX --resume",
+                "  datashare stage run --stages ENQUEUEIDX,CATEGORIZE",
+                "  datashare stage run --stages ENQUEUEIDX --nextStage ARTIFACT",
+                "  datashare stage run --stages INDEX --resume",
                 "  datashare --dataDir /data/docs -P my-project stage run --stages SCAN,INDEX,NLP"})
 public class StageRunCommand implements Runnable, DatashareSubcommand {
     @Option(names = {"--stages"}, required = true,

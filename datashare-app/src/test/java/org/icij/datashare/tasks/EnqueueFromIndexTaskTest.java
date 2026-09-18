@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
@@ -100,6 +101,65 @@ public class EnqueueFromIndexTaskTest {
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:artifact")).hasSize(5);
+    }
+
+    @Test
+    public void test_next_stage_option_overrides_the_stages_chain() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            indexer.add(es.getIndexName(), createDoc("doc" + i)
+                    .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build());
+        }
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "nextStage", "ARTIFACT",
+                "queueName", "test:queue",
+                NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name());
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        enqueueFromIndex.call();
+        // without the override the chain falls back to NLP: docs land on test:queue:nlp and the
+        // CORENLP filter excludes all of them
+        assertThat(factory.queues.get("test:queue:artifact")).hasSize(5);
+    }
+
+    @Test
+    public void test_unknown_next_stage_fails_the_run_not_the_construction() throws Exception {
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "nextStage", "NOT_A_STAGE",
+                "queueName", "test:queue");
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        // a constructor throw would become a requeue-forever NackException, so it must not throw here
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        try {
+            enqueueFromIndex.call();
+            fail("an unknown nextStage value must fail the run");
+        } catch (IllegalArgumentException expected) {
+            assertThat(expected.getMessage()).contains("NOT_A_STAGE");
+        }
+    }
+
+    @Test
+    public void test_next_stage_before_enqueueidx_is_rejected() throws Exception {
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "nextStage", "INDEX",
+                "queueName", "test:queue");
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        try {
+            enqueueFromIndex.call();
+            // INDEX consumes Paths, so doc ids enqueued there poison that stage rather than failing loudly
+            fail("a stage running before ENQUEUEIDX must be rejected");
+        } catch (IllegalArgumentException expected) {
+            assertThat(expected.getMessage()).contains("INDEX");
+        }
     }
 
     @Test

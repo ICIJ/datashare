@@ -29,6 +29,7 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_DURATION;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.NEXT_STAGE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
@@ -45,7 +46,6 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final Indexer indexer;
     private final String scrollDuration;
     private final int scrollSize;
-    private final Stage nextStage;
 
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
@@ -59,12 +59,12 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(String.valueOf(DEFAULT_SCROLL_SIZE)));
         this.searchQuery = propertiesProvider.get(SEARCH_QUERY_OPT).orElse(null);
-        this.nextStage = new PipelineHelper(propertiesProvider).getNextStage(Stage.ENQUEUEIDX);
     }
 
     @Override
     public Long call() throws Exception {
         super.call();
+        Stage nextStage = nextStage();
         Indexer.Searcher searcher;
         if (searchQuery == null) {
             Indexer.QueryBuilderSearcher builder = indexer.search(singletonList(projectName), Document.class);
@@ -83,7 +83,8 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         logger.info("enqueuing doc ids for index {} targeting {}{} with {} scroll and size of {} : {} documents found",
                     projectName, nextStage, pipelineInfo, scrollDuration, scrollSize, totalHits);
 
-        try (DocumentQueue<String> outputQueue = factory.createQueue(getOutputQueueName(), String.class)) {
+        String outputQueueName = new PipelineHelper(propertiesProvider).getQueueNameFor(nextStage);
+        try (DocumentQueue<String> outputQueue = factory.createQueue(outputQueueName, String.class)) {
             do {
                 docsToProcess.forEach(doc -> outputQueue.add(DocReference.fromDocument((Document) doc).toQueueEntry()));
                 docsToProcess = searcher.scroll(scrollDuration).toList();
@@ -92,5 +93,25 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
             logger.info("enqueued into {} {} files", outputQueue.getName(), totalHits);
         }
         return totalHits;
+    }
+
+    /** Resolved on the run path, not in the constructor: PipelineTask builds its output queue during
+     *  construction, and an invalid --nextStage thrown from a reflectively constructed task becomes a
+     *  requeue-forever NackException instead of a clean task error. */
+    private Stage nextStage() {
+        return propertiesProvider.get(NEXT_STAGE_OPT).map(EnqueueFromIndexTask::parseNextStage).orElseGet(
+                () -> new PipelineHelper(propertiesProvider).getNextStage(Stage.ENQUEUEIDX));
+    }
+
+    /** A stage running before ENQUEUEIDX consumes file paths, not document ids, so enqueuing into its
+     *  queue would poison it rather than fail. */
+    private static Stage parseNextStage(String value) {
+        Stage stage = Stage.parse(value).orElseThrow(
+                () -> new IllegalArgumentException("unknown --nextStage value \"%s\"".formatted(value)));
+        if (Stage.comparator.compare(stage, Stage.ENQUEUEIDX) <= 0) {
+            throw new IllegalArgumentException(
+                    "--nextStage %s runs before %s in the pipeline".formatted(stage, Stage.ENQUEUEIDX));
+        }
+        return stage;
     }
 }
