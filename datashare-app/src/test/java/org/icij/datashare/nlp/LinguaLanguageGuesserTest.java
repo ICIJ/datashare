@@ -65,4 +65,14 @@ public class LinguaLanguageGuesserTest {
                     .isNotEqualTo(Language.UNKNOWN);
         }
     }
+
+    @Test(timeout = 30000)
+    public void test_does_not_spin_on_giant_single_line_alphanumeric() {
+        StringBuilder sb = new StringBuilder(5_000_000);
+        for (int i = 0; i < 5_000_000; i++) {
+            sb.append((char) ('a' + (i % 26)));
+        }
+        // the 30s timeout is the regression guard: optimaize backtracked here forever
+        assertThat(guesser.guess(sb.toString())).isNotNull();
+    }
 }
