@@ -5,6 +5,7 @@ import io.grpc.StatusRuntimeException;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.temporal.*;
+import org.icij.datashare.asynctasks.routingfixtures.GreetingTask;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
@@ -17,6 +18,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.redisson.api.RedissonClient;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
@@ -44,7 +46,6 @@ public class TaskManagerTemporalIntTest {
     private TaskFactory taskFactory;
     private static TemporalInterlocutor temporal;
     private static TaskManagerTemporal taskManager;
-    private List<TemporalInterlocutor.RegisteredWorkflow> registeredWorkflows;
 
     @BeforeClass
     public static void setUpClass() throws InterruptedException {
@@ -62,17 +63,6 @@ public class TaskManagerTemporalIntTest {
                 throw ex;
             }
         }
-        registeredWorkflows = List.of(
-            new TemporalInterlocutor.RegisteredWorkflow(
-                HelloWorldWorkflowImpl.class,
-                WORKFLOWS_DEFAULT,
-                List.of(new TemporalInterlocutor.RegisteredActivity(temporal.activityFactory(HelloWorldActivityImpl.class, taskFactory, taskRepository, 1.0d), WORKFLOWS_DEFAULT))),
-            new TemporalInterlocutor.RegisteredWorkflow(
-                FailingWorkflowImpl.class,
-                WORKFLOWS_DEFAULT,
-                List.of(new TemporalInterlocutor.RegisteredActivity(temporal.activityFactory(FailingActivityImpl.class, taskFactory, taskRepository, 1.0d), WORKFLOWS_DEFAULT)))
-        );
-
         temporal.setupNamespace(Duration.ofSeconds(5));
         taskManager.clear();
         Thread.sleep(2000); // Sleep to allow custom attribute creation propagation refresh rate is 0.1s
@@ -190,7 +180,7 @@ public class TaskManagerTemporalIntTest {
 
     @Test(timeout = 10000)
     public void test_get_task_result() throws IOException {
-        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal)) {
+        try (Closeable ignored = testCloseableWorkerFactory()) {
             Task<String> task = new Task<>("hello-world", User.local(), Map.of("name", "world"));
 
             taskManager.startTask(task);
@@ -204,7 +194,7 @@ public class TaskManagerTemporalIntTest {
 
     @Test(timeout = 20000)
     public void test_task_error() throws IOException, InterruptedException {
-        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal)) {
+        try (Closeable ignored = testCloseableWorkerFactory()) {
             Task<String> task = new Task<>("failing", User.local(), Map.of());
 
             taskManager.startTask(task);
@@ -244,7 +234,7 @@ public class TaskManagerTemporalIntTest {
     @Ignore("keeping this one for manual test as it can take very long to complete")
     @Test
     public void test_clear_done_tasks() throws Exception {
-        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal)) {
+        try (Closeable ignored = testCloseableWorkerFactory()) {
             Task<String> task = new Task<>("hello-world", User.local(), Map.of("key", "value"));
             taskManager.startTask(task);
             assertThat(taskManager.awaitTermination(2, TimeUnit.SECONDS));
@@ -259,7 +249,7 @@ public class TaskManagerTemporalIntTest {
     @Ignore("keeping this one for manual test as it can take very long to complete")
     @Test
     public void test_clear_done_tasks_with_args_filter() throws IOException, InterruptedException {
-        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = testCloseableWorkerFactory(temporal)) {
+        try (Closeable ignored = testCloseableWorkerFactory()) {
             Task<String> first = new Task<>("hello-world", User.local(), Map.of("key", "value"));
             Task<String> second = new Task<>("hello-world", User.local(), Map.of("otherKey", "otherValue"));
             taskManager.startTask(first);
@@ -291,18 +281,7 @@ public class TaskManagerTemporalIntTest {
                 return () -> task.id;
             }
         };
-        List<TemporalInterlocutor.RegisteredWorkflow> workflows = List.of(
-            new TemporalInterlocutor.RegisteredWorkflow(
-                DoNothingWorkflowImpl.class,
-                WORKFLOWS_DEFAULT,
-                List.of(new TemporalInterlocutor.RegisteredActivity(
-                    temporal.activityFactory(DoNothingActivityImpl.class, capturingFactory, taskRepository, 1.0d),
-                    WORKFLOWS_DEFAULT
-                ))
-            )
-        );
-
-        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = temporal.createFactory(1, workflows)) {
+        try (Closeable ignored = doNothingWorkerFactory(capturingFactory)) {
             Task<String> task = new Task<>(DoNothingTask.class.getName(), User.local(), Map.of());
 
             taskManager.startTask(task);
@@ -345,18 +324,7 @@ public class TaskManagerTemporalIntTest {
                 };
             }
         };
-        List<TemporalInterlocutor.RegisteredWorkflow> workflows = List.of(
-            new TemporalInterlocutor.RegisteredWorkflow(
-                DoNothingWorkflowImpl.class,
-                WORKFLOWS_DEFAULT,
-                List.of(new TemporalInterlocutor.RegisteredActivity(
-                    temporal.activityFactory(DoNothingActivityImpl.class, progressFactory, taskRepository, 1d),
-                    WORKFLOWS_DEFAULT
-                ))
-            )
-        );
-
-        try (TemporalInterlocutor.CloseableWorkerFactoryHandle ignored = temporal.createFactory(1, workflows)) {
+        try (Closeable ignored = doNothingWorkerFactory(progressFactory)) {
             Task<String> task = new Task<>(DoNothingTask.class.getName(), User.local(), Map.of());
             taskManager.startTask(task);
             taskManager.waitTasksToBeDone(15, TimeUnit.SECONDS);
@@ -371,8 +339,78 @@ public class TaskManagerTemporalIntTest {
         }
     }
 
-    private TemporalInterlocutor.CloseableWorkerFactoryHandle testCloseableWorkerFactory(TemporalInterlocutor temporal) {
-        return temporal.createFactory(1, registeredWorkflows);
+    /**
+     * Regression coverage for the bug where the generated {@code *WorkflowImpl} pinned its activity stub to the
+     * literal queue from {@code @ActivityOpts}, instead of the queue the routing strategy actually resolved: under
+     * GROUP or NAME routing the activity was scheduled where nothing was polling, and the task hung RUNNING forever.
+     * Each strategy is exercised with its own {@link WorkflowRegistry}/{@link TaskManagerTemporal}, wired exactly
+     * like {@code CommonMode} does, so that a regression would make the task time out instead of complete.
+     */
+    @Test(timeout = 10000)
+    public void test_generated_workflow_completes_with_unique_routing_strategy() throws Exception {
+        assertGeneratedWorkflowCompletes(RoutingStrategy.UNIQUE, "unique");
+    }
+
+    @Test(timeout = 10000)
+    public void test_generated_workflow_completes_with_group_routing_strategy() throws Exception {
+        assertGeneratedWorkflowCompletes(RoutingStrategy.GROUP, "group");
+    }
+
+    @Test(timeout = 10000)
+    public void test_generated_workflow_completes_with_name_routing_strategy() throws Exception {
+        assertGeneratedWorkflowCompletes(RoutingStrategy.NAME, "name");
+    }
+
+    private void assertGeneratedWorkflowCompletes(RoutingStrategy strategy, String who) throws Exception {
+        Group group = new Group(TaskGroupType.Java);
+        TaskFactory greetingFactory = new TaskFactory() {
+            public Callable<String> createGreetingTask(Task<?> task, Function<Double, Void> progress) {
+                return () -> "hello " + task.args.get("name");
+            }
+        };
+        TaskManagerTemporal manager = new TaskManagerTemporal(temporal, taskRepository, strategy);
+
+        try (Closeable ignored = greetingWorkerFactory(strategy, group, greetingFactory)) {
+            Task<String> task = new Task<>(GreetingTask.class.getName(), User.local(), Map.of("name", who));
+
+            manager.startTask(task, group);
+            manager.waitTasksToBeDone(10, TimeUnit.SECONDS);
+            Task<?> completed = manager.getTask(task.id);
+
+            assertThat(completed.getState()).isEqualTo(DONE);
+            assertThat(completed.getResult()).isEqualTo(new TaskResult<>("hello " + who));
+        }
+    }
+
+    private Closeable greetingWorkerFactory(RoutingStrategy strategy, Group group, TaskFactory factory) {
+        WorkflowRegistry registry = new WorkflowRegistry();
+        registry.discoverWorkflows("org.icij.datashare.asynctasks.routingfixtures",
+            activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
+                activityClass, factory, temporal.getClient(), taskRepository, 1d).getThrows(),
+            strategy, group);
+        // this process serves everything it discovered, exactly like CommonMode does
+        return TemporalWorkers.start(temporal.getClient(), registry, registry.registeredQueues(),
+                                     new TemporalWorkerOptions(1));
+    }
+
+    private Closeable testCloseableWorkerFactory() {
+        WorkflowRegistry registry = new WorkflowRegistry();
+        registry.registerWorkflow(HelloWorldWorkflowImpl.class, WORKFLOWS_DEFAULT);
+        registry.registerActivity(new HelloWorldActivityImpl(taskFactory, temporal.getClient(), taskRepository, 1.0d), WORKFLOWS_DEFAULT);
+        registry.registerWorkflow(FailingWorkflowImpl.class, WORKFLOWS_DEFAULT);
+        registry.registerActivity(new FailingActivityImpl(taskFactory, temporal.getClient(), taskRepository, 1.0d), WORKFLOWS_DEFAULT);
+        return startDefaultQueueWorkers(registry);
+    }
+
+    private Closeable doNothingWorkerFactory(TaskFactory doNothingTaskFactory) {
+        WorkflowRegistry registry = new WorkflowRegistry();
+        registry.registerWorkflow(DoNothingWorkflowImpl.class, WORKFLOWS_DEFAULT);
+        registry.registerActivity(new DoNothingActivityImpl(doNothingTaskFactory, temporal.getClient(), taskRepository, 1.0d), WORKFLOWS_DEFAULT);
+        return startDefaultQueueWorkers(registry);
+    }
+
+    private Closeable startDefaultQueueWorkers(WorkflowRegistry registry) {
+        return TemporalWorkers.start(temporal.getClient(), registry, List.of(WORKFLOWS_DEFAULT), new TemporalWorkerOptions(1));
     }
 
     protected void awaitClearedInTemporal(Set<String> taskIds, int timeout, TimeUnit timeUnit) throws IOException {

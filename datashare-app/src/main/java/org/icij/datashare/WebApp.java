@@ -32,12 +32,17 @@ public class WebApp {
     }
 
     static void start(CommonMode mode) throws Exception {
+        // Workers start before the HTTP server binds, so a WorkflowRegistrationException aborts startup instead
+        // of leaving a server that looks healthy but never requeues pending batch searches.
+        if (mode.shouldRunWorker()) {
+            mode.runWorkers();
+        }
+
         String host = resolveBindHost(mode);
-        LOGGER.info("binding HTTP server to {}:{}", host,
-                    mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT));
+        int port = parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT));
+        LOGGER.info("binding HTTP server to {}:{}", host, port);
         new BindableWebServer(host).withThreadCount(10).withSelectThreads(2).withWebSocketThreads(1)
-                                   .configure(mode.createWebConfiguration()).start(parseInt(
-                                           mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT)));
+                                   .configure(mode.createWebConfiguration()).start(port);
 
         ScheduledExecutorService cleanupScheduler =
                 BatchDownloadApp.scheduleCleanup(mode.get(BatchDownloadCleaner.class));
@@ -50,11 +55,6 @@ public class WebApp {
             }
         });
 
-        if (mode.shouldRunWorker()) {
-            mode.runWorkers();
-        }
-
-        int port = parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT));
         boolean shouldOpenBrowser = parseBoolean(mode.properties().getProperty(BROWSER_OPEN_LINK_OPT));
         WebBrowserUtils.openBrowser(port, shouldOpenBrowser);
 

@@ -39,6 +39,7 @@ public class TaskManagerTemporal implements TaskManager {
         String taskId = taskView.id;
         try {
             taskRepository.insert(taskView, group);
+            logger.atInfo().log("Starting task {} of type {}", taskView.id, taskView.type);
             temporal.createWorkflow(taskId, taskView.name, resolveWfTaskQueue(taskView.name, group),
                                     generateSearchAttributes(taskView), taskView.args);
             taskView.setState(Task.State.RUNNING);
