@@ -25,12 +25,9 @@ import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
@@ -84,43 +81,7 @@ public class ArtifactTask extends PipelineTask<String> {
         AtomicLong nbDocs = new AtomicLong(0);
         AtomicLong nbSkipped = new AtomicLong(0);
         AtomicLong nbFailed = new AtomicLong(0);
-        try {
-            List<Future<?>> futures = new ArrayList<>();
-            for (int i = 0; i < parallelism; i++) {
-                futures.add(executor.submit(() -> runWorker(nbDocs, nbSkipped, nbFailed)));
-            }
-            int nbFailures = 0;
-            Throwable firstCause = null;
-            for (Future<?> future : futures) {
-                try {
-                    future.get();
-                } catch (ExecutionException e) {
-                    logger.error("artifact worker terminated abnormally", e.getCause());
-                    if (nbFailures == 0) {
-                        firstCause = e.getCause();
-                    }
-                    nbFailures++;
-                }
-            }
-            // The other drains end on their own interrupt check. Here future.get() only throws when
-            // the task thread is interrupted while still waiting, which does not hold for a future
-            // that had already completed when cancel() landed. Thread.interrupted() tests AND clears,
-            // so the flag does not leak onto the runner thread with the InterruptedException.
-            if (Thread.interrupted()) {
-                throw new InterruptedException("cancelled while draining " + inputQueue.getName());
-            }
-            if (nbFailures > 0) {
-                throw new IllegalStateException(
-                        String.format("%d of %d artifact worker(s) terminated abnormally", nbFailures, futures.size()),
-                        firstCause);
-            }
-        } finally {
-            // single cleanup point for every path: normal completion, worker failure, and
-            // cancellation (where the InterruptedException from future.get() propagates out and
-            // TaskWorkerLoop records the run as cancelled). No awaitTermination() here: waiting
-            // would only delay cancellation, and workers leave nothing in the queue to clean up.
-            executor.shutdownNow();
-        }
+        runWorkers(executor, parallelism, () -> runWorker(nbDocs, nbSkipped, nbFailed));
         if (nbSkipped.get() > 0) {
             logger.error(
                     "{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them",
@@ -149,43 +110,12 @@ public class ArtifactTask extends PipelineTask<String> {
         ArtifactProducer producer =
                 new ArtifactProducer(new FilesystemManifestRepository(), executor::isShutdown, taskId);
         Path projectRoot = ArtifactPath.projectRoot(artifactDir, project.name);
-        // The interrupt check keeps cancellation prompt, since cancel() calls executor.shutdownNow()
-        // while a worker may sit between two non-blocking polls.
-        while (!Thread.currentThread().isInterrupted()) {
-            String queueEntry;
-            try {
-                queueEntry = inputQueue.poll();
-            } catch (RuntimeException e) {
-                if (producer.isCancellation(e)) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-                // A broken queue client is an infrastructure failure: letting it out is what makes call()
-                // report the run as failed instead of green.
-                throw e;
-            }
-            if (queueEntry == null) {
-                if (drained()) {
-                    break;
-                }
-                try {
-                    Thread.sleep(UPSTREAM_POLL_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    // a Runnable cannot throw it: re-interrupt so call()'s check reports CANCELLED
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-                continue;
-            }
-            if (isLegacySentinel(queueEntry)) {
-                logger.warn("skipping legacy POISON sentinel in queue {}", inputQueue.getName());
-                continue;
-            }
+        drainQueue(producer::isCancellation, queueEntry -> {
             try {
                 Document doc = getDocument(indexer, project.name, DocReference.parse(queueEntry), SOURCE_EXCLUDES);
                 if (doc == null) {
                     nbSkipped.incrementAndGet();
-                    continue;
+                    return;
                 }
                 // Each polled node is produced into its own content-addressed directory.
                 Path docArtifactDir = ArtifactPath.dir(projectRoot, doc.getId());
@@ -202,12 +132,12 @@ public class ArtifactTask extends PipelineTask<String> {
             } catch (Throwable e) {
                 if (producer.isCancellation(e)) {
                     Thread.currentThread().interrupt();
-                    break;
+                    return;
                 }
                 logger.error("error in ArtifactTask loop", e);
                 nbFailed.incrementAndGet();
             }
-        }
+        });
     }
 
     // --parseTimeout is an Extractor option and this stage does not go through the Extractor, so a
