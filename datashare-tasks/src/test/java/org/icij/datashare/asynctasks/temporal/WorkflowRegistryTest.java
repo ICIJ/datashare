@@ -23,6 +23,26 @@ public class WorkflowRegistryTest {
     /** Stands in for a real activity instance, and records which implementation it was built from. */
     private record FakeActivity(Class<?> activityClass) { }
 
+    private static class OpaqueActivity { }
+    private static class OtherOpaqueActivity { }
+
+    private record FakeHelloWorldActivity() { }
+    private record FakeFailingActivity() { }
+    private record FakeDoNothingActivity() { }
+
+    private static Object fakeActivityFor(Class<?> activityClass) {
+        if (activityClass == HelloWorldActivityImpl.class) {
+            return new FakeHelloWorldActivity();
+        }
+        if (activityClass == FailingActivityImpl.class) {
+            return new FakeFailingActivity();
+        }
+        if (activityClass == DoNothingActivityImpl.class) {
+            return new FakeDoNothingActivity();
+        }
+        throw new IllegalArgumentException("no fake activity for " + activityClass);
+    }
+
     // ------------------------------------------------------------------ manual registration
 
     @Test
@@ -60,6 +80,24 @@ public class WorkflowRegistryTest {
     }
 
     @Test
+    public void test_registering_two_activity_instances_of_the_same_class_on_a_queue_keeps_one() {
+        // Temporal throws TypeAlreadyRegisteredException when the same activity type reaches a worker twice, and
+        // TemporalActivityImpl has no equals(), so dedup must not rely on instance identity
+        registry.registerActivity(new OpaqueActivity(), WORKFLOWS_DEFAULT);
+        registry.registerActivity(new OpaqueActivity(), WORKFLOWS_DEFAULT);
+
+        assertThat(registry.registeredActivities(WORKFLOWS_DEFAULT)).hasSize(1);
+    }
+
+    @Test
+    public void test_registers_activities_of_different_classes_on_the_same_queue() {
+        registry.registerActivity(new OpaqueActivity(), WORKFLOWS_DEFAULT);
+        registry.registerActivity(new OtherOpaqueActivity(), WORKFLOWS_DEFAULT);
+
+        assertThat(registry.registeredActivities(WORKFLOWS_DEFAULT)).hasSize(2);
+    }
+
+    @Test
     public void test_registered_collections_cannot_be_mutated_by_callers() {
         registry.registerWorkflow(HelloWorldWorkflowImpl.class, WORKFLOWS_DEFAULT);
 
@@ -79,14 +117,13 @@ public class WorkflowRegistryTest {
 
     @Test
     public void test_discover_registers_implementation_and_activity_of_each_workflow() {
-        registry.discoverWorkflows(FIXTURES_PACKAGE, FakeActivity::new, RoutingStrategy.UNIQUE, JAVA_GROUP);
+        registry.discoverWorkflows(FIXTURES_PACKAGE, WorkflowRegistryTest::fakeActivityFor, RoutingStrategy.UNIQUE,
+            JAVA_GROUP);
 
         assertThat(registry.registeredWorkflows(WORKFLOWS_DEFAULT)).containsOnly(
             HelloWorldWorkflowImpl.class, FailingWorkflowImpl.class, DoNothingWorkflowImpl.class);
         assertThat(registry.registeredActivities(WORKFLOWS_DEFAULT)).containsOnly(
-            new FakeActivity(HelloWorldActivityImpl.class),
-            new FakeActivity(FailingActivityImpl.class),
-            new FakeActivity(DoNothingActivityImpl.class));
+            new FakeHelloWorldActivity(), new FakeFailingActivity(), new FakeDoNothingActivity());
     }
 
     @Test
