@@ -83,7 +83,7 @@ public class TemporalWorkflowGeneratorTest {
                         this.activity = Workflow.newActivityStub(
                             HelloWorldActivity.class,
                             ActivityOptions.newBuilder()
-                                .setTaskQueue("hello-world-queue")
+                                .setTaskQueue(Workflow.getInfo().getTaskQueue())
                                 .setStartToCloseTimeout(java.time.Duration.parse("2d"))
                                 .build()
                             );

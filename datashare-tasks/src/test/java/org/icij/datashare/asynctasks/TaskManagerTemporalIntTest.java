@@ -5,6 +5,7 @@ import io.grpc.StatusRuntimeException;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.temporal.*;
+import org.icij.datashare.asynctasks.routingfixtures.GreetingTask;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
@@ -336,6 +337,60 @@ public class TaskManagerTemporalIntTest {
             Task<?> fromTemporal = temporal.getTask(task.id);
             assertThat(fromTemporal.getProgress()).isEqualTo(1.0);
         }
+    }
+
+    /**
+     * Regression coverage for the bug where the generated {@code *WorkflowImpl} pinned its activity stub to the
+     * literal queue from {@code @ActivityOpts}, instead of the queue the routing strategy actually resolved: under
+     * GROUP or NAME routing the activity was scheduled where nothing was polling, and the task hung RUNNING forever.
+     * Each strategy is exercised with its own {@link WorkflowRegistry}/{@link TaskManagerTemporal}, wired exactly
+     * like {@code CommonMode} does, so that a regression would make the task time out instead of complete.
+     */
+    @Test(timeout = 10000)
+    public void test_generated_workflow_completes_with_unique_routing_strategy() throws Exception {
+        assertGeneratedWorkflowCompletes(RoutingStrategy.UNIQUE, "unique");
+    }
+
+    @Test(timeout = 10000)
+    public void test_generated_workflow_completes_with_group_routing_strategy() throws Exception {
+        assertGeneratedWorkflowCompletes(RoutingStrategy.GROUP, "group");
+    }
+
+    @Test(timeout = 10000)
+    public void test_generated_workflow_completes_with_name_routing_strategy() throws Exception {
+        assertGeneratedWorkflowCompletes(RoutingStrategy.NAME, "name");
+    }
+
+    private void assertGeneratedWorkflowCompletes(RoutingStrategy strategy, String who) throws Exception {
+        Group group = new Group(TaskGroupType.Java);
+        TaskFactory greetingFactory = new TaskFactory() {
+            public Callable<String> createGreetingTask(Task<?> task, Function<Double, Void> progress) {
+                return () -> "hello " + task.args.get("name");
+            }
+        };
+        TaskManagerTemporal manager = new TaskManagerTemporal(temporal, taskRepository, strategy);
+
+        try (Closeable ignored = greetingWorkerFactory(strategy, group, greetingFactory)) {
+            Task<String> task = new Task<>(GreetingTask.class.getName(), User.local(), Map.of("name", who));
+
+            manager.startTask(task, group);
+            manager.waitTasksToBeDone(10, TimeUnit.SECONDS);
+            Task<?> completed = manager.getTask(task.id);
+
+            assertThat(completed.getState()).isEqualTo(DONE);
+            assertThat(completed.getResult()).isEqualTo(new TaskResult<>("hello " + who));
+        }
+    }
+
+    private Closeable greetingWorkerFactory(RoutingStrategy strategy, Group group, TaskFactory factory) {
+        WorkflowRegistry registry = new WorkflowRegistry();
+        registry.discoverWorkflows("org.icij.datashare.asynctasks.routingfixtures",
+            activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
+                activityClass, factory, temporal.getClient(), taskRepository, 1d).getThrows(),
+            strategy, group);
+        // this process serves everything it discovered, exactly like CommonMode does
+        return TemporalWorkers.start(temporal.getClient(), registry, registry.registeredQueues(),
+                                     new TemporalWorkerOptions(1));
     }
 
     private Closeable testCloseableWorkerFactory() {
