@@ -74,8 +74,8 @@ public class LanguageDetectTask extends PipelineTask<String> {
         logger.info("re-detecting document languages for project {} from queue {} with {} worker(s)", project.name,
                     inputQueue.getName(), parallelism);
         DetectionCounters counters = new DetectionCounters();
-        runWorkers(executor, parallelism, () -> drainQueue(PipelineTask::causedByInterrupt,
-                                                          entry -> detectLanguage(entry, counters)));
+        runWorkers(executor, parallelism,
+                   () -> drainQueue(PipelineTask::causedByInterrupt, entry -> detectLanguage(entry, counters)));
         logSummary(counters);
         return counters.nbProcessed();
     }
@@ -119,16 +119,16 @@ public class LanguageDetectTask extends PipelineTask<String> {
     }
 
     private void logSummary(DetectionCounters counters) {
-        logger.info("language re-detection done: {} updated, {} unchanged, {} skipped, {} failed",
-                    counters.nbUpdated(), counters.nbUnchanged(), counters.nbSkipped(), counters.nbFailed());
+        logger.info("language re-detection done: {} updated, {} unchanged, {} skipped, {} failed", counters.nbUpdated(),
+                    counters.nbUnchanged(), counters.nbSkipped(), counters.nbFailed());
         logSkipped(counters.nbSkipped());
         logFailed(counters.nbFailed());
     }
 
     private void logSkipped(long nbSkipped) {
         if (nbSkipped > 0) {
-            logger.error("{} document(s) could not be retrieved from index {} and kept their language, re-run the "
-                         + "LANGUAGE stage for them", nbSkipped, project.name);
+            logger.error("{} document(s) could not be retrieved from index {} and kept their language, re-run the " +
+                         "LANGUAGE stage for them", nbSkipped, project.name);
         }
     }
 
