@@ -212,7 +212,7 @@ public class ArtifactTaskTest {
         assertThat(processed).isEqualTo(2);
     }
 
-    @Test(timeout = 10000, expected = IllegalStateException.class)
+    @Test(timeout = 10000, expected = WorkersFailed.class)
     public void test_all_workers_dying_fails_the_task() throws Exception {
         indexEmbeddedDoc();
         String secondId = "1111111111111111111111111111111111111111111111111111111111111111";
@@ -239,7 +239,7 @@ public class ArtifactTaskTest {
         artifactTask.call();
     }
 
-    @Test(timeout = 10000, expected = IllegalStateException.class)
+    @Test(timeout = 10000, expected = WorkersFailed.class)
     public void test_a_single_worker_death_fails_the_task() throws Exception {
         indexEmbeddedDoc();
         String secondId = "1111111111111111111111111111111111111111111111111111111111111111";
@@ -363,11 +363,11 @@ public class ArtifactTaskTest {
             }
         };
 
-        IllegalStateException failure = assertThrows(IllegalStateException.class, task::call);
+        WorkersFailed failure = assertThrows(WorkersFailed.class, task::call);
 
         assertThat(failure.getMessage()).contains("terminated abnormally");
         // The worker's death is reported, not just signalled by the throw.
-        assertThat(logback.logs(Level.ERROR)).contains("artifact worker terminated abnormally");
+        assertThat(logback.logs(Level.ERROR)).contains("ARTIFACT worker terminated abnormally");
     }
 
     @Test(timeout = 10000)
@@ -497,9 +497,9 @@ public class ArtifactTaskTest {
         factory.queues.put("extract:queue:artifact", queue);
 
         // a broken queue is an infrastructure failure: the run must not be recorded as successful
-        assertThrows(IllegalStateException.class, this::runArtifactTask);
+        assertThrows(WorkersFailed.class, this::runArtifactTask);
 
-        assertThat(logback.logs(Level.ERROR)).contains("artifact worker terminated abnormally");
+        assertThat(logback.logs(Level.ERROR)).contains("ARTIFACT worker terminated abnormally");
     }
 
     @Test(timeout = 10000)
