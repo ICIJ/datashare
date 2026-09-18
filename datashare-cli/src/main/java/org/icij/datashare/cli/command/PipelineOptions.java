@@ -75,6 +75,10 @@ public class PipelineOptions {
     int indexTimeout;
     @Option(names = {"--searchQuery"}, description = "JSON query for EnqueueFromIndex task")
     String searchQuery;
+    // No defaultValue: an absent flag emits no key so the stages chain keeps deciding the next stage.
+    @Option(names = {"--nextStage"},
+            description = "Stage the EnqueueFromIndex task enqueues documents for, overriding the stages chain.")
+    String nextStage;
     @Option(names = {"--scroll"}, description = "Scroll duration used for elasticsearch scrolls",
             defaultValue = "60000ms")
     String scroll;
@@ -115,6 +119,7 @@ public class PipelineOptions {
         DatashareOptions.put(props, OCR_TIMEOUT, ocrTimeout);
         DatashareOptions.put(props, PARSE_TIMEOUT_OPT, parseTimeout);
         DatashareOptions.putIfNotNull(props, SEARCH_QUERY_OPT, searchQuery);
+        DatashareOptions.putIfNotNull(props, NEXT_STAGE_OPT, nextStage);
         DatashareOptions.putIfNotNull(props, SCROLL_DURATION_OPT, scroll);
         DatashareOptions.put(props, SCROLL_SIZE_OPT, scrollSize);
         DatashareOptions.put(props, SCROLL_SLICES_OPT, scrollSlices);

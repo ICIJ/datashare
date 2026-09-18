@@ -141,6 +141,7 @@ public final class DatashareCliOptions {
     public static final String ARTIFACT_DIR_OPT = "artifactDir";
     public static final String ARTIFACTS_OPT = "artifacts";
     public static final String ARTIFACTS_FORCE_OPT = "artifactsForce";
+    public static final String NEXT_STAGE_OPT = "nextStage";
     public static final String SEARCH_QUERY_OPT = "searchQuery";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
@@ -866,6 +867,12 @@ public final class DatashareCliOptions {
     public static void oauthClaimIdAttribute(OptionParser parser) {
         parser.acceptsAll(singletonList("oauthClaimIdAttribute"),
                           "Json field name sent by the Identity Provider that contains user identifier value.")
+              .withRequiredArg().ofType(String.class);
+    }
+
+    public static void nextStage(OptionParser parser) {
+        parser.acceptsAll(singletonList(NEXT_STAGE_OPT),
+                          "Stage the EnqueueFromIndex task enqueues documents for, overriding the stages chain.")
               .withRequiredArg().ofType(String.class);
     }
 
