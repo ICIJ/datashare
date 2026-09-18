@@ -21,7 +21,9 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import static java.lang.Integer.parseInt;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -47,6 +49,11 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final String scrollDuration;
     private final int scrollSize;
 
+    /** Stages whose task drains the queue named after them: a stage before ENQUEUEIDX consumes file
+     *  paths rather than document ids, and CREATENLPBATCHESFROMIDX and BATCHNLP read the index, so
+     *  enqueuing for any of them strands the documents instead of failing. */
+    private static final Set<Stage> QUEUE_CONSUMING_STAGES = EnumSet.of(Stage.CATEGORIZE, Stage.NLP, Stage.ARTIFACT);
+
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
                                 @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
@@ -64,7 +71,8 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     @Override
     public Long call() throws Exception {
         super.call();
-        Stage nextStage = nextStage();
+        PipelineHelper pipeline = new PipelineHelper(propertiesProvider);
+        Stage nextStage = nextStage(pipeline);
         Indexer.Searcher searcher;
         if (searchQuery == null) {
             Indexer.QueryBuilderSearcher builder = indexer.search(singletonList(projectName), Document.class);
@@ -83,7 +91,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         logger.info("enqueuing doc ids for index {} targeting {}{} with {} scroll and size of {} : {} documents found",
                     projectName, nextStage, pipelineInfo, scrollDuration, scrollSize, totalHits);
 
-        String outputQueueName = new PipelineHelper(propertiesProvider).getQueueNameFor(nextStage);
+        String outputQueueName = pipeline.getQueueNameFor(nextStage);
         try (DocumentQueue<String> outputQueue = factory.createQueue(outputQueueName, String.class)) {
             do {
                 docsToProcess.forEach(doc -> outputQueue.add(DocReference.fromDocument((Document) doc).toQueueEntry()));
@@ -95,22 +103,28 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         return totalHits;
     }
 
-    /** Resolved on the run path, not in the constructor: PipelineTask builds its output queue during
-     *  construction, and an invalid --nextStage thrown from a reflectively constructed task becomes a
-     *  requeue-forever NackException instead of a clean task error. */
-    private Stage nextStage() {
-        return propertiesProvider.get(NEXT_STAGE_OPT).map(EnqueueFromIndexTask::parseNextStage).orElseGet(
-                () -> new PipelineHelper(propertiesProvider).getNextStage(Stage.ENQUEUEIDX));
+    /** The output queue is resolved from --nextStage in {@link #call()}, so the stages-chain default
+     *  the base class would build here is never read. */
+    @Override
+    protected String getOutputQueueName() {
+        return null;
     }
 
-    /** A stage running before ENQUEUEIDX consumes file paths, not document ids, so enqueuing into its
-     *  queue would poison it rather than fail. */
+    /** Resolved on the run path, not in the constructor: an invalid --nextStage thrown from a
+     *  reflectively constructed task becomes a requeue-forever NackException instead of a clean
+     *  task error. */
+    private Stage nextStage(PipelineHelper pipeline) {
+        return propertiesProvider.get(NEXT_STAGE_OPT).map(EnqueueFromIndexTask::parseNextStage).orElseGet(
+                () -> pipeline.getNextStage(Stage.ENQUEUEIDX));
+    }
+
     private static Stage parseNextStage(String value) {
         Stage stage = Stage.parse(value).orElseThrow(
                 () -> new IllegalArgumentException("unknown --nextStage value \"%s\"".formatted(value)));
-        if (Stage.comparator.compare(stage, Stage.ENQUEUEIDX) <= 0) {
+        if (!QUEUE_CONSUMING_STAGES.contains(stage)) {
             throw new IllegalArgumentException(
-                    "--nextStage %s runs before %s in the pipeline".formatted(stage, Stage.ENQUEUEIDX));
+                    "--nextStage %s has no task draining its queue, expected one of %s".formatted(stage,
+                                                                                                 QUEUE_CONSUMING_STAGES));
         }
         return stage;
     }
