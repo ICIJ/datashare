@@ -48,7 +48,6 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final Indexer indexer;
     private final String scrollDuration;
     private final int scrollSize;
-
     /** Stages whose task drains the queue named after them: a stage before ENQUEUEIDX consumes file
      *  paths rather than document ids, and CREATENLPBATCHESFROMIDX and BATCHNLP read the index, so
      *  enqueuing for any of them strands the documents instead of failing. */
@@ -114,8 +113,8 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
      *  reflectively constructed task becomes a requeue-forever NackException instead of a clean
      *  task error. */
     private Stage nextStage(PipelineHelper pipeline) {
-        return propertiesProvider.get(NEXT_STAGE_OPT).map(EnqueueFromIndexTask::parseNextStage).orElseGet(
-                () -> pipeline.getNextStage(Stage.ENQUEUEIDX));
+        return propertiesProvider.get(NEXT_STAGE_OPT).map(EnqueueFromIndexTask::parseNextStage)
+                                 .orElseGet(() -> pipeline.getNextStage(Stage.ENQUEUEIDX));
     }
 
     private static Stage parseNextStage(String value) {
@@ -124,7 +123,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         if (!QUEUE_CONSUMING_STAGES.contains(stage)) {
             throw new IllegalArgumentException(
                     "--nextStage %s has no task draining its queue, expected one of %s".formatted(stage,
-                                                                                                 QUEUE_CONSUMING_STAGES));
+                                                                                                  QUEUE_CONSUMING_STAGES));
         }
         return stage;
     }
