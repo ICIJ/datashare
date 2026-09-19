@@ -143,3 +143,6 @@ databaseChangeLog:
   - include:
       file: changes/047-add-extraction-mapping-and-statement.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/048-add-statement-original-value.yml
+      relativeToChangelogFile: true

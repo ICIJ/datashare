@@ -91,6 +91,7 @@ public class JooqStatementRepository implements StatementRepository {
                 create.insertInto(STATEMENT).set(row(write, chunk.get(0))).onConflict(STATEMENT.ID, STATEMENT.PRJ_ID)
                       .doUpdate().set(STATEMENT.RUN_ID, DSL.excluded(STATEMENT.RUN_ID))
                       .set(STATEMENT.MODEL_VERSION, DSL.excluded(STATEMENT.MODEL_VERSION))
+                      .set(STATEMENT.ORIGINAL_VALUE, DSL.excluded(STATEMENT.ORIGINAL_VALUE))
                       .set(STATEMENT.LAST_SEEN, DSL.excluded(STATEMENT.LAST_SEEN)));
         for (Statement statement : chunk) {
             batch.bind(row(write, statement).intoArray());
@@ -109,6 +110,7 @@ public class JooqStatementRepository implements StatementRepository {
         row.setEntityType(statement.entityType());
         row.setProperty(statement.qualifiedProperty());
         row.setValue(statement.value());
+        row.setOriginalValue(statement.originalValue());
         row.setDocId(statement.provenance().documentId());
         row.setSheet(statement.provenance().sheet());
         row.setRowNumber(statement.provenance().rowNumber());
@@ -212,7 +214,7 @@ public class JooqStatementRepository implements StatementRepository {
         }
         return new Row(new Statement(row.get(STATEMENT.ID), model, row.get(STATEMENT.ENTITY_ID),
                                      row.get(STATEMENT.ENTITY_TYPE), property.substring(prefix.length()),
-                                     row.get(STATEMENT.VALUE),
+                                     row.get(STATEMENT.VALUE), null,
                                      new Statement.Provenance(row.get(STATEMENT.DOC_ID), row.get(STATEMENT.SHEET),
                                                               row.get(STATEMENT.ROW_NUMBER),
                                                               row.get(STATEMENT.COLUMN_NAME))),
