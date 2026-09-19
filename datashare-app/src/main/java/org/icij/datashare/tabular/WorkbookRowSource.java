@@ -94,7 +94,7 @@ public class WorkbookRowSource implements RowSource {
         long blank = 0;
         while (sheetRows.hasNext()) {
             List<String> values = cells(sheetRows.next(), evaluator);
-            if (values.stream().allMatch(String::isEmpty)) {
+            if (values.stream().allMatch(Row::blank)) {
                 blank++;
                 continue;
             }
