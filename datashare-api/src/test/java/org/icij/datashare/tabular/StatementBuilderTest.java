@@ -769,6 +769,20 @@ public class StatementBuilderTest {
     }
 
     @Test
+    public void test_a_resolved_sheet_written_with_an_invisible_character_keeps_one_entity() {
+        ExtractionMapping keyless = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1",
+                RowSourceOptions.defaults(),
+                Map.of("member", entity("Person", List.of(), Map.of("name", column("full_name")))));
+
+        String plain = new StatementBuilder(keyless, "Sheet 1")
+                .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
+        String invisible = new StatementBuilder(keyless, " Sheet\u00A01\u200B")
+                .statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
+
+        assertThat(invisible).isEqualTo(plain);
+    }
+
+    @Test
     public void test_a_resolved_sheet_holding_a_nul_fails_at_construction() {
         ExtractionMapping mapping = mapping(Map.of("member",
                 entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
