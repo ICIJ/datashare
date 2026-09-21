@@ -59,7 +59,13 @@ public class LinguaLanguageGuesserTest {
     public void test_short_file_names_stay_unknown() {
         assertThat(GUESSER.guess("", Paths.get("/tmp/IMG_20240101_123456.jpg"))).isEqualTo(Language.UNKNOWN);
         assertThat(GUESSER.guess("", Paths.get("/tmp/scan.pdf"))).isEqualTo(Language.UNKNOWN);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/DSC_0042.jpg"))).isEqualTo(Language.UNKNOWN);
         assertThat(GUESSER.guess("", null)).isEqualTo(Language.UNKNOWN);
+    }
+
+    @Test(timeout = 30000)
+    public void test_guesses_from_a_short_ideogram_file_name() {
+        assertThat(GUESSER.guess("", Paths.get("/tmp/發票.pdf"))).isEqualTo(Language.CHINESE);
     }
 
     @Test(timeout = 30000)
