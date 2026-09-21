@@ -54,11 +54,13 @@ public class StatementBuilder {
         this.documentId = mapping.documentId();
         // The one string here the mapping never saw, so validate() cannot vouch for it: a workbook
         // naming a sheet with a NUL would otherwise reach Statement's constructor and abort the run
-        // on its first row.
+        // on its first row. What is left gets the cleaning every other string in a statement gets,
+        // so a sheet named with a non-breaking space in one read and a plain one in the next does
+        // not split a keyless entity in two.
         if (sheet != null && sheet.indexOf('\u0000') >= 0) {
             throw new IllegalArgumentException("the sheet name holds a NUL character");
         }
-        this.sheet = sheet;
+        this.sheet = sheet == null ? null : Row.clean(sheet);
         mapping.requireValid();
         mapping.entities().forEach(this::declare);
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
