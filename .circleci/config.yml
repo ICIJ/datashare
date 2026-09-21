@@ -68,7 +68,7 @@ jobs:
             echo "s3mockUri=${DS_S3MOCK_URI}" >> datashare-devenv.properties
       - run: make clean
       - run: make migrate
-      - run: mvn org.icij:intellij-code-formatter-maven-plugin:check
+      - run: make lint
       - run: make test
       - run:
           name: Make install for app and corenlp modules

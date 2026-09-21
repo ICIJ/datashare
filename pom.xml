@@ -150,7 +150,7 @@
         <maven-exec.version>1.5.0</maven-exec.version>
         <maven-javadoc.version>3.1.0</maven-javadoc.version>
         <git-commit-id-maven-plugin.version>9.0.0</git-commit-id-maven-plugin.version>
-        <formater.version>1.0.4</formater.version>
+        <formater.version>1.0.5</formater.version>
 
         <!-- Env file -->
         <devenv.file>${maven.multiModuleProjectDirectory}/datashare-devenv.properties</devenv.file>
