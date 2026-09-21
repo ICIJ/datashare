@@ -12,8 +12,15 @@ public interface LanguageGuesser {
     int MIN_FILENAME_LENGTH = 15;
     /** Runs of digits, separators and punctuation, which a file name uses where a sentence uses spaces. */
     Pattern NON_LETTER_RUN = Pattern.compile("[^\\p{L}]+");
-    /** A single ideogram or kana names its language, where latin letters need a sentence to do it. */
-    Pattern IDEOGRAM = Pattern.compile("[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}]");
+    /**
+     * Scripts written by a single one of the languages we detect, where latin letters need a whole
+     * sentence to name theirs. Cyrillic, arabic and devanagari are left out: they are shared by
+     * several languages, and a short name in them detects as the wrong one.
+     */
+    Pattern SELF_NAMING_SCRIPT = Pattern.compile(
+            "[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}\\p{IsThai}\\p{IsGreek}"
+            + "\\p{IsHebrew}\\p{IsArmenian}\\p{IsGeorgian}\\p{IsTamil}\\p{IsTelugu}"
+            + "\\p{IsBengali}\\p{IsGujarati}\\p{IsGurmukhi}]");
 
     Language guess(String text);
 
@@ -28,8 +35,14 @@ public interface LanguageGuesser {
         if (language != Language.UNKNOWN || path == null || path.getFileName() == null) {
             return language;
         }
-        String words = NON_LETTER_RUN.matcher(path.getFileName().toString()).replaceAll(" ").trim();
-        boolean longEnough = words.length() >= MIN_FILENAME_LENGTH || IDEOGRAM.matcher(words).find();
+        String words = NON_LETTER_RUN.matcher(withoutExtension(path.getFileName().toString())).replaceAll(" ").trim();
+        boolean longEnough = words.length() >= MIN_FILENAME_LENGTH || SELF_NAMING_SCRIPT.matcher(words).find();
         return longEnough ? guess(words) : Language.UNKNOWN;
+    }
+
+    /** The extension is latin whatever the name is written in, and it drags the guess towards latin. */
+    private static String withoutExtension(String fileName) {
+        int extension = fileName.lastIndexOf('.');
+        return extension > 0 ? fileName.substring(0, extension) : fileName;
     }
 }

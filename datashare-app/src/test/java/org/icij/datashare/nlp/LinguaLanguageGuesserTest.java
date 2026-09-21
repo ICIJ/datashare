@@ -64,8 +64,28 @@ public class LinguaLanguageGuesserTest {
     }
 
     @Test(timeout = 30000)
-    public void test_guesses_from_a_short_ideogram_file_name() {
+    public void test_guesses_from_a_short_file_name_in_a_self_naming_script() {
         assertThat(GUESSER.guess("", Paths.get("/tmp/發票.pdf"))).isEqualTo(Language.CHINESE);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/レポート.pdf"))).isEqualTo(Language.JAPANESE);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/영수증.pdf"))).isEqualTo(Language.KOREAN);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/ใบเสร็จ.pdf"))).isEqualTo(Language.THAI);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/έγγραφο.pdf"))).isEqualTo(Language.GREEK);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/חשבונית.pdf"))).isEqualTo(Language.HEBREW);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/հաշիվ.pdf"))).isEqualTo(Language.ARMENIAN);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/ანგარიში.pdf"))).isEqualTo(Language.GEORGIAN);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/ரசீது.pdf"))).isEqualTo(Language.TAMIL);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/రసీదు.pdf"))).isEqualTo(Language.TELUGU);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/রসিদ.pdf"))).isEqualTo(Language.BENGALI);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/રસીદ.pdf"))).isEqualTo(Language.GUJARATI);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/ਰਸੀਦ.pdf"))).isEqualTo(Language.PANJABI);
+    }
+
+    @Test(timeout = 30000)
+    public void test_short_file_names_in_a_shared_script_stay_unknown() {
+        // the russian "счет" detects as macedonian, the urdu "رسید" as persian: the script names several languages
+        assertThat(GUESSER.guess("", Paths.get("/tmp/счет.pdf"))).isEqualTo(Language.UNKNOWN);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/رسید.pdf"))).isEqualTo(Language.UNKNOWN);
+        assertThat(GUESSER.guess("", Paths.get("/tmp/रसीद.pdf"))).isEqualTo(Language.UNKNOWN);
     }
 
     @Test(timeout = 30000)
