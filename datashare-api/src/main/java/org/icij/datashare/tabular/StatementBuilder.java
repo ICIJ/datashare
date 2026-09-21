@@ -122,16 +122,16 @@ public class StatementBuilder {
     private Map<String, String> entityIds(Map<String, String> cells, long rowNumber) {
         Map<String, String> ids = new TreeMap<>();
         keyColumns.forEach((alias, keys) -> {
+            ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
             if (keys.isEmpty()) {
-                ids.put(alias, rowId(alias, mapping.entities().get(alias).type(), rowNumber));
+                ids.put(alias, rowId(alias, entity.type(), rowNumber));
                 return;
             }
             List<String> values = keys.stream().map(cells::get).toList();
             if (values.stream().anyMatch(String::isEmpty)) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
             } else {
-                ids.put(alias,
-                        id(mapping.entities().get(alias).type(), mapping.entities().get(alias).keyLiteral(), values));
+                ids.put(alias, id(entity.type(), entity.keyLiteral(), values));
             }
         });
         return ids;
