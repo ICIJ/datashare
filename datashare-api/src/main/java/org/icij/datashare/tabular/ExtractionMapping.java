@@ -84,12 +84,8 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     public List<TargetModel.Violation> validate() {
         TargetModel target = TargetModelRegistry.get(model);
         List<TargetModel.Violation> violations = new ArrayList<>();
-        if (options.sheet() != null && holdsNul(options.sheet())) {
-            violations.add(new TargetModel.Violation("the sheet name holds a NUL character"));
-        }
-        if (holdsNul(documentId)) {
-            violations.add(new TargetModel.Violation("the document id holds a NUL character"));
-        }
+        refuseNul(violations, options.sheet(), "the sheet name");
+        refuseNul(violations, documentId, "the document id");
         DateFormats formats = new DateFormats();
         for (String alias : new TreeSet<>(entities.keySet())) {
             EntityMapping entity = entities.get(alias);
@@ -99,16 +95,12 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
                 violations.add(new TargetModel.Violation(
                         "entity '" + alias + "' maps no property, so no row can produce a statement for it"));
             }
-            entity.keys().stream().filter(ExtractionMapping::holdsNul).forEach(key -> violations.add(
-                    new TargetModel.Violation("entity '" + alias + "' has a key column name holding a NUL character")));
+            entity.keys().forEach(key -> refuseNul(violations, key, "the key column name of entity '" + alias + "'"));
             if (entity.keys().stream().anyMatch(String::isEmpty)) {
                 violations.add(new TargetModel.Violation(
                         "entity '" + alias + "' has a blank key column name, which no header can match"));
             }
-            if (entity.keyLiteral() != null && holdsNul(entity.keyLiteral())) {
-                violations.add(
-                        new TargetModel.Violation("entity '" + alias + "' has a key literal holding a NUL character"));
-            }
+            refuseNul(violations, entity.keyLiteral(), "the key literal of entity '" + alias + "'");
             if (entity.keyLiteral() != null && entity.keyLiteral().isBlank()) {
                 violations.add(new TargetModel.Violation(
                         "entity '" + alias + "' has a blank key literal, which hashes like no literal at all"));
@@ -141,14 +133,9 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         if (mapped.literal() != null && mapped.literal().isBlank()) {
             violations.add(new TargetModel.Violation(where + "has a blank literal, which no row can store"));
         }
-        if (mapped.literal() != null && holdsNul(mapped.literal())) {
-            violations.add(new TargetModel.Violation(where + "has a literal holding a NUL character"));
-        }
-        if (mapped.join() != null && holdsNul(mapped.join())) {
-            violations.add(new TargetModel.Violation(where + "has a join separator holding a NUL character"));
-        }
-        mapped.columns().stream().filter(ExtractionMapping::holdsNul).forEach(column -> violations.add(
-                new TargetModel.Violation(where + "has a column name holding a NUL character")));
+        refuseNul(violations, mapped.literal(), "the literal of " + where.strip());
+        refuseNul(violations, mapped.join(), "the join separator of " + where.strip());
+        mapped.columns().forEach(column -> refuseNul(violations, column, "the column name of " + where.strip()));
         if (mapped.columns().stream().anyMatch(String::isEmpty)) {
             violations.add(new TargetModel.Violation(where + "has a blank column name, which no header can match"));
         }
@@ -163,8 +150,12 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         return violations;
     }
 
-    private static boolean holdsNul(String text) {
-        return text.indexOf('\u0000') >= 0;
+    // Every string a statement would carry is refused the same way and worded the same way: a NUL
+    // reaches Statement's constructor, which aborts, so a mapping holding one has to fail at save.
+    private static void refuseNul(List<TargetModel.Violation> violations, String text, String what) {
+        if (text != null && text.indexOf('\u0000') >= 0) {
+            violations.add(new TargetModel.Violation(what + " holds a NUL character"));
+        }
     }
 
     /** A cross-reference has to point at an entity the mapping declares, through a property that
