@@ -18,9 +18,9 @@ public interface LanguageGuesser {
      * several languages, and a short name in them detects as the wrong one.
      */
     Pattern SELF_NAMING_SCRIPT = Pattern.compile(
-            "[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}\\p{IsThai}\\p{IsGreek}"
-            + "\\p{IsHebrew}\\p{IsArmenian}\\p{IsGeorgian}\\p{IsTamil}\\p{IsTelugu}"
-            + "\\p{IsBengali}\\p{IsGujarati}\\p{IsGurmukhi}]");
+            "[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}\\p{IsThai}\\p{IsGreek}" +
+            "\\p{IsHebrew}\\p{IsArmenian}\\p{IsGeorgian}\\p{IsTamil}\\p{IsTelugu}" +
+            "\\p{IsBengali}\\p{IsGujarati}\\p{IsGurmukhi}]");
 
     Language guess(String text);
 
