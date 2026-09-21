@@ -54,7 +54,7 @@ public class ExtractionMappingTest {
         String violations = nulled.validate().toString();
 
         assertThat(violations).contains("document id");
-        assertThat(violations).contains("literal holding a NUL");
+        assertThat(violations).contains("the literal of property 'nationality' on entity 'member' holds a NUL");
     }
 
     @Test
@@ -63,7 +63,7 @@ public class ExtractionMappingTest {
                 List.of("id"), Map.of("name", column("full_name")));
 
         assertThat(mapping("ftm", Map.of("member", member)).validate().toString())
-                .contains("key literal holding a NUL");
+                .contains("the key literal of entity 'member' holds a NUL");
     }
 
     @Test

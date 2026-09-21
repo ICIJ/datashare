@@ -685,7 +685,7 @@ public class StatementBuilderTest {
                 () -> person(List.of("passport"),
                         Map.of("name", column("full_name"), "nationality", literal("f\u0000r"))));
 
-        assertThat(thrown.violations.toString()).contains("literal holding a NUL");
+        assertThat(thrown.violations.toString()).contains("the literal of property 'nationality' on entity 'member' holds a NUL");
     }
 
     @Test
@@ -694,7 +694,7 @@ public class StatementBuilderTest {
                 () -> person(List.of("passport"),
                         Map.of("name", joined(List.of("first_name", "last_name"), "\u0000"))));
 
-        assertThat(thrown.violations.toString()).contains("join separator holding a NUL");
+        assertThat(thrown.violations.toString()).contains("the join separator of property 'name' on entity 'member' holds a NUL");
     }
 
     @Test
@@ -702,7 +702,7 @@ public class StatementBuilderTest {
         InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
                 () -> person(List.of("passport"), Map.of("name", column("full\u0000name"))));
 
-        assertThat(thrown.violations.toString()).contains("column name holding a NUL");
+        assertThat(thrown.violations.toString()).contains("the column name of property 'name' on entity 'member' holds a NUL");
     }
 
     @Test
@@ -710,7 +710,7 @@ public class StatementBuilderTest {
         InvalidExtractionMapping thrown = assertThrows(InvalidExtractionMapping.class,
                 () -> person(List.of("pass\u0000port"), Map.of("name", column("full_name"))));
 
-        assertThat(thrown.violations.toString()).contains("key column name holding a NUL");
+        assertThat(thrown.violations.toString()).contains("the key column name of entity 'member' holds a NUL");
     }
 
     @Test
