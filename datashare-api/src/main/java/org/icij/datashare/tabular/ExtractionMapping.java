@@ -36,12 +36,14 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         public EntityMapping {
             Objects.requireNonNull(type, "type");
             // Keys name header columns, so they get the cleaning headers get: a key pasted with a
-            // non-breaking space still matches the header it names. No key at all is a valid
-            // mapping: each row is then its own record, identified by where it sits in the file.
-            // The key literal is hashed alongside the key values and gets the same cleaning: an
-            // invisible character in one of two mappings meant to agree would otherwise split one
-            // entity in two, which is the merge the literal exists to control.
-            keys = List.copyOf(Objects.requireNonNull(keys, "keys")).stream().map(Row::clean).toList();
+            // non-breaking space still matches the header it names, and a column named twice counts
+            // once, since hashing one cell twice would name a different entity than the same mapping
+            // written without the repeat. No key at all is a valid mapping: each row is then its own
+            // record, identified by where it sits in the file. The key literal is hashed alongside
+            // the key values and gets the same cleaning: an invisible character in one of two
+            // mappings meant to agree would otherwise split one entity in two, which is the merge
+            // the literal exists to control.
+            keys = Objects.requireNonNull(keys, "keys").stream().map(Row::clean).distinct().toList();
             keyLiteral = keyLiteral == null ? null : Row.clean(keyLiteral);
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
@@ -53,7 +55,9 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             // a mapping authored by copy-paste behaves like the file it was copied from. JSON is the
             // exception: a record carries its own keys and JsonRowSource leaves them untouched, so a
             // key holding an invisible character is named by no mapping and the read fails on row 1.
-            columns = List.copyOf(columns == null ? List.of() : columns).stream().map(Row::clean).toList();
+            // A column named twice counts once, so a join cannot glue a cell to itself, and 'join'
+            // then reads the count that matters: two names for one column are one column.
+            columns = (columns == null ? List.<String>of() : columns).stream().map(Row::clean).distinct().toList();
             literal = literal == null ? null : Row.clean(literal);
             long sources = (columns.isEmpty() ? 0 : 1) + (literal == null ? 0 : 1) + (entity == null ? 0 : 1);
             if (sources != 1) {

@@ -88,11 +88,10 @@ public class StatementBuilder {
         return List.copyOf(statements.values());
     }
 
-    // Key columns are de-duplicated once here rather than per row, because a column named twice
-    // would otherwise hash its cell twice. Formats compile without a guard: validate() already
-    // refused every pattern this mapping could not run.
+    // Formats compile without a guard: validate() already refused every pattern this mapping could
+    // not run.
     private void declare(String alias, ExtractionMapping.EntityMapping entity) {
-        keyColumns.put(alias, entity.keys().stream().distinct().toList());
+        keyColumns.put(alias, entity.keys());
         columns.addAll(entity.keys());
         entity.properties().values().forEach(property -> {
             columns.addAll(property.columns());
