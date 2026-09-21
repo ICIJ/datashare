@@ -12,6 +12,8 @@ public interface LanguageGuesser {
     int MIN_FILENAME_LENGTH = 15;
     /** Runs of digits, separators and punctuation, which a file name uses where a sentence uses spaces. */
     Pattern NON_LETTER_RUN = Pattern.compile("[^\\p{L}]+");
+    /** A single ideogram or kana names its language, where latin letters need a sentence to do it. */
+    Pattern IDEOGRAM = Pattern.compile("[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}\\p{IsHangul}]");
 
     Language guess(String text);
 
@@ -19,7 +21,7 @@ public interface LanguageGuesser {
      * The guess for a document whose content can be empty: a scan that has not been OCRed yet carries
      * no text, so its file name is the only language signal left. Content always wins, and a file name
      * carrying fewer than {@link #MIN_FILENAME_LENGTH} letters stays {@link Language#UNKNOWN} rather
-     * than being guessed on.
+     * than being guessed on, unless it is written in a script that identifies itself.
      */
     default Language guess(String text, Path path) {
         Language language = guess(text);
@@ -27,6 +29,7 @@ public interface LanguageGuesser {
             return language;
         }
         String words = NON_LETTER_RUN.matcher(path.getFileName().toString()).replaceAll(" ").trim();
-        return words.length() < MIN_FILENAME_LENGTH ? Language.UNKNOWN : guess(words);
+        boolean longEnough = words.length() >= MIN_FILENAME_LENGTH || IDEOGRAM.matcher(words).find();
+        return longEnough ? guess(words) : Language.UNKNOWN;
     }
 }
