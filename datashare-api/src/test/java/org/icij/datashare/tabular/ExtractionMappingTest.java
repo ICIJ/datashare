@@ -134,6 +134,20 @@ public class ExtractionMappingTest {
     }
 
     @Test
+    public void test_a_column_named_twice_counts_once() {
+        ExtractionMapping.PropertyMapping mapped =
+                new ExtractionMapping.PropertyMapping(List.of("a", "b", "a"), " ", null, null, null);
+
+        assertThat(mapped.columns()).isEqualTo(List.of("a", "b"));
+    }
+
+    @Test
+    public void test_a_join_of_one_column_named_twice_is_refused() {
+        assertThrows(InvalidPropertyMapping.class,
+                () -> new ExtractionMapping.PropertyMapping(List.of("a", "a"), " ", null, null, null));
+    }
+
+    @Test
     public void test_date_format_needs_columns() {
         assertThrows(InvalidPropertyMapping.class,
                 () -> new ExtractionMapping.PropertyMapping(List.of(), null, "SS", null, "%d.%m.%Y"));
