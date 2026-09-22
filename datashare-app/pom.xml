@@ -81,6 +81,13 @@
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-simple</artifactId>
                 </exclusion>
+                <!-- fluent-http -> less4j pulls protobuf-java 2.5.0, which as the nearest declaration
+                     wins Maven's conflict resolution over the 3.25.8 that temporal-sdk needs, causing
+                     NoClassDefFoundError (e.g. com.google.protobuf.TypeRegistry, added in 3.x) -->
+                <exclusion>
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
