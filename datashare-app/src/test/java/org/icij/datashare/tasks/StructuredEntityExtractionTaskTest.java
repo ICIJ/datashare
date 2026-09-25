@@ -83,6 +83,109 @@ public class StructuredEntityExtractionTaskTest {
         assertThat(second.retracted()).isEqualTo(second.written());
     }
 
+    @Test
+    public void test_refuses_a_mapping_the_project_does_not_hold() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n");
+        when(mappings.get("prj", "missing")).thenReturn(Optional.empty());
+
+        assertThat(assertThrows(IllegalArgumentException.class, () -> task("missing").call()).getMessage())
+                .contains("no mapping 'missing'");
+    }
+
+    @Test
+    public void test_refuses_a_project_the_user_is_not_granted() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n");
+        stored(mapping("m1"));
+        Task<StructuredEntityExtractionResult> taskView = new Task<>(
+                StructuredEntityExtractionTask.class.getName(), User.localUser("bob", List.of("other")),
+                Map.of("defaultProject", "prj", "mappingId", "m1"));
+
+        assertThat(assertThrows(IllegalArgumentException.class,
+                                () -> new StructuredEntityExtractionTask(indexer, statements, mappings,
+                                                                         new PropertiesProvider(), taskView, null).call())
+                           .getMessage()).contains("is not granted prj");
+    }
+
+    @Test
+    public void test_a_correction_supersedes_the_statements_the_previous_mapping_wrote() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n2,Globex\n");
+        stored(mapping("m1"));
+        task("m1").call();
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n");
+        stored(mapping("m2"));
+
+        StructuredEntityExtractionResult corrected = task("m2").call();
+
+        assertThat(corrected.retracted()).isEqualTo(2);
+        assertThat(corrected.written()).isEqualTo(1);
+        assertThat(statements.stored).hasSize(1);
+    }
+
+    @Test
+    public void test_refuses_a_project_id_before_it_writes_anything() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n");
+        ExtractionMapping mapping = new ExtractionMapping("m1", "bad/name", null, "companies", "ftm", "docId",
+                RowSourceOptions.defaults(),
+                Map.of("c", new ExtractionMapping.EntityMapping("Company", List.of("id"),
+                        Map.of("name", new ExtractionMapping.PropertyMapping(List.of("name"), null, null, null, null)))));
+        when(mappings.get("bad/name", "m1")).thenReturn(Optional.of(mapping));
+        Task<StructuredEntityExtractionResult> taskView = new Task<>(
+                StructuredEntityExtractionTask.class.getName(), User.localUser("jane", List.of("bad/name")),
+                Map.of("defaultProject", "bad/name", "mappingId", "m1"));
+
+        assertThrows(IllegalArgumentException.class,
+                     () -> new StructuredEntityExtractionTask(indexer, statements, mappings, new PropertiesProvider(),
+                                                              taskView, null).call());
+        assertThat(statements.stored).isEmpty();
+    }
+
+    @Test
+    public void test_the_task_id_fits_the_run_id_column() {
+        Task<StructuredEntityExtractionResult> taskView = new Task<>(
+                StructuredEntityExtractionTask.class.getName(), User.local(), Map.of());
+
+        assertThat(taskView.getId().length()).isLessThan(97);
+    }
+
+    @Test
+    public void test_a_source_with_no_data_row_is_a_clean_run() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n");
+        stored(mapping("m1"));
+
+        StructuredEntityExtractionResult result = task("m1").call();
+
+        assertThat(result.rows()).isEqualTo(0L);
+        assertThat(result.written()).isEqualTo(0);
+        assertThat(result.retracted()).isEqualTo(0);
+        assertThat(result.indexed()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_an_unsupported_content_type_names_the_readers_that_exist() throws Exception {
+        source("scan.pdf", "application/pdf", "not a table");
+        stored(mapping("m1"));
+
+        assertThat(assertThrows(IllegalArgumentException.class, () -> task("m1").call()).getMessage())
+                .contains("no reader supports application/pdf");
+    }
+
+    @Test
+    public void test_a_cancelled_run_throws_rather_than_writing_a_truncated_sheet() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n2,Globex\n");
+        stored(mapping("m1"));
+        StructuredEntityExtractionTask task = task("m1");
+
+        try {
+            Thread.currentThread().interrupt();
+            assertThrows(IllegalStateException.class, task::call);
+        } finally {
+            Thread.interrupted();
+        }
+
+        assertThat(statements.stored).isEmpty();
+        assertThat(indexer.exists(Project.entitiesIndex("prj"))).isFalse();
+    }
+
     private void source(String filename, String contentType, String content) throws Exception {
         Path file = folder.getRoot().toPath().resolve(filename);
         Files.writeString(file, content, StandardCharsets.UTF_8);
