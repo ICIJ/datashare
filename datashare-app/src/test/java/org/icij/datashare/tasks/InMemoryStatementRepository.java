@@ -40,13 +40,26 @@ public class InMemoryStatementRepository implements StatementRepository {
     @Override
     public Replaced replace(String projectId, String runId, String documentId, String sheet,
                             Stream<Statement> statements) {
+        String section = Statement.Provenance.sheetOrEmpty(sheet);
         int retracted = deleteBySheet(projectId, documentId, sheet);
         int written = 0;
-        for (Statement statement : statements.toList()) {
-            stored.put(statement.id(), statement);
-            written++;
+        try (statements) {
+            for (Statement statement : statements.toList()) {
+                requireWrittenBy(statement, documentId, section);
+                stored.put(statement.id(), statement);
+                written++;
+            }
         }
         return new Replaced(retracted, written);
+    }
+
+    private static void requireWrittenBy(Statement statement, String documentId, String sheet) {
+        Statement.Provenance provenance = statement.provenance();
+        if (!provenance.documentId().equals(documentId) || !provenance.sheet().equals(sheet)) {
+            throw new IllegalArgumentException(
+                    "statement " + statement.id() + " comes from (" + provenance.documentId() + ", " +
+                    provenance.sheet() + "), not (" + documentId + ", " + sheet + ")");
+        }
     }
 
     @Override
