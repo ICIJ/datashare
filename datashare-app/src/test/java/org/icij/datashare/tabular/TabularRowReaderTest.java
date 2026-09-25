@@ -15,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -47,8 +46,8 @@ public class TabularRowReaderTest {
     }
 
     private List<Row> rows(RowSourceOptions options) throws Exception {
-        try (Stream<Row> rows = reader.rows(project, "docId", null, options)) {
-            return rows.toList();
+        try (Rows rows = reader.rows(project, "docId", null, options)) {
+            return rows.rows().toList();
         }
     }
 
@@ -114,7 +113,7 @@ public class TabularRowReaderTest {
     @Test(expected = IllegalArgumentException.class)
     public void test_a_missing_document_fails() throws Exception {
         when(indexer.<Document>get("local-datashare", "missing", "missing", CONTENT_FIELDS)).thenReturn(null);
-        try (Stream<Row> ignored = reader.rows(project, "missing", null, RowSourceOptions.defaults())) {
+        try (Rows ignored = reader.rows(project, "missing", null, RowSourceOptions.defaults())) {
             // the failure is expected before any row is read
         }
     }
@@ -127,7 +126,7 @@ public class TabularRowReaderTest {
         TrackingInputStream source = new TrackingInputStream(html);
         when(sourceExtractor.getSource(project, document)).thenReturn(source);
 
-        try (Stream<Row> ignored = new TabularRowReader(indexer, sourceExtractor)
+        try (Rows ignored = new TabularRowReader(indexer, sourceExtractor)
                 .rows(project, "docId", null, RowSourceOptions.defaults())) {
             throw new AssertionError("expected an IllegalArgumentException");
         } catch (IllegalArgumentException failure) {
