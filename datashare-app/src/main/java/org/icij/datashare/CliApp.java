@@ -206,10 +206,14 @@ class CliApp {
     }
 
     /**
-     * Rejects a run that would enqueue for a stage draining no queue, before any task is created.
-     * Only {@link EnqueueFromIndexTask} reads --nextStage, so on any other chain it would be dropped
-     * without a word; and when it is absent that task falls back to the stages chain, which can name
-     * a stage that strands every document it enqueues.
+     * Checks --nextStage against the configured stages, before any task is created.
+     * <p>
+     * Without {@link Stage#ENQUEUEIDX} in the chain, nothing reads --nextStage, so any value is
+     * rejected. With it, the stage receiving the enqueued documents is checked to drain the ids
+     * {@link EnqueueFromIndexTask} writes: --nextStage when it is set, the stage following
+     * ENQUEUEIDX in the chain otherwise.
+     *
+     * @return {@link #EXIT_SUCCESS}, or {@link #EXIT_VALIDATION} once the reason is reported
      */
     static int validateNextStage(PipelineHelper pipeline, Properties properties) {
         Optional<String> nextStage = new PropertiesProvider(properties).get(NEXT_STAGE_OPT);
