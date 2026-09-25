@@ -21,7 +21,6 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import static java.lang.Integer.parseInt;
@@ -48,10 +47,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final Indexer indexer;
     private final String scrollDuration;
     private final int scrollSize;
-    /** Stages whose task drains the queue named after them: a stage before ENQUEUEIDX consumes file
-     *  paths rather than document ids, and CREATENLPBATCHESFROMIDX and BATCHNLP read the index, so
-     *  enqueuing for any of them strands the documents instead of failing. */
-    private static final Set<Stage> QUEUE_CONSUMING_STAGES = EnumSet.of(Stage.CATEGORIZE, Stage.NLP, Stage.ARTIFACT);
+    private static final Set<Stage> QUEUE_CONSUMING_STAGES = Stage.consuming(Stage.Payload.ID);
 
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
