@@ -5,6 +5,7 @@ import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.StatementRepository;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,13 +42,26 @@ public class InMemoryStatementRepository implements StatementRepository {
     public Replaced replace(String projectId, String runId, String documentId, String sheet,
                             Stream<Statement> statements) {
         String section = Statement.Provenance.sheetOrEmpty(sheet);
-        int retracted = deleteBySheet(projectId, documentId, sheet);
+        int retracted = 0;
         int written = 0;
+        // The first statement is pulled before the retraction, and the stream is never materialised,
+        // because that is what JooqStatementRepository does: a double that retracts first, or that
+        // buffers, cannot fail on the cases those two properties exist to cover.
         try (statements) {
-            for (Statement statement : statements.toList()) {
+            Iterator<Statement> source = statements.iterator();
+            boolean pending = true;
+            while (source.hasNext()) {
+                Statement statement = source.next();
+                if (pending) {
+                    retracted = deleteBySheet(projectId, documentId, sheet);
+                    pending = false;
+                }
                 requireWrittenBy(statement, documentId, section);
                 stored.put(statement.id(), statement);
                 written++;
+            }
+            if (pending) {
+                retracted = deleteBySheet(projectId, documentId, sheet);
             }
         }
         return new Replaced(retracted, written);
