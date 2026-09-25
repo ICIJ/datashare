@@ -143,6 +143,10 @@ public final class DatashareCliOptions {
     public static final String ARTIFACTS_FORCE_OPT = "artifactsForce";
     public static final String NEXT_STAGE_OPT = "nextStage";
     public static final String SEARCH_QUERY_OPT = "searchQuery";
+    public static final String SEARCH_QUERY_DESC =
+            "Query selecting the indexed documents a stage works on, either a JSON query or a query " +
+            "string. ENQUEUEIDX and CREATENLPBATCHESFROMIDX select the documents they enqueue, SCANQUERY " +
+            "selects the files to extract again. Required by SCANQUERY.";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
     public static final String OAUTH_USER_PROJECTS_KEY_OPT = "oauthUserProjectsAttribute";
@@ -877,9 +881,7 @@ public final class DatashareCliOptions {
     }
 
     public static void searchQuery(OptionParser parser) {
-        parser.acceptsAll(singletonList(SEARCH_QUERY_OPT),
-                          "Json query for filtering index matches for EnqueueFromIndex task.").withRequiredArg()
-              .ofType(String.class);
+        parser.acceptsAll(singletonList(SEARCH_QUERY_OPT), SEARCH_QUERY_DESC).withRequiredArg().ofType(String.class);
     }
 
     public static void pollingInterval(OptionParser parser) {

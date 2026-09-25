@@ -8,6 +8,7 @@ public enum TaskType {
     BATCH_SEARCH("org.icij.datashare.tasks.BatchSearchRunner", "org.icij.datashare.tasks.BatchSearchRunnerProxy"),
     BATCH_DOWNLOAD("org.icij.datashare.tasks.BatchDownloadRunner"), INDEX("org.icij.datashare.tasks.IndexTask"),
     SCAN("org.icij.datashare.tasks.ScanTask"), SCAN_INDEX("org.icij.datashare.tasks.ScanIndexTask"),
+    SCAN_QUERY("org.icij.datashare.tasks.ScanQueryTask"),
     ENQUEUE_FROM_INDEX("org.icij.datashare.tasks.EnqueueFromIndexTask"),
     EXTRACT_NLP("org.icij.datashare.tasks.ExtractNlpTask"), BATCH_NLP("org.icij.datashare.tasks.BatchNlpTask"),
     CREATE_NLP_BATCHES("org.icij.datashare.tasks.CreateNlpBatchesFromIndex"),

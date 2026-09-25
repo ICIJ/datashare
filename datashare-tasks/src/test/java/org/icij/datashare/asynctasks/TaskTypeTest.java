@@ -28,6 +28,12 @@ public class TaskTypeTest {
     }
 
     @Test
+    public void test_fromName_scan_query_fqdn_returns_type() {
+        assertThat(TaskType.fromName("org.icij.datashare.tasks.ScanQueryTask"))
+            .isEqualTo(Optional.of(TaskType.SCAN_QUERY));
+    }
+
+    @Test
     public void test_fromName_unknown_fqdn_returns_empty() {
         assertThat(TaskType.fromName("org.unknown.SomeTask")).isEqualTo(Optional.empty());
     }
