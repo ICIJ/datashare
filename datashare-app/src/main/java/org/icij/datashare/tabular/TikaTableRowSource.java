@@ -15,7 +15,6 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
  * The tier-2 fallback: rows out of the tables Tika renders, covering every format whose parser emits
@@ -63,11 +62,12 @@ public class TikaTableRowSource implements RowSource {
     }
 
     @Override
-    public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
+    public Rows rows(InputStream source, RowSourceOptions options) throws IOException {
         // Nothing here is lazy: the extractor has consumed the source to exhaustion before the first
         // row is built, so the source is released on the way out rather than by the returned stream.
         try {
-            return read(source, options).stream();
+            String table = String.valueOf(options.table() == null ? 1 : options.table());
+            return new Rows(table, read(source, options).stream());
         } finally {
             close(source);
         }
