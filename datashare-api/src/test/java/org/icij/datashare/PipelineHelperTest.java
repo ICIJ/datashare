@@ -112,6 +112,13 @@ public class PipelineHelperTest {
         }}));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_rejects_scan_together_with_scanquery() {
+        new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "SCAN,SCANQUERY,INDEX");
+        }}));
+    }
+
     @Test
     public void test_get_queue_name_when_no_stage_is_provided_like_in_web_mode() {
         assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() )).getQueueNameFor(Stage.NLP)).isEqualTo("extract:queue:nlp");

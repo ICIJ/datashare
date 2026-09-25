@@ -27,6 +27,13 @@ public class PipelineHelper {
                     String.format("%s and %s are alternatives, not a sequence: configure one or the other, not both",
                                   Stage.NLP, Stage.CREATENLPBATCHESFROMIDX));
         }
+        // SCANQUERY sorts between SCAN and INDEX, so it would become the queue SCAN writes to, and
+        // it never drains one: every scanned path would be dropped without a word.
+        if (stages.contains(Stage.SCAN) && stages.contains(Stage.SCANQUERY)) {
+            throw new IllegalArgumentException(
+                    String.format("%s and %s are alternatives, not a sequence: configure one or the other, not both",
+                                  Stage.SCAN, Stage.SCANQUERY));
+        }
     }
 
     public String getQueueNameFor(Stage stage) {
