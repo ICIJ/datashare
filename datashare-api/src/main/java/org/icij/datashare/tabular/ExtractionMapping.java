@@ -13,7 +13,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
-public record ExtractionMapping(String id, String projectId, String userId, String name, String model, String documentId, RowSourceOptions options, Map<String, EntityMapping> entities) {
+public record ExtractionMapping(String id, String projectId, String userId, String name, String model, String documentId, String rootId, RowSourceOptions options, Map<String, EntityMapping> entities) {
+    /** The container an embedded document was extracted from, or null for a root document:
+     *  elasticsearch routes an embedded document by its root, so a mapping over a CSV inside a ZIP
+     *  cannot be read without it. */
+    public ExtractionMapping(String id, String projectId, String userId, String name, String model, String documentId,
+                             RowSourceOptions options, Map<String, EntityMapping> entities) {
+        this(id, projectId, userId, name, model, documentId, null, options, entities);
+    }
+
     public ExtractionMapping {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(projectId, "projectId");
@@ -86,6 +94,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         List<TargetModel.Violation> violations = new ArrayList<>();
         refuseNul(violations, options.sheet(), "the sheet name");
         refuseNul(violations, documentId, "the document id");
+        refuseNul(violations, rootId, "the root id");
         DateFormats formats = new DateFormats();
         for (String alias : new TreeSet<>(entities.keySet())) {
             EntityMapping entity = entities.get(alias);
