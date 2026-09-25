@@ -109,11 +109,11 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
      *  reflectively constructed task becomes a requeue-forever NackException instead of a clean
      *  task error. */
     private Stage nextStage(PipelineHelper pipeline) {
-        return propertiesProvider.get(NEXT_STAGE_OPT).map(EnqueueFromIndexTask::parseNextStage)
-                                 .orElseGet(() -> pipeline.getNextStage(Stage.ENQUEUEIDX));
+        return parseNextStage(
+                propertiesProvider.get(NEXT_STAGE_OPT).orElseGet(() -> pipeline.getNextStage(Stage.ENQUEUEIDX).name()));
     }
 
-    private static Stage parseNextStage(String value) {
+    public static Stage parseNextStage(String value) {
         Stage stage = Stage.parse(value).orElseThrow(
                 () -> new IllegalArgumentException("unknown --nextStage value \"%s\"".formatted(value)));
         if (!QUEUE_CONSUMING_STAGES.contains(stage)) {
