@@ -11,6 +11,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 @Command(name = "run", mixinStandardHelpOptions = true,
         description = {"Run one or more document processing pipeline stages.", "",
                 "Available stages (in pipeline order):", "  SCAN           Scan filesystem for documents",
+                "  SCANIDX        Mark already-indexed files so INDEX skips them",
+                "  DEDUPLICATE    Drop paths enqueued more than once",
                 "  INDEX          Extract and index document content",
                 "  ENQUEUEIDX     Enqueue already-indexed document IDs for further processing",
                 "  CATEGORIZE     Enrich indexed documents with a contentTypeCategory field derived from their contentType",
@@ -21,6 +23,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
                 "  datashare stage run --stages ENQUEUEIDX,CATEGORIZE",
                 "  datashare stage run --stages ENQUEUEIDX --nextStage ARTIFACT",
                 "  datashare stage run --stages INDEX --resume",
+                "  datashare stage run --stages SCANIDX,INDEX --reportName extract:report",
                 "  datashare --dataDir /data/docs -P my-project stage run --stages SCAN,INDEX,NLP"})
 public class StageRunCommand implements Runnable, DatashareSubcommand {
     @Option(names = {"--stages"}, required = true,
