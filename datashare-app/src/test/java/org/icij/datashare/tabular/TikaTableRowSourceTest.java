@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 
 public class TikaTableRowSourceTest {
     private final TikaTableRowSource source = new TikaTableRowSource();
@@ -162,9 +163,19 @@ public class TikaTableRowSourceTest {
                         + "<table><tr><th>id</th></tr><tr><td>first</td></tr></table>"
                         + "<table><tr><th>id</th></tr><tr><td>second</td></tr></table>"
                         + "</body></html>").getBytes(StandardCharsets.UTF_8)),
-                RowSourceOptions.defaults().withContentType("text/html"))) {
-            assertThat(rows.sheet()).isEqualTo("1");
+                new RowSourceOptions("text/html", null, null, null, null, 2))) {
+            assertThat(rows.sheet()).isEqualTo("2");
+            assertThat(rows.rows().toList().get(0).values().get("id")).isEqualTo("second");
         }
+    }
+
+    @Test
+    public void test_refuses_a_sheet_name_because_it_selects_by_table_index() {
+        assertThat(assertThrows(IllegalArgumentException.class, () -> source.rows(
+                new ByteArrayInputStream("<html><body><table><tr><th>id</th></tr></table></body></html>".getBytes(
+                        StandardCharsets.UTF_8)),
+                RowSourceOptions.defaults().withContentType("text/html").withSheet("Sales"))).getMessage())
+                .contains("read by table index, not by sheet name");
     }
 
     @Test
