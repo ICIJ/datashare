@@ -159,7 +159,7 @@ public class JooqStatementRepositoryTest {
     @Test
     public void test_saving_the_same_row_twice_writes_it_once() {
         ExtractionMapping mapping = new ExtractionMapping("map-1", "prj", "jdoe", "staff",
-                "ftm", "doc-1", RowSourceOptions.defaults(), Map.of("member",
+                "ftm", "doc-1", null, RowSourceOptions.defaults(), Map.of("member",
                 new ExtractionMapping.EntityMapping("Person", List.of("passport"), Map.of("name",
                         new ExtractionMapping.PropertyMapping(List.of("full_name"), null, null, null, null)))));
         Map<String, String> cells = Map.of("passport", "AB123", "full_name", "Jane Doe");

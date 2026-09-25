@@ -62,7 +62,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         this.indexer = indexer;
         this.statements = statements;
         this.mappings = mappings;
-        this.reader = new TabularRowReader(indexer, new SourceExtractor(propertiesProvider));
+        this.reader = new TabularRowReader(new SourceExtractor(propertiesProvider));
         this.verifier = new DocumentVerifier(indexer, propertiesProvider);
         this.taskView = taskView;
         this.updateCallback = updateCallback;
@@ -113,7 +113,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
                                               return builder.statements(row).stream();
                                           }));
         }
-        progress(0.5);
+        updateCallback.apply(0.5);
         if (replaced.retracted() > replaced.written()) {
             logger.warn("mapping '{}' retracted {} statements and wrote {} for document {}: statements stored for "
                         + "this document and sheet were removed and not put back, which is what happens when another "
@@ -125,7 +125,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         // the project's whole entities index and then report itself done.
         throwIfCancelled();
         int indexed = new EntitiesIndexRebuilder(indexer, statements).rebuild(projectId);
-        progress(1.0);
+        updateCallback.apply(1.0);
         StructuredEntityExtractionResult result = new StructuredEntityExtractionResult(
                 read.get(), replaced.retracted(), replaced.written(), indexed, builder.skipped());
         logger.info("mapping '{}' read {} rows, retracted {}, wrote {}, left {} entities in the project index, "
@@ -153,12 +153,6 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         boolean interrupted = Thread.interrupted();
         if (interrupted || cancelAsked) {
             throw new CancelException(requeue);
-        }
-    }
-
-    private void progress(double done) {
-        if (updateCallback != null) {
-            updateCallback.apply(done);
         }
     }
 
