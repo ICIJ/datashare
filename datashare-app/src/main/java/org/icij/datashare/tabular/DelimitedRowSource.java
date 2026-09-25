@@ -41,7 +41,7 @@ public class DelimitedRowSource implements RowSource {
     }
 
     @Override
-    public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
+    public Rows rows(InputStream source, RowSourceOptions options) throws IOException {
         CSVParser parser = parse(source, options);
         try {
             Iterator<CSVRecord> records = parser.iterator();
@@ -49,7 +49,7 @@ public class DelimitedRowSource implements RowSource {
                 throw new IllegalArgumentException("no header row: the source is empty");
             }
             List<String> headers = Row.headers(records.next().toList());
-            return stream(records, headers).onClose(() -> close(parser));
+            return new Rows(null, stream(records, headers).onClose(() -> close(parser)));
         } catch (RuntimeException failure) {
             closeQuietly(parser);
             throw failure;

@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -33,8 +32,8 @@ public class RowSourceEquivalenceTest {
             throws Exception {
         TrackingInputStream stream = new TrackingInputStream(content);
         List<Row> read;
-        try (Stream<Row> rows = source.rows(stream, options)) {
-            read = rows.toList();
+        try (Rows rows = source.rows(stream, options)) {
+            read = rows.rows().toList();
         }
         assertThat(stream.closed).isTrue();
         return read;
