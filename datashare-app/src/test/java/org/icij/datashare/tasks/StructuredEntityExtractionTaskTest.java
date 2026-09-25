@@ -6,6 +6,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.model.Statement;
+import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tabular.RowSourceOptions;
@@ -31,6 +33,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.tabular.TabularRowReader.CONTENT_FIELDS;
@@ -84,6 +88,8 @@ public class StructuredEntityExtractionTaskTest {
         StructuredEntityExtractionResult second = task("m1").call();
 
         assertThat(List.copyOf(statements.stored.keySet())).isEqualTo(first);
+        assertThat(second.rows()).isEqualTo(2L);
+        assertThat(second.written()).isEqualTo(2);
         assertThat(second.retracted()).isEqualTo(second.written());
     }
 
@@ -175,16 +181,51 @@ public class StructuredEntityExtractionTaskTest {
     }
 
     @Test
-    public void test_a_cancelled_run_throws_rather_than_writing_a_truncated_sheet() throws Exception {
+    public void test_a_cancelled_run_leaves_the_sheet_the_previous_run_wrote() throws Exception {
         source("companies.csv", "text/csv", "id,name\n1,ACME\n2,Globex\n");
         stored(mapping("m1"));
+        task("m1").call();
+        Map<String, Statement> before = Map.copyOf(statements.stored);
         StructuredEntityExtractionTask task = task("m1");
 
-        Thread.currentThread().interrupt();
+        task.cancel(false);
         assertThrows(CancelException.class, task::call);
 
         assertThat(Thread.currentThread().isInterrupted()).isFalse();
-        assertThat(statements.stored).isEmpty();
+        assertThat(statements.stored).isEqualTo(before);
+    }
+
+    @Test
+    public void test_a_cancel_landing_after_the_read_is_not_reported_as_a_clean_run() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n");
+        stored(mapping("m1"));
+        AtomicReference<StructuredEntityExtractionTask> running = new AtomicReference<>();
+        // A source with no data row never runs the row lambda, so this is the only cancellation the
+        // task can still observe before it drops and refills the project's entities index.
+        InMemoryStatementRepository cancelling = new InMemoryStatementRepository() {
+            @Override
+            public Replaced replace(String projectId, String runId, String documentId, String sheet,
+                                    Stream<Statement> rows) {
+                running.get().cancel(false);
+                return super.replace(projectId, runId, documentId, sheet, rows);
+            }
+        };
+        running.set(task("m1", cancelling));
+
+        assertThrows(CancelException.class, () -> running.get().call());
+
+        assertThat(indexer.exists(Project.entitiesIndex("prj"))).isFalse();
+    }
+
+    @Test
+    public void test_a_cancelled_run_over_a_source_with_no_data_row_still_throws() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n");
+        stored(mapping("m1"));
+        StructuredEntityExtractionTask task = task("m1");
+
+        task.cancel(false);
+        assertThrows(CancelException.class, task::call);
+
         assertThat(indexer.exists(Project.entitiesIndex("prj"))).isFalse();
     }
 
@@ -236,10 +277,13 @@ public class StructuredEntityExtractionTaskTest {
     }
 
     private StructuredEntityExtractionTask task(String mappingId) {
+        return task(mappingId, statements);
+    }
+
+    private StructuredEntityExtractionTask task(String mappingId, StatementRepository store) {
         Task<StructuredEntityExtractionResult> taskView = new Task<>(
                 StructuredEntityExtractionTask.class.getName(), User.localUser("jane", List.of("prj")),
                 Map.of("defaultProject", "prj", "mappingId", mappingId));
-        return new StructuredEntityExtractionTask(indexer, statements, mappings, new PropertiesProvider(), taskView,
-                                                  null);
+        return new StructuredEntityExtractionTask(indexer, store, mappings, new PropertiesProvider(), taskView, null);
     }
 }
