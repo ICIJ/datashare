@@ -73,7 +73,7 @@ public class PipelineOptions {
     String createIndex;
     @Option(names = {"--indexTimeout"}, description = "Index timeout in minutes", defaultValue = "30")
     int indexTimeout;
-    @Option(names = {"--searchQuery"}, description = "JSON query for EnqueueFromIndex task")
+    @Option(names = {"--searchQuery"}, description = SEARCH_QUERY_DESC)
     String searchQuery;
     // No defaultValue: an absent flag emits no key so the stages chain keeps deciding the next stage.
     @Option(names = {"--nextStage"},

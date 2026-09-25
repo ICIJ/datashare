@@ -30,6 +30,7 @@ import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.LanguageDetectTask;
 import org.icij.datashare.tasks.UpstreamGate;
 import org.icij.datashare.tasks.ScanIndexTask;
+import org.icij.datashare.tasks.ScanQueryTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.admin.UserAdminService;
@@ -51,6 +52,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Supplier;
+import static java.util.Map.entry;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -227,11 +229,13 @@ class CliApp {
     }
 
     static final Map<Stage, Class<?>> TASK_CLASSES =
-            Map.of(Stage.SCAN, ScanTask.class, Stage.SCANIDX, ScanIndexTask.class, Stage.DEDUPLICATE,
-                   DeduplicateTask.class, Stage.INDEX, IndexTask.class, Stage.ENQUEUEIDX, EnqueueFromIndexTask.class,
-                   Stage.CATEGORIZE, CategorizeTask.class, Stage.CREATENLPBATCHESFROMIDX,
-                   CreateNlpBatchesFromIndex.class, Stage.NLP, ExtractNlpTask.class, Stage.ARTIFACT, ArtifactTask.class,
-                   Stage.LANGUAGE, LanguageDetectTask.class);
+            Map.ofEntries(entry(Stage.SCAN, ScanTask.class), entry(Stage.SCANIDX, ScanIndexTask.class),
+                          entry(Stage.SCANQUERY, ScanQueryTask.class), entry(Stage.DEDUPLICATE, DeduplicateTask.class),
+                          entry(Stage.INDEX, IndexTask.class), entry(Stage.ENQUEUEIDX, EnqueueFromIndexTask.class),
+                          entry(Stage.CATEGORIZE, CategorizeTask.class),
+                          entry(Stage.CREATENLPBATCHESFROMIDX, CreateNlpBatchesFromIndex.class),
+                          entry(Stage.NLP, ExtractNlpTask.class), entry(Stage.ARTIFACT, ArtifactTask.class),
+                          entry(Stage.LANGUAGE, LanguageDetectTask.class));
 
     /**
      * Starts every configured stage, then awaits them all at once. Each stage carries the previous

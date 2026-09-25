@@ -9,10 +9,10 @@ import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toCollection;
 
 public enum Stage {
-    SCAN(true, Payload.NONE), SCANIDX(false, Payload.NONE), DEDUPLICATE(false, Payload.PATH),
-    INDEX(true, Payload.PATH), ENQUEUEIDX(false, Payload.NONE), CATEGORIZE(false, Payload.ID),
-    NLP(true, Payload.ID), CREATENLPBATCHESFROMIDX(false, Payload.NONE), BATCHNLP(false, Payload.NONE),
-    ARTIFACT(false, Payload.ID), LANGUAGE(false, Payload.ID);
+    SCAN(true, Payload.NONE), SCANIDX(false, Payload.NONE), SCANQUERY(false, Payload.NONE),
+    DEDUPLICATE(false, Payload.PATH), INDEX(true, Payload.PATH), ENQUEUEIDX(false, Payload.NONE),
+    CATEGORIZE(false, Payload.ID), NLP(true, Payload.ID), CREATENLPBATCHESFROMIDX(false, Payload.NONE),
+    BATCHNLP(false, Payload.NONE), ARTIFACT(false, Payload.ID), LANGUAGE(false, Payload.ID);
     public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
     private final boolean isMainStage;
     private final Payload consumed;
