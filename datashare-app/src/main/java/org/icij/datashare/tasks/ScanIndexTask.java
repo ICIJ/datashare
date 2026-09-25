@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -92,7 +93,9 @@ public class ScanIndexTask extends PipelineTask<Path> {
                 addToReportMap(docsToProcess);
                 nbProcessed += docsToProcess.size();
             } catch (IOException e) {
-                logger.error("error in slice {}", sliceNum, e);
+                // the previous page is still in docsToProcess, so logging and carrying on re-enters
+                // the loop with the same non-empty list and scrolls forever on a broken scroll
+                throw new UncheckedIOException("scroll failed in slice %d".formatted(sliceNum), e);
             }
         } while (!docsToProcess.isEmpty());
         return nbProcessed;

@@ -38,6 +38,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -447,8 +448,14 @@ public class TaskResource {
             // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
             // the task will be run as a background task that will have race conditions with indexTask report loading
             scanIndex = new Task<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties));
-            taskFactory.createScanIndexTask(scanIndex, (p) -> null).call();
-            taskIds.add(scanIndex.id);
+            try {
+                taskFactory.createScanIndexTask(scanIndex, (p) -> null).call();
+                taskIds.add(scanIndex.id);
+            } catch (UncheckedIOException e) {
+                // the scan started above keeps filling the index queue: failing here would leave it
+                // with no consumer, so index anyway and re-extract the paths the scan did not mark
+                logger.warn("index scan failed, indexing with a partial report map", e);
+            }
         } else {
             properties.remove(REPORT_NAME_OPT); // avoid use of reportMap to override ES docs
         }
