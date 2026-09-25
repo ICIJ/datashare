@@ -52,6 +52,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
     private final String mappingId;
     private volatile Thread taskThread;
     private volatile boolean requeue;
+    private volatile boolean cancelAsked;
 
     @Inject
     public StructuredEntityExtractionTask(Indexer indexer, StatementRepository statements,
@@ -73,6 +74,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
     @Override
     public StructuredEntityExtractionResult call() throws Exception {
         taskThread = Thread.currentThread();
+        throwIfCancelled();
         require(projectId != null, "no '" + DEFAULT_PROJECT_OPT + "' in the task arguments");
         require(mappingId != null, "no '" + MAPPING_ID_OPT + "' in the task arguments");
         // Ahead of the write rather than at rebuild time: EntitiesIndexRebuilder refuses a bad name
@@ -84,6 +86,10 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         ExtractionMapping mapping = mappings.get(projectId, mappingId)
                                             .orElseThrow(() -> new IllegalArgumentException(
                                                     "no mapping '" + mappingId + "' in " + projectId));
+        // Ahead of the read rather than in the StatementBuilder: a mapping stored before the
+        // ontology moved is valid on the way in and stale on the way out, and the eager readers
+        // parse the whole document before the builder is ever constructed.
+        mapping.requireValid();
         Project project = Project.project(projectId);
         Document document = indexer.get(projectId, mapping.documentId(),
                                         mapping.rootId() == null ? mapping.documentId() : mapping.rootId(),
@@ -95,22 +101,14 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         AtomicLong read = new AtomicLong();
         StatementRepository.Replaced replaced;
         StatementBuilder builder;
-        try (Rows rows = reader.rows(project, mapping.documentId(), mapping.rootId(), mapping.options())) {
+        try (Rows rows = reader.rows(project, document, mapping.options())) {
             builder = new StatementBuilder(mapping, rows.sheet());
             // The builder's sheet, not the reader's: the builder cleans it and every statement's
             // provenance carries the cleaned one, so a retraction keyed on the raw name would name a
             // sheet nothing was written under.
             replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(),
                                           rows.rows().flatMap(row -> {
-                                              // Throwing rather than truncating: a takeWhile would
-                                              // commit a partial rewrite and rebuild the index on it,
-                                              // reporting a cut-short import as a clean one.
-                                              // Thread.interrupted() tests and clears: TaskWorkerLoop
-                                              // never clears the flag, so leaving it set would start
-                                              // the next task on this thread already cancelled.
-                                              if (Thread.interrupted()) {
-                                                  throw new CancelException(requeue);
-                                              }
+                                              throwIfCancelled();
                                               read.incrementAndGet();
                                               return builder.statements(row).stream();
                                           }));
@@ -122,11 +120,16 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
                         + "mapping targets the same sheet", mappingId, replaced.retracted(), replaced.written(),
                         mapping.documentId());
         }
+        // Checked again here because the row lambda is the only other cancellation point, and a
+        // source with no data row never runs it: without this a cancelled run would drop and refill
+        // the project's whole entities index and then report itself done.
+        throwIfCancelled();
         int indexed = new EntitiesIndexRebuilder(indexer, statements).rebuild(projectId);
         progress(1.0);
         StructuredEntityExtractionResult result = new StructuredEntityExtractionResult(
                 read.get(), replaced.retracted(), replaced.written(), indexed, builder.skipped());
-        logger.info("mapping '{}' read {} rows, retracted {}, wrote {}, indexed {} entities, skipped {}", mappingId,
+        logger.info("mapping '{}' read {} rows, retracted {}, wrote {}, left {} entities in the project index, "
+                    + "skipped {}", mappingId,
                     result.rows(), result.retracted(), result.written(), result.indexed(), result.skipped());
         return result;
     }
@@ -134,12 +137,23 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
     @Override
     public void cancel(boolean requeue) {
         this.requeue = requeue;
+        this.cancelAsked = true;
         ofNullable(taskThread).ifPresent(Thread::interrupt);
     }
 
     @Override
     public User getUser() {
         return taskView.getUser();
+    }
+
+    // Thread.interrupted() tests and clears: TaskWorkerLoop never clears the flag, so leaving it set
+    // would start the next task on this thread already cancelled. The latch covers the window before
+    // call() published taskThread, where the worker loop's interrupt has nowhere to land.
+    private void throwIfCancelled() {
+        boolean interrupted = Thread.interrupted();
+        if (interrupted || cancelAsked) {
+            throw new CancelException(requeue);
+        }
     }
 
     private void progress(double done) {
