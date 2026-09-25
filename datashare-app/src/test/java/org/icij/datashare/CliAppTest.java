@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.NEXT_STAGE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -136,6 +137,50 @@ public class CliAppTest {
     public void test_task_classes_maps_every_stage_to_its_task_class() {
         // asserted against the enum, so a stage added without a task class fails here
         assertThat(EnumSet.copyOf(CliApp.TASK_CLASSES.keySet())).isEqualTo(EnumSet.complementOf(EnumSet.of(Stage.BATCHNLP)));
+    }
+
+    @Test
+    public void test_next_stage_is_rejected_when_enqueueidx_is_not_in_stages() {
+        // nothing but EnqueueFromIndexTask reads nextStage, so without that stage it would be dropped in silence
+        assertThat(validateNextStage("SCANIDX,INDEX", "NLP")).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_next_stage_is_rejected_when_the_stage_is_unknown() {
+        assertThat(validateNextStage("ENQUEUEIDX", "NOPE")).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_next_stage_is_rejected_when_no_task_drains_its_queue() {
+        assertThat(validateNextStage("ENQUEUEIDX", "INDEX")).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_next_stage_is_accepted_for_a_queue_consuming_stage() {
+        assertThat(validateNextStage("ENQUEUEIDX", "ARTIFACT")).isEqualTo(CliApp.EXIT_SUCCESS);
+        assertThat(validateNextStage("ENQUEUEIDX", "LANGUAGE")).isEqualTo(CliApp.EXIT_SUCCESS);
+    }
+
+    @Test
+    public void test_stages_without_next_stage_are_accepted() {
+        assertThat(validateNextStage("SCANIDX,INDEX", null)).isEqualTo(CliApp.EXIT_SUCCESS);
+        assertThat(validateNextStage("ENQUEUEIDX", null)).isEqualTo(CliApp.EXIT_SUCCESS);
+    }
+
+    @Test
+    public void test_stages_chain_is_rejected_when_no_task_drains_the_stage_it_enqueues_for() {
+        // without nextStage the enqueuing task takes the next stage from the chain, which strands
+        // every document it enqueues when that stage reads the index instead of a queue
+        assertThat(validateNextStage("ENQUEUEIDX,BATCHNLP", null)).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    private static int validateNextStage(String stages, String nextStage) {
+        Properties properties = new Properties();
+        properties.setProperty(PipelineHelper.STAGES_OPT, stages);
+        if (nextStage != null) {
+            properties.setProperty(NEXT_STAGE_OPT, nextStage);
+        }
+        return CliApp.validateNextStage(new PipelineHelper(new PropertiesProvider(properties)), properties);
     }
 
     private static Task<Long> doneTask() {

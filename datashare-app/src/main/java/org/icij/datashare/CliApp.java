@@ -48,6 +48,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Supplier;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -176,7 +177,20 @@ class CliApp {
             System.exit(handleProjectRevoke(projectAdminService, properties, Prompter::new));
         }
 
-        PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
+        // the merged properties, like runPipeline below: --stages and --nextStage can both come
+        // from a settings file or a DS_DOCKER_* variable as well as from a typed argument
+        PipelineHelper pipeline;
+        try {
+            pipeline = new PipelineHelper(new PropertiesProvider(mode.properties()));
+        } catch (IllegalArgumentException e) {
+            System.exit(error(e.getMessage(), "validation", EXIT_VALIDATION, false));
+            return;
+        }
+        int nextStageValidation = validateNextStage(pipeline, mode.properties());
+        if (nextStageValidation != EXIT_SUCCESS) {
+            System.exit(nextStageValidation);
+        }
+
         logger.info("executing {}", pipeline);
         // the merged provider, not the raw CLI properties: task args are the only config a stage reads,
         // so they need the DS_DOCKER_* and settings-file tiers CommonMode ranked, not just the typed args.
@@ -187,6 +201,29 @@ class CliApp {
             // otherwise post-process a corpus that was never fully indexed
             System.exit(EXIT_RUNTIME);
         }
+    }
+
+    /**
+     * Rejects a run that would enqueue for a stage draining no queue, before any task is created.
+     * Only {@link EnqueueFromIndexTask} reads --nextStage, so on any other chain it would be dropped
+     * without a word; and when it is absent that task falls back to the stages chain, which can name
+     * a stage that strands every document it enqueues.
+     */
+    static int validateNextStage(PipelineHelper pipeline, Properties properties) {
+        Optional<String> nextStage = new PropertiesProvider(properties).get(NEXT_STAGE_OPT);
+        boolean enqueues = pipeline.stages.contains(Stage.ENQUEUEIDX);
+        if (!enqueues) {
+            return nextStage.isEmpty() ? EXIT_SUCCESS :
+                   error("--nextStage is only read by the %s stage, which is not in --stages".formatted(
+                           Stage.ENQUEUEIDX), "validation", EXIT_VALIDATION, false);
+        }
+        try {
+            EnqueueFromIndexTask.parseNextStage(
+                    nextStage.orElseGet(() -> pipeline.getNextStage(Stage.ENQUEUEIDX).name()));
+        } catch (IllegalArgumentException e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
+        }
+        return EXIT_SUCCESS;
     }
 
     static final Map<Stage, Class<?>> TASK_CLASSES =
