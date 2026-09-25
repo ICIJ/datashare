@@ -20,11 +20,9 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
  * SourceExtractor, plus the content type and charset Tika already detected at index time. It also
  * means no user-supplied path reaches the filesystem, so this route has no traversal surface at all.
  *
- * Authorization on the project is not checked here: the REST and CLI triggers must route through
- * DocumentSourceAccess, the single decision for serving a document's source bytes, and wiring them to
- * it belongs to #2206. Its DocumentVerifier.isRootDocumentSizeAllowed check is a size guard this
- * class does not apply either, which matters because the tier-2 fallback buffers a whole document
- * several times over.
+ * Authorization on the project is not checked here: the project check and the root size check are
+ * applied by StructuredEntityExtractionTask and by the #2207 endpoints, not here, which matters
+ * because the tier-2 fallback buffers a whole document several times over.
  */
 public class TabularRowReader {
     // "unknown" is what Document.getContentTypeOrDefault returns, and what the spewer stores, when
@@ -44,7 +42,7 @@ public class TabularRowReader {
     private static final Map<String, Character> DELIMITER_BY_EXTENSION = Map.of("tsv", '\t', "psv", '|');
     private static final Map<String, Character> DELIMITER_BY_TIKA_NAME =
             Map.of("comma", ',', "tab", '\t', "pipe", '|', "semicolon", ';');
-    private static final List<String> CONTENT_FIELDS = List.of("content", "content_translated");
+    public static final List<String> CONTENT_FIELDS = List.of("content", "content_translated");
     private static final List<String> SUPPORTED_CONTENT_TYPES =
             Stream.of(DelimitedRowSource.SUPPORTED, WorkbookRowSource.SUPPORTED, JsonRowSource.SUPPORTED,
                       TikaTableRowSource.SUPPORTED).flatMap(Set::stream).sorted().toList();
@@ -65,7 +63,7 @@ public class TabularRowReader {
      * @param rootId the container the document was extracted from, or null for a root document. ES
      *               routes an embedded document by its root, so this cannot be derived here.
      */
-    public Stream<Row> rows(Project project, String documentId, String rootId, RowSourceOptions options) throws
+    public Rows rows(Project project, String documentId, String rootId, RowSourceOptions options) throws
             IOException {
         // Excluding the extracted text, as DocumentSourceAccess does: only four metadata fields are
         // read here, and a large tabular document's content would be a second full copy in heap.
@@ -78,7 +76,8 @@ public class TabularRowReader {
         RowSource reader = select(resolved.contentType());
         InputStream source = sourceExtractor.getSource(project, document);
         try {
-            return reader.rows(source, resolved).onClose(() -> closeQuietly(source));
+            Rows rows = reader.rows(source, resolved);
+            return new Rows(rows.sheet(), rows.rows().onClose(() -> closeQuietly(source)));
         } catch (IOException | RuntimeException failure) {
             closeQuietly(source);
             throw failure;

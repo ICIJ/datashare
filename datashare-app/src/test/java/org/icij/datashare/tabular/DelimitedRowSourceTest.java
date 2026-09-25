@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
@@ -21,8 +20,8 @@ public class DelimitedRowSourceTest {
 
     private List<Row> read(byte[] content, RowSourceOptions options) throws Exception {
         try (InputStream stream = new ByteArrayInputStream(content);
-             Stream<Row> rows = source.rows(stream, options)) {
-            return rows.toList();
+             Rows rows = source.rows(stream, options)) {
+            return rows.rows().toList();
         }
     }
 
@@ -213,6 +212,14 @@ public class DelimitedRowSourceTest {
         List<Row> rows = read(latin1, RowSourceOptions.defaults().withCharset(Charset.forName("ISO-8859-1")));
 
         assertThat(rows.get(0).values().get("name")).isEqualTo("R\u00e9publique");
+    }
+
+    @Test
+    public void test_reports_no_sheet_because_the_source_has_one_table() throws Exception {
+        try (Rows rows = source.rows(new ByteArrayInputStream("id,name\n1,ACME\n".getBytes(StandardCharsets.UTF_8)),
+                                     RowSourceOptions.defaults())) {
+            assertThat(rows.sheet()).isNull();
+        }
     }
 
     @Test

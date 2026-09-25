@@ -14,7 +14,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -23,8 +22,8 @@ public class WorkbookRowSourceTest {
 
     private List<Row> read(byte[] workbook, RowSourceOptions options) throws Exception {
         try (InputStream stream = new ByteArrayInputStream(workbook);
-             Stream<Row> rows = source.rows(stream, options)) {
-            return rows.toList();
+             Rows rows = source.rows(stream, options)) {
+            return rows.rows().toList();
         }
     }
 
@@ -330,6 +329,18 @@ public class WorkbookRowSourceTest {
             throw new AssertionError("bytes that are not a workbook must be refused");
         } catch (Exception expected) {
             assertThat(stream.closed).isTrue();
+        }
+    }
+
+    @Test
+    public void test_reports_the_sheet_name_when_the_options_asked_for_an_index() throws Exception {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        fill(workbook.createSheet("Employees"));
+        byte[] content = bytes(workbook);
+
+        try (InputStream stream = new ByteArrayInputStream(content);
+             Rows rows = source.rows(stream, RowSourceOptions.defaults().withSheet("1"))) {
+            assertThat(rows.sheet()).isEqualTo("Employees");
         }
     }
 
