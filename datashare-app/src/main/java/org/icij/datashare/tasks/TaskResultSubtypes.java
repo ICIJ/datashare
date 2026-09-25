@@ -7,7 +7,8 @@ import java.util.Arrays;
 
 public enum TaskResultSubtypes {
     LONG(Long.class), URI_RESULT(UriResult.class), BATCH_SEARCH_RUNNER_RESULT(BatchSearchRunnerResult.class),
-    BATCH_DOWNLOAD_RUNNER_RESULT(BatchDownloadRunnerResult.class);
+    BATCH_DOWNLOAD_RUNNER_RESULT(BatchDownloadRunnerResult.class),
+    STRUCTURED_ENTITY_EXTRACTION_RESULT(StructuredEntityExtractionResult.class);
     private final Class<? extends Serializable> type;
 
     public Class<? extends Serializable> getType() {
