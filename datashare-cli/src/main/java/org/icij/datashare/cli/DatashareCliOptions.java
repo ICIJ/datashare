@@ -146,7 +146,7 @@ public final class DatashareCliOptions {
     public static final String SEARCH_QUERY_DESC =
             "Query selecting the indexed documents a stage works on, either a JSON query or a query " +
             "string. ENQUEUEIDX and CREATENLPBATCHESFROMIDX select the documents they enqueue, SCANQUERY " +
-            "selects the files to extract again. Required by SCANQUERY.";
+            "selects the files to extract again.";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
     public static final String OAUTH_USER_PROJECTS_KEY_OPT = "oauthUserProjectsAttribute";
