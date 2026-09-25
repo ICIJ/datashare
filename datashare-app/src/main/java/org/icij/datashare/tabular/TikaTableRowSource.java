@@ -15,7 +15,6 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
 import static java.util.Objects.requireNonNullElse;
 
 /**
@@ -75,8 +74,8 @@ public class TikaTableRowSource implements RowSource {
             // such runs apart.
             if (options.sheet() != null) {
                 throw new IllegalArgumentException(
-                        "this format is read by table index, not by sheet name: drop the sheet '" + options.sheet()
-                        + "' from the mapping and name a table instead");
+                        "this format is read by table index, not by sheet name: drop the sheet '" + options.sheet() +
+                        "' from the mapping and name a table instead");
             }
             return new Rows(String.valueOf(requireNonNullElse(options.table(), DEFAULT_TABLE)),
                             read(source, options).stream());
