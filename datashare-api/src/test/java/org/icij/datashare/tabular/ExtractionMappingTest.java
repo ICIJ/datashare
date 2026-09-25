@@ -1,5 +1,6 @@
 package org.icij.datashare.tabular;
 
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.UnknownTargetModel;
 import org.junit.Test;
@@ -249,5 +250,22 @@ public class ExtractionMappingTest {
     @Test
     public void test_entity_reference_needs_no_column() {
         assertThat(reference("member").entity()).isEqualTo("member");
+    }
+
+    @Test
+    public void test_a_mapping_without_a_root_id_names_a_root_document() {
+        assertThat(mapping("ftm", Map.of("member", person(Map.of("name", column("full_name"))))).rootId()).isNull();
+    }
+
+    @Test
+    public void test_a_mapping_round_trips_its_root_id_through_json() throws Exception {
+        ExtractionMapping mapping = new ExtractionMapping("m1", "prj", null, "companies", "ftm", "docId", "zipId",
+                RowSourceOptions.defaults(),
+                Map.of("c", new ExtractionMapping.EntityMapping("Company", List.of("id"),
+                        Map.of("name", new ExtractionMapping.PropertyMapping(List.of("name"), null, null, null, null)))));
+
+        String json = JsonObjectMapper.getMapper().writeValueAsString(mapping);
+
+        assertThat(JsonObjectMapper.readValue(json, ExtractionMapping.class).rootId()).isEqualTo("zipId");
     }
 }
