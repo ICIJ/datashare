@@ -20,9 +20,10 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
  * SourceExtractor, plus the content type and charset Tika already detected at index time. It also
  * means no user-supplied path reaches the filesystem, so this route has no traversal surface at all.
  *
- * Authorization on the project is not checked here: the project check and the root size check are
- * applied by StructuredEntityExtractionTask and by the #2207 endpoints, not here, which matters
- * because the tier-2 fallback buffers a whole document several times over.
+ * Authorization on the project is not checked here: the project check is applied by
+ * StructuredEntityExtractionTask and by the #2207 endpoints. Neither bounds the size of a root
+ * document (DocumentVerifier only bounds an embedded one), so the tier-2 fallback, which buffers a
+ * whole document several times over, is bounded by nothing on a root source.
  */
 public class TabularRowReader {
     // "unknown" is what Document.getContentTypeOrDefault returns, and what the spewer stores, when
@@ -72,6 +73,12 @@ public class TabularRowReader {
         if (document == null) {
             throw new IllegalArgumentException("no such document in " + project.getName() + ": " + documentId);
         }
+        return rows(project, document, options);
+    }
+
+    /** For a caller that already holds the document, so the source is read from the same fetch the
+     *  caller's own checks were made against rather than from a second one. */
+    public Rows rows(Project project, Document document, RowSourceOptions options) throws IOException {
         RowSourceOptions resolved = resolve(document, options);
         RowSource reader = select(resolved.contentType());
         InputStream source = sourceExtractor.getSource(project, document);
