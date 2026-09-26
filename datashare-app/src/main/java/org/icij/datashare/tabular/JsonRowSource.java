@@ -121,8 +121,8 @@ public class JsonRowSource implements RowSource {
             }
         };
         return new Rows(null, StreamSupport.stream(
-                                    Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL), false)
-                            .onClose(() -> close(parser)));
+                                                   Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL), false)
+                                           .onClose(() -> close(parser)));
     }
 
     // An array is refused rather than joined or skipped: a joined array is a delimited file inside a
