@@ -49,7 +49,7 @@ public class JsonRowSource implements RowSource {
     }
 
     @Override
-    public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
+    public Rows rows(InputStream source, RowSourceOptions options) throws IOException {
         JsonParser parser = mapper.createParser(source);
         MappingIterator<JsonNode> records;
         try {
@@ -67,7 +67,7 @@ public class JsonRowSource implements RowSource {
             if (first == JsonToken.START_ARRAY && parser.nextToken() == JsonToken.END_ARRAY) {
                 refuseTrailingContent(parser);
                 close(parser);
-                return Stream.empty();
+                return new Rows(null, Stream.empty());
             }
             records = mapper.readerFor(JsonNode.class).readValues(parser);
         } catch (IOException | RuntimeException failure) {
@@ -120,9 +120,9 @@ public class JsonRowSource implements RowSource {
                 return new Row(number, Collections.unmodifiableMap(values));
             }
         };
-        return StreamSupport.stream(
-                                    Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL), false)
-                            .onClose(() -> close(parser));
+        return new Rows(null, StreamSupport.stream(
+                                                   Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL), false)
+                                           .onClose(() -> close(parser)));
     }
 
     // An array is refused rather than joined or skipped: a joined array is a delimited file inside a

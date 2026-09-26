@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.groupingBy;
@@ -31,7 +30,7 @@ public class StatementBuilderCsvTest {
     }
 
     private static final ExtractionMapping MAPPING = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm",
-            "doc-1", RowSourceOptions.defaults(), Map.of(
+            "doc-1", null, RowSourceOptions.defaults(), Map.of(
             "person", new ExtractionMapping.EntityMapping("Person", List.of("person_id"), Map.of(
                     "name", column("full_name"),
                     "birthDate", new ExtractionMapping.PropertyMapping(
@@ -48,8 +47,8 @@ public class StatementBuilderCsvTest {
         StatementBuilder builder = new StatementBuilder(MAPPING, "");
         List<Statement> statements;
         try (InputStream source = new ByteArrayInputStream(CSV.getBytes(UTF_8));
-             Stream<Row> rows = new DelimitedRowSource().rows(source, RowSourceOptions.defaults())) {
-            statements = rows.flatMap(row -> builder.statements(row).stream()).toList();
+             Rows rows = new DelimitedRowSource().rows(source, RowSourceOptions.defaults())) {
+            statements = rows.rows().flatMap(row -> builder.statements(row).stream()).toList();
         }
 
         Map<String, ModelEntity> entities = statements.stream().collect(groupingBy(Statement::entityId))

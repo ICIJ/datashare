@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -17,8 +16,17 @@ public class JsonRowSourceTest {
 
     private List<Row> read(String content) throws Exception {
         try (InputStream stream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
-             Stream<Row> rows = source.rows(stream, RowSourceOptions.defaults())) {
-            return rows.toList();
+             Rows rows = source.rows(stream, RowSourceOptions.defaults())) {
+            return rows.rows().toList();
+        }
+    }
+
+    @Test
+    public void test_reports_no_sheet_because_the_source_has_one_table() throws Exception {
+        try (Rows rows = source.rows(
+                new ByteArrayInputStream("[{\"id\":1,\"name\":\"ACME\"}]".getBytes(StandardCharsets.UTF_8)),
+                RowSourceOptions.defaults())) {
+            assertThat(rows.sheet()).isNull();
         }
     }
 

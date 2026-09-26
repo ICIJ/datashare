@@ -9,17 +9,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 
 public class TikaTableRowSourceTest {
     private final TikaTableRowSource source = new TikaTableRowSource();
 
     private List<Row> read(byte[] content, RowSourceOptions options) throws Exception {
         try (InputStream stream = new ByteArrayInputStream(content);
-             Stream<Row> rows = source.rows(stream, options)) {
-            return rows.toList();
+             Rows rows = source.rows(stream, options)) {
+            return rows.rows().toList();
         }
     }
 
@@ -138,8 +138,8 @@ public class TikaTableRowSourceTest {
         TrackingInputStream stream = new TrackingInputStream(
                 "<html><body><table><tr><th>id</th></tr><tr><td>1</td></tr></table></body></html>");
 
-        try (Stream<Row> rows = source.rows(stream, RowSourceOptions.defaults().withContentType("text/html"))) {
-            rows.toList();
+        try (Rows rows = source.rows(stream, RowSourceOptions.defaults().withContentType("text/html"))) {
+            rows.rows().toList();
         }
 
         assertThat(stream.closed).isTrue();
@@ -154,6 +154,28 @@ public class TikaTableRowSourceTest {
     public void test_table_index_out_of_range_fails() throws Exception {
         readHtml("<html><body><table><tr><th>id</th></tr></table></body></html>",
                 new RowSourceOptions(null, null, null, null, null, 9));
+    }
+
+    @Test
+    public void test_reports_the_table_index_it_selected() throws Exception {
+        try (Rows rows = source.rows(new ByteArrayInputStream(
+                ("<html><body>"
+                        + "<table><tr><th>id</th></tr><tr><td>first</td></tr></table>"
+                        + "<table><tr><th>id</th></tr><tr><td>second</td></tr></table>"
+                        + "</body></html>").getBytes(StandardCharsets.UTF_8)),
+                new RowSourceOptions("text/html", null, null, null, null, 2))) {
+            assertThat(rows.sheet()).isEqualTo("2");
+            assertThat(rows.rows().toList().get(0).values().get("id")).isEqualTo("second");
+        }
+    }
+
+    @Test
+    public void test_refuses_a_sheet_name_because_it_selects_by_table_index() {
+        assertThat(assertThrows(IllegalArgumentException.class, () -> source.rows(
+                new ByteArrayInputStream("<html><body><table><tr><th>id</th></tr></table></body></html>".getBytes(
+                        StandardCharsets.UTF_8)),
+                new RowSourceOptions("text/html", null, null, null, "Sales", null))).getMessage())
+                .contains("read by table index, not by sheet name");
     }
 
     @Test

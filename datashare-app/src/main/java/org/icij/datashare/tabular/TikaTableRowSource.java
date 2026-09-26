@@ -15,7 +15,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
+import static java.util.Objects.requireNonNullElse;
 
 /**
  * The tier-2 fallback: rows out of the tables Tika renders, covering every format whose parser emits
@@ -55,6 +55,7 @@ public class TikaTableRowSource implements RowSource {
                                                        "application/vnd.apple.numbers",
                                                        "application/vnd.apple.numbers.13",
                                                        "application/vnd.apple.numbers.18");
+    private static final int DEFAULT_TABLE = 1;
     private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
 
     @Override
@@ -63,11 +64,21 @@ public class TikaTableRowSource implements RowSource {
     }
 
     @Override
-    public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
+    public Rows rows(InputStream source, RowSourceOptions options) throws IOException {
         // Nothing here is lazy: the extractor has consumed the source to exhaustion before the first
         // row is built, so the source is released on the way out rather than by the returned stream.
         try {
-            return read(source, options).stream();
+            // Refused rather than ignored: this tier owns .ods and Numbers, whose sheets a mapping
+            // can legitimately name, and it selects by table index only. Reading table 1 instead
+            // would import the wrong sheet and key its statements on "1", with nothing to tell two
+            // such runs apart.
+            if (options.sheet() != null) {
+                throw new IllegalArgumentException(
+                        "this format is read by table index, not by sheet name: drop the sheet '" + options.sheet() +
+                        "' from the mapping and name a table instead");
+            }
+            return new Rows(String.valueOf(requireNonNullElse(options.table(), DEFAULT_TABLE)),
+                            read(source, options).stream());
         } finally {
             close(source);
         }
@@ -129,7 +140,7 @@ public class TikaTableRowSource implements RowSource {
         if (tables.isEmpty()) {
             throw new IllegalArgumentException("the source holds no table, so it has no rows to read");
         }
-        int index = requested == null ? 1 : requested;
+        int index = requireNonNullElse(requested, DEFAULT_TABLE);
         if (index < 1 || index > tables.size()) {
             throw new IllegalArgumentException("no table at index " + index + ": the source holds " + tables.size());
         }

@@ -439,7 +439,7 @@ public class JooqRepositoryTest {
         statements.save("prj", "run-1", Stream.of(Statement.of("ftm", "e-1", "Person", "name", "Ada",
                 new Statement.Provenance("doc-1", "", 12L, "name"))));
         dbRule.createExtractionMappingRepository().save(new ExtractionMapping("map-1", "prj", "jdoe", "members",
-                "ftm", "doc-1", RowSourceOptions.defaults(),
+                "ftm", "doc-1", null, RowSourceOptions.defaults(),
                 Map.of("member", new ExtractionMapping.EntityMapping("Person", List.of("id"),
                         Map.of("name", new ExtractionMapping.PropertyMapping(List.of("full_name"), null, null, null, null))))));
 
