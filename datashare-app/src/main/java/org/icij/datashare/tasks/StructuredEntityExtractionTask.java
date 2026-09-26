@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
@@ -50,6 +51,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
     private final String projectId;
     private final String mappingId;
     private volatile Thread taskThread;
+    private volatile boolean requeue;
 
     @Inject
     public StructuredEntityExtractionTask(Indexer indexer, StatementRepository statements,
@@ -95,13 +97,19 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         StatementBuilder builder;
         try (Rows rows = reader.rows(project, mapping.documentId(), mapping.rootId(), mapping.options())) {
             builder = new StatementBuilder(mapping, rows.sheet());
-            replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), rows.sheet(),
+            // The builder's sheet, not the reader's: the builder cleans it and every statement's
+            // provenance carries the cleaned one, so a retraction keyed on the raw name would name a
+            // sheet nothing was written under.
+            replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(),
                                           rows.rows().flatMap(row -> {
                                               // Throwing rather than truncating: a takeWhile would
                                               // commit a partial rewrite and rebuild the index on it,
                                               // reporting a cut-short import as a clean one.
-                                              if (Thread.currentThread().isInterrupted()) {
-                                                  throw new IllegalStateException("extraction was cancelled");
+                                              // Thread.interrupted() tests and clears: TaskWorkerLoop
+                                              // never clears the flag, so leaving it set would start
+                                              // the next task on this thread already cancelled.
+                                              if (Thread.interrupted()) {
+                                                  throw new CancelException(requeue);
                                               }
                                               read.incrementAndGet();
                                               return builder.statements(row).stream();
@@ -125,6 +133,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
 
     @Override
     public void cancel(boolean requeue) {
+        this.requeue = requeue;
         ofNullable(taskThread).ifPresent(Thread::interrupt);
     }
 
