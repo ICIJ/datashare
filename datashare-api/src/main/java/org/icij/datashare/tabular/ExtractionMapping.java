@@ -13,15 +13,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
+/**
+ * @param rootId the container an embedded document was extracted from, or null for a root document:
+ *               elasticsearch routes an embedded document by its root, so a mapping over a CSV
+ *               inside a ZIP cannot be read without it.
+ */
 public record ExtractionMapping(String id, String projectId, String userId, String name, String model, String documentId, String rootId, RowSourceOptions options, Map<String, EntityMapping> entities) {
-    /** The container an embedded document was extracted from, or null for a root document:
-     *  elasticsearch routes an embedded document by its root, so a mapping over a CSV inside a ZIP
-     *  cannot be read without it. */
-    public ExtractionMapping(String id, String projectId, String userId, String name, String model, String documentId,
-                             RowSourceOptions options, Map<String, EntityMapping> entities) {
-        this(id, projectId, userId, name, model, documentId, null, options, entities);
-    }
-
     public ExtractionMapping {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(projectId, "projectId");

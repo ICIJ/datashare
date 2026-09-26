@@ -3,7 +3,6 @@ package org.icij.datashare.tabular;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.junit.Before;
 import org.junit.Rule;
@@ -23,30 +22,27 @@ import static org.mockito.Mockito.when;
 public class TabularRowReaderTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();
 
-    private static final List<String> CONTENT_FIELDS = List.of("content", "content_translated");
-
-    private final Indexer indexer = mock(Indexer.class);
     private TabularRowReader reader;
     private Project project;
+    private Document document;
 
     @Before
     public void setUp() {
         project = new Project("local-datashare");
-        reader = new TabularRowReader(indexer, new SourceExtractor(new org.icij.datashare.PropertiesProvider()));
+        reader = new TabularRowReader(new SourceExtractor(new org.icij.datashare.PropertiesProvider()));
     }
 
     private Document indexed(String filename, String contentType, String content,
                             Map<String, Object> metadata) throws Exception {
         Path file = folder.getRoot().toPath().resolve(filename);
         Files.writeString(file, content, StandardCharsets.UTF_8);
-        Document document = DocumentBuilder.createDoc("docId").with(file)
+        document = DocumentBuilder.createDoc("docId").with(file)
                 .ofContentType(contentType).with(StandardCharsets.UTF_8).with(metadata).build();
-        when(indexer.<Document>get("local-datashare", "docId", "docId", CONTENT_FIELDS)).thenReturn(document);
         return document;
     }
 
     private List<Row> rows(RowSourceOptions options) throws Exception {
-        try (Rows rows = reader.rows(project, "docId", null, options)) {
+        try (Rows rows = reader.rows(project, document, options)) {
             return rows.rows().toList();
         }
     }
@@ -110,24 +106,16 @@ public class TabularRowReaderTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void test_a_missing_document_fails() throws Exception {
-        when(indexer.<Document>get("local-datashare", "missing", "missing", CONTENT_FIELDS)).thenReturn(null);
-        try (Rows ignored = reader.rows(project, "missing", null, RowSourceOptions.defaults())) {
-            // the failure is expected before any row is read
-        }
-    }
-
     @Test
     public void test_a_reader_failure_closes_the_source() throws Exception {
         String html = "<html><body><p>no table here</p></body></html>";
-        Document document = indexed("page.html", "text/html", html, Map.of());
+        indexed("page.html", "text/html", html, Map.of());
         SourceExtractor sourceExtractor = mock(SourceExtractor.class);
         TrackingInputStream source = new TrackingInputStream(html);
         when(sourceExtractor.getSource(project, document)).thenReturn(source);
 
-        try (Rows ignored = new TabularRowReader(indexer, sourceExtractor)
-                .rows(project, "docId", null, RowSourceOptions.defaults())) {
+        try (Rows ignored = new TabularRowReader(sourceExtractor)
+                .rows(project, document, RowSourceOptions.defaults())) {
             throw new AssertionError("expected an IllegalArgumentException");
         } catch (IllegalArgumentException failure) {
             assertThat(failure.getMessage()).contains("no table");
