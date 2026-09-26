@@ -1,7 +1,10 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
@@ -21,6 +24,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -123,11 +127,12 @@ public class StructuredEntityExtractionTaskTest {
 
     @Test
     public void test_refuses_a_project_id_before_it_writes_anything() throws Exception {
-        source("companies.csv", "text/csv", "id,name\n1,ACME\n");
+        Document document = source("companies.csv", "text/csv", "id,name\n1,ACME\n");
         ExtractionMapping mapping = new ExtractionMapping("m1", "bad/name", null, "companies", "ftm", "docId",
                 RowSourceOptions.defaults(),
                 Map.of("c", new ExtractionMapping.EntityMapping("Company", List.of("id"),
                         Map.of("name", new ExtractionMapping.PropertyMapping(List.of("name"), null, null, null, null)))));
+        doReturn(document).when(indexer).get("bad/name", "docId", "docId", CONTENT_FIELDS);
         when(mappings.get("bad/name", "m1")).thenReturn(Optional.of(mapping));
         Task<StructuredEntityExtractionResult> taskView = new Task<>(
                 StructuredEntityExtractionTask.class.getName(), User.localUser("jane", List.of("bad/name")),
@@ -175,23 +180,49 @@ public class StructuredEntityExtractionTaskTest {
         stored(mapping("m1"));
         StructuredEntityExtractionTask task = task("m1");
 
-        try {
-            Thread.currentThread().interrupt();
-            assertThrows(IllegalStateException.class, task::call);
-        } finally {
-            Thread.interrupted();
-        }
+        Thread.currentThread().interrupt();
+        assertThrows(CancelException.class, task::call);
 
+        assertThat(Thread.currentThread().isInterrupted()).isFalse();
         assertThat(statements.stored).isEmpty();
         assertThat(indexer.exists(Project.entitiesIndex("prj"))).isFalse();
     }
 
-    private void source(String filename, String contentType, String content) throws Exception {
+    @Test
+    public void test_the_statements_are_stored_under_the_sheet_name_cleaned() throws Exception {
+        workbook("Donnees\u00a02");
+        stored(mapping("m1"));
+
+        StructuredEntityExtractionResult result = task("m1").call();
+
+        assertThat(result.written()).isEqualTo(1);
+        assertThat(statements.stored.values().iterator().next().provenance().sheet()).isEqualTo("Donnees 2");
+    }
+
+    private Document source(String filename, String contentType, String content) throws Exception {
         Path file = folder.getRoot().toPath().resolve(filename);
         Files.writeString(file, content, StandardCharsets.UTF_8);
+        return indexed(file, contentType);
+    }
+
+    private void workbook(String sheetName) throws Exception {
+        Path file = folder.getRoot().toPath().resolve("companies.xlsx");
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); OutputStream out = Files.newOutputStream(file)) {
+            Sheet sheet = workbook.createSheet(sheetName);
+            sheet.createRow(0).createCell(0).setCellValue("id");
+            sheet.getRow(0).createCell(1).setCellValue("name");
+            sheet.createRow(1).createCell(0).setCellValue("1");
+            sheet.getRow(1).createCell(1).setCellValue("ACME");
+            workbook.write(out);
+        }
+        indexed(file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+
+    private Document indexed(Path file, String contentType) {
         Document document = DocumentBuilder.createDoc("docId").with(file).ofContentType(contentType)
                                            .with(StandardCharsets.UTF_8).with(Map.of()).build();
         doReturn(document).when(indexer).get("prj", "docId", "docId", CONTENT_FIELDS);
+        return document;
     }
 
     private ExtractionMapping mapping(String id) {
