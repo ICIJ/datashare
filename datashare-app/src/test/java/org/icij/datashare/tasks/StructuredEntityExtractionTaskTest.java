@@ -112,7 +112,7 @@ public class StructuredEntityExtractionTaskTest {
 
         assertThat(assertThrows(IllegalArgumentException.class,
                                 () -> new StructuredEntityExtractionTask(indexer, statements, mappings,
-                                                                         new PropertiesProvider(), taskView, null).call())
+                                                                         new PropertiesProvider(), taskView, done -> null).call())
                            .getMessage()).contains("is not granted prj");
     }
 
@@ -134,7 +134,7 @@ public class StructuredEntityExtractionTaskTest {
     @Test
     public void test_refuses_a_project_id_before_it_writes_anything() throws Exception {
         Document document = source("companies.csv", "text/csv", "id,name\n1,ACME\n");
-        ExtractionMapping mapping = new ExtractionMapping("m1", "bad/name", null, "companies", "ftm", "docId",
+        ExtractionMapping mapping = new ExtractionMapping("m1", "bad/name", null, "companies", "ftm", "docId", null,
                 RowSourceOptions.defaults(),
                 Map.of("c", new ExtractionMapping.EntityMapping("Company", List.of("id"),
                         Map.of("name", new ExtractionMapping.PropertyMapping(List.of("name"), null, null, null, null)))));
@@ -146,7 +146,7 @@ public class StructuredEntityExtractionTaskTest {
 
         assertThrows(IllegalArgumentException.class,
                      () -> new StructuredEntityExtractionTask(indexer, statements, mappings, new PropertiesProvider(),
-                                                              taskView, null).call());
+                                                              taskView, done -> null).call());
         assertThat(statements.stored).isEmpty();
     }
 
@@ -267,7 +267,7 @@ public class StructuredEntityExtractionTaskTest {
     }
 
     private ExtractionMapping mapping(String id) {
-        return new ExtractionMapping(id, "prj", null, "companies", "ftm", "docId", RowSourceOptions.defaults(),
+        return new ExtractionMapping(id, "prj", null, "companies", "ftm", "docId", null, RowSourceOptions.defaults(),
                 Map.of("c", new ExtractionMapping.EntityMapping("Company", List.of("id"),
                         Map.of("name", new ExtractionMapping.PropertyMapping(List.of("name"), null, null, null, null)))));
     }
@@ -284,6 +284,7 @@ public class StructuredEntityExtractionTaskTest {
         Task<StructuredEntityExtractionResult> taskView = new Task<>(
                 StructuredEntityExtractionTask.class.getName(), User.localUser("jane", List.of("prj")),
                 Map.of("defaultProject", "prj", "mappingId", mappingId));
-        return new StructuredEntityExtractionTask(indexer, store, mappings, new PropertiesProvider(), taskView, null);
+        return new StructuredEntityExtractionTask(indexer, store, mappings, new PropertiesProvider(), taskView,
+                                                  done -> null);
     }
 }
