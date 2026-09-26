@@ -339,7 +339,7 @@ public class WorkbookRowSourceTest {
         byte[] content = bytes(workbook);
 
         try (InputStream stream = new ByteArrayInputStream(content);
-             Rows rows = source.rows(stream, RowSourceOptions.defaults().withSheet("1"))) {
+             Rows rows = source.rows(stream, new RowSourceOptions(null, null, null, null, "1", null))) {
             assertThat(rows.sheet()).isEqualTo("Employees");
         }
     }

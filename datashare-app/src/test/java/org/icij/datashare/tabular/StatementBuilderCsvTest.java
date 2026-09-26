@@ -30,7 +30,7 @@ public class StatementBuilderCsvTest {
     }
 
     private static final ExtractionMapping MAPPING = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm",
-            "doc-1", RowSourceOptions.defaults(), Map.of(
+            "doc-1", null, RowSourceOptions.defaults(), Map.of(
             "person", new ExtractionMapping.EntityMapping("Person", List.of("person_id"), Map.of(
                     "name", column("full_name"),
                     "birthDate", new ExtractionMapping.PropertyMapping(

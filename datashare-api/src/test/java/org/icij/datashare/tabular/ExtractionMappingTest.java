@@ -14,7 +14,7 @@ import static org.junit.Assert.assertThrows;
 public class ExtractionMappingTest {
 
     private static ExtractionMapping mapping(String model, Map<String, ExtractionMapping.EntityMapping> entities) {
-        return new ExtractionMapping("map-1", "prj", "jdoe", "members", model, "doc-1",
+        return new ExtractionMapping("map-1", "prj", "jdoe", "members", model, "doc-1", null,
                 RowSourceOptions.defaults(), entities);
     }
 
@@ -49,7 +49,7 @@ public class ExtractionMappingTest {
         ExtractionMapping.PropertyMapping nulLiteral =
                 new ExtractionMapping.PropertyMapping(List.of(), null, "f\u0000r", null, null);
         ExtractionMapping nulled = new ExtractionMapping("map-1", "prj", "jdoe", "members", "ftm",
-                "doc\u00001", RowSourceOptions.defaults(),
+                "doc\u00001", null, RowSourceOptions.defaults(),
                 Map.of("member", person(Map.of("nationality", nulLiteral))));
 
         String violations = nulled.validate().toString();
@@ -156,7 +156,7 @@ public class ExtractionMappingTest {
 
     @Test
     public void test_a_null_user_is_allowed() {
-        ExtractionMapping cliAuthored = new ExtractionMapping("map-1", "prj", null, "members", "ftm", "doc-1",
+        ExtractionMapping cliAuthored = new ExtractionMapping("map-1", "prj", null, "members", "ftm", "doc-1", null,
                 RowSourceOptions.defaults(), Map.of("member", person(Map.of("name", column("full_name")))));
         assertThat(cliAuthored.userId()).isNull();
     }
@@ -242,7 +242,7 @@ public class ExtractionMappingTest {
 
     @Test
     public void test_absent_reader_options_fall_back_to_the_defaults() {
-        ExtractionMapping mapping = new ExtractionMapping("map-1", "prj", "jdoe", "members", "ftm", "doc-1",
+        ExtractionMapping mapping = new ExtractionMapping("map-1", "prj", "jdoe", "members", "ftm", "doc-1", null,
                 null, Map.of("member", person(Map.of("name", column("full_name")))));
         assertThat(mapping.options()).isEqualTo(RowSourceOptions.defaults());
     }
