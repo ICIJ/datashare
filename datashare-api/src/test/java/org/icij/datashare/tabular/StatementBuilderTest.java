@@ -17,7 +17,7 @@ import static org.junit.Assert.assertThrows;
 public class StatementBuilderTest {
 
     private static ExtractionMapping mapping(Map<String, ExtractionMapping.EntityMapping> entities) {
-        return new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1",
+        return new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1", null,
                 RowSourceOptions.defaults(), entities);
     }
 
@@ -192,7 +192,7 @@ public class StatementBuilderTest {
 
     @Test
     public void test_two_tables_of_one_document_do_not_share_an_entity() {
-        ExtractionMapping keyless = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1",
+        ExtractionMapping keyless = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1", null,
                 RowSourceOptions.defaults(), Map.of("member",
                 entity("Person", List.of(), Map.of("name", column("full_name")))));
 
@@ -671,7 +671,7 @@ public class StatementBuilderTest {
     @Test
     public void test_a_nul_document_id_fails_at_construction() {
         ExtractionMapping nulDocument = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm",
-                "doc\u00001", RowSourceOptions.defaults(),
+                "doc\u00001", null, RowSourceOptions.defaults(),
                 Map.of("member", entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
 
         InvalidExtractionMapping thrown =
@@ -761,7 +761,7 @@ public class StatementBuilderTest {
 
     @Test
     public void test_a_sheet_holding_a_nul_fails_at_construction() {
-        ExtractionMapping mapping = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1",
+        ExtractionMapping mapping = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1", null,
                 new RowSourceOptions(null, null, null, null, "\u0000Sheet", null),
                 Map.of("member", entity("Person", List.of("passport"), Map.of("name", column("full_name")))));
 
@@ -770,7 +770,7 @@ public class StatementBuilderTest {
 
     @Test
     public void test_a_resolved_sheet_written_with_an_invisible_character_keeps_one_entity() {
-        ExtractionMapping keyless = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1",
+        ExtractionMapping keyless = new ExtractionMapping("map-1", "prj", "jdoe", "staff", "ftm", "doc-1", null,
                 RowSourceOptions.defaults(),
                 Map.of("member", entity("Person", List.of(), Map.of("name", column("full_name")))));
 

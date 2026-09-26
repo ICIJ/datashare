@@ -2,7 +2,6 @@ package org.icij.datashare.tabular;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,16 +42,17 @@ public class TabularRowReader {
     private static final Map<String, Character> DELIMITER_BY_EXTENSION = Map.of("tsv", '\t', "psv", '|');
     private static final Map<String, Character> DELIMITER_BY_TIKA_NAME =
             Map.of("comma", ',', "tab", '\t', "pipe", '|', "semicolon", ';');
+    /** Excluding the extracted text, as DocumentSourceAccess does: only four metadata fields are
+     *  read to open a source, and a large tabular document's content would be a second full copy in
+     *  heap. A caller fetching the document for this reader asks for these. */
     public static final List<String> CONTENT_FIELDS = List.of("content", "content_translated");
     private static final List<String> SUPPORTED_CONTENT_TYPES =
             Stream.of(DelimitedRowSource.SUPPORTED, WorkbookRowSource.SUPPORTED, JsonRowSource.SUPPORTED,
                       TikaTableRowSource.SUPPORTED).flatMap(Set::stream).sorted().toList();
-    private final Indexer indexer;
     private final SourceExtractor sourceExtractor;
     private final List<RowSource> readers;
 
-    public TabularRowReader(Indexer indexer, SourceExtractor sourceExtractor) {
-        this.indexer = indexer;
+    public TabularRowReader(SourceExtractor sourceExtractor) {
         this.sourceExtractor = sourceExtractor;
         // Tika last: it is the tier-2 fallback, and only the types it was confirmed to render as
         // table markup reach it, so it never displaces a tier-1 reader that claims the same type.
@@ -60,24 +60,6 @@ public class TabularRowReader {
                                new TikaTableRowSource());
     }
 
-    /**
-     * @param rootId the container the document was extracted from, or null for a root document. ES
-     *               routes an embedded document by its root, so this cannot be derived here.
-     */
-    public Rows rows(Project project, String documentId, String rootId, RowSourceOptions options) throws
-            IOException {
-        // Excluding the extracted text, as DocumentSourceAccess does: only four metadata fields are
-        // read here, and a large tabular document's content would be a second full copy in heap.
-        Document document =
-                indexer.get(project.getName(), documentId, rootId == null ? documentId : rootId, CONTENT_FIELDS);
-        if (document == null) {
-            throw new IllegalArgumentException("no such document in " + project.getName() + ": " + documentId);
-        }
-        return rows(project, document, options);
-    }
-
-    /** For a caller that already holds the document, so the source is read from the same fetch the
-     *  caller's own checks were made against rather than from a second one. */
     public Rows rows(Project project, Document document, RowSourceOptions options) throws IOException {
         RowSourceOptions resolved = resolve(document, options);
         RowSource reader = select(resolved.contentType());
