@@ -174,7 +174,7 @@ public class TikaTableRowSourceTest {
         assertThat(assertThrows(IllegalArgumentException.class, () -> source.rows(
                 new ByteArrayInputStream("<html><body><table><tr><th>id</th></tr></table></body></html>".getBytes(
                         StandardCharsets.UTF_8)),
-                RowSourceOptions.defaults().withContentType("text/html").withSheet("Sales"))).getMessage())
+                new RowSourceOptions("text/html", null, null, null, "Sales", null))).getMessage())
                 .contains("read by table index, not by sheet name");
     }
 

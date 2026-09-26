@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNullElse;
+
 /**
  * The tier-2 fallback: rows out of the tables Tika renders, covering every format whose parser emits
  * table markup. Reuses StructureMarkdownExtractor rather than setting up its own parse, because that
@@ -54,6 +56,7 @@ public class TikaTableRowSource implements RowSource {
                                                        "application/vnd.apple.numbers",
                                                        "application/vnd.apple.numbers.13",
                                                        "application/vnd.apple.numbers.18");
+    private static final int DEFAULT_TABLE = 1;
     private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
 
     @Override
@@ -75,8 +78,8 @@ public class TikaTableRowSource implements RowSource {
                         "this format is read by table index, not by sheet name: drop the sheet '" + options.sheet()
                         + "' from the mapping and name a table instead");
             }
-            String table = String.valueOf(options.table() == null ? 1 : options.table());
-            return new Rows(table, read(source, options).stream());
+            return new Rows(String.valueOf(requireNonNullElse(options.table(), DEFAULT_TABLE)),
+                            read(source, options).stream());
         } finally {
             close(source);
         }
@@ -138,7 +141,7 @@ public class TikaTableRowSource implements RowSource {
         if (tables.isEmpty()) {
             throw new IllegalArgumentException("the source holds no table, so it has no rows to read");
         }
-        int index = requested == null ? 1 : requested;
+        int index = requireNonNullElse(requested, DEFAULT_TABLE);
         if (index < 1 || index > tables.size()) {
             throw new IllegalArgumentException("no table at index " + index + ": the source holds " + tables.size());
         }
