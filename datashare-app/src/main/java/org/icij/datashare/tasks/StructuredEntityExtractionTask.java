@@ -27,15 +27,12 @@ import org.icij.datashare.utils.DocumentVerifier;
 import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
-@TemporalSingleActivityWorkflow(name = "structured-entity-extraction",
-                                activityOptions = @ActivityOpts(timeout = "P1D"))
+@TemporalSingleActivityWorkflow(name = "structured-entity-extraction", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntityExtractionResult>
         implements UserTask, CancellableTask {
@@ -83,9 +80,8 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         User user = taskView.getUser();
         // A CLI run carries nullUser(), which is granted nothing; the HTTP triggers carry a real one.
         require(user.isNull() || user.isGranted(projectId), "user '" + user.id + "' is not granted " + projectId);
-        ExtractionMapping mapping = mappings.get(projectId, mappingId)
-                                            .orElseThrow(() -> new IllegalArgumentException(
-                                                    "no mapping '" + mappingId + "' in " + projectId));
+        ExtractionMapping mapping = mappings.get(projectId, mappingId).orElseThrow(
+                () -> new IllegalArgumentException("no mapping '" + mappingId + "' in " + projectId));
         // Ahead of the read rather than in the StatementBuilder: a mapping stored before the
         // ontology moved is valid on the way in and stale on the way out, and the eager readers
         // parse the whole document before the builder is ever constructed.
@@ -115,9 +111,9 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         }
         updateCallback.apply(0.5);
         if (replaced.retracted() > replaced.written()) {
-            logger.warn("mapping '{}' retracted {} statements and wrote {} for document {}: statements stored for "
-                        + "this document and sheet were removed and not put back, which is what happens when another "
-                        + "mapping targets the same sheet", mappingId, replaced.retracted(), replaced.written(),
+            logger.warn("mapping '{}' retracted {} statements and wrote {} for document {}: statements stored for " +
+                        "this document and sheet were removed and not put back, which is what happens when another " +
+                        "mapping targets the same sheet", mappingId, replaced.retracted(), replaced.written(),
                         mapping.documentId());
         }
         // Checked again here because the row lambda is the only other cancellation point, and a
@@ -126,11 +122,12 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         throwIfCancelled();
         int indexed = new EntitiesIndexRebuilder(indexer, statements).rebuild(projectId);
         updateCallback.apply(1.0);
-        StructuredEntityExtractionResult result = new StructuredEntityExtractionResult(
-                read.get(), replaced.retracted(), replaced.written(), indexed, builder.skipped());
-        logger.info("mapping '{}' read {} rows, retracted {}, wrote {}, left {} entities in the project index, "
-                    + "skipped {}", mappingId,
-                    result.rows(), result.retracted(), result.written(), result.indexed(), result.skipped());
+        StructuredEntityExtractionResult result =
+                new StructuredEntityExtractionResult(read.get(), replaced.retracted(), replaced.written(), indexed,
+                                                     builder.skipped());
+        logger.info("mapping '{}' read {} rows, retracted {}, wrote {}, left {} entities in the project index, " +
+                    "skipped {}", mappingId, result.rows(), result.retracted(), result.written(), result.indexed(),
+                    result.skipped());
         return result;
     }
 
