@@ -37,6 +37,7 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisDocumentCollectionFactory;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.LinguaLanguageGuesser;
 import org.icij.datashare.policies.Authorizer;
@@ -56,6 +57,7 @@ import org.icij.datashare.session.UsersInDb;
 import net.codestory.http.security.Users;
 import org.icij.datashare.session.UsersIdProviderCache;
 import org.icij.datashare.session.UsersIdProviderRedisCache;
+import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.Utils;
@@ -556,6 +558,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         bind(CasbinRuleAdapter.class).toInstance(repositoryFactory.createCasbinRuleRepository());
+        bind(StatementRepository.class).toInstance(repositoryFactory.createStatementRepository());
+        bind(ExtractionMappingRepository.class).toInstance(repositoryFactory.createExtractionMappingRepository());
         bind(UserAdminService.class).to(UserAdminServiceImpl.class).in(Singleton.class);
         bind(ProjectAdminService.class).to(ProjectAdminServiceImpl.class).in(Singleton.class);
 
