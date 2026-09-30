@@ -66,9 +66,7 @@ public class StatementBuilder {
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
 
-    /** The sheet as it reaches every statement's provenance, cleaned. A retraction has to key on
-     *  this rather than on what the reader resolved, or it names a sheet no statement was written
-     *  under. */
+    /** The sheet as written in every statement's provenance, cleaned. */
     public String sheet() {
         return sheet;
     }

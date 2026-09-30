@@ -18,11 +18,6 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
  * path is what buys embedded sources (a CSV inside a ZIP, a workbook attached to an email) through
  * SourceExtractor, plus the content type and charset Tika already detected at index time. It also
  * means no user-supplied path reaches the filesystem, so this route has no traversal surface at all.
- *
- * Authorization on the project is not checked here: the project check is applied by
- * StructuredEntityExtractionTask and by the #2207 endpoints. Neither bounds the size of a root
- * document (DocumentVerifier only bounds an embedded one), so the tier-2 fallback, which buffers a
- * whole document several times over, is bounded by nothing on a root source.
  */
 public class TabularRowReader {
     // "unknown" is what Document.getContentTypeOrDefault returns, and what the spewer stores, when
@@ -42,9 +37,8 @@ public class TabularRowReader {
     private static final Map<String, Character> DELIMITER_BY_EXTENSION = Map.of("tsv", '\t', "psv", '|');
     private static final Map<String, Character> DELIMITER_BY_TIKA_NAME =
             Map.of("comma", ',', "tab", '\t', "pipe", '|', "semicolon", ';');
-    /** Excluding the extracted text, as DocumentSourceAccess does: only four metadata fields are
-     *  read to open a source, and a large tabular document's content would be a second full copy in
-     *  heap. A caller fetching the document for this reader asks for these. */
+    /** The fields to exclude when fetching a document for this reader: its extracted text is
+     *  never read. */
     public static final List<String> CONTENT_FIELDS = List.of("content", "content_translated");
     private static final List<String> SUPPORTED_CONTENT_TYPES =
             Stream.of(DelimitedRowSource.SUPPORTED, WorkbookRowSource.SUPPORTED, JsonRowSource.SUPPORTED,
@@ -54,8 +48,8 @@ public class TabularRowReader {
 
     public TabularRowReader(SourceExtractor sourceExtractor) {
         this.sourceExtractor = sourceExtractor;
-        // Tika last: it is the tier-2 fallback, and only the types it was confirmed to render as
-        // table markup reach it, so it never displaces a tier-1 reader that claims the same type.
+        // Tika last: it is the fallback, and only the types it was confirmed to render as table
+        // markup reach it, so it never displaces a dedicated reader that claims the same type.
         this.readers = List.of(new DelimitedRowSource(), new WorkbookRowSource(), new JsonRowSource(),
                                new TikaTableRowSource());
     }
