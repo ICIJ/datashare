@@ -3,7 +3,6 @@ package org.icij.datashare;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.Field;
@@ -13,7 +12,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-
 import static java.nio.file.Files.readAllLines;
 import static java.util.Arrays.asList;
 import static java.util.Optional.empty;
@@ -22,7 +20,9 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
 public class PropertiesProviderTest {
-    @Rule public TemporaryFolder folder = new TemporaryFolder();
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     @Test
     public void test_read_properties_first_from_stgs_file() throws Exception {
         File settings = folder.newFile("file.conf");
@@ -30,9 +30,8 @@ public class PropertiesProviderTest {
 
         Properties properties = new PropertiesProvider(settings.getAbsolutePath()).getProperties();
 
-        assertThat(properties)
-                .includes(entry("foo", "doe"), entry("bar", "baz"))
-                .excludes(entry("messageBusAddress", "redis"));
+        assertThat(properties).includes(entry("foo", "doe"), entry("bar", "baz"))
+                              .excludes(entry("messageBusAddress", "redis"));
     }
 
     @Test
@@ -91,7 +90,7 @@ public class PropertiesProviderTest {
             put("bar", "pre");
         }});
         Properties overridden = propertiesProvider.createOverriddenWith(new HashMap(properties));
-        assertThat(overridden).includes(entry("foo","baz"),entry("bar","qux"));
+        assertThat(overridden).includes(entry("foo", "baz"), entry("bar", "qux"));
     }
 
     @Test
@@ -108,19 +107,30 @@ public class PropertiesProviderTest {
     }
 
     @Test
-    public void test_filtered_properties() {
+    public void test_excluded_filtered_properties() {
         PropertiesProvider provider = new PropertiesProvider(new HashMap<>() {{
             put("foo", "fop");
             put("bar", "bap");
             put("baz", "bap");
         }});
-        assertThat(provider.getFilteredProperties("ba.*")).
-                excludes(entry("bar", "bap"), entry("baz", "bap")).
-                includes(entry("foo", "fop"));
-        assertThat(provider.getFilteredProperties(".o.")).
-                includes(entry("bar", "bap"), entry("baz", "bap")).
-                excludes(entry("foo", "fop"));
+        assertThat(provider.getFilteredProperties("ba.*")).excludes(entry("bar", "bap"), entry("baz", "bap"))
+                                                          .includes(entry("foo", "fop"));
+        assertThat(provider.getFilteredProperties(".o.")).includes(entry("bar", "bap"), entry("baz", "bap"))
+                                                         .excludes(entry("foo", "fop"));
         assertThat(provider.getFilteredProperties("b.*", ".*o")).isEmpty();
+    }
+
+    @Test
+    public void test_included_filtered_properties() {
+        PropertiesProvider provider = new PropertiesProvider(new HashMap<>() {{
+            put("foo", "fop");
+            put("bar", "bap");
+            put("baz", "bap");
+        }});
+        assertThat(provider.getIncludedProperties("foo")).hasSize(1).includes(entry("foo", "fop"));
+        assertThat(provider.getIncludedProperties("foo", "bar")).hasSize(2)
+                                                                .includes(entry("foo", "fop"), entry("bar", "bap"));
+        assertThat(provider.getIncludedProperties("foo", "bar", "baz")).hasSize(3);
     }
 
     @Test
@@ -200,6 +210,7 @@ public class PropertiesProviderTest {
         assertThat(new PropertiesProvider(settings.getAbsolutePath()).isFileReadable(settings.toPath())).isTrue();
         assertThat(settings).exists();
     }
+
     @Test
     public void test_unique_hash_code_by_data_dir() {
         PropertiesProvider foo = new PropertiesProvider(Map.of("dataDir", "/foo"));
@@ -225,6 +236,7 @@ public class PropertiesProviderTest {
         assertThat(foo.queueNameWithHash()).startsWith("extract:queue:foo:");
         assertThat(bar.queueNameWithHash()).startsWith("extract:queue:bar:");
     }
+
     @Test(expected = NumberFormatException.class)
     public void test_queue_capacity_is_a_number() {
         PropertiesProvider foo = new PropertiesProvider(Map.of("queueCapacity", "foo"));
@@ -236,11 +248,13 @@ public class PropertiesProviderTest {
         PropertiesProvider foo = new PropertiesProvider(Map.of("queueCapacity", "-1"));
         foo.queueCapacity();
     }
+
     @Test
     public void test_queue_capacity_positive_number() {
         PropertiesProvider foo = new PropertiesProvider(Map.of("queueCapacity", "1"));
         assertThat(foo.queueCapacity()).isEqualTo(1);
     }
+
     @Test
     public void test_queue_capacity_default_number_is_1e6() {
         PropertiesProvider foo = new PropertiesProvider();
@@ -267,6 +281,13 @@ public class PropertiesProviderTest {
         assertThat(props.overrideQueueNameWithHash("bar").queueName()).startsWith("extract:queue:bar:");
     }
 
+    @Test
+    public void test_filter_by_reflection() {
+        PropertiesProvider props = new PropertiesProvider(Map.of("foo", "12", "bar", "qux", "biz", "dev"));
+        record FooOptions(String bar, int foo) {}
+
+        assertThat(props.toRecord(FooOptions.class)).isEqualTo(new FooOptions("qux", 12));
+    }
 
     /**
      * see https://stackoverflow.com/questions/318239/how-do-i-set-environment-variables-from-java
@@ -288,29 +309,30 @@ public class PropertiesProviderTest {
     }
 
     private static void putEnv(String name, String value) throws Exception {
-      try {
-        Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
-        Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
-        theEnvironmentField.setAccessible(true);
-        Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
-        env.put(name, value);
-        Field theCaseInsensitiveEnvironmentField = processEnvironmentClass.getDeclaredField("theCaseInsensitiveEnvironment");
-        theCaseInsensitiveEnvironmentField.setAccessible(true);
-        Map<String, String> cienv = (Map<String, String>)theCaseInsensitiveEnvironmentField.get(null);
-        cienv.put(name, value);
-      } catch (NoSuchFieldException e) {
-        Class[] classes = Collections.class.getDeclaredClasses();
-        Map<String, String> env = System.getenv();
-        for(Class cl : classes) {
-          if("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
-            Field field = cl.getDeclaredField("m");
-            field.setAccessible(true);
-            Object obj = field.get(env);
-            Map<String, String> map = (Map<String, String>) obj;
-            map.clear();
-            map.put(name, value);
-          }
+        try {
+            Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
+            Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
+            theEnvironmentField.setAccessible(true);
+            Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
+            env.put(name, value);
+            Field theCaseInsensitiveEnvironmentField =
+                    processEnvironmentClass.getDeclaredField("theCaseInsensitiveEnvironment");
+            theCaseInsensitiveEnvironmentField.setAccessible(true);
+            Map<String, String> cienv = (Map<String, String>) theCaseInsensitiveEnvironmentField.get(null);
+            cienv.put(name, value);
+        } catch (NoSuchFieldException e) {
+            Class[] classes = Collections.class.getDeclaredClasses();
+            Map<String, String> env = System.getenv();
+            for (Class cl : classes) {
+                if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
+                    Field field = cl.getDeclaredField("m");
+                    field.setAccessible(true);
+                    Object obj = field.get(env);
+                    Map<String, String> map = (Map<String, String>) obj;
+                    map.clear();
+                    map.put(name, value);
+                }
+            }
         }
-      }
     }
 }
