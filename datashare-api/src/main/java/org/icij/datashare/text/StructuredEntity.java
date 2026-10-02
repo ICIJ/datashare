@@ -23,8 +23,7 @@ public record StructuredEntity(String entityId, String model, String entityType,
 
     // ModelEntity's keys are bare ("birthDate"): JooqStatementRepository.toRow strips the model
     // prefix a statement's property is stored under. The namespace goes back on here, at the index
-    // boundary, rather than in ModelEntity, which TargetModel.validate and ExtractionMapping.probe
-    // consume on the bare form.
+    // boundary, rather than in ModelEntity, which TargetModel.validate consumes on the bare form.
     public static StructuredEntity from(ModelEntity entity) {
         Map<String, List<String>> namespaced = new LinkedHashMap<>();
         entity.properties()

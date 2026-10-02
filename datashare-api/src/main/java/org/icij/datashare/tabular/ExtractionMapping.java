@@ -1,16 +1,13 @@
 package org.icij.datashare.tabular;
 
-import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.TargetModelRegistry;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeSet;
 
 public record ExtractionMapping(String id, String projectId, String userId, String name, String model, String documentId, RowSourceOptions options, Map<String, EntityMapping> entities) {
@@ -89,7 +86,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         DateFormats formats = new DateFormats();
         for (String alias : new TreeSet<>(entities.keySet())) {
             EntityMapping entity = entities.get(alias);
-            target.validate(probe(alias, entity)).forEach(violation -> violations.add(
+            target.validateShape(entity.type(), entity.properties().keySet()).forEach(violation -> violations.add(
                     new TargetModel.Violation("entity '" + alias + "': " + violation.message())));
             if (entity.properties().isEmpty()) {
                 violations.add(new TargetModel.Violation(
@@ -188,15 +185,5 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
                      .map(type -> new TargetModel.Violation(
                              on + "needs a '" + range + "', but entity '" + reference + "' is a '" + type.name() +
                              "'"));
-    }
-
-    // A mapping declares which properties it fills, not what they will hold, so the model's own
-    // checker runs against a probe carrying a placeholder value per mapped property. That makes the
-    // model's "required property is blank" test read as "required property is not mapped", and picks
-    // up the required-property and edge-endpoint rules a mapping-only check would miss.
-    private ModelEntity probe(String alias, EntityMapping entity) {
-        Map<String, List<String>> properties = new LinkedHashMap<>();
-        new TreeSet<>(entity.properties().keySet()).forEach(property -> properties.put(property, List.of("?")));
-        return new ModelEntity(model, alias, entity.type(), Set.of(), Set.of(documentId), properties);
     }
 }

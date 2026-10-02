@@ -93,6 +93,42 @@ public class TargetModelValidationTest {
         assertThat(violations.get(0).message()).contains("employer");
     }
 
+    @Test
+    public void test_a_shape_mapping_every_required_property_has_no_violation() {
+        assertThat(model.validateShape("Person", Set.of("name"))).isEmpty();
+    }
+
+    @Test
+    public void test_a_shape_missing_a_required_property_is_a_violation() {
+        List<TargetModel.Violation> violations = model.validateShape("Person", Set.of());
+
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0).message()).isEqualTo("type 'Person' requires 'name'");
+    }
+
+    @Test
+    public void test_a_shape_missing_an_edge_end_is_a_violation() {
+        List<TargetModel.Violation> violations = model.validateShape("Employment", Set.of("employee"));
+
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0).message()).isEqualTo("edge type 'Employment' needs 'employer'");
+    }
+
+    @Test
+    public void test_a_shape_with_a_stub_or_undeclared_property_is_a_violation() {
+        List<TargetModel.Violation> violations = model.validateShape("Person", Set.of("name", "employers", "shoeSize"));
+
+        assertThat(violations).hasSize(2);
+        assertThat(violations.get(0).message()).contains("employers").contains("stub");
+        assertThat(violations.get(1).message()).contains("shoeSize");
+    }
+
+    @Test
+    public void test_a_shape_of_an_unknown_or_abstract_type_is_a_violation() {
+        assertThat(model.validateShape("Robot", Set.of("name")).get(0).message()).contains("unknown type 'Robot'");
+        assertThat(model.validateShape("Thing", Set.of("name")).get(0).message()).contains("abstract");
+    }
+
     private static class FakeModel implements TargetModel {
         private static final Property VALUE = new Property(null, false);
         private static final Property STUB = new Property("Employment", true);
