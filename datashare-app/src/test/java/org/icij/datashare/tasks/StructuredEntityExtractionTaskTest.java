@@ -218,6 +218,30 @@ public class StructuredEntityExtractionTaskTest {
     }
 
     @Test
+    public void test_a_cancel_landing_mid_stream_leaves_the_sheet_the_previous_run_wrote() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n2,Globex\n");
+        stored(mapping("m1"));
+        task("m1").call();
+        Map<String, Statement> before = Map.copyOf(statements.stored);
+        source("companies.csv", "text/csv", "id,name\n1,ACME Corp\n2,Globex Corp\n3,Initech\n");
+        AtomicReference<StructuredEntityExtractionTask> running = new AtomicReference<>();
+        InMemoryStatementRepository cancelling = new InMemoryStatementRepository() {
+            @Override
+            public Replaced replace(String projectId, String runId, String documentId, String sheet,
+                                    Stream<Statement> rows) {
+                return super.replace(projectId, runId, documentId, sheet,
+                                     rows.peek(statement -> running.get().cancel(false)));
+            }
+        };
+        cancelling.stored.putAll(before);
+        running.set(task("m1", cancelling));
+
+        assertThrows(CancelException.class, () -> running.get().call());
+
+        assertThat(cancelling.stored).isEqualTo(before);
+    }
+
+    @Test
     public void test_a_cancelled_run_over_a_source_with_no_data_row_still_throws() throws Exception {
         source("companies.csv", "text/csv", "id,name\n");
         stored(mapping("m1"));
