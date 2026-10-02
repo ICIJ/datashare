@@ -27,7 +27,7 @@ public class JooqExtractionMappingRepositoryTest {
     private final JooqExtractionMappingRepository repository;
 
     private static ExtractionMapping mapping(String id, String projectId, String userId, String type) {
-        return new ExtractionMapping(id, projectId, userId, "members", "ftm", "doc-1",
+        return new ExtractionMapping(id, projectId, userId, "members", "ftm", "doc-1", null,
                 RowSourceOptions.defaults().withDelimiter(';').withCharset(StandardCharsets.UTF_8),
                 Map.of("member", new ExtractionMapping.EntityMapping(type, List.of("id"),
                         Map.of("name", new ExtractionMapping.PropertyMapping(List.of("full_name"), null, null, null, null)))));

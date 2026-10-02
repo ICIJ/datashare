@@ -20,7 +20,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 /**
@@ -42,7 +41,7 @@ public class WorkbookRowSource implements RowSource {
     }
 
     @Override
-    public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
+    public Rows rows(InputStream source, RowSourceOptions options) throws IOException {
         // POI closes the stream inside create() when it succeeds, but not when it throws, and an
         // encrypted or truncated workbook throws before there is any stream for the caller to close.
         Workbook workbook;
@@ -55,7 +54,7 @@ public class WorkbookRowSource implements RowSource {
         try {
             Sheet sheet = selectSheet(workbook, options.sheet());
             FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-            return read(sheet, evaluator).stream().onClose(() -> close(workbook));
+            return new Rows(sheet.getSheetName(), read(sheet, evaluator).stream().onClose(() -> close(workbook)));
         } catch (RuntimeException failure) {
             close(workbook);
             throw failure;

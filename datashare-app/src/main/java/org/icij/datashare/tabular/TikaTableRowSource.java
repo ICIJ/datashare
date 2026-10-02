@@ -15,24 +15,24 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
+import static java.util.Objects.requireNonNullElse;
 
 /**
- * The tier-2 fallback: rows out of the tables Tika renders, covering every format whose parser emits
+ * The fallback reader: rows out of the tables Tika renders, covering every format whose parser emits
  * table markup. Reuses StructureMarkdownExtractor rather than setting up its own parse, because that
  * class already owns the resilient PST parser swap, the output cap, the page splitting and the
  * sanitizer. Its Markdown rendering is ignored here; if that shows up in a profile, the fix is an
  * xhtml-only method on that class rather than a parser in this one.
  *
- * Two things differ from tier 1, by nature rather than by omission. Cell values arrive already
- * formatted with the cell type discarded, so a date is whatever the source rendered it as and the
- * mapping's own date format has to handle it. And the extractor's output cap means an oversized
- * document throws rather than importing a truncated table, which is the behaviour a data import
- * needs; large files belong on tier 1.
+ * Two things differ from the dedicated readers (delimited, workbook, JSON), by nature rather than
+ * by omission. Cell values arrive already formatted with the cell type discarded, so a date is
+ * whatever the source rendered it as and the mapping's own date format has to handle it. And the
+ * extractor's output cap means an oversized document throws rather than importing a truncated
+ * table, which is the behaviour a data import needs; large files belong on a dedicated reader.
  *
- * Cell text is stripped here while tier 1 leaves values untouched: Tika's XHTML rendering introduces
- * its own indentation and newlines inside a cell, so the whitespace being removed is the renderer's
- * rather than the document's.
+ * Cell text is stripped here while the dedicated readers leave values untouched: Tika's XHTML
+ * rendering introduces its own indentation and newlines inside a cell, so the whitespace being
+ * removed is the renderer's rather than the document's.
  */
 public class TikaTableRowSource implements RowSource {
     private static final Logger LOGGER = LoggerFactory.getLogger(TikaTableRowSource.class);
@@ -55,6 +55,7 @@ public class TikaTableRowSource implements RowSource {
                                                        "application/vnd.apple.numbers",
                                                        "application/vnd.apple.numbers.13",
                                                        "application/vnd.apple.numbers.18");
+    private static final int DEFAULT_TABLE = 1;
     private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
 
     @Override
@@ -63,11 +64,19 @@ public class TikaTableRowSource implements RowSource {
     }
 
     @Override
-    public Stream<Row> rows(InputStream source, RowSourceOptions options) throws IOException {
+    public Rows rows(InputStream source, RowSourceOptions options) throws IOException {
         // Nothing here is lazy: the extractor has consumed the source to exhaustion before the first
         // row is built, so the source is released on the way out rather than by the returned stream.
         try {
-            return read(source, options).stream();
+            // This reader picks a table by its position, not by its sheet name. Ignoring the sheet
+            // name would silently read the first table instead of the one the mapping asked for.
+            if (options.sheet() != null) {
+                throw new IllegalArgumentException(
+                        "this format is read by table index, not by sheet name: drop the sheet '" + options.sheet() +
+                        "' from the mapping and name a table instead");
+            }
+            return new Rows(String.valueOf(requireNonNullElse(options.table(), DEFAULT_TABLE)),
+                            read(source, options).stream());
         } finally {
             close(source);
         }
@@ -91,8 +100,8 @@ public class TikaTableRowSource implements RowSource {
             if (values.size() > headers.size()) {
                 surplus++;
             }
-            // Tolerated rather than refused, unlike tier 1: a stray trailing cell is common in
-            // real-world markup, and the rest of the row still lines up with the header.
+            // Tolerated rather than refused, unlike the dedicated readers: a stray trailing cell is
+            // common in real-world markup, and the rest of the row still lines up with the header.
             rows.add(new Row(rows.size() + 1L, Row.values(headers, values)));
         }
         if (surplus > 0) {
@@ -129,7 +138,7 @@ public class TikaTableRowSource implements RowSource {
         if (tables.isEmpty()) {
             throw new IllegalArgumentException("the source holds no table, so it has no rows to read");
         }
-        int index = requested == null ? 1 : requested;
+        int index = requireNonNullElse(requested, DEFAULT_TABLE);
         if (index < 1 || index > tables.size()) {
             throw new IllegalArgumentException("no table at index " + index + ": the source holds " + tables.size());
         }

@@ -66,6 +66,11 @@ public class StatementBuilder {
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
 
+    /** The sheet as written in every statement's provenance, cleaned. */
+    public String sheet() {
+        return sheet;
+    }
+
     /** What the run dropped, by reason, every reason present. */
     public Map<Skip, Long> skipped() {
         return Map.copyOf(skipped);
