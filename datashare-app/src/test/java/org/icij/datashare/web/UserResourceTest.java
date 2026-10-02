@@ -1050,7 +1050,11 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_users_uid_does_not_match_a_prefix() throws Exception {
+    public void test_list_users_uid_does_not_match_a_prefix() {
+        // alice is listed, so a fallback to the substring search would surface her
+        User alice = new User("alice", "Alice", "alice@x.com", "local", new HashMap<>());
+        when(userAdminService.list(any(UserFilter.class), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, 100, 1));
         when(userAdminService.getByIds(Set.of("al"))).thenReturn(List.of());
 
         get("/api/users/admin?uid=al").should().respond(200).not().contain("alice");
