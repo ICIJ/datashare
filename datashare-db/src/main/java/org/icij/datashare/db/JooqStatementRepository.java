@@ -64,26 +64,27 @@ public class JooqStatementRepository implements StatementRepository {
 
     @Override
     public int save(String projectId, String runId, Stream<Statement> statements) {
-        return write(projectId, runId, statements, create -> 0).written();
+        return write(create(), new Write(projectId, runId, now()), statements, create -> 0).written();
     }
 
     @Override
     public Replaced replace(String projectId, String runId, String documentId, String sheet,
                             Stream<Statement> statements) {
         String section = Statement.Provenance.sheetOrEmpty(sheet);
-        return write(projectId, runId, statements.peek(statement -> requireWrittenBy(statement, documentId, section)),
-                     create -> deleteBySheet(create, projectId, documentId, section));
+        Write write = new Write(projectId, runId, now());
+        Stream<Statement> checked = statements.peek(statement -> requireWrittenBy(statement, documentId, section));
+        ToIntFunction<DSLContext> retract = transaction -> deleteBySheet(transaction, projectId, documentId, section);
+        // One transaction around every chunk, the per-chunk ones nesting as savepoints: a run that fails
+        // or is cancelled part way rolls the retraction back with what it wrote, so the sheet is either
+        // the previous run's or this one's, never half of each.
+        return create().transactionResult(configuration -> write(DSL.using(configuration), write, checked, retract));
     }
 
-    // The retraction shares the first chunk's transaction, and the first chunk is read before that
-    // transaction opens, so an extraction that fails on its first row throws with the sheet still
-    // whole rather than emptied. A stream that yields nothing retracts on its own, since a mapping
-    // that stopped matching has to take what it wrote with it.
-    private Replaced write(String projectId, String runId, Stream<Statement> statements,
+    // The retraction rides the first chunk, which is read before it runs, so an extraction that fails
+    // on its first row throws before anything was deleted. A stream that yields nothing retracts on its
+    // own, since a mapping that stopped matching has to take what it wrote with it.
+    private Replaced write(DSLContext create, Write write, Stream<Statement> statements,
                            ToIntFunction<DSLContext> retract) {
-        Write write = new Write(projectId, runId,
-                                new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime());
-        DSLContext create = create();
         int retracted = 0;
         int written = 0;
         try (statements) {
@@ -258,6 +259,10 @@ public class JooqStatementRepository implements StatementRepository {
         } catch (SQLException e) {
             throw new DataAccessException("could not release the streaming connection", e);
         }
+    }
+
+    private static LocalDateTime now() {
+        return new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime();
     }
 
     private DSLContext create() {
