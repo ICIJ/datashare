@@ -36,6 +36,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
@@ -1025,7 +1026,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_uid_returns_the_exact_user() throws Exception {
         User alice = new User("alice", "Alice", "alice@x.com", "local", new HashMap<>());
-        when(userAdminService.get("alice")).thenReturn(alice);
+        when(userAdminService.getByIds(Set.of("alice"))).thenReturn(List.of(alice));
 
         get("/api/users/admin?uid=alice").should().respond(200)
                 .contain("alice").contain("\"total\":1");
@@ -1033,7 +1034,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_uid_returns_empty_page_when_user_does_not_exist() throws Exception {
-        when(userAdminService.get("ghost")).thenThrow(new UserNotFoundException("ghost"));
+        when(userAdminService.getByIds(Set.of("ghost"))).thenReturn(List.of());
 
         get("/api/users/admin?uid=ghost").should().respond(200)
                 .contain("\"items\":[]").contain("\"total\":0");
@@ -1050,7 +1051,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_uid_does_not_match_a_prefix() throws Exception {
-        when(userAdminService.get("al")).thenThrow(new UserNotFoundException("al"));
+        when(userAdminService.getByIds(Set.of("al"))).thenReturn(List.of());
 
         get("/api/users/admin?uid=al").should().respond(200).not().contain("alice");
     }
@@ -1058,7 +1059,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_uid_takes_precedence_over_q() throws Exception {
         User alice = new User("alice", "Alice", "alice@x.com", "local", new HashMap<>());
-        when(userAdminService.get("alice")).thenReturn(alice);
+        when(userAdminService.getByIds(Set.of("alice"))).thenReturn(List.of(alice));
 
         get("/api/users/admin?uid=alice&q=bob").should().respond(200).contain("alice");
         verify(userAdminService, never()).list(any(UserFilter.class), any(), anyInt(), anyInt());
@@ -1067,7 +1068,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_users_uid_keeps_permissions_scoped() throws Exception {
         User toto = new User("toto", null, "toto@t.com", "local", new HashMap<>());
-        when(userAdminService.get("toto")).thenReturn(toto);
+        when(userAdminService.getByIds(Set.of("toto"))).thenReturn(List.of(toto));
         authorizer.addRoleForUserInDomain(localUser("toto"), Role.DOMAIN_ADMIN, Domain.of("icij"));
 
         get("/api/users/admin?uid=toto&domain=other&noRole=true").should().respond(200)

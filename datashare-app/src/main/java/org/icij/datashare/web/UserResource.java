@@ -46,6 +46,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -114,7 +115,9 @@ public class UserResource {
         try {
             // listing fetches all matching users into memory; acceptable for admin-only endpoints with
             // bounded user counts. uid skips it: resolving one user must not scan the whole inventory.
-            users = uid != null && !uid.isBlank() ? getIfExists(uid) :
+            // getByIds answers with an empty list for an unknown uid, which is an empty page here,
+            // not a 404: this is a list endpoint.
+            users = uid != null && !uid.isBlank() ? userAdminService.getByIds(Set.of(uid)) :
                     userAdminService.list(new UserFilter(q), null, 0, Integer.MAX_VALUE).items;
         } catch (UnsupportedOperationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
@@ -169,15 +172,6 @@ public class UserResource {
 
         // 6. Paginate
         return new Payload(WebResponse.fromStream(stream, from, size));
-    }
-
-    // An unknown uid is an empty page, not a 404: this is a list endpoint.
-    private List<User> getIfExists(String uid) {
-        try {
-            return List.of(userAdminService.get(uid));
-        } catch (UserNotFoundException e) {
-            return List.of();
-        }
     }
 
     private static boolean matchesScope(String v2, String domain, String index) {
