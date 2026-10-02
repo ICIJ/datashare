@@ -6,6 +6,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.tabular.ExtractionMapping;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -239,6 +241,25 @@ public class StructuredEntityExtractionTaskTest {
         assertThrows(CancelException.class, () -> running.get().call());
 
         assertThat(cancelling.stored).isEqualTo(before);
+    }
+
+    @Test
+    public void test_a_cancel_landing_during_the_rebuild_is_not_reported_as_a_clean_run() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n");
+        stored(mapping("m1"));
+        AtomicReference<StructuredEntityExtractionTask> running = new AtomicReference<>();
+        InMemoryStatementRepository cancelling = new InMemoryStatementRepository() {
+            @Override
+            public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
+                running.get().cancel(false);
+                return super.entities(projectId, consumer);
+            }
+        };
+        running.set(task("m1", cancelling));
+
+        assertThrows(CancelException.class, () -> running.get().call());
+
+        assertThat(Thread.currentThread().isInterrupted()).isFalse();
     }
 
     @Test
