@@ -114,7 +114,7 @@ public class UserResource {
         try {
             // listing fetches all matching users into memory; acceptable for admin-only endpoints with
             // bounded user counts. uid skips it: resolving one user must not scan the whole inventory.
-            users = uid != null ? getIfExists(uid) :
+            users = uid != null && !uid.isBlank() ? getIfExists(uid) :
                     userAdminService.list(new UserFilter(q), null, 0, Integer.MAX_VALUE).items;
         } catch (UnsupportedOperationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
