@@ -32,10 +32,8 @@ public interface StatementRepository {
      *  nothing then retracts it. */
     int deleteBySheet(String projectId, String documentId, String sheet);
 
-    /** Rewrites what one sheet of a document contributed. The retraction rides the first chunk's
-     *  transaction, so an extraction that fails on its first row leaves the sheet as it was rather
-     *  than empty; later chunks commit on their own, so a failure part way through does leave the
-     *  sheet half rewritten. Refuses a statement whose provenance is not the document and sheet being
+    /** Rewrites what one sheet of a document contributed, all or nothing: an extraction that fails or
+     *  is cancelled part way leaves the sheet as the previous run wrote it. Refuses a statement whose provenance is not the document and sheet being
      *  replaced, since the delete keys on the arguments and the rows key on themselves. The rows
      *  written here are new, so the conditional upsert a plain save leans on cannot spare any. */
     Replaced replace(String projectId, String runId, String documentId, String sheet, Stream<Statement> statements);

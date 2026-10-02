@@ -302,6 +302,25 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
+    public void test_replace_leaves_the_sheet_alone_when_the_extraction_fails_after_a_chunk() {
+        SQLDialect dialect = RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl);
+        JooqStatementRepository chunked = new JooqStatementRepository(dbRule.dataSource, dialect, 2);
+        chunked.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+        Stream<Statement> failing = Stream.of("Grace", "Alan", "Edsger").map(name -> {
+            if (name.equals("Edsger")) {
+                throw new IllegalStateException("the source has no column name");
+            }
+            return statement("e-" + name, "Person", "name", name);
+        });
+
+        assertThrows(IllegalStateException.class, () -> chunked.replace("prj", "run-2", "doc-1", "", failing));
+
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
+        assertThat(chunked.entity("prj", "e-1").orElseThrow().properties())
+                .isEqualTo(Map.of("name", List.of("Ada")));
+    }
+
+    @Test
     public void test_replace_refuses_a_statement_written_by_another_sheet() {
         repository.save("prj", "run-1", Stream.of(
                 Statement.of("ftm", "e-1", "Person", "name", "Ada",

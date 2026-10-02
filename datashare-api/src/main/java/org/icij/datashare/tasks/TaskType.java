@@ -16,7 +16,8 @@ public enum TaskType {
     ARTIFACT("org.icij.datashare.tasks.ArtifactTask"), LANGUAGE("org.icij.datashare.tasks.LanguageDetectTask"),
     GEN_API_KEY("org.icij.datashare.tasks.GenApiKeyTask"), DEL_API_KEY("org.icij.datashare.tasks.DelApiKeyTask"),
     GET_API_KEY("org.icij.datashare.tasks.GetApiKeyTask"),
-    GRANT_ADMIN_POLICY("org.icij.datashare.tasks.GrantAdminPolicyTask");
+    GRANT_ADMIN_POLICY("org.icij.datashare.tasks.GrantAdminPolicyTask"),
+    STRUCTURED_ENTITY_EXTRACTION("org.icij.datashare.tasks.StructuredEntityExtractionTask");
     private final Set<String> names;
 
     TaskType(String... names) {
