@@ -125,7 +125,7 @@ public class FtmTargetModel implements TargetModel {
         Set<String> ancestors = strings(present(schema, "schemata"));
         Map<String, Property> properties = new HashMap<>();
         Set<String> required = new LinkedHashSet<>(declaredRequired.getOrDefault(name, Set.of()));
-        // Two ancestors can declare the same property with different qnames: last one by name wins.
+        // Two ancestors can declare the same property: last one by name wins.
         new TreeSet<>(ancestors).forEach(ancestor -> {
             properties.putAll(declared.getOrDefault(ancestor, Map.of()));
             required.addAll(declaredRequired.getOrDefault(ancestor, Set.of()));
@@ -141,8 +141,7 @@ public class FtmTargetModel implements TargetModel {
     }
 
     private static Property property(JsonNode property) {
-        return new Property(present(property, "qname").asText(), property.path("range").asText(null),
-                            property.path("stub").asBoolean(false));
+        return new Property(property.path("range").asText(null), property.path("stub").asBoolean(false));
     }
 
     private static EntityType.Edge edge(JsonNode edge) {
