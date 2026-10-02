@@ -81,7 +81,8 @@ public class UserResource {
     }
 
     @Operation(description = "Lists users. Optional scope: ?domain=X or ?domain=X&index=Y. " +
-                             "Filters: q (free-text on uid/name/email), noRole (true=include no-role users, false=exclude them). " +
+                             "Filters: uid (exact match, takes precedence over q), q (free-text on uid/name/email), " +
+                             "noRole (true=include no-role users, false=exclude them). " +
                              "Sort: uid | email | name | role, desc=true for descending. Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "invalid sort parameter")
@@ -89,6 +90,7 @@ public class UserResource {
     @Get("/admin")
     @Policy(role = Role.PROJECT_ADMIN)
     public Payload listUsers(Context context) {
+        String uid = context.get("uid");
         String q = context.get("q");
         String domain = context.get("domain");
         String index = context.get("index");
@@ -107,11 +109,13 @@ public class UserResource {
             return PayloadFormatter.error("sort must be one of: uid, email, name, role", HttpStatus.BAD_REQUEST);
         }
 
-        // 1. Fetch all users (q pre-filtered via UserFilter.matches in UsersInDb)
+        // 1. Fetch users: an exact uid lookup, or all users (q pre-filtered via UserFilter.matches in UsersInDb)
         List<User> users;
         try {
-            // fetches all matching users into memory; acceptable for admin-only endpoints with bounded user counts
-            users = userAdminService.list(new UserFilter(q), null, 0, Integer.MAX_VALUE).items;
+            // listing fetches all matching users into memory; acceptable for admin-only endpoints with
+            // bounded user counts. uid skips it: resolving one user must not scan the whole inventory.
+            users = uid != null ? getIfExists(uid) :
+                    userAdminService.list(new UserFilter(q), null, 0, Integer.MAX_VALUE).items;
         } catch (UnsupportedOperationException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_IMPLEMENTED);
         }
@@ -165,6 +169,15 @@ public class UserResource {
 
         // 6. Paginate
         return new Payload(WebResponse.fromStream(stream, from, size));
+    }
+
+    // An unknown uid is an empty page, not a 404: this is a list endpoint.
+    private List<User> getIfExists(String uid) {
+        try {
+            return List.of(userAdminService.get(uid));
+        } catch (UserNotFoundException e) {
+            return List.of();
+        }
     }
 
     private static boolean matchesScope(String v2, String domain, String index) {
