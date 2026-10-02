@@ -242,6 +242,18 @@ public class StructuredEntityExtractionTaskTest {
     }
 
     @Test
+    public void test_refuses_a_mapping_that_shares_its_sheet_with_another_mapping() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n");
+        stored(mapping("m1"));
+        stored(mapping("m2"));
+        when(mappings.list("prj")).thenReturn(List.of(mapping("m1"), mapping("m2")));
+
+        assertThat(assertThrows(IllegalArgumentException.class, () -> task("m2").call()).getMessage())
+                .contains("'m1'");
+        assertThat(statements.stored).isEmpty();
+    }
+
+    @Test
     public void test_a_cancelled_run_over_a_source_with_no_data_row_still_throws() throws Exception {
         source("companies.csv", "text/csv", "id,name\n");
         stored(mapping("m1"));
