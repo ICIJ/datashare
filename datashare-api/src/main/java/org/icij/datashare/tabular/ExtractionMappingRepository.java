@@ -16,7 +16,8 @@ public interface ExtractionMappingRepository {
      *  since dropped still parses: {@link ExtractionMapping#validate()} runs on save, not on read. */
     Optional<ExtractionMapping> get(String projectId, String id);
 
-    /** Skips a row it cannot read rather than failing the whole list. */
+    /** A row whose definition no longer parses is logged and skipped, so one poisoned row does not
+     *  blank the whole listing; {@link #get} on that row throws instead. */
     List<ExtractionMapping> list(String projectId);
 
     boolean delete(String projectId, String id);
