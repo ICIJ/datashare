@@ -94,17 +94,19 @@ public class TargetModelValidationTest {
     }
 
     private static class FakeModel implements TargetModel {
+        private static final Property VALUE = new Property(null, false);
+        private static final Property STUB = new Property("Employment", true);
         private static final Map<String, EntityType> TYPES = Map.of(
                 "Thing", new EntityType("Thing", true, Set.of("Thing"),
-                        Map.of("name", property("name")), Set.of("name"), null),
+                        Map.of("name", VALUE), Set.of("name"), null),
                 "Person", new EntityType("Person", false, Set.of("Person", "Thing"),
-                        Map.of("name", property("name"), "employers", stub("employers")),
+                        Map.of("name", VALUE, "employers", STUB),
                         Set.of("name"), null),
                 "Company", new EntityType("Company", false, Set.of("Company", "Thing"),
-                        Map.of("name", property("name"), "vatNumber", property("vatNumber")),
+                        Map.of("name", VALUE, "vatNumber", VALUE),
                         Set.of("name"), null),
                 "Employment", new EntityType("Employment", false, Set.of("Employment"),
-                        Map.of("employee", property("employee"), "employer", property("employer")),
+                        Map.of("employee", VALUE, "employer", VALUE),
                         Set.of("employee"), new EntityType.Edge("employee", "employer", true)));
 
         @Override
@@ -133,11 +135,11 @@ public class TargetModelValidationTest {
         }
 
         private static Property property(String name) {
-            return new Property("Fake:" + name, null, false);
+            return new Property(null, false);
         }
 
         private static Property stub(String name) {
-            return new Property("Fake:" + name, "Employment", true);
+            return new Property("Employment", true);
         }
     }
 }

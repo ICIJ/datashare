@@ -28,13 +28,6 @@ public class FtmTargetModelTest {
     }
 
     @Test
-    public void test_an_inherited_property_resolves_from_the_type_that_declares_it() {
-        Property name = model.property("Person", "name").get();
-
-        assertThat(name.qname()).isEqualTo("Thing:name");
-    }
-
-    @Test
     public void test_knows_which_types_are_abstract() {
         assertThat(model.type("Thing").get().isAbstract()).isTrue();
         assertThat(model.type("Interest").get().isAbstract()).isTrue();
@@ -82,13 +75,6 @@ public class FtmTargetModelTest {
     public void test_an_unknown_property_or_type_is_empty() {
         assertThat(model.property("Person", "shoeSize").isPresent()).isFalse();
         assertThat(model.property("Persona", "name").isPresent()).isFalse();
-    }
-
-    @Test
-    public void test_a_property_two_ancestors_declare_resolves_to_the_last_ancestor_by_name() {
-        assertThat(model.property("Message", "date").get().qname()).isEqualTo("Interval:date");
-        assertThat(model.property("Message", "description").get().qname()).isEqualTo("Thing:description");
-        assertThat(model.property("Event", "namesMentioned").get().qname()).isEqualTo("Interval:namesMentioned");
     }
 
     @Test
