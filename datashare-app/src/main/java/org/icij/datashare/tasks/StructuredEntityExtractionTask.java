@@ -27,6 +27,7 @@ import org.icij.datashare.utils.DocumentVerifier;
 import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -117,7 +118,8 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         // source with no data row never runs it: without this a cancelled run would drop and refill
         // the project's whole entities index and then report itself done.
         throwIfCancelled();
-        int indexed = new EntitiesIndexRebuilder(indexer, statements).rebuild(projectId);
+        int indexed = rebuild();
+        throwIfCancelled();
         updateCallback.apply(1.0);
         StructuredEntityExtractionResult result =
                 new StructuredEntityExtractionResult(read.get(), replaced.retracted(), replaced.written(), indexed,
@@ -151,6 +153,17 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         if (sharing.isPresent()) {
             throw new IllegalArgumentException(
                     "mapping '" + sharing.get().id() + "' already targets this sheet of " + mapping.documentId());
+        }
+    }
+
+    // A cancel landing while the Elasticsearch client waits on a response surfaces as whatever that
+    // client throws, not as a cancellation, so the cancel is raised in its place.
+    private int rebuild() throws IOException {
+        try {
+            return new EntitiesIndexRebuilder(indexer, statements).rebuild(projectId);
+        } catch (RuntimeException e) {
+            throwIfCancelled();
+            throw e;
         }
     }
 
