@@ -1040,6 +1040,15 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_list_users_blank_uid_is_ignored_and_lists_everyone() {
+        User alice = new User("alice", "Alice", "alice@x.com", "local", new HashMap<>());
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, Integer.MAX_VALUE, 1));
+
+        get("/api/users/admin?uid=").should().respond(200).contain("alice");
+    }
+
+    @Test
     public void test_list_users_uid_does_not_match_a_prefix() throws Exception {
         when(userAdminService.get("al")).thenThrow(new UserNotFoundException("al"));
 
