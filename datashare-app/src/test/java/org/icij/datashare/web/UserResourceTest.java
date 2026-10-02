@@ -49,6 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -1019,5 +1020,48 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
         get("/api/users/admin?from=5&size=10").should().respond(200)
                 .contain("\"from\":5").contain("\"size\":10");
+    }
+
+    @Test
+    public void test_list_users_uid_returns_the_exact_user() throws Exception {
+        User alice = new User("alice", "Alice", "alice@x.com", "local", new HashMap<>());
+        when(userAdminService.get("alice")).thenReturn(alice);
+
+        get("/api/users/admin?uid=alice").should().respond(200)
+                .contain("alice").contain("\"total\":1");
+    }
+
+    @Test
+    public void test_list_users_uid_returns_empty_page_when_user_does_not_exist() throws Exception {
+        when(userAdminService.get("ghost")).thenThrow(new UserNotFoundException("ghost"));
+
+        get("/api/users/admin?uid=ghost").should().respond(200)
+                .contain("\"items\":[]").contain("\"total\":0");
+    }
+
+    @Test
+    public void test_list_users_uid_does_not_match_a_prefix() throws Exception {
+        when(userAdminService.get("al")).thenThrow(new UserNotFoundException("al"));
+
+        get("/api/users/admin?uid=al").should().respond(200).not().contain("alice");
+    }
+
+    @Test
+    public void test_list_users_uid_takes_precedence_over_q() throws Exception {
+        User alice = new User("alice", "Alice", "alice@x.com", "local", new HashMap<>());
+        when(userAdminService.get("alice")).thenReturn(alice);
+
+        get("/api/users/admin?uid=alice&q=bob").should().respond(200).contain("alice");
+        verify(userAdminService, never()).list(any(UserFilter.class), any(), anyInt(), anyInt());
+    }
+
+    @Test
+    public void test_list_users_uid_keeps_permissions_scoped() throws Exception {
+        User toto = new User("toto", null, "toto@t.com", "local", new HashMap<>());
+        when(userAdminService.get("toto")).thenReturn(toto);
+        authorizer.addRoleForUserInDomain(localUser("toto"), Role.DOMAIN_ADMIN, Domain.of("icij"));
+
+        get("/api/users/admin?uid=toto&domain=other&noRole=true").should().respond(200)
+                .contain("toto").contain("\"permissions\":[]");
     }
 }
