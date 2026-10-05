@@ -28,8 +28,7 @@ public class IndexationWorkflowImpl implements IndexationWorkflow, PathBatchRece
     private IndexOptions indexOptions;
 
     @Override
-    public Long run(ScanOptions scanOptions, Path path, String index, IndexOptions indexOptions) throws
-            IOException {
+    public Long run(ScanOptions scanOptions, Path path, String index, IndexOptions indexOptions) throws IOException {
         this.index = index;
         this.indexOptions = indexOptions;
 

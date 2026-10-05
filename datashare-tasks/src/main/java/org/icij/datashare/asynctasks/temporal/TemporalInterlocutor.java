@@ -544,8 +544,9 @@ public class TemporalInterlocutor {
 
     private static boolean searchAttributesAreMapped(
             WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub, String namespace) {
-        String query = CUSTOM_SEARCH_ATTRIBUTES.entrySet().stream()
-                                               .map(e -> e.getKey() + (e.getValue() == IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD ? " = ''" : " = 0"))
+        String query = CUSTOM_SEARCH_ATTRIBUTES.entrySet().stream().map(e -> e.getKey() + (e.getValue() ==
+                                                                                           IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD ?
+                                                                                           " = ''" : " = 0"))
                                                .collect(Collectors.joining(" AND "));
         try {
             workflowServiceBlockingStub.countWorkflowExecutions(

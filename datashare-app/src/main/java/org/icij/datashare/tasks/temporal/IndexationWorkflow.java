@@ -10,7 +10,7 @@ import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 @WorkflowInterface
 public interface IndexationWorkflow {
     @WorkflowMethod(name = "IndexWorkflow")
-    Long run(final ScanOptions scanOptions, final Path path, final String index,
-             final IndexOptions indexOptions) throws IOException;
+    Long run(final ScanOptions scanOptions, final Path path, final String index, final IndexOptions indexOptions) throws
+            IOException;
 
 }

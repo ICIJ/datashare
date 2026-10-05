@@ -53,46 +53,36 @@ import org.icij.task.annotation.Option;
  * @param maxEmbedDepth
  * @param maxEmbedSizeBytes
  */
-public record IndexOptions(
-        int parallelThreads, int indexTimeout, int maxContentLength, String defaultIndexName, Hasher digestAlgorithm,
-        String idMethod, String charset, String language,
-        String digestProjectName, String outputFormat, String embedHandling, String embedOutput,
-
-        String ocrCache,
-        String ocrLanguage, String ocrStrategy, String ocrTimeout, String parseTimeout, Boolean ocr, String ocrType,
-        Integer embedMemoryBudgetMb, Double embedMemoryPressureThreshold, Integer ocrParallelism, Boolean ocrFanout,
-        Long ocrMinImageBytes, String progressHeartbeatInterval, Boolean streamingSpew, Integer spewQueueCapacity,
-        Boolean pstFolderFanout, Integer pstParseParallelism, Boolean legacyUntitledNaming, Integer maxEmbedDepth,
-        Long maxEmbedSizeBytes) {
-
+public record IndexOptions(int parallelThreads, int indexTimeout, int maxContentLength, String defaultIndexName, Hasher digestAlgorithm, String idMethod, String charset, String language, String digestProjectName, String outputFormat, String embedHandling, String embedOutput, String ocrCache, String ocrLanguage, String ocrStrategy, String ocrTimeout, String parseTimeout, Boolean ocr, String ocrType, Integer embedMemoryBudgetMb, Double embedMemoryPressureThreshold, Integer ocrParallelism, Boolean ocrFanout, Long ocrMinImageBytes, String progressHeartbeatInterval, Boolean streamingSpew, Integer spewQueueCapacity, Boolean pstFolderFanout, Integer pstParseParallelism, Boolean legacyUntitledNaming, Integer maxEmbedDepth, Long maxEmbedSizeBytes) {
     public static IndexOptions fromPropertiesProvider(PropertiesProvider p) {
-        int parallelism = p.get(PARALLELISM_OPT).map(Integer::parseInt)
-                          .orElse(Runtime.getRuntime().availableProcessors());
+        int parallelism =
+                p.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         int indexTimeout = Integer.parseInt(p.get(INDEX_TIMEOUT_OPT).orElse(valueOf(DEFAULT_INDEX_TIMEOUT)));
         String defaultIndexName = p.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
         int maxContentLength = getMaxContentLength(p);
         Hasher digestAlgorithm = getDigestAlgorithm(p);
 
         return new IndexOptions(parallelism, indexTimeout, maxContentLength, defaultIndexName, digestAlgorithm,
-                p.get("idMethod").orElse(null), p.get("charset").orElse(null), p.get("language").orElse(null),
-                p.get("digestProjectName").orElse(null), p.get("outputFormat").orElse(null),
-                p.get("embedHandling").orElse(null), p.get("embedOutput").orElse(null),
-                p.get("ocrCache").orElse(null), p.get("ocrLanguage").orElse(null),
-                p.get(OCR_STRATEGY_OPT).orElse(null), p.get("ocrTimeout").orElse(null),
-                p.get(PARSE_TIMEOUT_OPT).orElse(null), p.get(OCR_OPT).map(Boolean::parseBoolean).orElse(null),
-                p.get("ocrType").orElse(null), p.get("embedMemoryBudgetMb").map(Integer::parseInt).orElse(null),
-                p.get("embedMemoryPressureThreshold").map(Double::parseDouble).orElse(null),
-                p.get("ocrParallelism").map(Integer::parseInt).orElse(null),
-                p.get("ocrFanout").map(Boolean::parseBoolean).orElse(null),
-                p.get("ocrMinImageBytes").map(Long::parseLong).orElse(null),
-                p.get("progressHeartbeatInterval").orElse(null),
-                p.get("streamingSpew").map(Boolean::parseBoolean).orElse(null),
-                p.get("spewQueueCapacity").map(Integer::parseInt).orElse(null),
-                p.get("pstFolderFanout").map(Boolean::parseBoolean).orElse(null),
-                p.get("pstParseParallelism").map(Integer::parseInt).orElse(null),
-                p.get("legacyUntitledNaming").map(Boolean::parseBoolean).orElse(null),
-                p.get("maxEmbedDepth").map(Integer::parseInt).orElse(null),
-                p.get("maxEmbedSizeBytes").map(Long::parseLong).orElse(null));
+                                p.get("idMethod").orElse(null), p.get("charset").orElse(null),
+                                p.get("language").orElse(null), p.get("digestProjectName").orElse(null),
+                                p.get("outputFormat").orElse(null), p.get("embedHandling").orElse(null),
+                                p.get("embedOutput").orElse(null), p.get("ocrCache").orElse(null),
+                                p.get("ocrLanguage").orElse(null), p.get(OCR_STRATEGY_OPT).orElse(null),
+                                p.get("ocrTimeout").orElse(null), p.get(PARSE_TIMEOUT_OPT).orElse(null),
+                                p.get(OCR_OPT).map(Boolean::parseBoolean).orElse(null), p.get("ocrType").orElse(null),
+                                p.get("embedMemoryBudgetMb").map(Integer::parseInt).orElse(null),
+                                p.get("embedMemoryPressureThreshold").map(Double::parseDouble).orElse(null),
+                                p.get("ocrParallelism").map(Integer::parseInt).orElse(null),
+                                p.get("ocrFanout").map(Boolean::parseBoolean).orElse(null),
+                                p.get("ocrMinImageBytes").map(Long::parseLong).orElse(null),
+                                p.get("progressHeartbeatInterval").orElse(null),
+                                p.get("streamingSpew").map(Boolean::parseBoolean).orElse(null),
+                                p.get("spewQueueCapacity").map(Integer::parseInt).orElse(null),
+                                p.get("pstFolderFanout").map(Boolean::parseBoolean).orElse(null),
+                                p.get("pstParseParallelism").map(Integer::parseInt).orElse(null),
+                                p.get("legacyUntitledNaming").map(Boolean::parseBoolean).orElse(null),
+                                p.get("maxEmbedDepth").map(Integer::parseInt).orElse(null),
+                                p.get("maxEmbedSizeBytes").map(Long::parseLong).orElse(null));
     }
 
     /** The {@link Options} {@code org.icij.extract.document.DocumentFactory#configure(Options)} needs. */
@@ -135,6 +125,7 @@ public record IndexOptions(
         putIfPresent(options, "maxEmbedSizeBytes", maxEmbedSizeBytes);
         return Options.from(options);
     }
+
     private static void putIfPresent(Map<String, Object> options, String key, Object value) {
         if (value != null) {
             options.put(key, value.toString());
