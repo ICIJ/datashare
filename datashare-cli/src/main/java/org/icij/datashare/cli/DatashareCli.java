@@ -270,11 +270,8 @@ public class DatashareCli {
         // if the user provided -m SERVER then values will be [EMBEDDED,SERVER] so this function will keep the user option!
         // it has to be refactored because we can't use lists with separator in jopts simple, we use lists as string
         String stringValue = !values.isEmpty() ? String.valueOf(values.get(values.size() - 1)) : "";
-        return stringValue.isEmpty() && !requiresArgument(spec) ? "true" : stringValue;
-    }
-
-    private static boolean requiresArgument(OptionSpec<?> spec) {
-        return spec instanceof OptionDescriptor descriptor && descriptor.requiresArgument();
+        boolean requiresArgument = spec instanceof OptionDescriptor descriptor && descriptor.requiresArgument();
+        return stringValue.isEmpty() && !requiresArgument ? "true" : stringValue;
     }
 
     private void printHelp(OptionParser parser) {
