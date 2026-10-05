@@ -29,6 +29,9 @@ import static java.util.Optional.ofNullable;
 import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
+import static org.icij.datashare.cli.DatashareCliOptions.OCR_MIN_CONFIDENCE_OPT;
+import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 import static org.icij.datashare.text.Hasher.shorten;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
@@ -111,6 +114,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     public String indexName;
     // volatile: set by the task thread before the pipeline starts, read by every consumer thread
     private volatile ManifestRecorder manifestRecorder;
+    // volatile: set by the task thread in configure, read by every consumer thread
+    private volatile int minOcrConfidence = DEFAULT_OCR_MIN_CONFIDENCE;
 
     @Inject
     public ElasticsearchSpewer(final Indexer indexer, DocumentCollectionFactory<String> outputQueueFactory,
@@ -290,7 +295,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
         String content = readContent(document);
         if (document.getLanguage() == null) {
-            builder.with(languageGuesser.guess(content, document.getPath()));
+            Double ocrConfidence = LanguageGuesser.ocrConfidence(document.getMetadata().get(OCR_CONFIDENCE));
+            builder.with(languageGuesser.guess(content, document.getPath(), ocrConfidence, minOcrConfidence));
         } else {
             builder.with(Language.parse(document.getLanguage()));
         }
@@ -415,6 +421,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     public Spewer configure(Options<String> options) {
         super.configure(options);
         setIndex(options.valueIfPresent("projectName").orElse(options.get(DEFAULT_PROJECT_OPT).value().get()));
+        minOcrConfidence = options.valueIfPresent(OCR_MIN_CONFIDENCE_OPT).map(Integer::parseInt)
+                                  .orElse(DEFAULT_OCR_MIN_CONFIDENCE);
         return this;
     }
 

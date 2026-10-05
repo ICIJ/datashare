@@ -203,6 +203,19 @@ public class IndexTaskTest {
                 }}), null);
     }
 
+    @Test
+    public void test_configure_passes_ocr_min_confidence_to_spewer() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), Map.of("ocrMinConfidence", "70")), null);
+
+        ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
+        verify(spewer).configure(captor.capture());
+        Option<String> option = new Option<>("ocrMinConfidence", StringOptionParser::new).update("70");
+        assertThat(captor.getValue()).contains(option);
+    }
+
     @After
     public void tearDown() throws Exception {
         logWrapper.reset();

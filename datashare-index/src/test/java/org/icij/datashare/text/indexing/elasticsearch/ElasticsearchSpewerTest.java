@@ -49,6 +49,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.utils.JsonUtils.nodeToMap;
 import static org.junit.Assert.assertEquals;
@@ -311,6 +312,54 @@ public class ElasticsearchSpewerTest {
         assertThat(nodeToMap(documentFields.source())).includes(
                 entry("language", "ENGLISH")
         );
+    }
+
+    @Test
+    public void test_write_low_confidence_ocr_image_has_unknown_language() throws Exception {
+        Map<String, Object> indexed = indexedOcrImage("IMG_0042.png", 0.3, Map.of());
+        assertThat(indexed.get("language")).isEqualTo("UNKNOWN");
+        // the LANGUAGE stage reads the confidence back under this key
+        assertThat((Map<String, Object>) indexed.get("metadata")).includes(entry("tika_metadata_ocr_confidence", "0.3"));
+    }
+
+    @Test
+    public void test_write_reads_the_ocr_min_confidence_option() throws Exception {
+        assertThat(indexedOcrImage("IMG_0044.png", 0.3, Map.of("ocrMinConfidence", "20")).get("language"))
+                .isEqualTo("ENGLISH");
+    }
+
+    @Test
+    public void test_a_task_without_ocr_min_confidence_goes_back_to_the_default() throws Exception {
+        try (ElasticsearchSpewer ocrSpewer = textOnlySpewer()) {
+            ocrSpewer.configure(Options.from(Map.<String, Object>of("defaultProject", es.getIndexName(), "ocrMinConfidence", "20")));
+            ocrSpewer.configure(Options.from(Map.<String, Object>of("defaultProject", es.getIndexName())));
+            assertThat(writeOcrImage(ocrSpewer, "IMG_0046.png", 0.3).get("language")).isEqualTo("UNKNOWN");
+        }
+    }
+
+    private Map<String, Object> indexedOcrImage(String fileName, double confidence, Map<String, String> options) throws Exception {
+        try (ElasticsearchSpewer ocrSpewer = textOnlySpewer()) {
+            Map<String, Object> taskOptions = new HashMap<>(options);
+            taskOptions.put("defaultProject", es.getIndexName());
+            ocrSpewer.configure(Options.from(taskOptions));
+            return writeOcrImage(ocrSpewer, fileName, confidence);
+        }
+    }
+
+    // ENGLISH for any text, UNKNOWN for none: the language only depends on whether the content was kept.
+    private ElasticsearchSpewer textOnlySpewer() {
+        return new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
+                documentQueueFactory, text -> text == null || text.isBlank() ? Language.UNKNOWN : Language.ENGLISH,
+                new FieldNames(), new PropertiesProvider(Map.of("defaultProject", es.getIndexName())));
+    }
+
+    private Map<String, Object> writeOcrImage(ElasticsearchSpewer ocrSpewer, String fileName, double confidence) throws Exception {
+        TikaDocument image = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get(fileName));
+        image.getMetadata().set(OCR_CONFIDENCE, confidence);
+        image.setReader(new ParsingReader(new ByteArrayInputStream("Tbe qvick hrown f0x".getBytes())));
+        ocrSpewer.write(image);
+        GetResponse<ObjectNode> indexed = es.client.get(doc -> doc.index(es.getIndexName()).id(image.getId()), ObjectNode.class);
+        return nodeToMap(indexed.source());
     }
 
 

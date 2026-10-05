@@ -51,6 +51,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @OptionsClass(DocumentQueueDrainer.class)
 @Option(name = DEFAULT_PROJECT_OPT, description = "the default project name")
 @Option(name = "projectName", description = "task project name")
+@Option(name = OCR_MIN_CONFIDENCE_OPT, description = "OCR confidence, from 0 to 100, under which an image's text is not used to detect its language")
 @TaskGroup(TaskGroupType.Java)
 public class IndexTask extends PipelineTask<Path> implements Monitorable {
     private static final Path PATH_POISON = Paths.get("POISON");
