@@ -30,7 +30,7 @@ public class ElasticsearchSpewer extends AbstractElasticSearchSpewer implements 
     }
 
     @Override
-    void postIndexation(Document document, String index) {
+    protected void postIndexation(Document document, String index) {
         String queueEntry = DocReference.fromDocument(document).toQueueEntry();
         if (!outputQueue.offer(queueEntry)) {
             logger.warn("cannot offer {} to queue {}", queueEntry, outputQueue.getName());

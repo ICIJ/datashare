@@ -4,8 +4,8 @@ import io.temporal.activity.ActivityOptions;
 import io.temporal.workflow.Async;
 import io.temporal.workflow.Promise;
 import io.temporal.workflow.Workflow;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.ScanOptions;
-import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -25,12 +25,13 @@ public class IndexationWorkflowImpl implements IndexationWorkflow, PathBatchRece
                                                                                         .build());
     private final List<Promise<Void>> pendingIndexations = new ArrayList<>();
     private String index;
-    private IndexOptions indexOptions;
+    private PropertiesProvider propertiesProvider;
 
     @Override
-    public Long run(ScanOptions scanOptions, Path path, String index, IndexOptions indexOptions) throws IOException {
+    public Long run(ScanOptions scanOptions, Path path, String index, PropertiesProvider propertiesProvider) throws
+            IOException {
         this.index = index;
-        this.indexOptions = indexOptions;
+        this.propertiesProvider = propertiesProvider;
 
         // launch scan activity, it will trigger indexation activities via the onPaths signal
         Long totalScanned = scanActivity.run(scanOptions, path);
@@ -45,6 +46,6 @@ public class IndexationWorkflowImpl implements IndexationWorkflow, PathBatchRece
     public void onPaths(List<Path> paths) {
         // We received a batch of paths that can be indexed: fire the indexation asynchronously so
         // several batches can be indexed concurrently, and track it so run() can wait for it.
-        pendingIndexations.add(Async.procedure(indexActivity::index, indexOptions, paths, index));
+        pendingIndexations.add(Async.procedure(indexActivity::index, propertiesProvider, paths, index));
     }
 }
