@@ -53,6 +53,17 @@ public class IndexTaskTest {
     }
 
     @Test
+    public void test_options_include_ocr_retry_confidence() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+            put("queueName", "test:queue");
+        }}), null);
+        Options<String> options = indexTask.options();
+        assertThat(options.toString()).contains("ocrRetryConfidence=");
+    }
+
+    @Test
     public void test_options_include_progress_heartbeat_interval() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);

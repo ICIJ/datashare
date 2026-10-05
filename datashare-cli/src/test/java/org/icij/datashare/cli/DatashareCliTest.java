@@ -481,4 +481,18 @@ public class DatashareCliTest {
         Files.writeString(file, content);
         return file;
     }
+
+    @Test
+    public void test_ocr_confidence_options() {
+        Properties properties = cli.asProperties(
+                cli.createParser().parse("--ocrRetryConfidence", "40", "--ocrMinConfidence", "70"), null);
+        assertThat(properties).includes(entry("ocrRetryConfidence", "40"), entry("ocrMinConfidence", "70"));
+    }
+
+    @Test
+    public void test_ocr_confidence_options_absent_by_default() {
+        Properties properties = cli.asProperties(cli.createParser().parse(), null);
+        assertThat(properties.containsKey("ocrRetryConfidence")).isFalse();
+        assertThat(properties.containsKey("ocrMinConfidence")).isFalse();
+    }
 }

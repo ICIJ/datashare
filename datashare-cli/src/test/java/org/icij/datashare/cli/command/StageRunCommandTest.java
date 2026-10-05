@@ -180,4 +180,18 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
         Properties props = parse("stage", "run", "--stages", "INDEX", "--artifactsForce", "false");
         assertThat(props).includes(entry("artifactsForce", "false"));
     }
+
+    @Test
+    public void test_ocr_confidence_options() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX",
+                                 "--ocrRetryConfidence", "40", "--ocrMinConfidence", "70");
+        assertThat(props).includes(entry("ocrRetryConfidence", "40"), entry("ocrMinConfidence", "70"));
+    }
+
+    @Test
+    public void test_ocr_confidence_options_absent_by_default() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
+        assertThat(props.containsKey("ocrRetryConfidence")).isFalse();
+        assertThat(props.containsKey("ocrMinConfidence")).isFalse();
+    }
 }

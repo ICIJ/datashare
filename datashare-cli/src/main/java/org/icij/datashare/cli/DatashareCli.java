@@ -129,6 +129,8 @@ public class DatashareCli {
         DatashareCliOptions.enableOcr(parser);
         DatashareCliOptions.language(parser);
         DatashareCliOptions.ocrLanguage(parser);
+        DatashareCliOptions.ocrRetryConfidence(parser);
+        DatashareCliOptions.ocrMinConfidence(parser);
         DatashareCliOptions.ocrType(parser);
         DatashareCliOptions.ocrStrategy(parser);
         DatashareCliOptions.ocrTimeout(parser);
