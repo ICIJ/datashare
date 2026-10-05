@@ -70,7 +70,7 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
      * @param document
      * @param index
      */
-    abstract void postIndexation(Document document, String index);
+    protected abstract void postIndexation(Document document, String index);
 
     private static Document.RecoveryStatus parseChildRecoveryStatus(TikaDocument document) {
         String raw = document.getMetadata().get(PST_ATTACHMENT_RECOVERY);
