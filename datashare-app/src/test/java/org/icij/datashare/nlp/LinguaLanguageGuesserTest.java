@@ -1,6 +1,7 @@
 package org.icij.datashare.nlp;
 
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.junit.Test;
 import java.nio.file.Paths;
 
@@ -92,6 +93,49 @@ public class LinguaLanguageGuesserTest {
     public void test_does_not_spin_on_giant_single_line_alphanumeric() {
         // the 30s timeout is the regression guard: optimaize backtracked here forever
         assertThat(GUESSER.guess(giantSingleLine())).isNotNull();
+    }
+
+    private static final String FRENCH_PROSE =
+            "Le petit chat noir dort paisiblement sur le canape pres de la fenetre ensoleillee.";
+
+    @Test(timeout = 30000)
+    public void test_low_confidence_ocr_text_gives_no_language() {
+        assertThat(GUESSER.guess(FRENCH_PROSE, Paths.get("/tmp/IMG_0042.png"), 0.3, 60)).isEqualTo(Language.UNKNOWN);
+    }
+
+    @Test(timeout = 30000)
+    public void test_confident_ocr_text_keeps_its_language() {
+        assertThat(GUESSER.guess(FRENCH_PROSE, Paths.get("/tmp/IMG_0042.png"), 0.9, 60)).isEqualTo(Language.FRENCH);
+    }
+
+    @Test(timeout = 30000)
+    public void test_ocr_confidence_at_the_threshold_is_trusted() {
+        assertThat(GUESSER.guess(FRENCH_PROSE, Paths.get("/tmp/IMG_0042.png"), 0.6, 60)).isEqualTo(Language.FRENCH);
+    }
+
+    @Test(timeout = 30000)
+    public void test_a_zero_threshold_trusts_every_read() {
+        assertThat(GUESSER.guess(FRENCH_PROSE, Paths.get("/tmp/IMG_0042.png"), 0.0, 0)).isEqualTo(Language.FRENCH);
+    }
+
+    @Test(timeout = 30000)
+    public void test_no_ocr_confidence_keeps_the_content_language() {
+        assertThat(GUESSER.guess(FRENCH_PROSE, Paths.get("/tmp/IMG_0042.png"), null, 60)).isEqualTo(Language.FRENCH);
+    }
+
+    @Test(timeout = 30000)
+    public void test_low_confidence_ocr_text_falls_back_to_a_long_file_name() {
+        assertThat(GUESSER.guess("The quick brown fox jumps over the lazy dog near the river bank every morning.",
+                                 Paths.get("/tmp/Contrat_de_travail_et_conditions_generales.png"), 0.3, 60))
+                .isEqualTo(Language.FRENCH);
+    }
+
+    @Test
+    public void test_reads_the_recorded_ocr_confidence() {
+        assertThat(LanguageGuesser.ocrConfidence("0.3")).isEqualTo(0.3);
+        assertThat(LanguageGuesser.ocrConfidence(0.3)).isEqualTo(0.3);
+        assertThat(LanguageGuesser.ocrConfidence(null)).isNull();
+        assertThat(LanguageGuesser.ocrConfidence("not a number")).isNull();
     }
 
     private static String frenchLongerThanTheCap() {
