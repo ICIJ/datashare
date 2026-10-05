@@ -28,8 +28,6 @@ import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import static java.util.Optional.ofNullable;
@@ -89,7 +87,6 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         // ontology moved is valid on the way in and stale on the way out, and the eager readers
         // parse the whole document before the builder is ever constructed.
         mapping.requireValid();
-        requireSheetNotShared(mapping);
         Project project = Project.project(projectId);
         Document document = indexer.get(projectId, mapping.documentId(),
                                         mapping.rootId() == null ? mapping.documentId() : mapping.rootId(),
@@ -140,20 +137,6 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
     @Override
     public User getUser() {
         return taskView.getUser();
-    }
-
-    // The replace keys on (project, document, sheet), so a second mapping over the same sheet would
-    // silently retract everything the first one wrote: one sheet, one mapping.
-    private void requireSheetNotShared(ExtractionMapping mapping) {
-        Optional<ExtractionMapping> sharing =
-                mappings.list(projectId).stream().filter(other -> !other.id().equals(mapping.id()))
-                        .filter(other -> other.documentId().equals(mapping.documentId()))
-                        .filter(other -> Objects.equals(other.options().sheet(), mapping.options().sheet()))
-                        .findFirst();
-        if (sharing.isPresent()) {
-            throw new IllegalArgumentException(
-                    "mapping '" + sharing.get().id() + "' already targets this sheet of " + mapping.documentId());
-        }
     }
 
     // A cancel landing while the Elasticsearch client waits on a response surfaces as whatever that
