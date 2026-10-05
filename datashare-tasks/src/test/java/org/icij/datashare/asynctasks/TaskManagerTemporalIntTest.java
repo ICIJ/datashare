@@ -1,25 +1,19 @@
 package org.icij.datashare.asynctasks;
 
-import org.icij.datashare.EnvUtils;
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.temporal.*;
 import org.icij.datashare.asynctasks.routingfixtures.GreetingTask;
 import org.icij.datashare.tasks.RoutingStrategy;
-import org.icij.datashare.text.StringUtils;
 import org.icij.datashare.user.User;
-import org.icij.extract.redis.RedissonClientFactory;
-import org.icij.task.Options;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.redisson.api.RedissonClient;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -36,28 +30,23 @@ import static org.mockito.MockitoAnnotations.openMocks;
 
 public class TaskManagerTemporalIntTest {
     private AutoCloseable mocks;
-    static RedissonClient redissonClient = new RedissonClientFactory().withOptions(
-            Options.from(new PropertiesProvider(Map.of("redisAddress", EnvUtils.resolveUri("redis", "redis://redis:6379"))).getProperties())).create();
-    // Warning : the order is not guaranteed for redisson map for tasks
-    static TaskRepository taskRepository = new TaskRepositoryRedis(redissonClient, "tasks:queue:test");
+    @ClassRule
+    public static TemporalRule temporal = new TemporalRule();
     @Mock
     private TaskFactory taskFactory;
-    private static TemporalInterlocutor temporal;
-    private static TaskManagerTemporal taskManager;
+    private TaskRepository taskRepository;
+    private TaskManagerTemporal taskManager;
 
     @Before
-    public void setUp() throws IOException, InterruptedException {
+    public void setUp() throws IOException {
         mocks = openMocks(this);
-        temporal = new TemporalInterlocutor(EnvUtils.resolve("temporalAddress", "temporal:7233"),
-                                            "test-" + StringUtils.generateString(8));
-        taskManager = new TaskManagerTemporal(temporal, taskRepository, RoutingStrategy.UNIQUE);
+        taskRepository = temporal.taskRepository();
+        taskManager = temporal.taskManager();
         taskManager.clear();
     }
 
     @After
     public void tearDown() throws Exception {
-        temporal.deleteNamespace(Duration.ofSeconds(5));
-        temporal.getClient().getWorkflowServiceStubs().shutdown();
         Optional.ofNullable(mocks).ifPresent(rethrowConsumer(AutoCloseable::close));
     }
 
@@ -322,7 +311,7 @@ public class TaskManagerTemporalIntTest {
             assertThat(fromRepo.getProgress()).isEqualTo(1.0);
 
             // Temporal side: search attributes must reflect final progress 1.0
-            Task<?> fromTemporal = temporal.getTask(task.id);
+            Task<?> fromTemporal = temporal.interlocutor().getTask(task.id);
             assertThat(fromTemporal.getProgress()).isEqualTo(1.0);
         }
     }
@@ -356,7 +345,7 @@ public class TaskManagerTemporalIntTest {
                 return () -> "hello " + task.args.get("name");
             }
         };
-        TaskManagerTemporal manager = new TaskManagerTemporal(temporal, taskRepository, strategy);
+        TaskManagerTemporal manager = temporal.createTaskManager(strategy);
 
         try (Closeable ignored = greetingWorkerFactory(strategy, group, greetingFactory)) {
             Task<String> task = new Task<>(GreetingTask.class.getName(), User.local(), Map.of("name", who));
