@@ -114,6 +114,11 @@ public class LinguaLanguageGuesserTest {
     }
 
     @Test(timeout = 30000)
+    public void test_ocr_confidence_at_a_float_imprecise_threshold_is_trusted() {
+        assertThat(GUESSER.guess(FRENCH_PROSE, Paths.get("/tmp/IMG_0042.png"), 0.58, 58)).isEqualTo(Language.FRENCH);
+    }
+
+    @Test(timeout = 30000)
     public void test_a_zero_threshold_trusts_every_read() {
         assertThat(GUESSER.guess(FRENCH_PROSE, Paths.get("/tmp/IMG_0042.png"), 0.0, 0)).isEqualTo(Language.FRENCH);
     }

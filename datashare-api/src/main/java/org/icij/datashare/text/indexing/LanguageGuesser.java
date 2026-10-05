@@ -46,7 +46,7 @@ public interface LanguageGuesser {
      * content and the file name decides. {@code ocrConfidence} is 0 to 1, null when no OCR confidence was recorded.
      */
     default Language guess(String text, Path path, Double ocrConfidence, int minOcrConfidence) {
-        boolean untrusted = ocrConfidence != null && ocrConfidence * 100 < minOcrConfidence;
+        boolean untrusted = ocrConfidence != null && ocrConfidence < minOcrConfidence / 100.0;
         return guess(untrusted ? "" : text, path);
     }
 
