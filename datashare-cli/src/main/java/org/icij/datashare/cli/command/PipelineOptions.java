@@ -44,8 +44,12 @@ public class PipelineOptions {
     boolean ocr;
     @Option(names = {"--ocrType"}, description = "OCR implementation: TESSERACT or TESS4J", defaultValue = "TESSERACT")
     OcrType ocrType;
-    @Option(names = {"--ocrLanguage"}, description = "OCR languages for tesseract")
+    @Option(names = {"--ocrLanguage"}, description = "OCR languages for tesseract: 3-character ISO 639-2 codes joined by + (\"eng+fra\"). When empty, the language is chosen per image from its detected script if the osd and script models are installed, eng otherwise. A mapping such as \"Cyrillic:rus+ukr,Han:chi_sim\" keeps that choice but reads each listed script with the given languages.")
     String ocrLanguage;
+    @Option(names = {"--ocrRetryConfidence"}, description = "When the OCR language is chosen per image, read an image again with every script model if the first read's confidence is below this value, from 0 to 100. Defaults to 60.")
+    Integer ocrRetryConfidence;
+    @Option(names = {"--ocrMinConfidence"}, description = "OCR confidence, from 0 to 100, under which an image's text is not used to detect its language. Defaults to 60.")
+    Integer ocrMinConfidence;
     @Option(names = {"--ocrTimeout"}, description = "OCR timeout", defaultValue = DEFAULT_OCR_TIMEOUT)
     String ocrTimeout;
     @Option(names = {"--parseTimeout"},
@@ -108,6 +112,8 @@ public class PipelineOptions {
         DatashareOptions.put(props, OCR_OPT, ocr);
         DatashareOptions.putIfNotNull(props, OCR_TYPE_OPT, ocrType);
         DatashareOptions.putIfNotNull(props, OCR_LANGUAGE_OPT, ocrLanguage);
+        DatashareOptions.putIfNotNull(props, OCR_RETRY_CONFIDENCE_OPT, ocrRetryConfidence);
+        DatashareOptions.putIfNotNull(props, OCR_MIN_CONFIDENCE_OPT, ocrMinConfidence);
         DatashareOptions.putIfNotNull(props, OCR_STRATEGY_OPT, ocrStrategy);
         DatashareOptions.putIfNotNull(props, PARALLELISM_OPT, parallelism);
         DatashareOptions.put(props, PARSER_PARALLELISM_OPT, parserParallelism);

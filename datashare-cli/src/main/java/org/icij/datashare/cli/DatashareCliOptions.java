@@ -101,6 +101,8 @@ public final class DatashareCliOptions {
     public static final String OAUTH_TOKEN_URL_OPT = "oauthTokenUrl";
     public static final String OCR_ABBR_OPT = "o";
     public static final String OCR_LANGUAGE_OPT = "ocrLanguage";
+    public static final String OCR_RETRY_CONFIDENCE_OPT = "ocrRetryConfidence";
+    public static final String OCR_MIN_CONFIDENCE_OPT = "ocrMinConfidence";
     public static final String OCR_OPT = "ocr";
     public static final String OCR_TYPE_OPT = "ocrType";
     public static final String OCR_TIMEOUT = "ocrTimeout";
@@ -259,6 +261,7 @@ public final class DatashareCliOptions {
     public static final boolean DEFAULT_NO_DIGEST_PROJECT = false;
     public static final boolean DEFAULT_OCR = true;
     public static final String DEFAULT_OCR_TIMEOUT = "12h";
+    public static final int DEFAULT_OCR_MIN_CONFIDENCE = 60;
     public static final String DEFAULT_PARSE_TIMEOUT = "24h";
     public static final int DEFAULT_MAX_EMBED_DEPTH = 20;
     public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
@@ -642,8 +645,26 @@ public final class DatashareCliOptions {
 
     static void ocrLanguage(OptionParser parser) {
         parser.acceptsAll(List.of(OCR_LANGUAGE_OPT),
-                          "Explicitly specify OCR languages for tesseract. 3-character ISO 639-2 language codes and + sign for multiple languages")
+                          "OCR languages for tesseract: 3-character ISO 639-2 codes joined by + (\"eng+fra\"). " +
+                          "When empty, the language is chosen per image from its detected script if the osd and " +
+                          "script models are installed, eng otherwise. A mapping such as " +
+                          "\"Cyrillic:rus+ukr,Han:chi_sim\" keeps that choice but reads each listed script with " +
+                          "the given languages.")
               .withRequiredArg().ofType(String.class);
+    }
+
+    static void ocrRetryConfidence(OptionParser parser) {
+        parser.acceptsAll(List.of(OCR_RETRY_CONFIDENCE_OPT),
+                          "When the OCR language is chosen per image, read an image again with every script model " +
+                          "if the first read's confidence is below this value, from 0 to 100. Defaults to 60.")
+              .withRequiredArg().ofType(Integer.class);
+    }
+
+    static void ocrMinConfidence(OptionParser parser) {
+        parser.acceptsAll(List.of(OCR_MIN_CONFIDENCE_OPT),
+                          "OCR confidence, from 0 to 100, under which an image's text is not used to detect its " +
+                          "language. Defaults to 60.")
+              .withRequiredArg().ofType(Integer.class);
     }
 
     static void ocrType(OptionParser parser) {
