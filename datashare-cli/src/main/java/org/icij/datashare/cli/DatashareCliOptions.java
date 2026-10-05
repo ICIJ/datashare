@@ -663,7 +663,8 @@ public final class DatashareCliOptions {
     static void ocrMinConfidence(OptionParser parser) {
         parser.acceptsAll(List.of(OCR_MIN_CONFIDENCE_OPT),
                           "OCR confidence, from 0 to 100, under which an image's text is not used to detect its " +
-                          "language. Defaults to 60.")
+                          "language. Defaults to 60. Only applies when the OCR records a confidence: the language " +
+                          "is chosen per image, or the OCR type is TESS4J.")
               .withRequiredArg().ofType(Integer.class);
     }
 
