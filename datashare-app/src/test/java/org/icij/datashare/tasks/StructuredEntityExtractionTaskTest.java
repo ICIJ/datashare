@@ -28,6 +28,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -257,6 +258,25 @@ public class StructuredEntityExtractionTaskTest {
             }
         };
         running.set(task("m1", cancelling));
+
+        assertThrows(CancelException.class, () -> running.get().call());
+
+        assertThat(Thread.currentThread().isInterrupted()).isFalse();
+    }
+
+    @Test
+    public void test_a_cancel_failing_the_rebuild_on_an_io_error_is_raised_as_a_cancel() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n");
+        stored(mapping("m1"));
+        AtomicReference<StructuredEntityExtractionTask> running = new AtomicReference<>();
+        InMemoryStatementRepository failing = new InMemoryStatementRepository() {
+            @Override
+            public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
+                running.get().cancel(false);
+                throw new UncheckedIOException(new IOException("connection reset"));
+            }
+        };
+        running.set(task("m1", failing));
 
         assertThrows(CancelException.class, () -> running.get().call());
 

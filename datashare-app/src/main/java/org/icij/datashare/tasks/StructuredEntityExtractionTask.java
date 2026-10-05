@@ -144,7 +144,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
     private int rebuild() throws IOException {
         try {
             return new EntitiesIndexRebuilder(indexer, statements).rebuild(projectId);
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             throwIfCancelled();
             throw e;
         }
