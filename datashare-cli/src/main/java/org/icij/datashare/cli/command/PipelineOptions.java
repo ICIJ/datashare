@@ -48,7 +48,7 @@ public class PipelineOptions {
     String ocrLanguage;
     @Option(names = {"--ocrRetryConfidence"}, description = "When the OCR language is chosen per image, read an image again with every script model if the first read's confidence is below this value, from 0 to 100. Defaults to 60.")
     Integer ocrRetryConfidence;
-    @Option(names = {"--ocrMinConfidence"}, description = "OCR confidence, from 0 to 100, under which an image's text is not used to detect its language. Defaults to 60.")
+    @Option(names = {"--ocrMinConfidence"}, description = "OCR confidence, from 0 to 100, under which an image's text is not used to detect its language. Defaults to 60. Only applies when the OCR records a confidence: the language is chosen per image, or the OCR type is TESS4J.")
     Integer ocrMinConfidence;
     @Option(names = {"--ocrTimeout"}, description = "OCR timeout", defaultValue = DEFAULT_OCR_TIMEOUT)
     String ocrTimeout;
