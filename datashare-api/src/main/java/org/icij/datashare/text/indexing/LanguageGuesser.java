@@ -40,6 +40,28 @@ public interface LanguageGuesser {
         return longEnough ? guess(words) : Language.UNKNOWN;
     }
 
+    /**
+     * The guess for a document whose text may come from OCR: a read tesseract scores under
+     * {@code minOcrConfidence} (0 to 100) is mostly noise and detects as a random language, so it counts as no
+     * content and the file name decides. {@code ocrConfidence} is 0 to 1, null when no OCR confidence was recorded.
+     */
+    default Language guess(String text, Path path, Double ocrConfidence, int minOcrConfidence) {
+        boolean untrusted = ocrConfidence != null && ocrConfidence * 100 < minOcrConfidence;
+        return guess(untrusted ? "" : text, path);
+    }
+
+    /** The OCR confidence a document's metadata records, or null when it records none that reads as a number. */
+    static Double ocrConfidence(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Double.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     /** The extension is latin whatever the name is written in, and it drags the guess towards latin. */
     private static String withoutExtension(String fileName) {
         int extension = fileName.lastIndexOf('.');
