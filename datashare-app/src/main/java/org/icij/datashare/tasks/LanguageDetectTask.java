@@ -99,8 +99,8 @@ public class LanguageDetectTask extends PipelineTask<String> {
     private void updateLanguage(Document document, DocReference ref, DetectionCounters counters) throws IOException {
         Double ocrConfidence = LanguageGuesser.ocrConfidence(
                 ofNullable(document.getMetadata()).map(metadata -> metadata.get(OCR_CONFIDENCE_KEY)).orElse(null));
-        Language guess = languageGuesser.guess(document.getContent(), document.getPath(), ocrConfidence,
-                                               minOcrConfidence);
+        Language guess =
+                languageGuesser.guess(document.getContent(), document.getPath(), ocrConfidence, minOcrConfidence);
         if (guess == document.getLanguage()) {
             counters.unchanged().incrementAndGet();
             return;
