@@ -1,1 +1,8 @@
 #!/bin/sh
+tessdata=/usr/share/tesseract-ocr/5/tessdata
+for model in Latin HanS Cyrillic Arabic Japanese Hangul; do
+  if [ -f "$tessdata/$model.traineddata" ] && [ ! -e "$tessdata/script/$model.traineddata" ]; then
+    mkdir -p "$tessdata/script" && ln -s "../$model.traineddata" "$tessdata/script/$model.traineddata"
+  fi
+done
+exit 0

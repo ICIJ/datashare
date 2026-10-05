@@ -4,11 +4,23 @@ FROM eclipse-temurin:21-noble
 # cf https://pdfbox.apache.org/1.8/cookbook/workingwithfonts.html
 RUN apt update && apt install -y \
   tesseract-ocr \
+  tesseract-ocr-script-arab \
+  tesseract-ocr-script-cyrl \
+  tesseract-ocr-script-hang \
+  tesseract-ocr-script-hans \
+  tesseract-ocr-script-jpan \
+  tesseract-ocr-script-latn \
   fonts-dejavu-core \
   fonts-droid-fallback \
   fonts-freefont-ttf \
   fonts-liberation \
   fonts-ubuntu
+
+# Ubuntu installs the script models at the tessdata root, extract only finds them under tessdata/script/
+RUN cd /usr/share/tesseract-ocr/5/tessdata && mkdir -p script && \
+    for model in Latin HanS Cyrillic Arabic Japanese Hangul; do \
+      ln -s ../$model.traineddata script/$model.traineddata; \
+    done
 
 # add user/group datashare (remove ubuntu user/group if they exist with UID/GID 1000)
 RUN userdel -r ubuntu 2>/dev/null || true && \
