@@ -184,8 +184,7 @@ public class PropertiesProvider {
     }
 
     public Map<String, Object> getIncludedProperties(String... includedKeys) {
-        return getProperties().entrySet().stream().filter(e -> stream(includedKeys).anyMatch(
-                                      s -> s.equals(e.getKey())))
+        return getProperties().entrySet().stream().filter(e -> stream(includedKeys).anyMatch(s -> s.equals(e.getKey())))
                               .collect(toMap(e -> (String) e.getKey(), Map.Entry::getValue));
     }
 
@@ -277,7 +276,8 @@ public class PropertiesProvider {
     }
 
     public <T extends Record> T toRecord(Class<T> recordClass) {
-        String[] recordKeys = stream(recordClass.getRecordComponents()).map(RecordComponent::getName).toArray(String[]::new);
+        String[] recordKeys =
+                stream(recordClass.getRecordComponents()).map(RecordComponent::getName).toArray(String[]::new);
         return JsonObjectMapper.getMapper().convertValue(getIncludedProperties(recordKeys), recordClass);
     }
 

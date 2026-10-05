@@ -33,7 +33,8 @@ public class IndexActivityImpl implements IndexActivity {
 
     public IndexActivityImpl(final PropertiesProvider propertiesProvider, final Indexer indexer,
                              final LanguageGuesser languageGuesser) {
-        this.propertiesProvider = propertiesProvider; // TODO: to be removed after ArtifactStages refactoring into ArtifactOptions or the like
+        this.propertiesProvider =
+                propertiesProvider; // TODO: to be removed after ArtifactStages refactoring into ArtifactOptions or the like
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
     }
