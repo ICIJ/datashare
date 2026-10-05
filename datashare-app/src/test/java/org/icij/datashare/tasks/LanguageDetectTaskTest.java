@@ -148,6 +148,53 @@ public class LanguageDetectTaskTest {
         }
     }
 
+    @Test(timeout = 30000)
+    public void test_low_confidence_ocr_text_gives_no_language() throws Exception {
+        when(mockEs.get("prj", "imgId", "imgId", EXCLUDES)).thenReturn(ocrImage("0.3"));
+        enqueue("imgId");
+
+        assertThat(runTask()).isEqualTo(1);
+
+        verify(mockEs).update("prj", "imgId", Map.of("language", "UNKNOWN"), "imgId");
+    }
+
+    @Test(timeout = 30000)
+    public void test_reads_a_numeric_ocr_confidence() throws Exception {
+        when(mockEs.get("prj", "imgId", "imgId", EXCLUDES)).thenReturn(ocrImage(0.3));
+        enqueue("imgId");
+
+        assertThat(runTask()).isEqualTo(1);
+
+        verify(mockEs).update("prj", "imgId", Map.of("language", "UNKNOWN"), "imgId");
+    }
+
+    @Test(timeout = 30000)
+    public void test_reads_the_ocr_min_confidence_option() throws Exception {
+        when(mockEs.get("prj", "imgId", "imgId", EXCLUDES)).thenReturn(ocrImage("0.3"));
+        enqueue("imgId");
+
+        assertThat(runTask(factory, Map.of("defaultProject", "prj", "ocrMinConfidence", "20"))).isEqualTo(1);
+
+        verify(mockEs).update("prj", "imgId", Map.of("language", "FRENCH"), "imgId");
+    }
+
+    @Test(timeout = 30000)
+    public void test_a_malformed_ocr_confidence_is_ignored() throws Exception {
+        when(mockEs.get("prj", "imgId", "imgId", EXCLUDES)).thenReturn(ocrImage("not a number"));
+        enqueue("imgId");
+
+        assertThat(runTask()).isEqualTo(1);
+
+        verify(mockEs).update("prj", "imgId", Map.of("language", "FRENCH"), "imgId");
+    }
+
+    // Indexed as FINNISH, the random language garbage OCR used to get.
+    private Document ocrImage(Object ocrConfidence) {
+        return DocumentBuilder.createDoc("imgId").with(new Project("prj")).with(FRENCH_CONTENT)
+                .with(Paths.get("/corpus/IMG_0042.png")).with(Language.FINNISH)
+                .with(Map.<String, Object>of("tika_metadata_ocr_confidence", ocrConfidence)).build();
+    }
+
     private Document frenchDocTagged(Language language, String id) {
         return DocumentBuilder.createDoc(id).with(new Project("prj")).with(FRENCH_CONTENT).with(language).build();
     }
