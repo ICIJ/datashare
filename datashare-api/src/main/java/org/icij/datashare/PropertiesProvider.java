@@ -1,5 +1,7 @@
 package org.icij.datashare;
 
+import java.lang.reflect.RecordComponent;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
@@ -181,6 +183,12 @@ public class PropertiesProvider {
                               .collect(toMap(e -> (String) e.getKey(), Map.Entry::getValue));
     }
 
+    public Map<String, Object> getIncludedProperties(String... includedKeys) {
+        return getProperties().entrySet().stream().filter(e -> stream(includedKeys).anyMatch(
+                                      s -> s.equals(e.getKey())))
+                              .collect(toMap(e -> (String) e.getKey(), Map.Entry::getValue));
+    }
+
     public void save() throws IOException {
         logger.info("writing properties to file {}", settingsPath);
         if (settingsPath == null) {
@@ -266,6 +274,11 @@ public class PropertiesProvider {
                 return false;
             }
         }
+    }
+
+    public <T extends Record> T toRecord(Class<T> recordClass) {
+        String[] recordKeys = stream(recordClass.getRecordComponents()).map(RecordComponent::getName).toArray(String[]::new);
+        return JsonObjectMapper.getMapper().convertValue(getIncludedProperties(recordKeys), recordClass);
     }
 
     public static class SettingsNotFound extends RuntimeException {
