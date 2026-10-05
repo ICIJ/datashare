@@ -53,7 +53,6 @@ import org.icij.task.annotation.Option;
  * @param maxEmbedDepth
  * @param maxEmbedSizeBytes
  */
-@Option("INDEX_TIMEOUT_OPT")
 public record IndexOptions(
         int parallelThreads, int indexTimeout, int maxContentLength, String defaultIndexName, Hasher digestAlgorithm,
         String idMethod, String charset, String language,

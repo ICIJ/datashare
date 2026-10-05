@@ -1,18 +1,17 @@
 package org.icij.datashare.asynctasks;
 
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.temporal.*;
 import org.icij.datashare.asynctasks.routingfixtures.GreetingTask;
 import org.icij.datashare.tasks.RoutingStrategy;
+import org.icij.datashare.text.StringUtils;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -31,7 +30,6 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.LambdaExceptionUtils.rethrowConsumer;
 import static org.icij.datashare.asynctasks.Task.State.*;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOWS_DEFAULT;
-import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.DEFAULT_NAMESPACE;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.MockitoAnnotations.openMocks;
@@ -47,29 +45,19 @@ public class TaskManagerTemporalIntTest {
     private static TemporalInterlocutor temporal;
     private static TaskManagerTemporal taskManager;
 
-    @BeforeClass
-    public static void setUpClass() throws InterruptedException {
-        temporal = new TemporalInterlocutor(EnvUtils.resolve("temporalAddress", "temporal:7233"), DEFAULT_NAMESPACE);
-        taskManager = new TaskManagerTemporal(temporal, taskRepository, RoutingStrategy.UNIQUE);
-    }
-
     @Before
     public void setUp() throws IOException, InterruptedException {
         mocks = openMocks(this);
-        try {
-            temporal.deleteNamespace(Duration.ofSeconds(5));
-        } catch (StatusRuntimeException ex) {
-            if (!ex.getStatus().getCode().equals(Status.Code.NOT_FOUND)) {
-                throw ex;
-            }
-        }
-        temporal.setupNamespace(Duration.ofSeconds(5));
+        temporal = new TemporalInterlocutor(EnvUtils.resolve("temporalAddress", "temporal:7233"),
+                                            "test-" + StringUtils.generateString(8));
+        taskManager = new TaskManagerTemporal(temporal, taskRepository, RoutingStrategy.UNIQUE);
         taskManager.clear();
-        Thread.sleep(2000); // Sleep to allow custom attribute creation propagation refresh rate is 0.1s
     }
 
-    @Before
+    @After
     public void tearDown() throws Exception {
+        temporal.deleteNamespace(Duration.ofSeconds(5));
+        temporal.getClient().getWorkflowServiceStubs().shutdown();
         Optional.ofNullable(mocks).ifPresent(rethrowConsumer(AutoCloseable::close));
     }
 

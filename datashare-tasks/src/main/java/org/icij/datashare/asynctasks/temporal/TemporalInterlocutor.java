@@ -42,6 +42,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import static io.grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING;
@@ -78,6 +79,7 @@ public class TemporalInterlocutor {
                    PROGRESS_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
                    USER_CUSTOM_ATTRIBUTE.getName(), IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD);
     public static final Duration DEFAULT_NAMESPACE_POLL_INTERVAL = Duration.of(50, ChronoUnit.MILLIS);
+    private static final Duration VISIBILITY_POLL_INTERVAL = Duration.of(200, ChronoUnit.MILLIS);
     private static final Set<Status.Code> NAMESPACE_EXISTS = Set.of(Status.ALREADY_EXISTS.getCode());
     private static final NamespaceConfig DEFAULT_NAMESPACE_CONFIG =
             NamespaceConfig.newBuilder().setWorkflowExecutionRetentionTtl(Durations.fromDays(365)).build();
@@ -162,6 +164,14 @@ public class TemporalInterlocutor {
                     throw new RuntimeException("failed to read namespace search attribute in less than " + timeout);
                 }
                 Thread.sleep(DEFAULT_NAMESPACE_POLL_INTERVAL.toMillis());
+            }
+            // search if attributes are mapped (this is what worflow.start does)
+            // it is to avoid Thread.sleep in tests. In production, it ensures that the namespace is ready
+            while (!searchAttributesAreMapped(workflowServiceBlockingStub, namespace)) {
+                if ((System.currentTimeMillis() - start >= timeoutMillis)) {
+                    throw new RuntimeException("failed to map namespace search attribute in less than " + timeout);
+                }
+                Thread.sleep(VISIBILITY_POLL_INTERVAL.toMillis());
             }
         }
     }
@@ -530,6 +540,24 @@ public class TemporalInterlocutor {
             return false;
         }
         return searchAttributes.containsAll(CUSTOM_SEARCH_ATTRIBUTES.keySet());
+    }
+
+    private static boolean searchAttributesAreMapped(
+            WorkflowServiceGrpc.WorkflowServiceBlockingStub workflowServiceBlockingStub, String namespace) {
+        String query = CUSTOM_SEARCH_ATTRIBUTES.entrySet().stream()
+                                               .map(e -> e.getKey() + (e.getValue() == IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD ? " = ''" : " = 0"))
+                                               .collect(Collectors.joining(" AND "));
+        try {
+            workflowServiceBlockingStub.countWorkflowExecutions(
+                    CountWorkflowExecutionsRequest.newBuilder().setNamespace(namespace).setQuery(query).build());
+            return true;
+        } catch (StatusRuntimeException e) {
+            if (!e.getStatus().getCode().equals(Status.Code.INVALID_ARGUMENT) &&
+                !e.getStatus().getCode().equals(Status.Code.RESOURCE_EXHAUSTED)) {
+                throw e;
+            }
+            return false;
+        }
     }
 
     private static void awaitNamespaceDeleted(
