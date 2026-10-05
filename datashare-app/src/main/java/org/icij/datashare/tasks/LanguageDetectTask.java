@@ -16,6 +16,7 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
+import org.icij.spewer.FieldNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
@@ -28,6 +29,7 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
 import static org.icij.datashare.cli.DatashareCliOptions.OCR_MIN_CONFIDENCE_OPT;
+import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 
 /**
  * Re-detects the language of every document referenced in the LANGUAGE queue and rewrites the
@@ -39,7 +41,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.OCR_MIN_CONFIDENCE_OPT;
 @TaskGroup(TaskGroupType.Java)
 public class LanguageDetectTask extends PipelineTask<String> {
     private static final List<String> SOURCE_EXCLUDES = List.of("content_translated");
-    private static final String OCR_CONFIDENCE_KEY = "tika_metadata_ocr_confidence";
+    private static final String OCR_CONFIDENCE_KEY = new FieldNames().forMetadata(OCR_CONFIDENCE.getName());
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final LanguageGuesser languageGuesser;
