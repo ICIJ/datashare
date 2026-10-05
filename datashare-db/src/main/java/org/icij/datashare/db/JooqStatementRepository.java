@@ -74,9 +74,9 @@ public class JooqStatementRepository implements StatementRepository {
         Write write = new Write(projectId, runId, now());
         Stream<Statement> checked = statements.peek(statement -> requireWrittenBy(statement, documentId, section));
         ToIntFunction<DSLContext> retract = transaction -> deleteBySheet(transaction, projectId, documentId, section);
-        // One transaction around every chunk, the per-chunk ones nesting as savepoints: a run that fails
-        // or is cancelled part way rolls the retraction back with what it wrote, so the sheet is either
-        // the previous run's or this one's, never half of each.
+        // One transaction around every chunk: a run that fails or is cancelled part way rolls the
+        // retraction back with what it wrote, so the sheet is either the previous run's or this one's,
+        // never half of each.
         return create().transactionResult(configuration -> write(DSL.using(configuration), write, checked, retract));
     }
 
@@ -97,11 +97,8 @@ public class JooqStatementRepository implements StatementRepository {
                 }
                 boolean retracting = pending;
                 pending = false;
-                Replaced round = create.transactionResult(configuration -> {
-                    DSLContext transaction = DSL.using(configuration);
-                    return new Replaced(retracting ? retract.applyAsInt(transaction) : 0,
-                                        saveChunk(transaction, write, chunk));
-                });
+                Replaced round = new Replaced(retracting ? retract.applyAsInt(create) : 0,
+                                              saveChunk(create, write, chunk));
                 retracted += round.retracted();
                 written += round.written();
             }
