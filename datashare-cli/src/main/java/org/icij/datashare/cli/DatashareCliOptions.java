@@ -649,8 +649,7 @@ public final class DatashareCliOptions {
                           "When empty, the language is chosen per image from its detected script if the osd and " +
                           "script models are installed, eng otherwise. A mapping such as " +
                           "\"Cyrillic:rus+ukr,Han:chi_sim\" keeps that choice but reads each listed script with " +
-                          "the given languages.")
-              .withRequiredArg().ofType(String.class);
+                          "the given languages.").withRequiredArg().ofType(String.class);
     }
 
     static void ocrRetryConfidence(OptionParser parser) {
@@ -664,8 +663,7 @@ public final class DatashareCliOptions {
         parser.acceptsAll(List.of(OCR_MIN_CONFIDENCE_OPT),
                           "OCR confidence, from 0 to 100, under which an image's text is not used to detect its " +
                           "language. Defaults to 60. Only applies when the OCR records a confidence: the language " +
-                          "is chosen per image, or the OCR type is TESS4J.")
-              .withRequiredArg().ofType(Integer.class);
+                          "is chosen per image, or the OCR type is TESS4J.").withRequiredArg().ofType(Integer.class);
     }
 
     static void ocrType(OptionParser parser) {
