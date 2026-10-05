@@ -1,5 +1,6 @@
 package org.icij.datashare.cli;
 
+import joptsimple.OptionDescriptor;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -249,7 +250,7 @@ public class DatashareCli {
             if (!typed && settings.containsKey(key)) {
                 properties.setProperty(key, env.getProperty(key, settings.getProperty(key)));
             } else if (typed || !entry.getValue().isEmpty()) {
-                properties.setProperty(key, asPropertyValue(entry.getValue()));
+                properties.setProperty(key, asPropertyValue(spec, entry.getValue()));
             }
         }
         return properties;
@@ -263,13 +264,17 @@ public class DatashareCli {
         throw new IllegalArgumentException("No usable non-short flag: " + flags);
     }
 
-    private String asPropertyValue(List<?> values) {
+    private String asPropertyValue(OptionSpec<?> spec, List<?> values) {
         // last value is used for bash script option overriding:
         // when in datashare shell script we call java ... -m EMBEDDED $@
         // if the user provided -m SERVER then values will be [EMBEDDED,SERVER] so this function will keep the user option!
         // it has to be refactored because we can't use lists with separator in jopts simple, we use lists as string
         String stringValue = !values.isEmpty() ? String.valueOf(values.get(values.size() - 1)) : "";
-        return stringValue.isEmpty() ? "true" : stringValue;
+        return stringValue.isEmpty() && !requiresArgument(spec) ? "true" : stringValue;
+    }
+
+    private static boolean requiresArgument(OptionSpec<?> spec) {
+        return spec instanceof OptionDescriptor descriptor && descriptor.requiresArgument();
     }
 
     private void printHelp(OptionParser parser) {

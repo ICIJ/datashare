@@ -60,6 +60,19 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_an_empty_value_for_an_option_requiring_one_stays_empty() {
+        // a wrapper script passing an unset variable must not turn into the query "true"
+        cli.parseArguments(new String[] {"--searchQuery", ""});
+        assertThat(cli.properties).includes(entry("searchQuery", ""));
+    }
+
+    @Test
+    public void test_an_option_with_an_optional_value_reads_as_true_when_bare() {
+        cli.parseArguments(new String[] {"--pluginList"});
+        assertThat(cli.properties).includes(entry("pluginList", "true"));
+    }
+
+    @Test
     public void test_tcp_listen_port_opt() {
         cli.parseArguments(new String[] {"--tcpListenPort=7777"});
         assertThat(cli.properties).includes(entry("tcpListenPort", "7777"));
