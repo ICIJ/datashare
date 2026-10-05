@@ -23,23 +23,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
+import static org.icij.datashare.cli.DatashareCliOptions.OCR_MIN_CONFIDENCE_OPT;
 
 /**
  * Re-detects the language of every document referenced in the LANGUAGE queue and rewrites the
  * language field in place, for corpora indexed by an older guesser. It detects on exactly what
- * index time detects on ({@link LanguageGuesser#guess(String, java.nio.file.Path)}), file-name
+ * index time detects on ({@link LanguageGuesser#guess(String, java.nio.file.Path, Double, int)}), file-name
  * fallback included, so a re-run cannot downgrade a document the INDEX stage got right.
  */
 @TemporalSingleActivityWorkflow(name = "language", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class LanguageDetectTask extends PipelineTask<String> {
     private static final List<String> SOURCE_EXCLUDES = List.of("content_translated");
+    private static final String OCR_CONFIDENCE_KEY = "tika_metadata_ocr_confidence";
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final LanguageGuesser languageGuesser;
     private final Project project;
+    private final int minOcrConfidence;
 
     @Inject
     public LanguageDetectTask(DocumentCollectionFactory<String> factory, Indexer indexer,
@@ -50,6 +55,8 @@ public class LanguageDetectTask extends PipelineTask<String> {
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
         project = Project.project((String) taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT));
+        minOcrConfidence = propertiesProvider.get(OCR_MIN_CONFIDENCE_OPT).map(Integer::parseInt)
+                                             .orElse(DEFAULT_OCR_MIN_CONFIDENCE);
     }
 
     @Override
@@ -88,7 +95,10 @@ public class LanguageDetectTask extends PipelineTask<String> {
     }
 
     private void updateLanguage(Document document, DocReference ref, DetectionCounters counters) throws IOException {
-        Language guess = languageGuesser.guess(document.getContent(), document.getPath());
+        Double ocrConfidence = LanguageGuesser.ocrConfidence(
+                ofNullable(document.getMetadata()).map(metadata -> metadata.get(OCR_CONFIDENCE_KEY)).orElse(null));
+        Language guess = languageGuesser.guess(document.getContent(), document.getPath(), ocrConfidence,
+                                               minOcrConfidence);
         if (guess == document.getLanguage()) {
             counters.unchanged().incrementAndGet();
             return;
