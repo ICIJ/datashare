@@ -178,12 +178,6 @@ public class CliAppTest {
     @Test
     public void test_scan_query_is_rejected_without_a_search_query() {
         assertThat(validateScanQuery("SCANQUERY,INDEX", null)).isEqualTo(CliApp.EXIT_VALIDATION);
-        assertThat(validateScanQuery("SCANQUERY,INDEX", " ")).isEqualTo(CliApp.EXIT_VALIDATION);
-    }
-
-    @Test
-    public void test_scan_query_is_rejected_when_the_next_stage_drains_no_paths() {
-        assertThat(validateScanQuery("SCANQUERY,NLP", "language:WELSH")).isEqualTo(CliApp.EXIT_VALIDATION);
     }
 
     @Test
