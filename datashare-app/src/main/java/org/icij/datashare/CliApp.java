@@ -192,6 +192,10 @@ class CliApp {
         if (nextStageValidation != EXIT_SUCCESS) {
             System.exit(nextStageValidation);
         }
+        int scanQueryValidation = validateScanQuery(pipeline, mode.properties());
+        if (scanQueryValidation != EXIT_SUCCESS) {
+            System.exit(scanQueryValidation);
+        }
 
         logger.info("executing {}", pipeline);
         // the merged provider, not the raw CLI properties: task args are the only config a stage reads,
@@ -226,6 +230,24 @@ class CliApp {
         try {
             EnqueueFromIndexTask.parseNextStage(
                     nextStage.orElseGet(() -> pipeline.getNextStage(Stage.ENQUEUEIDX).name()));
+        } catch (IllegalArgumentException e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
+        }
+        return EXIT_SUCCESS;
+    }
+
+    /**
+     * Checks a chain running {@link Stage#SCANQUERY} has what that stage needs, before any task is
+     * created, with the same check {@link ScanQueryTask} runs.
+     *
+     * @return {@link #EXIT_SUCCESS}, or {@link #EXIT_VALIDATION} once the reason is reported
+     */
+    static int validateScanQuery(PipelineHelper pipeline, Properties properties) {
+        if (!pipeline.stages.contains(Stage.SCANQUERY)) {
+            return EXIT_SUCCESS;
+        }
+        try {
+            ScanQueryTask.checkRunIsAccepted(new PropertiesProvider(properties));
         } catch (IllegalArgumentException e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
         }

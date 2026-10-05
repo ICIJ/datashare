@@ -54,7 +54,7 @@ public class ScanQueryTask extends PipelineTask<Path> {
     public ScanQueryTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, @Assisted Task<Long> taskView,
                          @Assisted Function<Double, Void> ignored) {
         super(Stage.SCANQUERY, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
-        this.searchQuery = propertiesProvider.get(SEARCH_QUERY_OPT).filter(query -> !query.isBlank()).orElse(null);
+        this.searchQuery = searchQueryOf(propertiesProvider);
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = propertiesProvider.get(SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE));
         this.projectName = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
@@ -105,21 +105,35 @@ public class ScanQueryTask extends PipelineTask<Path> {
     }
 
     /**
-     * Validated here rather than in the constructor: a task built reflectively turns a constructor
-     * throw into a requeue-forever NackException instead of a clean task failure.
+     * Rejects a run this stage cannot do anything useful with: no search query, or a next stage
+     * that does not drain the file paths it enqueues.
+     *
+     * @throws IllegalArgumentException naming what is missing
      */
-    private void checkRunIsUsable() {
-        if (searchQuery == null) {
+    public static void checkRunIsAccepted(PropertiesProvider properties) {
+        if (searchQueryOf(properties) == null) {
             throw new IllegalArgumentException(
                     "%s selects the files to re-extract, so it needs --searchQuery".formatted(Stage.SCANQUERY));
         }
-        PipelineHelper pipeline = new PipelineHelper(propertiesProvider);
-        Stage nextStage = pipeline.getNextStage(Stage.SCANQUERY);
+        Stage nextStage = new PipelineHelper(properties).getNextStage(Stage.SCANQUERY);
         if (!PATH_CONSUMING_STAGES.contains(nextStage)) {
             throw new IllegalArgumentException(
                     "%s enqueues file paths, which %s does not drain: expected one of %s next in --stages".formatted(
                             Stage.SCANQUERY, nextStage, PATH_CONSUMING_STAGES));
         }
+    }
+
+    private static String searchQueryOf(PropertiesProvider properties) {
+        return properties.get(SEARCH_QUERY_OPT).filter(query -> !query.isBlank()).orElse(null);
+    }
+
+    /**
+     * Validated here rather than in the constructor: a task built reflectively turns a constructor
+     * throw into a requeue-forever NackException instead of a clean task failure.
+     */
+    private void checkRunIsUsable() {
+        checkRunIsAccepted(propertiesProvider);
+        PipelineHelper pipeline = new PipelineHelper(propertiesProvider);
         propertiesProvider.get(REPORT_NAME_OPT).ifPresent(reportName -> logger.warn(
                 "--reportName {} is set: the INDEX stage skips paths already recorded as extracted, so this " +
                 "re-extraction may extract nothing. Drop it to force it.", reportName));

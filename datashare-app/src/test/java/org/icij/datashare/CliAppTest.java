@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.NEXT_STAGE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -172,6 +173,36 @@ public class CliAppTest {
         // without nextStage the enqueuing task takes the next stage from the chain, which strands
         // every document it enqueues when that stage reads the index instead of a queue
         assertThat(validateNextStage("ENQUEUEIDX,BATCHNLP", null)).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_scan_query_is_rejected_without_a_search_query() {
+        assertThat(validateScanQuery("SCANQUERY,INDEX", null)).isEqualTo(CliApp.EXIT_VALIDATION);
+        assertThat(validateScanQuery("SCANQUERY,INDEX", " ")).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_scan_query_is_rejected_when_the_next_stage_drains_no_paths() {
+        assertThat(validateScanQuery("SCANQUERY,NLP", "language:WELSH")).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_scan_query_is_accepted_with_a_search_query_and_a_path_draining_next_stage() {
+        assertThat(validateScanQuery("SCANQUERY,DEDUPLICATE,INDEX", "language:WELSH")).isEqualTo(CliApp.EXIT_SUCCESS);
+    }
+
+    @Test
+    public void test_stages_without_scan_query_need_no_search_query() {
+        assertThat(validateScanQuery("SCANIDX,INDEX", null)).isEqualTo(CliApp.EXIT_SUCCESS);
+    }
+
+    private static int validateScanQuery(String stages, String searchQuery) {
+        Properties properties = new Properties();
+        properties.setProperty(PipelineHelper.STAGES_OPT, stages);
+        if (searchQuery != null) {
+            properties.setProperty(SEARCH_QUERY_OPT, searchQuery);
+        }
+        return CliApp.validateScanQuery(new PipelineHelper(new PropertiesProvider(properties)), properties);
     }
 
     private static int validateNextStage(String stages, String nextStage) {
