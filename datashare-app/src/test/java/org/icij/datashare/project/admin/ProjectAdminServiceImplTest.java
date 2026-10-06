@@ -1034,7 +1034,7 @@ public class ProjectAdminServiceImplTest {
         service.addProjectsToInventory(List.of("foo", "bar"), "jdoe");
 
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
-        verify(userStore, Mockito.times(2)).save(saved.capture());
+        verify(userStore).save(saved.capture());
         @SuppressWarnings("unchecked")
         Map<String, Object> apps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
         @SuppressWarnings("unchecked")
@@ -1054,7 +1054,7 @@ public class ProjectAdminServiceImplTest {
         service.removeProjectsFromInventory(List.of("foo", "bar"), "jdoe");
 
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
-        verify(userStore, Mockito.times(2)).save(saved.capture());
+        verify(userStore).save(saved.capture());
         @SuppressWarnings("unchecked")
         Map<String, Object> apps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
         @SuppressWarnings("unchecked")
