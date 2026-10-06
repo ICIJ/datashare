@@ -97,8 +97,8 @@ public class JooqStatementRepository implements StatementRepository {
                 }
                 boolean retracting = pending;
                 pending = false;
-                Replaced round = new Replaced(retracting ? retract.applyAsInt(create) : 0,
-                                              saveChunk(create, write, chunk));
+                Replaced round =
+                        new Replaced(retracting ? retract.applyAsInt(create) : 0, saveChunk(create, write, chunk));
                 retracted += round.retracted();
                 written += round.written();
             }
