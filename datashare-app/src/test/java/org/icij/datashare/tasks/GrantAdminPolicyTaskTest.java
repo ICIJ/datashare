@@ -43,6 +43,7 @@ public class GrantAdminPolicyTaskTest {
 
         verify(authorizer).addRoleForUserInInstance(User.local(), Role.INSTANCE_ADMIN);
         verify(authorizer).deleteProjectRolesForUser(User.local());
+        verify(authorizer).deleteDomainRolesForUser(User.local());
     }
 
     @Test
@@ -54,6 +55,7 @@ public class GrantAdminPolicyTaskTest {
 
         verify(authorizer, never()).addRoleForUserInInstance(any(), any());
         verify(authorizer).deleteProjectRolesForUser(User.local());
+        verify(authorizer).deleteDomainRolesForUser(User.local());
     }
 
     @Test
@@ -65,6 +67,7 @@ public class GrantAdminPolicyTaskTest {
 
         verify(authorizer, never()).addRoleForUserInInstance(any(), any());
         verify(authorizer, never()).deleteProjectRolesForUser(any());
+        verify(authorizer, never()).deleteDomainRolesForUser(any());
     }
 
     @Test

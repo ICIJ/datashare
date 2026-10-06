@@ -95,6 +95,24 @@ public class AuthorizerTest {
     }
 
     @Test
+    public void test_delete_domain_roles_for_user_keeps_instance_and_project_roles() {
+        authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
+        authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, Domain.DEFAULT);
+        authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_EDITOR, Domain.DEFAULT, project);
+        User bystander = new User("bystander");
+        authorizer.addRoleForUserInDomain(bystander, Role.DOMAIN_ADMIN, Domain.DEFAULT);
+
+        authorizer.deleteDomainRolesForUser(user);
+
+        assertThat(authorizer.getRolesForUserInDomain(user, Domain.DEFAULT)).isEmpty();
+        assertThat(authorizer.getRolesForUserInDomain(user, domain)).isEmpty();
+        assertThat(authorizer.getRolesForUserInDomain(user, Domain.of("*"))).containsOnly("INSTANCE_ADMIN");
+        assertThat(authorizer.getRolesForUserInProject(user, Domain.DEFAULT, project)).containsOnly("PROJECT_EDITOR");
+        assertThat(authorizer.getRolesForUserInDomain(bystander, Domain.DEFAULT)).containsOnly("DOMAIN_ADMIN");
+    }
+
+    @Test
     public void test_add_role_for_user_in_instance() {
         assertTrue(authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN));
     }

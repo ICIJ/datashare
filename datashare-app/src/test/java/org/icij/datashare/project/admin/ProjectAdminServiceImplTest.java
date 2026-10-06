@@ -1113,6 +1113,23 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_backfill_deletes_domain_admin_roles_of_instance_admins_only() throws Exception {
+        when(repository.getProjects()).thenReturn(List.of());
+        when(authorizer.getGroupPermissions()).thenReturn(List.of(
+                casbinRule("jdoe", "INSTANCE_ADMIN", "*::*"),
+                casbinRule("egarcia", "DOMAIN_ADMIN", "default::*")));
+        when(users.find("jdoe")).thenReturn(new DatashareUser(new User("jdoe", "Jane", "j@icij.org", "local", new HashMap<>())));
+        when(users.find("egarcia")).thenReturn(new DatashareUser(new User("egarcia", "Eva", "e@icij.org", "local", new HashMap<>())));
+        when(authorizer.getRolesForUserInDomain(argThat(u -> u != null && "jdoe".equals(u.id)), eq(Domain.of("*"))))
+                .thenReturn(List.of("INSTANCE_ADMIN"));
+
+        service.backfillWideAdminInventories();
+
+        verify(authorizer).deleteDomainRolesForUser(argThat(u -> "jdoe".equals(u.id)));
+        verify(authorizer, Mockito.times(1)).deleteDomainRolesForUser(any());
+    }
+
+    @Test
     public void test_grant_throws_when_user_holds_a_wide_role() throws Exception {
         User user = new User("jdoe", "Jane", "j@icij.org", "local", new HashMap<>());
         when(repository.getProject("foo")).thenReturn(new Project("foo"));

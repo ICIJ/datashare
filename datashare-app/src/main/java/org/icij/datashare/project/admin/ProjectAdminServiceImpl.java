@@ -267,8 +267,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             try {
                 User user = requireUser(userLogin);
                 appendToInventory(user, projectNames);
-                // Admins granted before a wide role replaced project roles still hold them.
+                // Admins granted before a wide role replaced project roles (and instance admin replaced
+                // domain admin) still hold them.
                 authorizer.deleteProjectRolesForUser(user);
+                if (authorizer.getRolesForUserInDomain(user, Domain.of("*")).contains(Role.INSTANCE_ADMIN.name())) {
+                    authorizer.deleteDomainRolesForUser(user);
+                }
             } catch (UserNotFoundException e) {
                 LOGGER.warn("skipping backfill of wide admin {}: user not found", userLogin);
             }
