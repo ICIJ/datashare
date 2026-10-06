@@ -32,6 +32,7 @@ import org.icij.datashare.tasks.UpstreamGate;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanQueryTask;
 import org.icij.datashare.tasks.ScanTask;
+import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreateRequest;
@@ -239,7 +240,8 @@ class CliApp {
                           entry(Stage.CATEGORIZE, CategorizeTask.class),
                           entry(Stage.CREATENLPBATCHESFROMIDX, CreateNlpBatchesFromIndex.class),
                           entry(Stage.NLP, ExtractNlpTask.class), entry(Stage.ARTIFACT, ArtifactTask.class),
-                          entry(Stage.LANGUAGE, LanguageDetectTask.class));
+                          entry(Stage.LANGUAGE, LanguageDetectTask.class),
+                          entry(Stage.ENTITIES, StructuredEntityExtractionTask.class));
 
     /**
      * Starts every configured stage, then awaits them all at once. Each stage carries the previous

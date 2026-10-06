@@ -119,6 +119,20 @@ public class PipelineHelperTest {
         }}));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_rejects_entities_together_with_another_stage() {
+        new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "INDEX,ENTITIES");
+        }}));
+    }
+
+    @Test
+    public void test_accepts_entities_alone() {
+        assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "ENTITIES");
+        }})).stages).containsOnly(Stage.ENTITIES);
+    }
+
     @Test
     public void test_get_queue_name_when_no_stage_is_provided_like_in_web_mode() {
         assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() )).getQueueNameFor(Stage.NLP)).isEqualTo("extract:queue:nlp");
