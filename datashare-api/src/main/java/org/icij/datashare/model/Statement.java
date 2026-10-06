@@ -50,6 +50,7 @@ public record Statement(String id, String model, String entityId, String entityT
     public static Statement of(String model, String entityId, String entityType, String property, String value,
                                Provenance provenance) {
         Objects.requireNonNull(model, "model");
+        Objects.requireNonNull(provenance, "provenance");
         TargetModelRegistry.get(model);
         return new Statement(id(model, entityId, entityType, property, value, provenance), model, entityId, entityType,
                              property, value, null, provenance);
