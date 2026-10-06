@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import static java.util.Optional.ofNullable;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Task;
@@ -9,6 +10,7 @@ import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
+import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
@@ -58,6 +60,8 @@ public class ArtifactTask extends PipelineTask<String> {
         this.indexer = indexer;
         taskId = taskView.id;
         artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
+        ofNullable(artifactOptions.artifactDir()).orElseThrow(() -> new IllegalArgumentException(
+                "cannot create artifact task with empty %s".formatted(ARTIFACT_DIR_OPT)));
         executor = Executors.newFixedThreadPool(artifactOptions.parallelism(), namedThreadFactory("artifact-worker"));
     }
 
