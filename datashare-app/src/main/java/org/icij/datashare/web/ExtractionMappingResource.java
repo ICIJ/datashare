@@ -24,7 +24,6 @@ import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import static net.codestory.http.payload.Payload.created;
@@ -57,7 +56,7 @@ public class ExtractionMappingResource {
     public Payload saveMapping(String project, String id, Context context) {
         User user = (User) context.currentUser();
         try {
-            ExtractionMapping mapping = read(context.request().content(), project, id, user.id);
+            ExtractionMapping mapping = read(context.request().contentAsBytes(), project, id, user.id);
             return mappings.save(mapping) ? created() :
                    PayloadFormatter.error("mapping '%s' already exists in project '%s'".formatted(id, project),
                                           HttpStatus.CONFLICT);
@@ -83,8 +82,8 @@ public class ExtractionMappingResource {
         return new JsonPayload(201, new TaskResource.TaskResponse(taskId));
     }
 
-    private static ExtractionMapping read(String body, String project, String id, String userId) throws IOException {
-        if (!(JsonObjectMapper.readTree(body.getBytes(StandardCharsets.UTF_8)) instanceof ObjectNode node)) {
+    private static ExtractionMapping read(byte[] body, String project, String id, String userId) throws IOException {
+        if (!(JsonObjectMapper.readTree(body) instanceof ObjectNode node)) {
             throw new IllegalArgumentException("the body must be a JSON object");
         }
         node.put("id", id).put("projectId", project).put("userId", userId);
