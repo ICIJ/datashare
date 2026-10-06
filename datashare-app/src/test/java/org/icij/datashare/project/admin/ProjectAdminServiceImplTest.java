@@ -1060,7 +1060,28 @@ public class ProjectAdminServiceImplTest {
         @SuppressWarnings("unchecked")
         List<String> ds = (List<String>) apps.get("datashare");
         assertThat(ds).excludes("foo").excludes("bar").contains("baz");
-        verifyNoInteractions(authorizer);
+        verify(authorizer, never()).deleteRoleForUserInProject(any(), any(), any(), any());
+    }
+
+    @Test
+    public void test_remove_projects_from_inventory_keeps_a_project_still_held_by_a_project_role() throws Exception {
+        Map<String, Object> details = new HashMap<>();
+        details.put("groups_by_applications", Map.of("datashare", List.of("foo", "bar")));
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", details);
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
+        when(userStore.save(any(User.class))).thenReturn(true);
+        when(authorizer.getRolesForUserInProject(any(), eq(Domain.DEFAULT), argThat(project -> "foo".equals(project.getName()))))
+                .thenReturn(List.of("PROJECT_MEMBER"));
+
+        service.removeProjectsFromInventory(List.of("foo", "bar"), "jdoe");
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(saved.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) apps.get("datashare");
+        assertThat(ds).containsOnly("foo");
     }
 
     @Test

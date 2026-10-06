@@ -97,7 +97,8 @@ public interface ProjectAdminService {
     /**
      * Removes every name in {@code projectNames} from the user's {@code groups_by_applications.datashare}
      * list, without touching any Casbin policy. Counterpart of {@link #addProjectsToInventory}, used
-     * when an instance or domain admin wide-role grant is revoked.
+     * when an instance or domain admin wide-role grant is revoked. A project the user still holds a
+     * per-project role on is kept, since that role still authorizes it.
      *
      * @throws UserNotFoundException if the user is missing.
      */
