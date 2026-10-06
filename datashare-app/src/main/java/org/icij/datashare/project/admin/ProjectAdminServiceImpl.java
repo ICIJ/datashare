@@ -148,7 +148,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             return new ProjectGranted(projectName, userLogin, role, null, true);
         }
 
-        User updated = appendProjectToInventory(user, projectName);
+        User updated = appendToInventory(user, List.of(projectName));
         swapCasbinRole(user, updated, project, existing, role);
         return new ProjectGranted(projectName, userLogin, role, highestRole(existing), false);
     }
@@ -178,7 +178,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     private ProjectRevoked doRevoke(Project project, User user, String userLogin, List<Role> existing) {
-        User updated = removeProjectFromInventory(user, project.getName());
+        User updated = removeFromInventory(user, List.of(project.getName()));
         pruneCasbinRoles(user, updated, project, existing);
         return new ProjectRevoked(project.getName(), userLogin, existing, false);
     }
@@ -238,30 +238,28 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     @Override
     public void addProjectsToInventory(List<String> projectNames, String userLogin) throws UserNotFoundException {
-        User user = requireUser(userLogin);
-        for (String projectName : projectNames) {
-            user = appendProjectToInventory(user, projectName);
-        }
+        appendToInventory(requireUser(userLogin), projectNames);
     }
 
     @Override
     public void removeProjectsFromInventory(List<String> projectNames, String userLogin) throws UserNotFoundException {
         User user = requireUser(userLogin);
-        for (String projectName : projectNames) {
-            user = removeProjectFromInventory(user, projectName);
-        }
+        removeFromInventory(user, projectNames);
     }
 
-    // Inventory mutations: return a fresh User with the per-application list
-    // adjusted. The caller persists. Both helpers go through the same safe-cast
-    // helpers so a stale or hand-edited details shape doesn't ClassCastException.
+    // Inventory mutations: persist a fresh User with the per-application list
+    // adjusted, in a single save whatever the number of projects. Both go through
+    // the same safe-cast helpers so a stale or hand-edited details shape doesn't
+    // ClassCastException.
 
-    private User appendProjectToInventory(User user, String projectName) {
+    private User appendToInventory(User user, List<String> projectNames) {
         Map<String, Object> newDetails = new HashMap<>(user.details);
         Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
         List<String> currentProjects = safeStringListOf(apps.get(DATASHARE_APP));
-        if (!currentProjects.contains(projectName)) {
-            currentProjects.add(projectName);
+        for (String projectName : projectNames) {
+            if (!currentProjects.contains(projectName)) {
+                currentProjects.add(projectName);
+            }
         }
         apps.put(DATASHARE_APP, currentProjects);
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
@@ -271,11 +269,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return updated;
     }
 
-    private User removeProjectFromInventory(User user, String projectName) {
+    private User removeFromInventory(User user, List<String> projectNames) {
         Map<String, Object> newDetails = new HashMap<>(user.details);
         Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
         List<String> currentProjects = safeStringListOf(apps.get(DATASHARE_APP));
-        currentProjects.remove(projectName);
+        currentProjects.removeAll(projectNames);
         apps.put(DATASHARE_APP, currentProjects);
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
