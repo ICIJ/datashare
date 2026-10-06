@@ -1,9 +1,11 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.artifact.ArtifactType;
 import org.junit.Test;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -62,5 +64,23 @@ public class ArtifactOptionsTest {
     public void test_artifact_project_root_throws_when_artifacts_set_without_artifact_dir() {
         ArtifactOptions options = new PropertiesProvider(Map.of("artifacts", "true")).toRecord(ArtifactOptions.class);
         options.artifactProjectRoot();
+    }
+
+    @Test
+    public void test_artifacts_empty_when_option_absent() {
+        ArtifactOptions options = new PropertiesProvider(Map.of()).toRecord(ArtifactOptions.class);
+        assertThat(options.artifacts()).isEmpty();
+    }
+
+    @Test
+    public void test_artifacts_all_types_when_bare_flag() {
+        ArtifactOptions options = new PropertiesProvider(Map.of("artifacts", "true")).toRecord(ArtifactOptions.class);
+        assertThat(options.artifacts()).isEqualTo(List.of(ArtifactType.values()));
+    }
+
+    @Test
+    public void test_artifacts_parsed_from_comma_separated_tokens() {
+        ArtifactOptions options = new PropertiesProvider(Map.of("artifacts", "raw, PAGE")).toRecord(ArtifactOptions.class);
+        assertThat(options.artifacts()).isEqualTo(List.of(ArtifactType.RAW, ArtifactType.PAGE));
     }
 }

@@ -59,9 +59,9 @@ public class ArtifactTaskTest {
     private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
 
     @Test(expected = IllegalArgumentException.class)
-    public void test_missing_artifact_dir() {
+    public void test_missing_artifact_dir() throws Exception {
         new ArtifactTask(factory, mockEs, new UpstreamGate.Factory(taskRepository),
-                ArtifactTaskFixture.taskWith(Map.of()), null);
+                ArtifactTaskFixture.taskWith(Map.of()), null).call();
     }
 
     @Test(timeout = 10000)
