@@ -20,12 +20,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -94,6 +99,21 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
         assertThat(saved.getValue().userId()).isEqualTo("local");
         assertThat(saved.getValue().projectId()).isEqualTo("prj");
         assertThat(saved.getValue().id()).isEqualTo("m1");
+    }
+
+    @Test
+    public void test_save_reads_a_json_body_without_charset_as_utf8() throws Exception {
+        when(mappings.save(any())).thenReturn(true);
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port() + "/api/prj/extraction-mappings/m1"))
+                                         .header("Content-Type", "application/json")
+                                         .PUT(HttpRequest.BodyPublishers.ofString(BODY.replace("\"name\"]", "\"Société\"]"), UTF_8))
+                                         .build();
+
+        assertThat(HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(201);
+
+        ArgumentCaptor<ExtractionMapping> saved = ArgumentCaptor.forClass(ExtractionMapping.class);
+        verify(mappings).save(saved.capture());
+        assertThat(saved.getValue().entities().get("c").properties().get("name").columns()).containsOnly("Société");
     }
 
     @Test
