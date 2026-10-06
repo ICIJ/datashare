@@ -88,7 +88,7 @@ public class ModelEntityTest {
     }
 
     private static void assertRejectsNull(String field, Runnable construction) {
-        assertThat(assertThrows(NullPointerException.class, construction::run).getMessage()).contains(field);
+        assertThat(assertThrows(NullPointerException.class, construction::run).getMessage()).isEqualTo(field);
     }
 
     @Test
