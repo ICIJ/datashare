@@ -103,4 +103,12 @@ public interface ProjectAdminService {
      * @throws UserNotFoundException if the user is missing.
      */
     void removeProjectsFromInventory(List<String> projectNames, String userLogin) throws UserNotFoundException;
+
+    /**
+     * Adds every existing project to the inventory of each user holding an instance admin or default
+     * domain admin role, like {@link #addProjectsToInventory} does on a wide-role grant. Covers admins
+     * granted before that sync existed and projects created since their grant. Idempotent; a role
+     * held by a user that no longer exists is skipped.
+     */
+    void backfillWideAdminInventories();
 }
