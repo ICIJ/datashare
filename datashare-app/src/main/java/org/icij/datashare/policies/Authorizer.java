@@ -158,6 +158,20 @@ public final class Authorizer implements Closeable {
         projectRules.forEach(rule -> enforcer.removeGroupingPolicy(rule.get(0), rule.get(1), rule.get(2)));
     }
 
+    /**
+     * Deletes every domain admin role of the user, in any domain. Instance admin replaces domain
+     * admin, so this runs whenever instance admin is granted.
+     */
+    public void deleteDomainRolesForUser(User user) {
+        List<List<String>> domainRules = enforcer.getFilteredGroupingPolicy(0, user.id).stream()
+                                                 .filter(rule -> rule.size() >= 3 &&
+                                                                 Role.DOMAIN_ADMIN.name().equals(rule.get(1)) &&
+                                                                 rule.get(2).endsWith(SEPARATOR + "*") &&
+                                                                 !rule.get(2).equals("*" + SEPARATOR + "*"))
+                                                 .collect(Collectors.toList());
+        domainRules.forEach(rule -> enforcer.removeGroupingPolicy(rule.get(0), rule.get(1), rule.get(2)));
+    }
+
     /*
      *   Project
      */

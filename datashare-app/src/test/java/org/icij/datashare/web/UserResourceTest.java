@@ -948,6 +948,29 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_grant_instance_admin_role_deletes_domain_admin_role() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInDomain(bob, Role.DOMAIN_ADMIN, Domain.DEFAULT);
+
+        put("/api/users/admin/bob/role?role=instance_admin").should().respond(200);
+
+        assertFalse(authorizer.getRolesForUserInDomain(bob, Domain.DEFAULT).contains("DOMAIN_ADMIN"));
+        assertTrue(authorizer.getRolesForUserInDomain(bob, Domain.of("*")).contains("INSTANCE_ADMIN"));
+    }
+
+    @Test
+    public void test_grant_domain_admin_role_keeps_instance_admin_role() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInInstance(bob, Role.INSTANCE_ADMIN);
+
+        put("/api/users/admin/bob/role?role=domain_admin").should().respond(200);
+
+        assertTrue(authorizer.getRolesForUserInDomain(bob, Domain.of("*")).contains("INSTANCE_ADMIN"));
+    }
+
+    @Test
     public void test_grant_already_held_instance_admin_role_still_deletes_leftover_project_roles() throws Exception {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);
