@@ -43,22 +43,19 @@ public interface LanguageGuesser {
     /**
      * The guess for a document whose text may come from OCR: a read tesseract scores under
      * {@code minOcrConfidence} (0 to 100) is mostly noise and detects as a random language, so it counts as no
-     * content and the file name decides. {@code ocrConfidence} is 0 to 1, null when no OCR confidence was recorded.
+     * content and the file name decides. {@code ocrConfidence} is the raw metadata value, 0 to 1, null or
+     * unreadable when no OCR confidence was recorded.
      */
-    default Language guess(String text, Path path, Double ocrConfidence, int minOcrConfidence) {
-        boolean untrusted = ocrConfidence != null && ocrConfidence < minOcrConfidence / 100.0;
-        return guess(untrusted ? "" : text, path);
+    default Language guess(String text, Path path, Object ocrConfidence, int minOcrConfidence) {
+        return guess(untrustedOcr(ocrConfidence, minOcrConfidence) ? "" : text, path);
     }
 
-    /** The OCR confidence a document's metadata records, or null when it records none that reads as a number. */
-    static Double ocrConfidence(Object value) {
-        if (value == null) {
-            return null;
-        }
+    /** A confidence that records nothing, or nothing that reads as a number, leaves the text trusted. */
+    private static boolean untrustedOcr(Object ocrConfidence, int minOcrConfidence) {
         try {
-            return Double.valueOf(value.toString());
-        } catch (NumberFormatException e) {
-            return null;
+            return ocrConfidence != null && Double.parseDouble(ocrConfidence.toString()) < minOcrConfidence / 100.0;
+        } catch (NumberFormatException notANumber) {
+            return false;
         }
     }
 

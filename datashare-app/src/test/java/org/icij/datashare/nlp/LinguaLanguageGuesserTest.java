@@ -1,7 +1,6 @@
 package org.icij.datashare.nlp;
 
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.junit.Test;
 import java.nio.file.Paths;
 
@@ -135,12 +134,10 @@ public class LinguaLanguageGuesserTest {
                 .isEqualTo(Language.FRENCH);
     }
 
-    @Test
-    public void test_reads_the_recorded_ocr_confidence() {
-        assertThat(LanguageGuesser.ocrConfidence("0.3")).isEqualTo(0.3);
-        assertThat(LanguageGuesser.ocrConfidence(0.3)).isEqualTo(0.3);
-        assertThat(LanguageGuesser.ocrConfidence(null)).isNull();
-        assertThat(LanguageGuesser.ocrConfidence("not a number")).isNull();
+    @Test(timeout = 30000)
+    public void test_an_unreadable_ocr_confidence_keeps_the_content_language() {
+        assertThat(GUESSER.guess(FRENCH_PROSE, Paths.get("/tmp/IMG_0042.png"), "not a number", 60))
+                .isEqualTo(Language.FRENCH);
     }
 
     private static String frenchLongerThanTheCap() {
