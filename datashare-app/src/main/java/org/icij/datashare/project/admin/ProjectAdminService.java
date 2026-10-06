@@ -106,9 +106,10 @@ public interface ProjectAdminService {
 
     /**
      * Adds every existing project to the inventory of each user holding an instance admin or default
-     * domain admin role, like {@link #addProjectsToInventory} does on a wide-role grant. Covers admins
-     * granted before that sync existed and projects created since their grant. Idempotent; a role
-     * held by a user that no longer exists is skipped.
+     * domain admin role, like {@link #addProjectsToInventory} does on a wide-role grant, and deletes
+     * their project roles, which a wide role replaces. Covers admins granted before those rules and
+     * projects created since their grant. Idempotent; a role held by a user that no longer exists is
+     * skipped.
      */
     void backfillWideAdminInventories();
 

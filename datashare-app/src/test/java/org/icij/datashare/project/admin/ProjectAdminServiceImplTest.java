@@ -1107,6 +1107,9 @@ public class ProjectAdminServiceImplTest {
             assertThat((List<?>) apps.get("datashare")).containsOnly("foo", "bar");
         }
         verify(users, never()).find("bob");
+        verify(authorizer).deleteProjectRolesForUser(argThat(u -> "jdoe".equals(u.id)));
+        verify(authorizer).deleteProjectRolesForUser(argThat(u -> "egarcia".equals(u.id)));
+        verify(authorizer, Mockito.times(2)).deleteProjectRolesForUser(any());
     }
 
     @Test

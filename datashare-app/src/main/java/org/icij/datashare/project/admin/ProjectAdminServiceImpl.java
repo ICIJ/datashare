@@ -254,31 +254,41 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     @Override
     public void backfillWideAdminInventories() {
-        addToWideAdminInventories(repository.getProjects().stream().map(p -> p.name).collect(Collectors.toList()));
+        List<String> projectNames = repository.getProjects().stream().map(p -> p.name).collect(Collectors.toList());
+        for (String userLogin : wideAdminLogins()) {
+            try {
+                User user = requireUser(userLogin);
+                appendToInventory(user, projectNames);
+                // Admins granted before a wide role replaced project roles still hold them.
+                authorizer.deleteProjectRolesForUser(user);
+            } catch (UserNotFoundException e) {
+                LOGGER.warn("skipping backfill of wide admin {}: user not found", userLogin);
+            }
+        }
     }
 
     @Override
     public void addProjectToWideAdminInventories(String projectName) {
         try {
-            addToWideAdminInventories(List.of(projectName));
+            for (String userLogin : wideAdminLogins()) {
+                try {
+                    addProjectsToInventory(List.of(projectName), userLogin);
+                } catch (UserNotFoundException e) {
+                    LOGGER.warn("skipping project {} for wide admin {}: user not found", projectName, userLogin);
+                }
+            }
         } catch (RuntimeException e) {
             LOGGER.error("cannot add project {} to wide admins' inventories", projectName, e);
         }
     }
 
-    private void addToWideAdminInventories(List<String> projectNames) {
-        //TODO #DOMAIN: backfill domain admins of every domain once projects carry a domain.
+    //TODO #DOMAIN: include domain admins of every domain once projects carry a domain.
+    private List<String> wideAdminLogins() {
         String defaultDomainScope = Domain.DEFAULT.id() + "::*";
-        authorizer.getGroupPermissions().stream()
-                  .filter(r -> Role.INSTANCE_ADMIN.name().equals(r.getV1()) && "*::*".equals(r.getV2()) ||
-                               Role.DOMAIN_ADMIN.name().equals(r.getV1()) && defaultDomainScope.equals(r.getV2()))
-                  .map(CasbinRule::getV0).distinct().forEach(userLogin -> {
-                      try {
-                          addProjectsToInventory(projectNames, userLogin);
-                      } catch (UserNotFoundException e) {
-                          LOGGER.warn("skipping project inventory backfill of wide admin {}: user not found", userLogin);
-                      }
-                  });
+        return authorizer.getGroupPermissions().stream()
+                         .filter(r -> Role.INSTANCE_ADMIN.name().equals(r.getV1()) && "*::*".equals(r.getV2()) ||
+                                      Role.DOMAIN_ADMIN.name().equals(r.getV1()) && defaultDomainScope.equals(r.getV2()))
+                         .map(CasbinRule::getV0).distinct().collect(Collectors.toList());
     }
 
     // Inventory mutations: persist a fresh User with the per-application list
