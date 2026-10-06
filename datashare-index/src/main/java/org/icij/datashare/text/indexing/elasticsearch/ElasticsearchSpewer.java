@@ -295,8 +295,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
         String content = readContent(document);
         if (document.getLanguage() == null) {
-            builder.with(languageGuesser.guess(content, document.getPath(),
-                                               document.getMetadata().get(OCR_CONFIDENCE), minOcrConfidence));
+            builder.with(languageGuesser.guess(content, document.getPath(), document.getMetadata().get(OCR_CONFIDENCE),
+                                               minOcrConfidence));
         } else {
             builder.with(Language.parse(document.getLanguage()));
         }
