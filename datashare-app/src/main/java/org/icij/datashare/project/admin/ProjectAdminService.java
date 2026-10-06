@@ -51,9 +51,11 @@ public interface ProjectAdminService {
      * @throws ValidationException if {@code role} is not a {@code PROJECT_*} role.
      * @throws ProjectNotFoundException if the project row is missing.
      * @throws UserNotFoundException if the user is missing.
+     * @throws WideRoleHeldException if the user holds an instance or domain admin role, which replaces
+     *                               project roles.
      */
     ProjectGranted grant(String projectName, String userLogin, org.icij.datashare.policies.Role role) throws
-            ProjectNotFoundException, UserNotFoundException, ValidationException;
+            ProjectNotFoundException, UserNotFoundException, ValidationException, WideRoleHeldException;
 
     /**
      * Idempotent counterpart of {@link #grant}: returns {@code noop=true}
@@ -61,7 +63,7 @@ public interface ProjectAdminService {
      * project roles.
      */
     ProjectGranted grantIfNotExists(String projectName, String userLogin, org.icij.datashare.policies.Role role) throws
-            ProjectNotFoundException, UserNotFoundException, ValidationException;
+            ProjectNotFoundException, UserNotFoundException, ValidationException, WideRoleHeldException;
 
     /**
      * Removes every project-scoped Casbin grouping policy the user holds on

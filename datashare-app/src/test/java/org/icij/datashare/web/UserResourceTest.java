@@ -15,6 +15,7 @@ import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
+import org.icij.datashare.project.admin.WideRoleHeldException;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -956,6 +957,13 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         put("/api/users/admin/bob/role?role=instance_admin").should().respond(200).contain("\"noop\":true");
 
         assertTrue(authorizer.getRolesForUserInProject(bob, Domain.DEFAULT, project("foo")).isEmpty());
+    }
+
+    @Test
+    public void test_grant_project_role_to_a_wide_admin_returns_409() throws Exception {
+        when(projectAdminService.grant("foo", "bob", Role.PROJECT_MEMBER)).thenThrow(new WideRoleHeldException("bob"));
+
+        put("/api/users/admin/bob/index/foo?role=member").should().respond(409).contain("instance or domain admin");
     }
 
     @Test

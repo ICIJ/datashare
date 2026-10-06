@@ -465,6 +465,19 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_handleProjectGrant_returns_conflict_when_user_holds_a_wide_role() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.grant("banana", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
+                .thenThrow(new org.icij.datashare.project.admin.WideRoleHeldException("promera"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "banana");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "editor");
+
+        assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(4);
+    }
+
+    @Test
     public void test_handleProjectGrant_replace_reports_previous_role() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
         when(service.grant("banana", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))

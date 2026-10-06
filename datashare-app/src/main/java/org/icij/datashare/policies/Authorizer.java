@@ -138,6 +138,15 @@ public final class Authorizer implements Closeable {
     }
 
     /**
+     * Whether the user holds a wide role: INSTANCE_ADMIN, or DOMAIN_ADMIN on the default domain.
+     */
+    //TODO #DOMAIN: consider domain admin grants on every domain once domains are operational.
+    public boolean holdsWideRole(User user) {
+        return getRolesForUserInDomain(user, Domain.of("*")).contains(Role.INSTANCE_ADMIN.name()) ||
+               getRolesForUserInDomain(user, Domain.DEFAULT).contains(Role.DOMAIN_ADMIN.name());
+    }
+
+    /**
      * Deletes every project-level role of the user, keeping instance and domain roles. A wide role
      * replaces project roles, so this runs whenever one is granted.
      */

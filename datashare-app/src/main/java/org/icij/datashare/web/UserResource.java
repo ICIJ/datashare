@@ -25,6 +25,7 @@ import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
+import org.icij.datashare.project.admin.WideRoleHeldException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -287,6 +288,7 @@ public class UserResource {
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "invalid role")
     @ApiResponse(responseCode = "404", description = "user or project not found")
+    @ApiResponse(responseCode = "409", description = "user holds an instance or domain admin role")
     @Policy(role = Role.PROJECT_ADMIN)
     @Put("/admin/:userId/index/:index")
     public Payload grantProjectToUser(String userId, String index, Context context) {
@@ -300,6 +302,8 @@ public class UserResource {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ProjectNotFoundException | org.icij.datashare.project.admin.UserNotFoundException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (WideRoleHeldException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
         }
     }
 
