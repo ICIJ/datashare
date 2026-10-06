@@ -11,6 +11,8 @@ import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.policies.MappingPolicy;
+import org.icij.datashare.policies.MappingPolicyAnnotation;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.PolicyAnnotation;
 import org.icij.datashare.policies.TaskPolicy;
@@ -125,6 +127,7 @@ public class ServerMode extends CommonMode {
         // run BEFORE the endpoint handler and can block unauthorized requests with 403.
         routes.registerAroundAnnotation(Policy.class, get(PolicyAnnotation.class));
         routes.registerAroundAnnotation(TaskPolicy.class, get(TaskPolicyAnnotation.class));
+        routes.registerAroundAnnotation(MappingPolicy.class, get(MappingPolicyAnnotation.class));
     }
 
     @Override
