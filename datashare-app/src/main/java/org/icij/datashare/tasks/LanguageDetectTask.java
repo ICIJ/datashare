@@ -34,7 +34,7 @@ import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 /**
  * Re-detects the language of every document referenced in the LANGUAGE queue and rewrites the
  * language field in place, for corpora indexed by an older guesser. It detects on exactly what
- * index time detects on ({@link LanguageGuesser#guess(String, java.nio.file.Path, Double, int)}), file-name
+ * index time detects on ({@link LanguageGuesser#guess(String, java.nio.file.Path, Object, int)}), file-name
  * fallback included, so a re-run cannot downgrade a document the INDEX stage got right.
  */
 @TemporalSingleActivityWorkflow(name = "language", activityOptions = @ActivityOpts(timeout = "P1D"))
@@ -97,8 +97,8 @@ public class LanguageDetectTask extends PipelineTask<String> {
     }
 
     private void updateLanguage(Document document, DocReference ref, DetectionCounters counters) throws IOException {
-        Double ocrConfidence = LanguageGuesser.ocrConfidence(
-                ofNullable(document.getMetadata()).map(metadata -> metadata.get(OCR_CONFIDENCE_KEY)).orElse(null));
+        Object ocrConfidence =
+                ofNullable(document.getMetadata()).map(metadata -> metadata.get(OCR_CONFIDENCE_KEY)).orElse(null);
         Language guess =
                 languageGuesser.guess(document.getContent(), document.getPath(), ocrConfidence, minOcrConfidence);
         if (guess == document.getLanguage()) {
