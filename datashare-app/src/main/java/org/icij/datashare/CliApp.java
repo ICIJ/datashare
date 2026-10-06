@@ -1,10 +1,12 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -17,6 +19,9 @@ import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.project.admin.ProjectStats;
+import org.icij.datashare.tabular.ExtractionMapping;
+import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
@@ -43,6 +48,7 @@ import org.icij.datashare.user.admin.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
@@ -55,8 +61,10 @@ import java.util.Properties;
 import java.util.function.Supplier;
 import static java.util.Map.entry;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.tasks.StructuredEntityExtractionTask.MAPPING_ID_OPT;
 import static org.icij.datashare.user.User.localUser;
 import static org.icij.datashare.user.User.nullUser;
 
@@ -194,10 +202,17 @@ class CliApp {
             System.exit(nextStageValidation);
         }
 
+        Properties runProperties = new Properties();
+        runProperties.putAll(mode.properties());
+        int mappingSave = saveMappingFile(mode.get(ExtractionMappingRepository.class), pipeline, runProperties);
+        if (mappingSave != EXIT_SUCCESS) {
+            System.exit(mappingSave);
+        }
+
         logger.info("executing {}", pipeline);
         // the merged provider, not the raw CLI properties: task args are the only config a stage reads,
         // so they need the DS_DOCKER_* and settings-file tiers CommonMode ranked, not just the typed args.
-        boolean completed = runPipeline(taskManager, pipeline, mode.properties());
+        boolean completed = runPipeline(taskManager, pipeline, runProperties);
         taskManager.shutdown();
         if (!completed) {
             // a partial run must not look like a success: `datashare ... && post-process.sh` would
@@ -230,6 +245,46 @@ class CliApp {
         } catch (IllegalArgumentException e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
         }
+        return EXIT_SUCCESS;
+    }
+
+    /**
+     * Saves --mappingFile before the ENTITIES stage starts, and hands its id to the task through
+     * {@code properties}. A mapping is immutable, so an id the project already holds is a conflict.
+     *
+     * @return {@link #EXIT_SUCCESS}, {@link #EXIT_CONFLICT} or {@link #EXIT_VALIDATION}
+     */
+    static int saveMappingFile(ExtractionMappingRepository mappings, PipelineHelper pipeline, Properties properties) {
+        if (!pipeline.stages.contains(Stage.ENTITIES)) {
+            return EXIT_SUCCESS;
+        }
+        String mappingFile = properties.getProperty(MAPPING_FILE_OPT);
+        if (mappingFile == null || mappingFile.isBlank()) {
+            return error("--mappingFile is required by the %s stage".formatted(Stage.ENTITIES), "validation",
+                         EXIT_VALIDATION, false);
+        }
+        ExtractionMapping mapping;
+        try {
+            if (!(JsonObjectMapper.readTree(Files.readAllBytes(Path.of(mappingFile))) instanceof ObjectNode node)) {
+                return error("%s does not hold a JSON object".formatted(mappingFile), "validation", EXIT_VALIDATION,
+                             false);
+            }
+            node.put("projectId", properties.getProperty(DEFAULT_PROJECT_OPT));
+            node.putNull("userId");
+            mapping = JsonObjectMapper.convertValue(node, ExtractionMapping.class);
+        } catch (IOException | IllegalArgumentException e) {
+            return error("cannot read %s: %s".formatted(mappingFile, e.getMessage()), "validation", EXIT_VALIDATION,
+                         false);
+        }
+        try {
+            if (!mappings.save(mapping)) {
+                return error("mapping '%s' already exists in project '%s'".formatted(mapping.id(), mapping.projectId()),
+                             "conflict", EXIT_CONFLICT, false);
+            }
+        } catch (InvalidExtractionMapping e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
+        }
+        properties.setProperty(MAPPING_ID_OPT, mapping.id());
         return EXIT_SUCCESS;
     }
 

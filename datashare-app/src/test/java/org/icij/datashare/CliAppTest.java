@@ -6,6 +6,10 @@ import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
+import org.icij.datashare.model.TargetModel;
+import org.icij.datashare.tabular.ExtractionMapping;
+import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.UpstreamGate;
@@ -15,8 +19,10 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
+import java.nio.file.Files;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -32,8 +38,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class CliAppTest {
@@ -42,6 +50,92 @@ public class CliAppTest {
             mock(DatashareTaskFactory.class), taskRepository,
             new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "100")),
             new CountDownLatch(1));
+    private static final String MAPPING_JSON = """
+            {"id": "m1", "projectId": "from-file", "userId": "someone", "name": "companies", "model": "ftm",
+             "documentId": "docId",
+             "entities": {"c": {"type": "Company", "keys": ["id"], "properties": {"name": {"columns": ["name"]}}}}}
+            """;
+
+    @Test
+    public void test_save_mapping_file_saves_it_under_the_cli_project_with_no_owner() throws Exception {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        when(mappings.save(any())).thenReturn(true);
+        Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_SUCCESS);
+
+        ArgumentCaptor<ExtractionMapping> saved = ArgumentCaptor.forClass(ExtractionMapping.class);
+        verify(mappings).save(saved.capture());
+        assertThat(saved.getValue().id()).isEqualTo("m1");
+        assertThat(saved.getValue().projectId()).isEqualTo("prj");
+        assertThat(saved.getValue().userId()).isNull();
+        assertThat(properties.getProperty("mappingId")).isEqualTo("m1");
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_an_existing_id_as_a_conflict() throws Exception {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        when(mappings.save(any())).thenReturn(false);
+        Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_CONFLICT);
+        assertThat(properties.containsKey("mappingId")).isFalse();
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_an_invalid_mapping() throws Exception {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        when(mappings.save(any())).thenThrow(new InvalidExtractionMapping("m1", List.of(new TargetModel.Violation("unknown property"))));
+        Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_a_file_that_is_not_a_mapping() throws Exception {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), "[1, 2]").toString());
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_VALIDATION);
+        verify(mappings, never()).save(any());
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_a_missing_file() {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+
+        assertThat(saveMappingFile(mappings, entitiesProperties("/does/not/exist.json"))).isEqualTo(CliApp.EXIT_VALIDATION);
+        verify(mappings, never()).save(any());
+    }
+
+    @Test
+    public void test_save_mapping_file_requires_the_option_with_entities() {
+        assertThat(saveMappingFile(mock(ExtractionMappingRepository.class), entitiesProperties(null))).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_save_mapping_file_does_nothing_without_entities() {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        Properties properties = new Properties();
+        properties.setProperty("stages", "SCAN,INDEX");
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_SUCCESS);
+        verifyNoInteractions(mappings);
+    }
+
+    private static Properties entitiesProperties(String mappingFile) {
+        Properties properties = new Properties();
+        properties.setProperty("stages", "ENTITIES");
+        properties.setProperty("defaultProject", "prj");
+        if (mappingFile != null) {
+            properties.setProperty("mappingFile", mappingFile);
+        }
+        return properties;
+    }
+
+    private static int saveMappingFile(ExtractionMappingRepository mappings, Properties properties) {
+        return CliApp.saveMappingFile(mappings, new PipelineHelper(new PropertiesProvider(properties)), properties);
+    }
 
     @Test(timeout = 2000)
     public void test_await_termination_with_scope_ignores_stale_tasks_in_repo() throws Exception {
