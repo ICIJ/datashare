@@ -50,6 +50,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -996,6 +997,19 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
         verify(projectAdminService, never()).removeProjectsFromInventory(any(), any());
         assertFalse(authorizer.getRolesForUserInDomain(bob, Domain.DEFAULT).contains("DOMAIN_ADMIN"));
+    }
+
+    @Test
+    public void test_grant_instance_admin_role_is_not_written_when_the_inventory_sync_fails() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        when(jooqRepository.getProjects()).thenReturn(List.of(project("foo")));
+        doThrow(new RuntimeException("db down"))
+                .when(projectAdminService).addProjectsToInventory(any(), any());
+
+        put("/api/users/admin/bob/role?role=instance_admin").should().respond(500);
+
+        assertFalse(authorizer.getRolesForUserInDomain(bob, Domain.of("*")).contains("INSTANCE_ADMIN"));
     }
 
     @Test

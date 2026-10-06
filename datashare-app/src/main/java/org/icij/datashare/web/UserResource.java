@@ -76,6 +76,8 @@ public class UserResource {
     // wildcard Casbin role; this only keeps the user's inventory (groups_by_applications.datashare,
     // what the UI lists for them) in sync with that, so they actually see what they're authorized
     // to access instead of whatever project-specific rows they happened to hold before.
+    // Callers run it before the Casbin write: a failure then leaves the role unchanged, so a retry
+    // redoes both instead of hitting the noop path with a stale inventory.
     //TODO #DOMAIN: scope to the projects of `domain` once projects carry a domain and domains are
     // operational; every project is in the single operational domain today.
     private void syncProjectInventoryForWideRole(String userId, boolean add) {
@@ -340,12 +342,12 @@ public class UserResource {
             Domain scopeDomain = role == Role.INSTANCE_ADMIN ? Domain.of("*") : domain;
             boolean alreadyGranted = authorizer.getRolesForUserInDomain(user, scopeDomain).contains(role.name());
             if (!alreadyGranted) {
+                syncProjectInventoryForWideRole(userId, true);
                 if (role == Role.INSTANCE_ADMIN) {
                     authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
                 } else {
                     authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
                 }
-                syncProjectInventoryForWideRole(userId, true);
             }
             return new Payload(new RoleGranted(role, userId, alreadyGranted ? role : null, alreadyGranted));
         } catch (Validators.InvalidValueException e) {
@@ -375,11 +377,6 @@ public class UserResource {
             Domain scopeDomain = role == Role.INSTANCE_ADMIN ? Domain.of("*") : domain;
             boolean currentlyGranted = authorizer.getRolesForUserInDomain(user, scopeDomain).contains(role.name());
             if (currentlyGranted) {
-                if (role == Role.INSTANCE_ADMIN) {
-                    authorizer.deleteRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
-                } else {
-                    authorizer.deleteRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
-                }
                 // The other wide role still authorizes every project, so the inventory stays as is.
                 //TODO #DOMAIN: also consider domain admin grants on other domains once domains are operational.
                 boolean otherWideRole = role == Role.INSTANCE_ADMIN
@@ -387,6 +384,11 @@ public class UserResource {
                         : authorizer.getRolesForUserInDomain(user, Domain.of("*")).contains(Role.INSTANCE_ADMIN.name());
                 if (!otherWideRole) {
                     syncProjectInventoryForWideRole(userId, false);
+                }
+                if (role == Role.INSTANCE_ADMIN) {
+                    authorizer.deleteRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
+                } else {
+                    authorizer.deleteRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
                 }
             }
             return new Payload(new RoleRevoked(role, userId, currentlyGranted ? role : null, !currentlyGranted));
