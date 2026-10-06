@@ -169,8 +169,7 @@ public class FtmTargetModel implements TargetModel {
     }
 
     private static EntityType.Edge edge(Edge edge) {
-        return new EntityType.Edge(edge.getSourceProperty().getName(), edge.getTargetProperty().getName(),
-                                   edge.isDirected());
+        return new EntityType.Edge(edge.getSourceProperty().getName(), edge.getTargetProperty().getName());
     }
 
     // Read through here rather than with get(), so a missing field fails as UnreadableModelResource
