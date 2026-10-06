@@ -5,16 +5,19 @@ import io.temporal.client.WorkflowOptions;
 import java.io.Closeable;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import static org.fest.assertions.Assertions.assertThat;
+import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.temporal.TemporalRule;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.WORKFLOWS_DEFAULT;
+import org.icij.datashare.asynctasks.temporal.TemporalRule;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkerOptions;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkers;
 import org.icij.datashare.asynctasks.temporal.WorkflowRegistry;
-import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.extract.ScanOptions;
+import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
@@ -38,8 +41,8 @@ public class IndexActivityImplIntTest {
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(IndexationWorkflowImpl.class, WORKFLOWS_DEFAULT);
         registry.registerActivity(new ScanActivityImpl(temporal.getClient()), WORKFLOWS_DEFAULT);
-        registry.registerActivity(new IndexActivityImpl(propertiesProvider, new ElasticsearchIndexer(es.client,
-                                                                                                     propertiesProvider).withRefresh(
+        ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, propertiesProvider);
+        registry.registerActivity(new IndexActivityImpl(propertiesProvider, indexer.withRefresh(
                 Refresh.True), text -> Language.ENGLISH), WORKFLOWS_DEFAULT);
 
         try (Closeable ignored = TemporalWorkers.start(temporal.getClient(), registry, List.of(WORKFLOWS_DEFAULT),
@@ -51,7 +54,9 @@ public class IndexActivityImplIntTest {
                          IndexOptions.fromPropertiesProvider(propertiesProvider));
         }
 
-        assertThat(es.client.count(c -> c.index(es.getIndexName())).count()).isEqualTo(1L);
+        Optional<? extends Entity> doc = indexer.search(List.of(es.getIndexName()), Document.class).execute().findFirst();
+        assertThat(doc.isPresent()).isTrue();
+        assertThat(((Document)doc.get()).getContent()).isEqualTo("this is the content of downloadDoc");
     }
 
     @Before

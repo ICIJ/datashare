@@ -73,8 +73,9 @@ public class ArtifactTask extends PipelineTask<String> {
     @Override
     public Long call() throws Exception {
         super.call();
-        logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s)", artifactOptions.artifactProjectRoot(),
-                    artifactOptions.projectName(), inputQueue.getName(), artifactOptions.parallelism());
+        logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s)",
+                    artifactOptions.artifactProjectRoot(), artifactOptions.projectName(), inputQueue.getName(),
+                    artifactOptions.parallelism());
         warnIfParseTimeoutIsIgnored();
         AtomicLong nbDocs = new AtomicLong(0);
         AtomicLong nbSkipped = new AtomicLong(0);
@@ -177,14 +178,16 @@ public class ArtifactTask extends PipelineTask<String> {
                 continue;
             }
             try {
-                Document doc = getDocument(indexer, artifactOptions.projectName(), DocReference.parse(queueEntry), SOURCE_EXCLUDES);
+                Document doc = getDocument(indexer, artifactOptions.projectName(), DocReference.parse(queueEntry),
+                                           SOURCE_EXCLUDES);
                 if (doc == null) {
                     nbSkipped.incrementAndGet();
                     continue;
                 }
                 // Each polled node is produced into its own content-addressed directory.
                 Path docArtifactDir = ArtifactPath.dir(projectRoot, doc.getId());
-                if (producer.run(selected, new ArtifactContext(Project.project(artifactOptions.projectName()), doc, docArtifactDir, extractor), force)) {
+                if (producer.run(selected, new ArtifactContext(Project.project(artifactOptions.projectName()), doc,
+                                                               docArtifactDir, extractor), force)) {
                     nbDocs.incrementAndGet();
                 } else {
                     nbFailed.incrementAndGet();
