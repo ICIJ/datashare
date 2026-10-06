@@ -85,40 +85,40 @@ public class FtmTargetModelTest {
 
     @Test
     public void test_the_missing_required_properties_are_reported_in_the_model_s_order() {
-        List<TargetModel.Violation> violations = model.validate(
+        List<String> violations = model.validate(
                 new ModelEntity("ftm", "e-1", "Employment", Set.of(), Set.of(), Map.of()));
 
-        assertThat(violations.get(0).message()).isEqualTo("type 'Employment' requires 'employer'");
+        assertThat(violations.get(0)).isEqualTo("type 'Employment' requires 'employer'");
     }
 
     @Test
     public void test_validating_a_company_with_no_properties_reports_the_missing_inherited_name() {
-        List<TargetModel.Violation> violations = model.validate(
+        List<String> violations = model.validate(
                 new ModelEntity("ftm", "c-1", "Company", Set.of(), Set.of(), Map.of()));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("Company");
-        assertThat(violations.get(0).message()).contains("name");
+        assertThat(violations.get(0)).contains("Company");
+        assertThat(violations.get(0)).contains("name");
     }
 
     @Test
     public void test_validating_an_interest_reports_that_the_type_is_abstract() {
-        List<TargetModel.Violation> violations = model.validate(
+        List<String> violations = model.validate(
                 new ModelEntity("ftm", "i-1", "Interest", Set.of(), Set.of(), Map.of()));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("Interest");
-        assertThat(violations.get(0).message()).contains("abstract");
+        assertThat(violations.get(0)).contains("Interest");
+        assertThat(violations.get(0)).contains("abstract");
     }
 
     @Test
     public void test_validating_a_person_writing_the_stub_property_employers_reports_the_stub() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("ftm", "p-1", "Person", Set.of(), Set.of(),
+        List<String> violations = model.validate(new ModelEntity("ftm", "p-1", "Person", Set.of(), Set.of(),
                 Map.of("name", List.of("Jane Doe"), "employers", List.of("e-1"))));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("employers");
-        assertThat(violations.get(0).message()).contains("stub");
+        assertThat(violations.get(0)).contains("employers");
+        assertThat(violations.get(0)).contains("stub");
     }
 
     @Test

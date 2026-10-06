@@ -1,7 +1,6 @@
 package org.icij.datashare.tabular;
 
 import org.icij.datashare.model.Statement;
-import org.icij.datashare.model.TargetModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
@@ -118,8 +117,7 @@ public class StatementBuilder {
         }
         List<String> missing = columns.stream().filter(column -> !row.values().containsKey(column)).toList();
         if (!checked) {
-            throw new InvalidExtractionMapping(mapping.id(), List.of(new TargetModel.Violation(
-                    "the source has no column " + missing)));
+            throw new InvalidExtractionMapping(mapping.id(), List.of("the source has no column " + missing));
         }
         missing.stream().filter(absent::add).forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
     }

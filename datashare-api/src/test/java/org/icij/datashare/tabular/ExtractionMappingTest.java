@@ -1,7 +1,6 @@
 package org.icij.datashare.tabular;
 
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.UnknownTargetModel;
 import org.junit.Test;
 
@@ -233,11 +232,11 @@ public class ExtractionMappingTest {
                 new ExtractionMapping.EntityMapping("Unicorn", List.of("id"), Map.of("name", column("n")));
         ExtractionMapping.EntityMapping dragon =
                 new ExtractionMapping.EntityMapping("Dragon", List.of("id"), Map.of("name", column("n")));
-        List<TargetModel.Violation> violations =
+        List<String> violations =
                 mapping("ftm", Map.of("zebra", unicorn, "aardvark", dragon)).validate();
 
-        assertThat(violations.get(0).message()).contains("aardvark");
-        assertThat(violations.get(1).message()).contains("zebra");
+        assertThat(violations.get(0)).contains("aardvark");
+        assertThat(violations.get(1)).contains("zebra");
     }
 
     @Test

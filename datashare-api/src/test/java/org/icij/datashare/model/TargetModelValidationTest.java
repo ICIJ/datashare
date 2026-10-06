@@ -27,70 +27,70 @@ public class TargetModelValidationTest {
 
     @Test
     public void test_an_unknown_type_is_a_violation() {
-        List<TargetModel.Violation> violations = model.validate(
+        List<String> violations = model.validate(
                 new ModelEntity("fake", "p-1", "Robot", Set.of(), Set.of(), Map.of("name", List.of("Jane Doe"))));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("Robot");
-        assertThat(violations.get(0).message()).contains("fake");
+        assertThat(violations.get(0)).contains("Robot");
+        assertThat(violations.get(0)).contains("fake");
     }
 
     @Test
     public void test_an_abstract_type_cannot_be_instantiated() {
-        List<TargetModel.Violation> violations = model.validate(
+        List<String> violations = model.validate(
                 new ModelEntity("fake", "t-1", "Thing", Set.of(), Set.of(), Map.of("name", List.of("Jane Doe"))));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("Thing");
-        assertThat(violations.get(0).message()).contains("abstract");
+        assertThat(violations.get(0)).contains("Thing");
+        assertThat(violations.get(0)).contains("abstract");
     }
 
     @Test
     public void test_an_undeclared_property_is_a_violation() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("fake", "p-1", "Person", Set.of(), Set.of(),
+        List<String> violations = model.validate(new ModelEntity("fake", "p-1", "Person", Set.of(), Set.of(),
                 Map.of("name", List.of("Jane Doe"), "shoeSize", List.of("42"))));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("shoeSize");
+        assertThat(violations.get(0)).contains("shoeSize");
     }
 
     @Test
     public void test_a_stub_property_cannot_be_written() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("fake", "p-1", "Person", Set.of(), Set.of(),
+        List<String> violations = model.validate(new ModelEntity("fake", "p-1", "Person", Set.of(), Set.of(),
                 Map.of("name", List.of("Jane Doe"), "employers", List.of("e-1"))));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("employers");
-        assertThat(violations.get(0).message()).contains("stub");
+        assertThat(violations.get(0)).contains("employers");
+        assertThat(violations.get(0)).contains("stub");
     }
 
     @Test
     public void test_a_missing_required_property_is_a_violation() {
-        List<TargetModel.Violation> violations = model.validate(
+        List<String> violations = model.validate(
                 new ModelEntity("fake", "p-1", "Person", Set.of(), Set.of(), Map.of()));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("Person");
-        assertThat(violations.get(0).message()).contains("name");
+        assertThat(violations.get(0)).contains("Person");
+        assertThat(violations.get(0)).contains("name");
     }
 
     @Test
     public void test_a_blank_required_property_is_a_violation() {
-        List<TargetModel.Violation> violations = model.validate(
+        List<String> violations = model.validate(
                 new ModelEntity("fake", "p-1", "Person", Set.of(), Set.of(), Map.of("name", List.of(" "))));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("name");
+        assertThat(violations.get(0)).contains("name");
     }
 
     @Test
     public void test_an_edge_needs_both_of_its_ends() {
-        List<TargetModel.Violation> violations = model.validate(new ModelEntity("fake", "e-1", "Employment", Set.of(), Set.of(),
+        List<String> violations = model.validate(new ModelEntity("fake", "e-1", "Employment", Set.of(), Set.of(),
                 Map.of("employee", List.of("p-1"))));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("Employment");
-        assertThat(violations.get(0).message()).contains("employer");
+        assertThat(violations.get(0)).contains("Employment");
+        assertThat(violations.get(0)).contains("employer");
     }
 
     @Test
@@ -100,33 +100,33 @@ public class TargetModelValidationTest {
 
     @Test
     public void test_a_shape_missing_a_required_property_is_a_violation() {
-        List<TargetModel.Violation> violations = model.validateShape("Person", Set.of());
+        List<String> violations = model.validateShape("Person", Set.of());
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).isEqualTo("type 'Person' requires 'name'");
+        assertThat(violations.get(0)).isEqualTo("type 'Person' requires 'name'");
     }
 
     @Test
     public void test_a_shape_missing_an_edge_end_is_a_violation() {
-        List<TargetModel.Violation> violations = model.validateShape("Employment", Set.of("employee"));
+        List<String> violations = model.validateShape("Employment", Set.of("employee"));
 
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).isEqualTo("edge type 'Employment' needs 'employer'");
+        assertThat(violations.get(0)).isEqualTo("edge type 'Employment' needs 'employer'");
     }
 
     @Test
     public void test_a_shape_with_a_stub_or_undeclared_property_is_a_violation() {
-        List<TargetModel.Violation> violations = model.validateShape("Person", Set.of("name", "employers", "shoeSize"));
+        List<String> violations = model.validateShape("Person", Set.of("name", "employers", "shoeSize"));
 
         assertThat(violations).hasSize(2);
-        assertThat(violations.get(0).message()).contains("employers").contains("stub");
-        assertThat(violations.get(1).message()).contains("shoeSize");
+        assertThat(violations.get(0)).contains("employers").contains("stub");
+        assertThat(violations.get(1)).contains("shoeSize");
     }
 
     @Test
     public void test_a_shape_of_an_unknown_or_abstract_type_is_a_violation() {
-        assertThat(model.validateShape("Robot", Set.of("name")).get(0).message()).contains("unknown type 'Robot'");
-        assertThat(model.validateShape("Thing", Set.of("name")).get(0).message()).contains("abstract");
+        assertThat(model.validateShape("Robot", Set.of("name")).get(0)).contains("unknown type 'Robot'");
+        assertThat(model.validateShape("Thing", Set.of("name")).get(0)).contains("abstract");
     }
 
     private static class FakeModel implements TargetModel {
