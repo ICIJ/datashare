@@ -83,9 +83,9 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
      *  builder, so a mapping stored before the ontology moved underneath it still loads and fails
      *  only when run. Aliases and property names are walked in sorted order, so the same mapping
      *  always reports the same violations in the same order. */
-    public List<TargetModel.Violation> validate() {
+    public List<String> validate() {
         TargetModel target = TargetModelRegistry.get(model);
-        List<TargetModel.Violation> violations = new ArrayList<>();
+        List<String> violations = new ArrayList<>();
         refuseNul(violations, options.sheet(), "the sheet name");
         refuseNul(violations, documentId, "the document id");
         refuseNul(violations, rootId, "the root id");
@@ -93,24 +93,21 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         for (String alias : new TreeSet<>(entities.keySet())) {
             EntityMapping entity = entities.get(alias);
             target.validateShape(entity.type(), entity.properties().keySet()).forEach(violation -> violations.add(
-                    new TargetModel.Violation("entity '" + alias + "': " + violation.message())));
+                    "entity '" + alias + "': " + violation));
             if (entity.properties().isEmpty()) {
-                violations.add(new TargetModel.Violation(
-                        "entity '" + alias + "' maps no property, so no row can produce a statement for it"));
+                violations.add("entity '" + alias + "' maps no property, so no row can produce a statement for it");
             }
             entity.keys().forEach(key -> refuseNul(violations, key, "the key column name of entity '" + alias + "'"));
             if (entity.keys().stream().anyMatch(String::isEmpty)) {
-                violations.add(new TargetModel.Violation(
-                        "entity '" + alias + "' has a blank key column name, which no header can match"));
+                violations.add("entity '" + alias + "' has a blank key column name, which no header can match");
             }
             refuseNul(violations, entity.keyLiteral(), "the key literal of entity '" + alias + "'");
             if (entity.keyLiteral() != null && entity.keyLiteral().isBlank()) {
-                violations.add(new TargetModel.Violation(
-                        "entity '" + alias + "' has a blank key literal, which hashes like no literal at all"));
+                violations.add("entity '" + alias + "' has a blank key literal, which hashes like no literal at all");
             }
             if (entity.keyLiteral() != null && entity.keys().isEmpty()) {
-                violations.add(new TargetModel.Violation(
-                        "entity '" + alias + "' has a key literal but no key, and a row-scoped id carries no literal"));
+                violations.add(
+                        "entity '" + alias + "' has a key literal but no key, and a row-scoped id carries no literal");
             }
             for (String property : new TreeSet<>(entity.properties().keySet())) {
                 reference(target, alias, entity, property).ifPresent(violations::add);
@@ -123,31 +120,29 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     /** {@link #validate()}, throwing: the save path and the builder refuse an unusable mapping
      *  the same way. */
     public void requireValid() {
-        List<TargetModel.Violation> violations = validate();
+        List<String> violations = validate();
         if (!violations.isEmpty()) {
             throw new InvalidExtractionMapping(id, violations);
         }
     }
 
-    private List<TargetModel.Violation> runtime(String alias, PropertyMapping mapped, String property,
-                                                DateFormats formats) {
-        List<TargetModel.Violation> violations = new ArrayList<>();
+    private List<String> runtime(String alias, PropertyMapping mapped, String property, DateFormats formats) {
+        List<String> violations = new ArrayList<>();
         String where = "property '" + property + "' on entity '" + alias + "' ";
         if (mapped.literal() != null && mapped.literal().isBlank()) {
-            violations.add(new TargetModel.Violation(where + "has a blank literal, which no row can store"));
+            violations.add(where + "has a blank literal, which no row can store");
         }
         refuseNul(violations, mapped.literal(), "the literal of " + where.strip());
         refuseNul(violations, mapped.join(), "the join separator of " + where.strip());
         mapped.columns().forEach(column -> refuseNul(violations, column, "the column name of " + where.strip()));
         if (mapped.columns().stream().anyMatch(String::isEmpty)) {
-            violations.add(new TargetModel.Violation(where + "has a blank column name, which no header can match"));
+            violations.add(where + "has a blank column name, which no header can match");
         }
         if (mapped.dateFormat() != null) {
             try {
                 formats.declare(mapped.dateFormat());
             } catch (UnusableDateFormat unusable) {
-                violations.add(
-                        new TargetModel.Violation(where + "has an unusable date format: " + unusable.getMessage()));
+                violations.add(where + "has an unusable date format: " + unusable.getMessage());
             }
         }
         return violations;
@@ -155,17 +150,16 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
 
     // Every string a statement would carry is refused the same way and worded the same way: a NUL
     // reaches Statement's constructor, which aborts, so a mapping holding one has to fail at save.
-    private static void refuseNul(List<TargetModel.Violation> violations, String text, String what) {
+    private static void refuseNul(List<String> violations, String text, String what) {
         if (text != null && text.indexOf('\u0000') >= 0) {
-            violations.add(new TargetModel.Violation(what + " holds a NUL character"));
+            violations.add(what + " holds a NUL character");
         }
     }
 
     /** A cross-reference has to point at an entity the mapping declares, through a property that
      *  takes entities, whose declared range the referenced type satisfies: an edge pointing at the
      *  wrong kind of entity is invalid in the target model, not just in this mapping. */
-    private Optional<TargetModel.Violation> reference(TargetModel target, String alias, EntityMapping entity,
-                                                      String property) {
+    private Optional<String> reference(TargetModel target, String alias, EntityMapping entity, String property) {
         String reference = entity.properties().get(property).entity();
         if (reference == null) {
             return Optional.empty();
@@ -173,7 +167,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         String on = "property '" + property + "' on entity '" + alias + "' ";
         EntityMapping referenced = entities.get(reference);
         if (referenced == null) {
-            return Optional.of(new TargetModel.Violation(on + "references unknown entity '" + reference + "'"));
+            return Optional.of(on + "references unknown entity '" + reference + "'");
         }
         if (target.type(entity.type()).isEmpty()) {
             return Optional.empty();
@@ -184,12 +178,11 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         }
         String range = declared.get().range();
         if (range == null) {
-            return Optional.of(new TargetModel.Violation(on + "holds a value, not a reference to an entity"));
+            return Optional.of(on + "holds a value, not a reference to an entity");
         }
         return target.type(referenced.type())
                      .filter(type -> !type.name().equals(range) && !type.ancestors().contains(range))
-                     .map(type -> new TargetModel.Violation(
-                             on + "needs a '" + range + "', but entity '" + reference + "' is a '" + type.name() +
-                             "'"));
+                     .map(type -> on + "needs a '" + range + "', but entity '" + reference + "' is a '" +
+                                   type.name() + "'");
     }
 }

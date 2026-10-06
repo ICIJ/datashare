@@ -28,8 +28,6 @@ public interface TargetModel {
      */
     ModelEntity parse(String json);
 
-    record Violation(String message) {}
-
     default Optional<Property> property(String type, String name) {
         return type(type).map(found -> found.properties().get(name));
     }
@@ -38,7 +36,7 @@ public interface TargetModel {
      * Checks the entity's types and properties against this model's structure. Returns every
      * violation found, or an empty list if the entity is structurally valid.
      */
-    default List<Violation> validate(ModelEntity entity) {
+    default List<String> validate(ModelEntity entity) {
         Set<String> filled = entity.properties().keySet().stream().filter(property -> !isBlank(entity, property))
                                    .collect(Collectors.toSet());
         return violations(entity.type(), entity.properties().keySet(), filled);
@@ -48,37 +46,36 @@ public interface TargetModel {
      * Checks that a type accepts these properties and that they cover what it requires, with no
      * value at hand: an extraction mapping declares which properties it fills, not what they hold.
      */
-    default List<Violation> validateShape(String type, Set<String> properties) {
+    default List<String> validateShape(String type, Set<String> properties) {
         return violations(type, properties, properties);
     }
 
-    private List<Violation> violations(String typeName, Set<String> properties, Set<String> filled) {
-        List<Violation> violations = new ArrayList<>();
+    private List<String> violations(String typeName, Set<String> properties, Set<String> filled) {
+        List<String> violations = new ArrayList<>();
         Optional<EntityType> found = type(typeName);
         if (found.isEmpty()) {
-            violations.add(new Violation("unknown type '" + typeName + "' in model '" + name() + "'"));
+            violations.add("unknown type '" + typeName + "' in model '" + name() + "'");
             return violations;
         }
         EntityType type = found.get();
         if (type.isAbstract()) {
-            violations.add(new Violation("type '" + type.name() + "' is abstract and cannot be instantiated"));
+            violations.add("type '" + type.name() + "' is abstract and cannot be instantiated");
         }
         for (String property : new TreeSet<>(properties)) {
             Property declared = type.properties().get(property);
             if (declared == null) {
-                violations.add(new Violation("no property '" + property + "' on '" + type.name() + "'"));
+                violations.add("no property '" + property + "' on '" + type.name() + "'");
             } else if (declared.stub()) {
-                violations.add(new Violation(
-                        "property '" + property + "' is a stub: it is inferred from the '" + declared.range() +
-                        "' relation rather than written"));
+                violations.add("property '" + property + "' is a stub: it is inferred from the '" + declared.range() +
+                               "' relation rather than written");
             }
         }
         type.required().stream().filter(required -> !filled.contains(required)).forEach(
-                required -> violations.add(new Violation("type '" + type.name() + "' requires '" + required + "'")));
+                required -> violations.add("type '" + type.name() + "' requires '" + required + "'"));
         if (type.edge() != null) {
             Stream.of(type.edge().source(), type.edge().target()).filter(end -> !type.required().contains(end))
                   .filter(end -> !filled.contains(end))
-                  .forEach(end -> violations.add(new Violation("edge type '" + type.name() + "' needs '" + end + "'")));
+                  .forEach(end -> violations.add("edge type '" + type.name() + "' needs '" + end + "'"));
         }
         return violations;
     }
