@@ -40,6 +40,8 @@ import org.icij.datashare.user.admin.UserUpdateRequest;
 import org.icij.datashare.user.admin.ValidationException;
 import org.icij.datashare.utils.PayloadFormatter;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Comparator;
@@ -58,6 +60,7 @@ import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 @Singleton
 @Prefix("/api/users")
 public class UserResource {
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserResource.class);
     private final Repository repository;
     private final Authorizer authorizer;
     private final UserAdminService userAdminService;
@@ -90,6 +93,7 @@ public class UserResource {
             }
         } catch (org.icij.datashare.project.admin.UserNotFoundException e) {
             // Shouldn't happen: userId was already resolved above by userAdminService.get(userId).
+            LOGGER.warn("user {} disappeared before its project inventory could be synced", userId, e);
         }
     }
 
