@@ -22,6 +22,7 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
+import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Project;
@@ -61,12 +62,14 @@ public class ProjectResource {
     private final DataDirVerifier dataDirVerifier;
     private final ModeVerifier modeVerifier;
     private final DocumentCollectionFactory<Path> documentCollectionFactory;
+    private final ProjectAdminService projectAdminService;
     private final PropertiesProvider propertiesProvider;
 
     @Inject
     public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager,
                            PropertiesProvider propertiesProvider,
-                           DocumentCollectionFactory<Path> documentCollectionFactory) {
+                           DocumentCollectionFactory<Path> documentCollectionFactory,
+                           ProjectAdminService projectAdminService) {
         this.repository = repository;
         this.indexer = indexer;
         this.taskManager = taskManager;
@@ -74,6 +77,7 @@ public class ProjectResource {
         this.dataDirVerifier = new DataDirVerifier(propertiesProvider);
         this.modeVerifier = new ModeVerifier(propertiesProvider);
         this.documentCollectionFactory = documentCollectionFactory;
+        this.projectAdminService = projectAdminService;
     }
 
     @Operation(description = "Preflight option request")
@@ -324,6 +328,7 @@ public class ProjectResource {
             return false;
         }
         if (createIndexOnce(project.getId())) {
+            projectAdminService.addProjectToWideAdminInventories(project.getId());
             return true;
         }
         if (!repository.deleteAll(project.getId())) {

@@ -8,6 +8,7 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
@@ -36,6 +37,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -44,6 +46,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
+    @Mock ProjectAdminService projectAdminService;
     @Mock
     TaskManager taskManager;
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
@@ -123,7 +126,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
                 put("mode", Mode.SERVER.name());
             }});
-            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
             Users datashareUsers = get_datashare_users(asList("foo", "biz"));
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", datashareUsers);
             routes.filter(basicAuthFilter).add(projectResource);
@@ -165,6 +168,8 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"label\":\"Foo v2\"")
                 .contain("\"publisherName\":\"ICIJ\"")
                 .contain("\"sourcePath\":\"file:///vault/foo\"");
+
+        verify(projectAdminService).addProjectToWideAdminInventories("foo");
     }
     @Test
     public void test_create_project_undoes_the_row_when_the_index_cannot_be_created() throws IOException {
@@ -177,6 +182,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         post("/api/project/", body).should().respond(500);
 
         verify(repository).deleteAll("foo");
+        verify(projectAdminService, never()).addProjectToWideAdminInventories(any());
     }
 
     @Test
@@ -319,6 +325,8 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"name\":\"foo\"")
                 .contain("\"label\":\"Foo\"")
                 .contain("\"sourcePath\":\"file:///vault/foo\"");
+
+        verify(projectAdminService).addProjectToWideAdminInventories("foo");
     }
 
     @Test
@@ -402,7 +410,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 put("mode", "LOCAL");
             }});
 
-            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
             routes.filter(new LocalUserFilter(propertiesProvider, jooqRepository)).add(projectResource);
         });
     }
@@ -429,7 +437,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             put("dataDir", "/my-dir");
         }});
 
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
         // add policies
         User john = mockUser("john", projectId, Role.PROJECT_ADMIN);
         PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
@@ -454,7 +462,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     public void test_cannot_update_project_in_server_mode_by_non_admin() {
         String projectId = "foo";
         PropertiesProvider propertiesProvider =new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
 
         User elios = mockUser("elios", projectId, Role.PROJECT_MEMBER);
 
@@ -478,7 +486,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             put("dataDir", "/my-dir");
         }});
 
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
 
         DatashareUser jane = new DatashareUser(localUser("jane"));
         authorizer.addRoleForUserInInstance(jane, Role.INSTANCE_ADMIN);
@@ -505,7 +513,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             put("mode", Mode.SERVER.name());
             put("dataDir", "/my-dir");
         }});
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
 
         // grant PROJECT_ADMIN on "bar", then PUT to "foo" (which does not exist)
         User john = mockUser("john", "bar", Role.PROJECT_ADMIN);
@@ -528,7 +536,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             put("mode", Mode.SERVER.name());
             put("dataDir", "/my-dir");
         }});
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
 
         // jane is INSTANCE_ADMIN so policy check passes, but getUserProject must still gate the update branch
         DatashareUser jane = new DatashareUser(localUser("jane"));
@@ -633,7 +641,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 put("artifactDir", artifactDir.getRoot().toString());
             }});
 
-            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory);
+            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
             routes.filter(new LocalUserFilter(propertiesProvider, jooqRepository)).add(projectResource);
         });
 
@@ -652,7 +660,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
             routes.filter(new YesBasicAuthFilter(propertiesProvider, null))
-                    .add(new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory));
+                    .add(new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService));
         });
         when(repository.deleteAll("hacker-datashare")).thenReturn(true);
         when(repository.deleteAll("projectId")).thenReturn(true);

@@ -111,4 +111,11 @@ public interface ProjectAdminService {
      * held by a user that no longer exists is skipped.
      */
     void backfillWideAdminInventories();
+
+    /**
+     * Adds a newly created project to the inventory of each wide admin (see
+     * {@link #backfillWideAdminInventories}), so they list it without waiting for the next startup
+     * backfill. A failure is logged, not thrown: the project itself is already created.
+     */
+    void addProjectToWideAdminInventories(String projectName);
 }
