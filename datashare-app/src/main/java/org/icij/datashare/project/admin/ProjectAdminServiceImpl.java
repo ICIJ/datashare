@@ -236,6 +236,22 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return new ProjectRevoked(projectName, userLogin, List.of(), true);
     }
 
+    @Override
+    public void addProjectsToInventory(List<String> projectNames, String userLogin) throws UserNotFoundException {
+        User user = requireUser(userLogin);
+        for (String projectName : projectNames) {
+            user = appendProjectToInventory(user, projectName);
+        }
+    }
+
+    @Override
+    public void removeProjectsFromInventory(List<String> projectNames, String userLogin) throws UserNotFoundException {
+        User user = requireUser(userLogin);
+        for (String projectName : projectNames) {
+            user = removeProjectFromInventory(user, projectName);
+        }
+    }
+
     // Inventory mutations: return a fresh User with the per-application list
     // adjusted. The caller persists. Both helpers go through the same safe-cast
     // helpers so a stale or hand-edited details shape doesn't ClassCastException.

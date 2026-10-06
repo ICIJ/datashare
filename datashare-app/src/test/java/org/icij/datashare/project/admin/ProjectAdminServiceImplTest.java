@@ -1025,6 +1025,66 @@ public class ProjectAdminServiceImplTest {
         assertThat(rollbackDs).contains("banana");
     }
 
+    @Test
+    public void test_add_projects_to_inventory_appends_every_project_without_writing_casbin() throws Exception {
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", new HashMap<>());
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        service.addProjectsToInventory(List.of("foo", "bar"), "jdoe");
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userStore, Mockito.times(2)).save(saved.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) apps.get("datashare");
+        assertThat(ds).contains("foo").contains("bar");
+        verifyNoInteractions(authorizer);
+    }
+
+    @Test
+    public void test_remove_projects_from_inventory_prunes_every_project_without_writing_casbin() throws Exception {
+        Map<String, Object> details = new HashMap<>();
+        details.put("groups_by_applications", Map.of("datashare", List.of("foo", "bar", "baz")));
+        User user = new User("jdoe", "Jane Doe", "jdoe@icij.org", "local", details);
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        service.removeProjectsFromInventory(List.of("foo", "bar"), "jdoe");
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userStore, Mockito.times(2)).save(saved.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
+        @SuppressWarnings("unchecked")
+        List<String> ds = (List<String>) apps.get("datashare");
+        assertThat(ds).excludes("foo").excludes("bar").contains("baz");
+        verifyNoInteractions(authorizer);
+    }
+
+    @Test
+    public void test_add_projects_to_inventory_throws_user_not_found_when_user_missing() {
+        when(users.find("ghost")).thenReturn(null);
+        try {
+            service.addProjectsToInventory(List.of("foo"), "ghost");
+            fail("expected UserNotFoundException");
+        } catch (UserNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        }
+    }
+
+    @Test
+    public void test_remove_projects_from_inventory_throws_user_not_found_when_user_missing() {
+        when(users.find("ghost")).thenReturn(null);
+        try {
+            service.removeProjectsFromInventory(List.of("foo"), "ghost");
+            fail("expected UserNotFoundException");
+        } catch (UserNotFoundException e) {
+            assertThat(e.getMessage()).contains("ghost");
+        }
+    }
+
     private static CasbinRule casbinRule(String userId, String role, String domainProject) {
         return new CasbinRule("g", userId, role, domainProject);
     }

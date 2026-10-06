@@ -1,6 +1,7 @@
 package org.icij.datashare.project.admin;
 
 import java.io.IOException;
+import java.util.List;
 
 public interface ProjectAdminService {
     /**
@@ -82,4 +83,23 @@ public interface ProjectAdminService {
      * result. Only a missing project propagates as an exception.
      */
     ProjectRevoked revokeIfExists(String projectName, String userLogin) throws ProjectNotFoundException;
+
+    /**
+     * Appends every name in {@code projectNames} to the user's {@code groups_by_applications.datashare}
+     * list, without writing any Casbin policy. Used for an instance or domain admin wide-role grant:
+     * authorization already comes from the wildcard role, this only affects which projects the user's
+     * inventory (and so the UI) lists for them.
+     *
+     * @throws UserNotFoundException if the user is missing.
+     */
+    void addProjectsToInventory(List<String> projectNames, String userLogin) throws UserNotFoundException;
+
+    /**
+     * Removes every name in {@code projectNames} from the user's {@code groups_by_applications.datashare}
+     * list, without touching any Casbin policy. Counterpart of {@link #addProjectsToInventory}, used
+     * when an instance or domain admin wide-role grant is revoked.
+     *
+     * @throws UserNotFoundException if the user is missing.
+     */
+    void removeProjectsFromInventory(List<String> projectNames, String userLogin) throws UserNotFoundException;
 }
