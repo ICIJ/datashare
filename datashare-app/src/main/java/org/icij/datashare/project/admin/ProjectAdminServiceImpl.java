@@ -125,21 +125,29 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     @Override
     public ProjectGranted grant(String projectName, String userLogin, Role role) throws ProjectNotFoundException,
-            UserNotFoundException, ValidationException {
+            UserNotFoundException, ValidationException,
+            WideRoleHeldException {
         return doGrant(projectName, userLogin, role, false);
     }
 
     @Override
     public ProjectGranted grantIfNotExists(String projectName, String userLogin, Role role) throws
-            ProjectNotFoundException, UserNotFoundException, ValidationException {
+            ProjectNotFoundException, UserNotFoundException, ValidationException,
+            WideRoleHeldException {
         return doGrant(projectName, userLogin, role, true);
     }
 
     private ProjectGranted doGrant(String projectName, String userLogin, Role role, boolean ifNotExists) throws
-            ProjectNotFoundException, UserNotFoundException, ValidationException {
+            ProjectNotFoundException, UserNotFoundException, ValidationException,
+            WideRoleHeldException {
         validateProjectRole(role);
         Project project = requireProject(projectName);
         User user = requireUser(userLogin);
+        // A wide role replaces project roles (see UserResource#grantRoleToUser), so a project role
+        // granted on top of it would be a stale row resurfacing once the wide role is revoked.
+        if (authorizer.holdsWideRole(user)) {
+            throw new WideRoleHeldException(userLogin);
+        }
         List<Role> existing = readProjectRoles(user, project);
 
         // Replace-semantics make "noop" strict: any extra project roles would still

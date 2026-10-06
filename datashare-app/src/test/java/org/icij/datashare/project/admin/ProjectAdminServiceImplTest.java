@@ -1113,6 +1113,23 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_grant_throws_when_user_holds_a_wide_role() throws Exception {
+        User user = new User("jdoe", "Jane", "j@icij.org", "local", new HashMap<>());
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(users.find("jdoe")).thenReturn(new DatashareUser(user));
+        when(authorizer.holdsWideRole(any())).thenReturn(true);
+
+        try {
+            service.grant("foo", "jdoe", org.icij.datashare.policies.Role.PROJECT_MEMBER);
+            fail("expected WideRoleHeldException");
+        } catch (WideRoleHeldException e) {
+            assertThat(e.getMessage()).contains("jdoe");
+        }
+        verify(userStore, never()).save(any());
+        verify(authorizer, never()).addRoleForUserInProject(any(), any(), any(), any());
+    }
+
+    @Test
     public void test_create_adds_the_project_to_wide_admin_inventories() throws Exception {
         when(repository.getProject("my-project")).thenReturn(null);
         when(repository.save(any(Project.class))).thenReturn(true);

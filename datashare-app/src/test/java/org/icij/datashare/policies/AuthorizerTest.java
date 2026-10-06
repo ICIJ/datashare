@@ -60,6 +60,22 @@ public class AuthorizerTest {
     }
 
     @Test
+    public void test_holds_wide_role_for_instance_admin_and_default_domain_admin_only() {
+        User instanceAdmin = new User("instance_admin");
+        User domainAdmin = new User("domain_admin");
+        User otherDomainAdmin = new User("other_domain_admin");
+        authorizer.addRoleForUserInInstance(instanceAdmin, Role.INSTANCE_ADMIN);
+        authorizer.addRoleForUserInDomain(domainAdmin, Role.DOMAIN_ADMIN, Domain.DEFAULT);
+        authorizer.addRoleForUserInDomain(otherDomainAdmin, Role.DOMAIN_ADMIN, domain);
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, Domain.DEFAULT, project);
+
+        assertTrue(authorizer.holdsWideRole(instanceAdmin));
+        assertTrue(authorizer.holdsWideRole(domainAdmin));
+        assertFalse(authorizer.holdsWideRole(otherDomainAdmin));
+        assertFalse(authorizer.holdsWideRole(user));
+    }
+
+    @Test
     public void test_delete_project_roles_for_user_keeps_instance_and_domain_roles() {
         Project other = project("other_project");
         authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
