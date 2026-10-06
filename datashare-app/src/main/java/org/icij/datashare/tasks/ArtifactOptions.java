@@ -9,8 +9,9 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
 /** Shared artifact-stage configuration for the INDEX and ARTIFACT stages, so the two stages resolve
  *  the project, the force flag, and the artifact directory the same way and cannot drift. */
 public record ArtifactOptions(String projectName, String defaultProject, boolean force, boolean artifacts, Path artifactDir, int parallelism) {
-    public ArtifactOptions(String projectName, String defaultProject, boolean force, boolean artifacts, Path artifactDir, int parallelism) {
-        this.projectName = ofNullable(projectName).orElse(ofNullable(defaultProject).orElse(DEFAULT_DEFAULT_PROJECT));;
+    public ArtifactOptions(String projectName, String defaultProject, boolean force, boolean artifacts,
+                           Path artifactDir, int parallelism) {
+        this.projectName = ofNullable(projectName).orElse(ofNullable(defaultProject).orElse(DEFAULT_DEFAULT_PROJECT));
         this.defaultProject = defaultProject;
         this.force = force;
         this.artifacts = artifacts;
@@ -24,7 +25,8 @@ public record ArtifactOptions(String projectName, String defaultProject, boolean
      *  whereas a throw from a reflectively-constructed task becomes a requeue-forever NackException. */
     public Optional<Path> artifactProjectRoot() {
         if (artifacts()) {
-            Path dir = ofNullable(artifactDir()).orElseThrow(() -> new IllegalArgumentException("--artifacts requires --artifactDir"));
+            Path dir = ofNullable(artifactDir()).orElseThrow(
+                    () -> new IllegalArgumentException("--artifacts requires --artifactDir"));
             return Optional.of(ArtifactPath.projectRoot(dir, projectName()));
         } else {
             return Optional.empty();
