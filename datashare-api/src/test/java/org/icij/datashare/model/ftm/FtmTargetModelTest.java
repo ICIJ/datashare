@@ -47,7 +47,6 @@ public class FtmTargetModelTest {
 
         assertThat(edge.source()).isEqualTo("employee");
         assertThat(edge.target()).isEqualTo("employer");
-        assertThat(edge.directed()).isTrue();
         assertThat(model.type("Person").get().edge()).isNull();
     }
 

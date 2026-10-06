@@ -143,7 +143,7 @@ public class TargetModelValidationTest {
                         Set.of("name"), null),
                 "Employment", new EntityType("Employment", false, Set.of("Employment"),
                         Map.of("employee", VALUE, "employer", VALUE),
-                        Set.of("employee"), new EntityType.Edge("employee", "employer", true)));
+                        Set.of("employee"), new EntityType.Edge("employee", "employer")));
 
         @Override
         public String name() {
