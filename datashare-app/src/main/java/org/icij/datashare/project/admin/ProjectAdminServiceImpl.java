@@ -244,7 +244,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     @Override
     public void removeProjectsFromInventory(List<String> projectNames, String userLogin) throws UserNotFoundException {
         User user = requireUser(userLogin);
-        removeFromInventory(user, projectNames);
+        // A project the user still holds a per-project role on stays listed: dropping it would leave a
+        // Casbin row without an inventory entry, the one state we can't self-heal from (see below).
+        List<String> unheld = projectNames.stream()
+                                          .filter(name -> readProjectRoles(user, new Project(name)).isEmpty())
+                                          .collect(Collectors.toList());
+        removeFromInventory(user, unheld);
     }
 
     // Inventory mutations: persist a fresh User with the per-application list
