@@ -95,12 +95,17 @@ public class StatementTest {
         assertRejectsNull("documentId", () -> new Statement.Provenance(null, "Sheet1", 12, "full_name"));
         assertRejectsNull("column", () -> new Statement.Provenance("doc-1", "Sheet1", 12, null));
         assertRejectsNull("model", () -> Statement.of(null, "person-1", "Person", "name", "Jane Doe", provenance));
+        assertRejectsNull("entityId", () -> Statement.of("ftm", null, "Person", "name", "Jane Doe", provenance));
+        assertRejectsNull("entityType", () -> Statement.of("ftm", "person-1", null, "name", "Jane Doe", provenance));
+        assertRejectsNull("property", () -> Statement.of("ftm", "person-1", "Person", null, "Jane Doe", provenance));
+        assertRejectsNull("value", () -> Statement.of("ftm", "person-1", "Person", "name", null, provenance));
+        assertRejectsNull("provenance", () -> Statement.of("ftm", "person-1", "Person", "name", "Jane Doe", null));
     }
 
     // Every component is guarded the same way, so the field the message names is the only thing worth
     // pinning: a copy-pasted guard naming its neighbour is what this catches.
     private static void assertRejectsNull(String field, Runnable construction) {
-        assertThat(assertThrows(NullPointerException.class, construction::run).getMessage()).contains(field);
+        assertThat(assertThrows(NullPointerException.class, construction::run).getMessage()).isEqualTo(field);
     }
 
     @Test
