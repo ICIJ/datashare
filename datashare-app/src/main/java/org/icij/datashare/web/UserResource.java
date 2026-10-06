@@ -353,6 +353,9 @@ public class UserResource {
                     authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
                 }
             }
+            // A wide role replaces project roles. Also run when the role was already held, so a retry
+            // after a failure here, or a re-grant, clears leftover project roles.
+            authorizer.deleteProjectRolesForUser(user);
             return new Payload(new RoleGranted(role, userId, alreadyGranted ? role : null, alreadyGranted));
         } catch (Validators.InvalidValueException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);

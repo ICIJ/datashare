@@ -935,6 +935,30 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_grant_domain_admin_role_deletes_project_roles() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInProject(bob, Role.PROJECT_EDITOR, Domain.DEFAULT, project("foo"));
+
+        put("/api/users/admin/bob/role?role=domain_admin").should().respond(200);
+
+        assertTrue(authorizer.getRolesForUserInProject(bob, Domain.DEFAULT, project("foo")).isEmpty());
+        assertTrue(authorizer.getRolesForUserInDomain(bob, Domain.DEFAULT).contains("DOMAIN_ADMIN"));
+    }
+
+    @Test
+    public void test_grant_already_held_instance_admin_role_still_deletes_leftover_project_roles() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInInstance(bob, Role.INSTANCE_ADMIN);
+        authorizer.addRoleForUserInProject(bob, Role.PROJECT_EDITOR, Domain.DEFAULT, project("foo"));
+
+        put("/api/users/admin/bob/role?role=instance_admin").should().respond(200).contain("\"noop\":true");
+
+        assertTrue(authorizer.getRolesForUserInProject(bob, Domain.DEFAULT, project("foo")).isEmpty());
+    }
+
+    @Test
     public void test_grant_domain_admin_role_adds_every_project_to_the_inventory() throws Exception {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);

@@ -39,6 +39,8 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
 
         if (existingAdmins.stream().anyMatch(r -> user.getId().equals(r.getV0()))) {
             logger.info("User '{}' already has instance admin role.", user.getId());
+            // a wide role replaces project roles: also clear leftovers on a re-run
+            authorizer.deleteProjectRolesForUser(user);
             return true;
         }
 
@@ -50,6 +52,7 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
         if (authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN) ||
             authorizer.can(user.getId(), Domain.of("*"), "*", Role.INSTANCE_ADMIN)) {
             logger.info("Instance admin role granted to user '{}'.", user.getId());
+            authorizer.deleteProjectRolesForUser(user);
             return true;
         }
         logger.error("Failed to grant instance admin role to user '{}'.", user.getId());

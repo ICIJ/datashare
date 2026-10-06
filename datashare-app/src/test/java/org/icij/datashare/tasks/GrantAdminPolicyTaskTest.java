@@ -42,6 +42,7 @@ public class GrantAdminPolicyTaskTest {
         assertThat(new GrantAdminPolicyTask(authorizer, User.local()).call()).isTrue();
 
         verify(authorizer).addRoleForUserInInstance(User.local(), Role.INSTANCE_ADMIN);
+        verify(authorizer).deleteProjectRolesForUser(User.local());
     }
 
     @Test
@@ -52,6 +53,7 @@ public class GrantAdminPolicyTaskTest {
         assertThat(new GrantAdminPolicyTask(authorizer, User.local()).call()).isTrue();
 
         verify(authorizer, never()).addRoleForUserInInstance(any(), any());
+        verify(authorizer).deleteProjectRolesForUser(User.local());
     }
 
     @Test
@@ -62,6 +64,7 @@ public class GrantAdminPolicyTaskTest {
         assertThat(new GrantAdminPolicyTask(authorizer, User.local()).call()).isFalse();
 
         verify(authorizer, never()).addRoleForUserInInstance(any(), any());
+        verify(authorizer, never()).deleteProjectRolesForUser(any());
     }
 
     @Test

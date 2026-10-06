@@ -137,6 +137,18 @@ public final class Authorizer implements Closeable {
         return enforcer.getRolesForUserInDomain(user.id, domainSepProject(domain, "*"));
     }
 
+    /**
+     * Deletes every project-level role of the user, keeping instance and domain roles. A wide role
+     * replaces project roles, so this runs whenever one is granted.
+     */
+    public void deleteProjectRolesForUser(User user) {
+        List<List<String>> projectRules = enforcer.getFilteredGroupingPolicy(0, user.id).stream()
+                                                  .filter(rule -> rule.size() >= 3 &&
+                                                                  !rule.get(2).endsWith(SEPARATOR + "*"))
+                                                  .collect(Collectors.toList());
+        projectRules.forEach(rule -> enforcer.removeGroupingPolicy(rule.get(0), rule.get(1), rule.get(2)));
+    }
+
     /*
      *   Project
      */
