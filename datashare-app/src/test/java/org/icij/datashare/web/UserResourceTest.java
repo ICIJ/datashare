@@ -985,6 +985,20 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_revoke_domain_admin_role_keeps_the_inventory_when_still_instance_admin() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInInstance(bob, Role.INSTANCE_ADMIN);
+        authorizer.addRoleForUserInDomain(bob, Role.DOMAIN_ADMIN, Domain.DEFAULT);
+        when(jooqRepository.getProjects()).thenReturn(List.of(project("foo")));
+
+        delete("/api/users/admin/bob/role?role=domain_admin").should().respond(200);
+
+        verify(projectAdminService, never()).removeProjectsFromInventory(any(), any());
+        assertFalse(authorizer.getRolesForUserInDomain(bob, Domain.DEFAULT).contains("DOMAIN_ADMIN"));
+    }
+
+    @Test
     public void test_revoke_instance_admin_role_removes_every_project_from_the_inventory() throws Exception {
         User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
         when(userAdminService.get("bob")).thenReturn(bob);
