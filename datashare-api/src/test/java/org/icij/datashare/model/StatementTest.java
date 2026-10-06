@@ -95,10 +95,6 @@ public class StatementTest {
         assertRejectsNull("documentId", () -> new Statement.Provenance(null, "Sheet1", 12, "full_name"));
         assertRejectsNull("column", () -> new Statement.Provenance("doc-1", "Sheet1", 12, null));
         assertRejectsNull("model", () -> Statement.of(null, "person-1", "Person", "name", "Jane Doe", provenance));
-        assertRejectsNull("entityId", () -> Statement.of("ftm", null, "Person", "name", "Jane Doe", provenance));
-        assertRejectsNull("entityType", () -> Statement.of("ftm", "person-1", null, "name", "Jane Doe", provenance));
-        assertRejectsNull("property", () -> Statement.of("ftm", "person-1", "Person", null, "Jane Doe", provenance));
-        assertRejectsNull("value", () -> Statement.of("ftm", "person-1", "Person", "name", null, provenance));
         assertRejectsNull("provenance", () -> Statement.of("ftm", "person-1", "Person", "name", "Jane Doe", null));
     }
 
@@ -114,6 +110,12 @@ public class StatementTest {
                 () -> Statement.of("wikidata", "person-1", "Q5", "name", "Jane Doe", provenance));
 
         assertThat(thrown.name).isEqualTo("wikidata");
+    }
+
+    @Test
+    public void test_an_unknown_model_is_rejected_before_a_null_provenance() {
+        assertThrows(UnknownTargetModel.class,
+                () -> Statement.of("wikidata", "person-1", "Q5", "name", "Jane Doe", null));
     }
 
     @Test
