@@ -164,6 +164,12 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_mapping_file() {
+        cli.parseArguments(new String[] {"--stages", "ENTITIES", "--mappingFile", "/tmp/m.json"});
+        assertThat(cli.properties).includes(entry("mappingFile", "/tmp/m.json"));
+    }
+
+    @Test
     public void test_has_english_indexing_language_value() {
         cli.parseArguments(new String[] {"--language", "ENGLISH"});
         assertThat(cli.properties).includes(entry("language", "ENGLISH"));

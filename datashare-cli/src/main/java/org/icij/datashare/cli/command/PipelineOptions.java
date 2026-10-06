@@ -82,6 +82,8 @@ public class PipelineOptions {
     int indexTimeout;
     @Option(names = {"--searchQuery"}, description = SEARCH_QUERY_DESC)
     String searchQuery;
+    @Option(names = {"--mappingFile"}, description = MAPPING_FILE_DESC)
+    String mappingFile;
     // No defaultValue: an absent flag emits no key so the stages chain keeps deciding the next stage.
     @Option(names = {"--nextStage"},
             description = "Stage the EnqueueFromIndex task enqueues documents for, overriding the stages chain.")
@@ -128,6 +130,7 @@ public class PipelineOptions {
         DatashareOptions.put(props, OCR_TIMEOUT, ocrTimeout);
         DatashareOptions.put(props, PARSE_TIMEOUT_OPT, parseTimeout);
         DatashareOptions.putIfNotNull(props, SEARCH_QUERY_OPT, searchQuery);
+        DatashareOptions.putIfNotNull(props, MAPPING_FILE_OPT, mappingFile);
         DatashareOptions.putIfNotNull(props, NEXT_STAGE_OPT, nextStage);
         DatashareOptions.putIfNotNull(props, SCROLL_DURATION_OPT, scroll);
         DatashareOptions.put(props, SCROLL_SIZE_OPT, scrollSize);
