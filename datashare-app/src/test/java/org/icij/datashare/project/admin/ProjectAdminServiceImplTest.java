@@ -1110,6 +1110,49 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_create_adds_the_project_to_wide_admin_inventories() throws Exception {
+        when(repository.getProject("my-project")).thenReturn(null);
+        when(repository.save(any(Project.class))).thenReturn(true);
+        when(authorizer.getGroupPermissions()).thenReturn(List.of(casbinRule("jdoe", "INSTANCE_ADMIN", "*::*")));
+        when(users.find("jdoe")).thenReturn(new DatashareUser(new User("jdoe", "Jane", "j@icij.org", "local", new HashMap<>())));
+
+        service.create(new ProjectCreateRequest("my-project", null, null, null, null, null, null, null, null, null,
+                                                null, true));
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(saved.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
+        assertThat((List<?>) apps.get("datashare")).containsOnly("my-project");
+    }
+
+    @Test
+    public void test_add_project_to_wide_admin_inventories_appends_only_that_project() {
+        Map<String, Object> details = new HashMap<>();
+        details.put("groups_by_applications", Map.of("datashare", List.of("foo")));
+        when(authorizer.getGroupPermissions()).thenReturn(List.of(casbinRule("jdoe", "INSTANCE_ADMIN", "*::*")));
+        when(users.find("jdoe")).thenReturn(new DatashareUser(new User("jdoe", "Jane", "j@icij.org", "local", details)));
+
+        service.addProjectToWideAdminInventories("bar");
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(saved.capture());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> apps = (Map<String, Object>) saved.getValue().details.get("groups_by_applications");
+        assertThat((List<?>) apps.get("datashare")).containsOnly("foo", "bar");
+        verify(repository, never()).getProjects();
+    }
+
+    @Test
+    public void test_add_project_to_wide_admin_inventories_does_not_throw_on_a_store_failure() {
+        when(authorizer.getGroupPermissions()).thenReturn(List.of(casbinRule("jdoe", "INSTANCE_ADMIN", "*::*")));
+        when(users.find("jdoe")).thenReturn(new DatashareUser(new User("jdoe", "Jane", "j@icij.org", "local", new HashMap<>())));
+        when(userStore.save(any(User.class))).thenThrow(new RuntimeException("db down"));
+
+        service.addProjectToWideAdminInventories("bar");
+    }
+
+    @Test
     public void test_add_projects_to_inventory_throws_user_not_found_when_user_missing() {
         when(users.find("ghost")).thenReturn(null);
         try {

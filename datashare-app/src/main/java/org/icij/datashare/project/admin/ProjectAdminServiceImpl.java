@@ -254,7 +254,19 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     @Override
     public void backfillWideAdminInventories() {
-        List<String> projectNames = repository.getProjects().stream().map(p -> p.name).collect(Collectors.toList());
+        addToWideAdminInventories(repository.getProjects().stream().map(p -> p.name).collect(Collectors.toList()));
+    }
+
+    @Override
+    public void addProjectToWideAdminInventories(String projectName) {
+        try {
+            addToWideAdminInventories(List.of(projectName));
+        } catch (RuntimeException e) {
+            LOGGER.error("cannot add project {} to wide admins' inventories", projectName, e);
+        }
+    }
+
+    private void addToWideAdminInventories(List<String> projectNames) {
         //TODO #DOMAIN: backfill domain admins of every domain once projects carry a domain.
         String defaultDomainScope = Domain.DEFAULT.id() + "::*";
         authorizer.getGroupPermissions().stream()
@@ -497,6 +509,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         }
 
         boolean indexCreated = request.createIndex() && createIndexOrRollback(request.name());
+        addProjectToWideAdminInventories(request.name());
 
         return toCreated(project, indexCreated, false);
     }
