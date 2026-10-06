@@ -125,21 +125,18 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     @Override
     public ProjectGranted grant(String projectName, String userLogin, Role role) throws ProjectNotFoundException,
-            UserNotFoundException, ValidationException,
-            WideRoleHeldException {
+            UserNotFoundException, ValidationException, WideRoleHeldException {
         return doGrant(projectName, userLogin, role, false);
     }
 
     @Override
     public ProjectGranted grantIfNotExists(String projectName, String userLogin, Role role) throws
-            ProjectNotFoundException, UserNotFoundException, ValidationException,
-            WideRoleHeldException {
+            ProjectNotFoundException, UserNotFoundException, ValidationException, WideRoleHeldException {
         return doGrant(projectName, userLogin, role, true);
     }
 
     private ProjectGranted doGrant(String projectName, String userLogin, Role role, boolean ifNotExists) throws
-            ProjectNotFoundException, UserNotFoundException, ValidationException,
-            WideRoleHeldException {
+            ProjectNotFoundException, UserNotFoundException, ValidationException, WideRoleHeldException {
         validateProjectRole(role);
         Project project = requireProject(projectName);
         User user = requireUser(userLogin);
@@ -254,8 +251,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         User user = requireUser(userLogin);
         // A project the user still holds a per-project role on stays listed: dropping it would leave a
         // Casbin row without an inventory entry, the one state we can't self-heal from (see below).
-        List<String> unheld = projectNames.stream()
-                                          .filter(name -> readProjectRoles(user, new Project(name)).isEmpty())
+        List<String> unheld = projectNames.stream().filter(name -> readProjectRoles(user, new Project(name)).isEmpty())
                                           .collect(Collectors.toList());
         removeFromInventory(user, unheld);
     }
@@ -299,8 +295,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         String defaultDomainScope = Domain.DEFAULT.id() + "::*";
         return authorizer.getGroupPermissions().stream()
                          .filter(r -> Role.INSTANCE_ADMIN.name().equals(r.getV1()) && "*::*".equals(r.getV2()) ||
-                                      Role.DOMAIN_ADMIN.name().equals(r.getV1()) && defaultDomainScope.equals(r.getV2()))
-                         .map(CasbinRule::getV0).distinct().collect(Collectors.toList());
+                                      Role.DOMAIN_ADMIN.name().equals(r.getV1()) &&
+                                      defaultDomainScope.equals(r.getV2())).map(CasbinRule::getV0).distinct()
+                         .collect(Collectors.toList());
     }
 
     // Inventory mutations: persist a fresh User with the per-application list
