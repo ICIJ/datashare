@@ -2,7 +2,7 @@ package org.icij.datashare.tasks.temporal;
 
 import io.temporal.activity.Activity;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.tasks.ArtifactStages;
+import org.icij.datashare.tasks.ArtifactOptions;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
@@ -65,10 +65,11 @@ public class IndexActivityImpl implements IndexActivity {
 
         DocumentFactory documentFactory = new DocumentFactory().configure(indexOptions.documentFactoryOptions());
         String taskId = Activity.getExecutionContext().getInfo().getWorkflowId();
+        ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
         try (Extractor extractor = new Extractor(documentFactory, indexOptions.extractorOptions())) {
             // Opt-in artifact generation (--artifacts): the same manifest recording IndexTask does at
             // index time, so raw embeds captured during this parse aren't lost to a separate stage.
-            ArtifactStages.artifactProjectRoot(propertiesProvider).ifPresent(projectRoot -> {
+            artifactOptions.artifactProjectRoot().ifPresent(projectRoot -> {
                 List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider)
                                                           .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
                 boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
@@ -77,7 +78,7 @@ public class IndexActivityImpl implements IndexActivity {
                 }
                 spewer.setManifestRecorder(
                         new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected,
-                                             ArtifactStages.force(propertiesProvider), taskId));
+                                             artifactOptions.force(), taskId));
             });
 
             for (Path path : paths) {
