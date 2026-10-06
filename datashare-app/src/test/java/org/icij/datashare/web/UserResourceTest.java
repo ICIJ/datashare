@@ -52,6 +52,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -917,6 +918,30 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .should().respond(200)
                 .contain("\"noop\":true")
                 .contain("\"previousRole\":\"INSTANCE_ADMIN\"");
+
+        verifyNoInteractions(projectAdminService);
+    }
+
+    @Test
+    public void test_grant_instance_admin_role_adds_every_project_to_the_inventory() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        when(jooqRepository.getProjects()).thenReturn(List.of(project("foo"), project("bar")));
+
+        put("/api/users/admin/bob/role?role=instance_admin").should().respond(200);
+
+        verify(projectAdminService).addProjectsToInventory(List.of("foo", "bar"), "bob");
+    }
+
+    @Test
+    public void test_grant_domain_admin_role_adds_every_project_to_the_inventory() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        when(jooqRepository.getProjects()).thenReturn(singletonList(project("foo")));
+
+        put("/api/users/admin/bob/role?role=domain_admin").should().respond(200);
+
+        verify(projectAdminService).addProjectsToInventory(singletonList("foo"), "bob");
     }
 
     @Test
@@ -954,7 +979,21 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .contain("\"role\":\"INSTANCE_ADMIN\"")
                 .contain("\"noop\":false");
 
+        verify(projectAdminService).removeProjectsFromInventory(List.of(), "bob");
+
         assertFalse(authorizer.getRolesForUserInDomain(bob, Domain.of("*")).contains("INSTANCE_ADMIN"));
+    }
+
+    @Test
+    public void test_revoke_instance_admin_role_removes_every_project_from_the_inventory() throws Exception {
+        User bob = new User("bob", "Bob", "bob@example.org", "local", new HashMap<>());
+        when(userAdminService.get("bob")).thenReturn(bob);
+        authorizer.addRoleForUserInInstance(bob, Role.INSTANCE_ADMIN);
+        when(jooqRepository.getProjects()).thenReturn(List.of(project("foo"), project("bar")));
+
+        delete("/api/users/admin/bob/role?role=instance_admin").should().respond(200);
+
+        verify(projectAdminService).removeProjectsFromInventory(List.of("foo", "bar"), "bob");
     }
 
     @Test
@@ -991,6 +1030,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
                 .should().respond(200)
                 .contain("\"noop\":true")
                 .contain("\"previousRole\":null");
+
+        verifyNoInteractions(projectAdminService);
     }
 
     @Test

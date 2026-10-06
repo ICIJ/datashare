@@ -72,6 +72,25 @@ public class UserResource {
                                                          .orElse(project)).collect(Collectors.toList());
     }
 
+    // An instance or domain admin grant already authorizes every project of that scope via the
+    // wildcard Casbin role; this only keeps the user's inventory (groups_by_applications.datashare,
+    // what the UI lists for them) in sync with that, so they actually see what they're authorized
+    // to access instead of whatever project-specific rows they happened to hold before.
+    //TODO #DOMAIN: scope to the projects of `domain` once projects carry a domain and domains are
+    // operational; every project is in the single operational domain today.
+    private void syncProjectInventoryForWideRole(String userId, boolean add) {
+        List<String> projectNames = repository.getProjects().stream().map(p -> p.name).collect(Collectors.toList());
+        try {
+            if (add) {
+                projectAdminService.addProjectsToInventory(projectNames, userId);
+            } else {
+                projectAdminService.removeProjectsFromInventory(projectNames, userId);
+            }
+        } catch (org.icij.datashare.project.admin.UserNotFoundException e) {
+            // Shouldn't happen: userId was already resolved above by userAdminService.get(userId).
+        }
+    }
+
     @Inject
     public UserResource(Repository repository, Authorizer authorizer, UserAdminService userAdminService,
                         ProjectAdminService projectAdminService) {
@@ -326,6 +345,7 @@ public class UserResource {
                 } else {
                     authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
                 }
+                syncProjectInventoryForWideRole(userId, true);
             }
             return new Payload(new RoleGranted(role, userId, alreadyGranted ? role : null, alreadyGranted));
         } catch (Validators.InvalidValueException e) {
@@ -360,6 +380,7 @@ public class UserResource {
                 } else {
                     authorizer.deleteRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
                 }
+                syncProjectInventoryForWideRole(userId, false);
             }
             return new Payload(new RoleRevoked(role, userId, currentlyGranted ? role : null, !currentlyGranted));
         } catch (Validators.InvalidValueException e) {
