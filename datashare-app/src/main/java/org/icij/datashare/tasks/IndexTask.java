@@ -125,7 +125,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
         // config surfaces as a clean task error rather than a reflective-construction NackException
         // that requeues forever. When set, extract-lib writes embed bytes to the same project root the
         // ManifestRecorder writes manifests to.
-        ArtifactStages.artifactProjectRoot(propertiesProvider).ifPresent(projectRoot -> {
+        ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
+        artifactOptions.artifactProjectRoot().ifPresent(projectRoot -> {
             List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider)
                                                       .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
             boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
@@ -150,7 +151,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
                 extractor.setEmbedOutputPath(projectRoot);
             }
             spewer.setManifestRecorder(new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected,
-                                                            ArtifactStages.force(propertiesProvider), taskId));
+                                                            artifactOptions.force(), taskId));
         });
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         try {

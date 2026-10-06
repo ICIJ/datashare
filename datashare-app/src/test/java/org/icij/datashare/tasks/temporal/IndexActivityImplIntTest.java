@@ -35,13 +35,12 @@ public class IndexActivityImplIntTest {
     @Test
     public void test_index() throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider();
-        IndexActivityImpl indexActivity = new IndexActivityImpl(propertiesProvider, new ElasticsearchIndexer(es.client,
-                                                                                                             propertiesProvider).withRefresh(
-                Refresh.True), text -> Language.ENGLISH);
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(IndexationWorkflowImpl.class, WORKFLOWS_DEFAULT);
         registry.registerActivity(new ScanActivityImpl(temporal.getClient()), WORKFLOWS_DEFAULT);
-        registry.registerActivity(indexActivity, WORKFLOWS_DEFAULT);
+        registry.registerActivity(new IndexActivityImpl(propertiesProvider, new ElasticsearchIndexer(es.client,
+                                                                                                     propertiesProvider).withRefresh(
+                Refresh.True), text -> Language.ENGLISH), WORKFLOWS_DEFAULT);
 
         try (Closeable ignored = TemporalWorkers.start(temporal.getClient(), registry, List.of(WORKFLOWS_DEFAULT),
                                                        new TemporalWorkerOptions(1))) {

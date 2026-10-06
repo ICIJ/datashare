@@ -35,10 +35,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PARSE_TIMEOUT;
-import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.PARSE_TIMEOUT_OPT;
 
 @TemporalSingleActivityWorkflow(name = "artifact", activityOptions = @ActivityOpts(timeout = "P1D"))
@@ -47,11 +45,9 @@ public class ArtifactTask extends PipelineTask<String> {
     private static final List<String> SOURCE_EXCLUDES = List.of("content", "content_translated");
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
-    private final Project project;
-    private final Path artifactDir;
-    private final int parallelism;
     private final ExecutorService executor;
     private final String taskId;
+    private final ArtifactOptions artifactOptions;
 
     @Inject
     public ArtifactTask(DocumentCollectionFactory<String> factory, Indexer indexer,
@@ -61,11 +57,8 @@ public class ArtifactTask extends PipelineTask<String> {
               gateFactory.forTask(taskView));
         this.indexer = indexer;
         taskId = taskView.id;
-        project = Project.project(ArtifactStages.resolveProjectName(propertiesProvider));
-        parallelism = Math.max(1, propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(1));
-        artifactDir = Path.of(propertiesProvider.get(ARTIFACT_DIR_OPT).orElseThrow(() -> new IllegalArgumentException(
-                String.format("cannot create artifact task with empty %s", ARTIFACT_DIR_OPT))));
-        executor = Executors.newFixedThreadPool(parallelism, namedThreadFactory("artifact-worker"));
+        artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
+        executor = Executors.newFixedThreadPool(artifactOptions.parallelism(), namedThreadFactory("artifact-worker"));
     }
 
     @Override
@@ -80,15 +73,15 @@ public class ArtifactTask extends PipelineTask<String> {
     @Override
     public Long call() throws Exception {
         super.call();
-        logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s)", artifactDir,
-                    project, inputQueue.getName(), parallelism);
+        logger.info("creating artifact cache in {} for project {} from queue {} with {} worker(s)", artifactOptions.artifactProjectRoot(),
+                    artifactOptions.projectName(), inputQueue.getName(), artifactOptions.parallelism());
         warnIfParseTimeoutIsIgnored();
         AtomicLong nbDocs = new AtomicLong(0);
         AtomicLong nbSkipped = new AtomicLong(0);
         AtomicLong nbFailed = new AtomicLong(0);
         try {
             List<Future<?>> futures = new ArrayList<>();
-            for (int i = 0; i < parallelism; i++) {
+            for (int i = 0; i < artifactOptions.parallelism(); i++) {
                 futures.add(executor.submit(() -> runWorker(nbDocs, nbSkipped, nbFailed)));
             }
             int nbFailures = 0;
@@ -126,14 +119,14 @@ public class ArtifactTask extends PipelineTask<String> {
         if (nbSkipped.get() > 0) {
             logger.error(
                     "{} document(s) could not be retrieved from index {} and got no artifact cache, re-run the ARTIFACT stage for them",
-                    nbSkipped.get(), project.name);
+                    nbSkipped.get(), artifactOptions.projectName());
         }
         if (nbFailed.get() > 0) {
             // Failed docs never got a terminal manifest entry, so isCurrent() is false for them
             // and a plain re-run already reprocesses exactly those (not --artifactsForce, which
             // would force-reprocess the entire corpus). Matches the nbSkipped guidance above.
             logger.error("{} document(s) failed artifact production in project {}, re-run the ARTIFACT stage for them",
-                         nbFailed.get(), project.name);
+                         nbFailed.get(), artifactOptions.projectName());
         }
         logger.info("exiting ArtifactTask loop after processing {} document(s).", nbDocs.get());
         return nbDocs.get();
@@ -145,12 +138,12 @@ public class ArtifactTask extends PipelineTask<String> {
         // whole catalog, raw, structure and page (see ArtifactRegistry#withDefaults).
         ArtifactRegistry registry = ArtifactRegistry.withDefaults(propertiesProvider);
         List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
-        boolean force = ArtifactStages.force(propertiesProvider);
+        boolean force = artifactOptions.force();
         // The producer owns what counts as a cancellation (see ArtifactProducer#isCancellation), so this
         // loop and the produce loop it drives cannot disagree about it.
         ArtifactProducer producer =
                 new ArtifactProducer(new FilesystemManifestRepository(), executor::isShutdown, taskId);
-        Path projectRoot = ArtifactPath.projectRoot(artifactDir, project.name);
+        Path projectRoot = ArtifactPath.projectRoot(artifactOptions.artifactDir(), artifactOptions.projectName());
         // The interrupt check keeps cancellation prompt, since cancel() calls executor.shutdownNow()
         // while a worker may sit between two non-blocking polls.
         while (!Thread.currentThread().isInterrupted()) {
@@ -184,14 +177,14 @@ public class ArtifactTask extends PipelineTask<String> {
                 continue;
             }
             try {
-                Document doc = getDocument(indexer, project.name, DocReference.parse(queueEntry), SOURCE_EXCLUDES);
+                Document doc = getDocument(indexer, artifactOptions.projectName(), DocReference.parse(queueEntry), SOURCE_EXCLUDES);
                 if (doc == null) {
                     nbSkipped.incrementAndGet();
                     continue;
                 }
                 // Each polled node is produced into its own content-addressed directory.
                 Path docArtifactDir = ArtifactPath.dir(projectRoot, doc.getId());
-                if (producer.run(selected, new ArtifactContext(project, doc, docArtifactDir, extractor), force)) {
+                if (producer.run(selected, new ArtifactContext(Project.project(artifactOptions.projectName()), doc, docArtifactDir, extractor), force)) {
                     nbDocs.incrementAndGet();
                 } else {
                     nbFailed.incrementAndGet();
