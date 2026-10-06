@@ -252,6 +252,23 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         removeFromInventory(user, unheld);
     }
 
+    @Override
+    public void backfillWideAdminInventories() {
+        List<String> projectNames = repository.getProjects().stream().map(p -> p.name).collect(Collectors.toList());
+        //TODO #DOMAIN: backfill domain admins of every domain once projects carry a domain.
+        String defaultDomainScope = Domain.DEFAULT.id() + "::*";
+        authorizer.getGroupPermissions().stream()
+                  .filter(r -> Role.INSTANCE_ADMIN.name().equals(r.getV1()) && "*::*".equals(r.getV2()) ||
+                               Role.DOMAIN_ADMIN.name().equals(r.getV1()) && defaultDomainScope.equals(r.getV2()))
+                  .map(CasbinRule::getV0).distinct().forEach(userLogin -> {
+                      try {
+                          addProjectsToInventory(projectNames, userLogin);
+                      } catch (UserNotFoundException e) {
+                          LOGGER.warn("skipping project inventory backfill of wide admin {}: user not found", userLogin);
+                      }
+                  });
+    }
+
     // Inventory mutations: persist a fresh User with the per-application list
     // adjusted, in a single save whatever the number of projects. Both go through
     // the same safe-cast helpers so a stale or hand-edited details shape doesn't

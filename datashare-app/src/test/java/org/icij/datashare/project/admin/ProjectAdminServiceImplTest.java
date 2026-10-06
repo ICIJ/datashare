@@ -1085,6 +1085,31 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_backfill_adds_every_project_to_wide_admins_only() throws Exception {
+        when(repository.getProjects()).thenReturn(List.of(new Project("foo"), new Project("bar")));
+        when(authorizer.getGroupPermissions()).thenReturn(List.of(
+                casbinRule("jdoe", "INSTANCE_ADMIN", "*::*"),
+                casbinRule("egarcia", "DOMAIN_ADMIN", "default::*"),
+                casbinRule("bob", "PROJECT_MEMBER", "default::foo"),
+                casbinRule("ghost", "INSTANCE_ADMIN", "*::*")));
+        when(users.find("jdoe")).thenReturn(new DatashareUser(new User("jdoe", "Jane", "j@icij.org", "local", new HashMap<>())));
+        when(users.find("egarcia")).thenReturn(new DatashareUser(new User("egarcia", "Eva", "e@icij.org", "local", new HashMap<>())));
+        when(users.find("ghost")).thenReturn(null);
+
+        service.backfillWideAdminInventories();
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userStore, Mockito.times(2)).save(saved.capture());
+        assertThat(saved.getAllValues().stream().map(u -> u.id).toList()).containsOnly("jdoe", "egarcia");
+        for (User u : saved.getAllValues()) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> apps = (Map<String, Object>) u.details.get("groups_by_applications");
+            assertThat((List<?>) apps.get("datashare")).containsOnly("foo", "bar");
+        }
+        verify(users, never()).find("bob");
+    }
+
+    @Test
     public void test_add_projects_to_inventory_throws_user_not_found_when_user_missing() {
         when(users.find("ghost")).thenReturn(null);
         try {

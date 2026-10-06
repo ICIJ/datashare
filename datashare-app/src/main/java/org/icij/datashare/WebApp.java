@@ -7,6 +7,7 @@ import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.tasks.BatchDownloadCleaner;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.utils.WebBrowserUtils;
@@ -38,6 +39,10 @@ public class WebApp {
             mode.runWorkers();
         }
 
+        if (!Mode.valueOf(mode.properties().getProperty("mode")).isLocal()) {
+            backfillWideAdminInventories(mode.get(ProjectAdminService.class));
+        }
+
         String host = resolveBindHost(mode);
         int port = parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT));
         LOGGER.info("binding HTTP server to {}:{}", host, port);
@@ -59,6 +64,16 @@ public class WebApp {
         WebBrowserUtils.openBrowser(port, shouldOpenBrowser);
 
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
+    }
+
+    // Admins granted before the wide-role inventory sync existed only list their former project
+    // grants. A failure here must not keep the server down: those admins keep their old list.
+    private static void backfillWideAdminInventories(ProjectAdminService projectAdminService) {
+        try {
+            projectAdminService.backfillWideAdminInventories();
+        } catch (RuntimeException e) {
+            LOGGER.error("cannot backfill wide admins' project inventories", e);
+        }
     }
 
     private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, TaskManager taskManager) throws
