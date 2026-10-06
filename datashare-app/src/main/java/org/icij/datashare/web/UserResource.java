@@ -380,7 +380,14 @@ public class UserResource {
                 } else {
                     authorizer.deleteRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
                 }
-                syncProjectInventoryForWideRole(userId, false);
+                // The other wide role still authorizes every project, so the inventory stays as is.
+                //TODO #DOMAIN: also consider domain admin grants on other domains once domains are operational.
+                boolean otherWideRole = role == Role.INSTANCE_ADMIN
+                        ? authorizer.getRolesForUserInDomain(user, Domain.DEFAULT).contains(Role.DOMAIN_ADMIN.name())
+                        : authorizer.getRolesForUserInDomain(user, Domain.of("*")).contains(Role.INSTANCE_ADMIN.name());
+                if (!otherWideRole) {
+                    syncProjectInventoryForWideRole(userId, false);
+                }
             }
             return new Payload(new RoleRevoked(role, userId, currentlyGranted ? role : null, !currentlyGranted));
         } catch (Validators.InvalidValueException e) {
