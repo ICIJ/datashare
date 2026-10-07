@@ -3,10 +3,14 @@ package org.icij.datashare.policies;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.ApplyAroundAnnotation;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.policies.errors.InvalidValueException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.UnreadableExtractionMapping;
+import org.icij.datashare.utils.PayloadFormatter;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -24,14 +28,36 @@ public class MappingPolicyAnnotation implements ApplyAroundAnnotation<MappingPol
     @Override
     public Payload apply(MappingPolicy annotation, Context context, Function<Context, Payload> payloadSupplier) {
         DatashareUser user = Authorizer.requireUser((DatashareUser) context.currentUser());
-        String projectId = Authorizer.requireValue(context.pathParam("project"), false);
-        Optional<ExtractionMapping> mapping = mappings.get(projectId, context.pathParam("mappingId"));
+        String projectId;
+        try {
+            projectId = Authorizer.requireValue(context.pathParam("project"), false);
+        } catch (InvalidValueException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+        // Membership before the lookup: a 404 for an unknown id next to a 403 for a known one would
+        // let a user with no role on the project list the mapping ids it holds.
+        if (!can(user, projectId, Role.PROJECT_MEMBER)) {
+            return Payload.forbidden();
+        }
+        Optional<ExtractionMapping> mapping;
+        try {
+            mapping = mappings.get(projectId, context.pathParam("mappingId"));
+        } catch (UnreadableExtractionMapping e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
+        }
         if (mapping.isEmpty()) {
             return Payload.notFound();
         }
-        boolean isAllowed = authorizer.can(user.id, Domain.DEFAULT, projectId, Role.PROJECT_ADMIN);
-        boolean isOwner = Objects.equals(mapping.get().userId(), user.id);
-        boolean canAsOwner = isOwner && authorizer.can(user.id, Domain.DEFAULT, projectId, Role.PROJECT_MEMBER);
-        return isAllowed || canAsOwner ? payloadSupplier.apply(context) : Payload.forbidden();
+        return can(user, projectId, requiredRole(mapping.get(), user)) ? payloadSupplier.apply(context) :
+               Payload.forbidden();
+    }
+
+    // PROJECT_ADMIN inherits PROJECT_MEMBER, so the author needs the lower role and anyone else the higher one.
+    private static Role requiredRole(ExtractionMapping mapping, DatashareUser user) {
+        return Objects.equals(mapping.userId(), user.id) ? Role.PROJECT_MEMBER : Role.PROJECT_ADMIN;
+    }
+
+    private boolean can(DatashareUser user, String projectId, Role role) {
+        return authorizer.can(user.id, Domain.DEFAULT, projectId, role);
     }
 }
