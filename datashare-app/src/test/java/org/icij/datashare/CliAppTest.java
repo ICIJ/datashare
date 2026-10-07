@@ -15,15 +15,18 @@ import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.UpstreamGate;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.user.User;
+import org.jooq.exception.DataAccessException;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -114,6 +117,50 @@ public class CliAppTest {
     }
 
     @Test
+    public void test_save_mapping_file_runs_a_saved_mapping_identical_to_the_file() throws Exception {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        Properties properties = entitiesProperties(mappingFile(MAPPING_JSON));
+        when(mappings.save(any())).thenReturn(false);
+        when(mappings.get("prj", "m1")).thenAnswer(invocation -> {
+            ArgumentCaptor<ExtractionMapping> saved = ArgumentCaptor.forClass(ExtractionMapping.class);
+            verify(mappings).save(saved.capture());
+            return Optional.of(saved.getValue());
+        });
+
+        // a run that failed after its save is retried with the very same command
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_SUCCESS);
+        assertThat(properties.getProperty("mappingId")).isEqualTo("m1");
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_a_database_failure_as_a_runtime_error() throws Exception {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        when(mappings.save(any())).thenThrow(new DataAccessException("connection refused"));
+
+        assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(MAPPING_JSON)))).isEqualTo(CliApp.EXIT_RUNTIME);
+    }
+
+    @Test
+    public void test_save_mapping_file_refuses_a_misspelled_field() throws Exception {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        String misspelled = MAPPING_JSON.replace("\"documentId\": \"docId\"", "\"documentId\": \"docId\", \"rootID\": \"zip\"");
+
+        assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(misspelled)))).isEqualTo(CliApp.EXIT_VALIDATION);
+        verify(mappings, never()).save(any());
+    }
+
+    @Test
+    public void test_save_mapping_file_rejects_the_option_without_entities() throws Exception {
+        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        Properties properties = entitiesProperties(mappingFile(MAPPING_JSON));
+        properties.setProperty("stages", "SCAN,INDEX");
+
+        // nothing but the ENTITIES stage reads the file, so without it the mapping would be dropped in silence
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_VALIDATION);
+        verifyNoInteractions(mappings);
+    }
+
+    @Test
     public void test_save_mapping_file_does_nothing_without_entities() {
         ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
         Properties properties = new Properties();
@@ -131,6 +178,10 @@ public class CliAppTest {
             properties.setProperty("mappingFile", mappingFile);
         }
         return properties;
+    }
+
+    private static String mappingFile(String json) throws IOException {
+        return Files.writeString(Files.createTempFile("mapping", ".json"), json).toString();
     }
 
     private static int saveMappingFile(ExtractionMappingRepository mappings, Properties properties) {
