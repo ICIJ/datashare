@@ -13,37 +13,31 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.policies.MappingPolicy;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
+import org.icij.datashare.tabular.DuplicateExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingReader;
-import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingService;
+import org.icij.datashare.tabular.UnknownExtractionMapping;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
-import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 import org.icij.datashare.web.errors.ForbiddenException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.notFound;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.tasks.StructuredEntityExtractionTask.MAPPING_ID_OPT;
 
 @Singleton
 @Prefix("/api")
 public class ExtractionMappingResource {
-    private final ExtractionMappingRepository mappings;
-    private final TaskManager taskManager;
+    private final ExtractionMappingService mappings;
 
     @Inject
-    public ExtractionMappingResource(ExtractionMappingRepository mappings, TaskManager taskManager) {
+    public ExtractionMappingResource(ExtractionMappingService mappings) {
         this.mappings = mappings;
-        this.taskManager = taskManager;
     }
 
     @Operation(description = """
@@ -60,9 +54,10 @@ public class ExtractionMappingResource {
         User user = (User) context.currentUser();
         try {
             ExtractionMapping mapping = read(context.request().contentAsBytes(), project, id, user.id);
-            return mappings.save(mapping) ? created() :
-                   PayloadFormatter.error("mapping '%s' already exists in project '%s'".formatted(id, project),
-                                          HttpStatus.CONFLICT);
+            mappings.save(mapping);
+            return created();
+        } catch (DuplicateExtractionMapping e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
         } catch (IOException | IllegalArgumentException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -83,15 +78,13 @@ public class ExtractionMappingResource {
         // the task refuses a user the project is not granted to, so a 201 would hand out a run bound to fail
         ForbiddenException.requireGranted(context, project);
         try {
-            if (mappings.get(project, mappingId).isEmpty()) {
-                return notFound();
-            }
+            String taskId = mappings.run(project, mappingId, (User) context.currentUser());
+            return new JsonPayload(201, new TaskResource.TaskResponse(taskId));
+        } catch (UnknownExtractionMapping e) {
+            return notFound();
         } catch (UnreadableExtractionMapping e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
         }
-        Map<String, Object> args = new HashMap<>(Map.of(DEFAULT_PROJECT_OPT, project, MAPPING_ID_OPT, mappingId));
-        String taskId = taskManager.startTask(StructuredEntityExtractionTask.class, (User) context.currentUser(), args);
-        return new JsonPayload(201, new TaskResource.TaskResponse(taskId));
     }
 
     private static ExtractionMapping read(byte[] body, String project, String id, String userId) throws IOException {

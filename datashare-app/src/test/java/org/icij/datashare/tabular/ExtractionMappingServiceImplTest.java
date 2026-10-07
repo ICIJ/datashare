@@ -1,19 +1,26 @@
 package org.icij.datashare.tabular;
 
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.tasks.StructuredEntityExtractionTask;
+import org.icij.datashare.user.User;
 import org.junit.Test;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** A mapping id is saved once per project; only the identical mapping may be saved again. */
+/** A mapping id is saved once per project, only the identical mapping may be saved again, and only a stored one runs. */
 public class ExtractionMappingServiceImplTest {
     private final ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
-    private final ExtractionMappingService service = new ExtractionMappingServiceImpl(mappings);
+    private final TaskManager taskManager = mock(TaskManager.class);
+    private final ExtractionMappingService service = new ExtractionMappingServiceImpl(mappings, taskManager);
 
     @Test
     public void test_save_stores_a_new_mapping() throws Exception {
@@ -59,6 +66,24 @@ public class ExtractionMappingServiceImplTest {
 
         // a stored definition that no longer reads cannot be the caller's, so it stays a conflict
         assertThrows(DuplicateExtractionMapping.class, () -> service.saveIfIdentical(mapping("companies")));
+    }
+
+    @Test
+    public void test_run_starts_the_extraction_task_on_the_stored_mapping() throws Exception {
+        User user = User.localUser("john");
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping("companies")));
+        when(taskManager.startTask(StructuredEntityExtractionTask.class, user,
+                                   Map.of("defaultProject", "prj", "mappingId", "m1"))).thenReturn("task-1");
+
+        assertThat(service.run("prj", "m1", user)).isEqualTo("task-1");
+    }
+
+    @Test
+    public void test_run_refuses_a_mapping_the_project_does_not_hold() throws Exception {
+        when(mappings.get("prj", "m1")).thenReturn(Optional.empty());
+
+        assertThrows(UnknownExtractionMapping.class, () -> service.run("prj", "m1", User.localUser("john")));
+        verify(taskManager, never()).startTask(any(Class.class), any(User.class), any(Map.class));
     }
 
     private static ExtractionMapping mapping(String name) throws IOException {

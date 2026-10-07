@@ -14,6 +14,7 @@ import org.icij.datashare.policies.MappingPolicyAnnotation;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
 import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
@@ -69,7 +70,7 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
         mocks = openMocks(this);
         when(jooqRepository.getProjects()).thenReturn(List.of(project("prj")));
         LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
-        configure(routes -> routes.add(new ExtractionMappingResource(mappings, taskManager)).filter(localUserFilter));
+        configure(routes -> routes.add(new ExtractionMappingResource(new ExtractionMappingServiceImpl(mappings, taskManager))).filter(localUserFilter));
         TestTaskUtils.init(taskFactory);
     }
 
@@ -203,10 +204,11 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_run_is_guarded_by_the_mapping_policy() throws Exception {
         when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping()));
-        MappingPolicyAnnotation policy = new MappingPolicyAnnotation(new Authorizer(mock(CasbinRuleAdapter.class)), mappings);
+        MappingPolicyAnnotation policy = new MappingPolicyAnnotation(new Authorizer(mock(CasbinRuleAdapter.class)),
+                                                                    new ExtractionMappingServiceImpl(mappings, taskManager));
         LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
         configure(routes -> routes.registerAroundAnnotation(MappingPolicy.class, policy)
-                                  .add(new ExtractionMappingResource(mappings, taskManager)).filter(localUserFilter));
+                                  .add(new ExtractionMappingResource(new ExtractionMappingServiceImpl(mappings, taskManager))).filter(localUserFilter));
 
         // the local user holds no role on the project in this authorizer
         post("/api/task/structuredEntityExtraction/prj/m1").should().respond(403);
