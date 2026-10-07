@@ -10,6 +10,13 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class WebAppBindTest {
     @Test
+    public void test_only_server_mode_backfills_wide_admin_inventories_at_startup() {
+        for (Mode mode : Mode.values()) {
+            assertThat(WebApp.backfillsAtStartup(mode)).as(mode.name()).isEqualTo(mode == Mode.SERVER);
+        }
+    }
+
+    @Test
     public void test_default_bind_host_local_mode() {
         CommonMode mode = CommonMode.create(new HashMap<>() {{
             put("mode", Mode.LOCAL.name());
