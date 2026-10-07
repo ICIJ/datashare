@@ -1,21 +1,27 @@
 package org.icij.datashare.tabular;
 
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** A mapping id is saved once per project; only the identical mapping may be saved again. */
+/** A mapping id is saved once per project, only the identical mapping may be saved again, and only a stored one runs. */
 public class ExtractionMappingServiceImplTest {
     private final ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
-    private final ExtractionMappingService service = new ExtractionMappingServiceImpl(mappings);
+    private final TaskManager taskManager = mock(TaskManager.class);
+    private final ExtractionMappingService service = new ExtractionMappingServiceImpl(mappings, taskManager);
 
     @Test
     public void test_get_lets_anyone_read_when_roles_are_not_enforced() throws Exception {
@@ -27,7 +33,7 @@ public class ExtractionMappingServiceImplTest {
     @Test
     public void test_get_lets_a_cli_run_read_when_roles_are_enforced() throws Exception {
         ExtractionMappingService enforced =
-                new ExtractionMappingServiceImpl(mappings, new Authorizer(mock(CasbinRuleAdapter.class)));
+                new ExtractionMappingServiceImpl(mappings, new Authorizer(mock(CasbinRuleAdapter.class)), taskManager);
         when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping("companies")));
 
         assertThat(enforced.get("prj", "m1", User.nullUser()).isPresent()).isTrue();
@@ -94,6 +100,24 @@ public class ExtractionMappingServiceImplTest {
         assertThat(duplicate.reason).isEqualTo(DuplicateExtractionMapping.Reason.UNREADABLE_DEFINITION);
         assertThat(duplicate.getMessage()).isEqualTo(
                 "mapping 'm1' already exists in project 'prj' but its stored definition no longer reads");
+    }
+
+    @Test
+    public void test_run_starts_the_extraction_task_on_the_stored_mapping() throws Exception {
+        User user = User.localUser("john");
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping("companies")));
+        when(taskManager.startTask(StructuredEntityExtractionTask.class, user,
+                                   Map.of("defaultProject", "prj", "mappingId", "m1"))).thenReturn("task-1");
+
+        assertThat(service.run("prj", "m1", user)).isEqualTo("task-1");
+    }
+
+    @Test
+    public void test_run_refuses_a_mapping_the_project_does_not_hold() throws Exception {
+        when(mappings.get("prj", "m1")).thenReturn(Optional.empty());
+
+        assertThrows(UnknownExtractionMapping.class, () -> service.run("prj", "m1", User.localUser("john")));
+        verify(taskManager, never()).startTask(any(Class.class), any(User.class), any(Map.class));
     }
 
     private static ExtractionMapping mapping(String name) throws IOException {
