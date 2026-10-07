@@ -404,7 +404,8 @@ public class UserResource {
                                                   .contains(Role.DOMAIN_ADMIN.name()) :
                                         authorizer.getRolesForUserInDomain(user, Domain.of("*"))
                                                   .contains(Role.INSTANCE_ADMIN.name());
-                if (!otherWideRole) {
+                boolean coversEveryProject = role == Role.INSTANCE_ADMIN || Domain.DEFAULT.equals(domain);
+                if (coversEveryProject && !otherWideRole) {
                     syncProjectInventoryForWideRole(userId, false);
                 }
                 if (role == Role.INSTANCE_ADMIN) {
