@@ -6,6 +6,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tabular.RowSourceOptions;
+import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,7 +20,10 @@ import java.util.Optional;
 import static junit.framework.TestCase.assertEquals;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 
@@ -86,14 +90,41 @@ public class MappingPolicyAnnotationTest {
         assertEquals(404, apply("cecile", null));
     }
 
+    @Test
+    public void test_user_without_role_cannot_tell_an_unknown_mapping_from_a_known_one() {
+        // a 404 here and a 403 for an existing id would let anyone list a project's mapping ids
+        assertEquals(403, apply("jane", null));
+        verify(mappings, never()).get(any(), any());
+    }
+
+    @Test
+    public void test_unreadable_mapping_is_a_conflict() {
+        when(mappings.get("prj", "m1")).thenThrow(new UnreadableExtractionMapping("m1", new IOException("unknown model")));
+
+        assertEquals(409, applyIn(context("cecile", "prj")));
+    }
+
+    @Test
+    public void test_wildcard_project_is_a_bad_request() {
+        assertEquals(400, applyIn(context("cecile", "*")));
+    }
+
     private int apply(String userId, ExtractionMapping stored) {
         when(mappings.get("prj", "m1")).thenReturn(Optional.ofNullable(stored));
-        Context context = mock(Context.class);
-        when(context.currentUser()).thenReturn(new DatashareUser(userId));
-        when(context.pathParam("project")).thenReturn("prj");
-        when(context.pathParam("mappingId")).thenReturn("m1");
+        return applyIn(context(userId, "prj"));
+    }
+
+    private int applyIn(Context context) {
         Payload result = annotation.apply(mappingPolicy, context, c -> Payload.ok());
         return result.code();
+    }
+
+    private static Context context(String userId, String projectId) {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(new DatashareUser(userId));
+        when(context.pathParam("project")).thenReturn(projectId);
+        when(context.pathParam("mappingId")).thenReturn("m1");
+        return context;
     }
 
     private static ExtractionMapping mappingOwnedBy(String userId) {
