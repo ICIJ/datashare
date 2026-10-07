@@ -19,7 +19,8 @@ RUN apt update && apt install -y \
 # Ubuntu installs the script models at the tessdata root, extract only finds them under tessdata/script/
 RUN cd /usr/share/tesseract-ocr/5/tessdata && mkdir -p script && \
     for model in Latin HanS Cyrillic Arabic Japanese Hangul; do \
-      ln -s ../$model.traineddata script/$model.traineddata; \
+      test -f "$model.traineddata" || exit 1; \
+      ln -sf ../$model.traineddata script/$model.traineddata; \
     done
 
 # add user/group datashare (remove ubuntu user/group if they exist with UID/GID 1000)
