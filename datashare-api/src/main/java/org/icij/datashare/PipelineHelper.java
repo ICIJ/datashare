@@ -36,7 +36,7 @@ public class PipelineHelper {
         }
         // runPipeline starts stages side by side and the extraction task waits on no upstream task,
         // so it would read a document another stage has not indexed yet.
-        if (stages.contains(Stage.ENTITIES) && stages.size() > 1) {
+        if (stages.contains(Stage.ENTITIES) && stages.stream().anyMatch(stage -> stage != Stage.ENTITIES)) {
             throw new IllegalArgumentException(
                     String.format("%s runs alone: remove the other stages from --stages", Stage.ENTITIES));
         }

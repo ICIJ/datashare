@@ -134,6 +134,13 @@ public class PipelineHelperTest {
     }
 
     @Test
+    public void test_accepts_entities_named_twice_since_a_repeated_stage_runs_once() {
+        assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "ENTITIES,ENTITIES");
+        }})).stages).containsOnly(Stage.ENTITIES);
+    }
+
+    @Test
     public void test_get_queue_name_when_no_stage_is_provided_like_in_web_mode() {
         assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() )).getQueueNameFor(Stage.NLP)).isEqualTo("extract:queue:nlp");
     }
