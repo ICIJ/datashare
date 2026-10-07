@@ -8,42 +8,37 @@ import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.UnreadableModelResource;
+import tech.followthemoney.model.Edge;
+import tech.followthemoney.model.Model;
+import tech.followthemoney.model.Schema;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
- * The FollowTheMoney model, read from a bundled copy of its prebuilt ontology. The
- * {@code org.icij:ftm.java} artifact on the classpath is a build-time code generator and carries no
- * model data, so the file is vendored: version 4.10.2, retrieved 2026-08-21 from
- * https://raw.githubusercontent.com/opensanctions/followthemoney/b9418ecd32bd60dd09c261134464860a0082ffb7/js/src/defaultModel.json
- * with sha256 d1733d7963b4a662e8162529dfc8a1eb0dd86d035425853fbc67c26b63d99992. That path carries
- * no {@code 4.10.2} tag, so the commit sha is the only stable pin. FollowTheMoney is MIT-licensed
- * and its notice ships beside the ontology, as the {@code ftm/LICENSE} resource.
+ * The FollowTheMoney model, as the official {@code tech.followthemoney:followthemoney} library reads
+ * the ontology it bundles. The library resolves inherited properties but exposes neither the
+ * ontology version nor which schemata are abstract, so both are read from that same bundled JSON.
  */
 public class FtmTargetModel implements TargetModel {
-    private static final String RESOURCE = "ftm/defaultModel-4.10.2.json";
+    private static final String RESOURCE = "/defaultModel.json";
     private final String version;
     private final Map<String, EntityType> types;
 
     public FtmTargetModel() {
-        try (InputStream stream = getClass().getClassLoader().getResourceAsStream(RESOURCE)) {
-            if (stream == null) {
-                throw new UnreadableModelResource(RESOURCE);
-            }
-            JsonNode root = JsonObjectMapper.getMapper().readTree(stream);
-            this.version = present(root, "version").asText();
-            this.types = types(present(root, "schemata"));
-        } catch (IOException e) {
-            throw new UnreadableModelResource(RESOURCE, e);
-        }
+        JsonNode root = ontology();
+        Model model = Model.fromJson(JsonObjectMapper.getMapper(), root);
+        JsonNode schemata = present(root, "schemata");
+        this.version = present(root, "version").asText();
+        this.types = model.getSchemata().values().stream()
+                          .collect(Collectors.toUnmodifiableMap(Schema::getName, schema -> type(schema, schemata)));
     }
 
     @Override
@@ -103,57 +98,53 @@ public class FtmTargetModel implements TargetModel {
         return new ModelEntity(name(), read.id(), read.schema(), Set.of(), Set.of(), properties);
     }
 
-    private static Map<String, EntityType> types(JsonNode schemata) {
-        Map<String, Map<String, Property>> properties = new HashMap<>();
-        Map<String, Set<String>> required = new HashMap<>();
-        schemata.properties().forEach(schema -> {
-            properties.put(schema.getKey(), properties(schema.getValue().path("properties")));
-            required.put(schema.getKey(), strings(schema.getValue().path("required")));
-        });
-        Map<String, EntityType> types = new HashMap<>();
-        schemata.properties().forEach(
-                schema -> types.put(schema.getKey(), type(schema.getKey(), schema.getValue(), properties, required)));
-        return Map.copyOf(types);
+    private static JsonNode ontology() {
+        try (InputStream stream = Model.class.getResourceAsStream(RESOURCE)) {
+            if (stream == null) {
+                throw new UnreadableModelResource(RESOURCE);
+            }
+            return JsonObjectMapper.getMapper().readTree(stream);
+        } catch (IOException e) {
+            throw new UnreadableModelResource(RESOURCE, e);
+        }
     }
 
-    // The prebuilt ontology resolves neither properties nor required transitively, so both are merged
-    // over the ancestor closure here: 28 of the 69 concrete schemata require a property they inherit
-    // without redeclaring it. The type's own requirements come first so a violation list still reads
-    // in the order the schema states them.
-    private static EntityType type(String name, JsonNode schema, Map<String, Map<String, Property>> declared,
-                                   Map<String, Set<String>> declaredRequired) {
-        Set<String> ancestors = strings(present(schema, "schemata"));
-        Map<String, Property> properties = new HashMap<>();
-        Set<String> required = new LinkedHashSet<>(declaredRequired.getOrDefault(name, Set.of()));
-        // Two ancestors can declare the same property: last one by name wins.
-        new TreeSet<>(ancestors).forEach(ancestor -> {
-            properties.putAll(declared.getOrDefault(ancestor, Map.of()));
-            required.addAll(declaredRequired.getOrDefault(ancestor, Set.of()));
-        });
-        return new EntityType(name, schema.path("abstract").asBoolean(false), ancestors, Map.copyOf(properties),
-                              Collections.unmodifiableSet(required), edge(schema.path("edge")));
+    private static EntityType type(Schema schema, JsonNode schemata) {
+        boolean isAbstract = schemata.path(schema.getName()).path("abstract").asBoolean(false);
+        return new EntityType(schema.getName(), isAbstract, ancestors(schema), properties(schema), required(schema),
+                              schema.getEdge().map(FtmTargetModel::edge).orElse(null));
     }
 
-    private static Map<String, Property> properties(JsonNode node) {
-        Map<String, Property> declared = new HashMap<>();
-        node.properties().forEach(property -> declared.put(property.getKey(), property(property.getValue())));
-        return declared;
+    private static Set<String> ancestors(Schema schema) {
+        return schema.getSchemata().stream().map(Schema::getName).collect(Collectors.toUnmodifiableSet());
     }
 
-    private static Property property(JsonNode property) {
-        return new Property(property.path("range").asText(null), property.path("stub").asBoolean(false));
+    private static Map<String, Property> properties(Schema schema) {
+        return schema.getProperties().stream().collect(
+                Collectors.toUnmodifiableMap(tech.followthemoney.model.Property::getName, FtmTargetModel::property));
     }
 
-    private static EntityType.Edge edge(JsonNode edge) {
-        return edge.isMissingNode() || edge.isNull() ? null :
-               new EntityType.Edge(present(edge, "source").asText(), present(edge, "target").asText(),
-                                   edge.path("directed").asBoolean(false));
+    private static Property property(tech.followthemoney.model.Property property) {
+        return new Property(property.getRange().map(Schema::getName).orElse(null), property.isStub());
     }
 
-    private static Set<String> strings(JsonNode array) {
-        Set<String> values = new LinkedHashSet<>();
-        array.forEach(value -> values.add(value.asText()));
-        return Collections.unmodifiableSet(values);
+    // FtM keeps required per schema, but datashare also enforces what the ancestors require: stricter than
+    // FtM for 28 of the 64 concrete schemata. The type's own requirements come first so a violation list
+    // still reads in the order the schema states them.
+    private static Set<String> required(Schema schema) {
+        Set<String> required = new LinkedHashSet<>(names(schema.getRequiredProperties()));
+        schema.getSchemata().stream().sorted(Comparator.comparing(Schema::getName))
+              .forEach(ancestor -> required.addAll(names(ancestor.getRequiredProperties())));
+        return Collections.unmodifiableSet(required);
+    }
+
+    private static List<String> names(List<tech.followthemoney.model.Property> properties) {
+        return properties.stream().map(tech.followthemoney.model.Property::getName).toList();
+    }
+
+    private static EntityType.Edge edge(Edge edge) {
+        return new EntityType.Edge(edge.getSourceProperty().getName(), edge.getTargetProperty().getName(),
+                                   edge.isDirected());
     }
 
     // Every field this parser needs is read through here rather than with get(), so a bundle whose
