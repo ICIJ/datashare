@@ -1113,6 +1113,22 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_backfill_keeps_going_after_a_failure_on_one_admin() throws Exception {
+        when(repository.getProjects()).thenReturn(List.of(new Project("foo")));
+        when(authorizer.getGroupPermissions()).thenReturn(List.of(
+                casbinRule("jdoe", "INSTANCE_ADMIN", "*::*"),
+                casbinRule("egarcia", "DOMAIN_ADMIN", "default::*")));
+        when(users.find("jdoe")).thenReturn(new DatashareUser(new User("jdoe", "Jane", "j@icij.org", "local", new HashMap<>())));
+        when(users.find("egarcia")).thenReturn(new DatashareUser(new User("egarcia", "Eva", "e@icij.org", "local", new HashMap<>())));
+        when(userStore.save(argThat(u -> u != null && "jdoe".equals(u.id)))).thenThrow(new RuntimeException("db down"));
+
+        service.backfillWideAdminInventories();
+
+        verify(userStore).save(argThat(u -> u != null && "egarcia".equals(u.id)));
+        verify(authorizer).deleteProjectRolesForUser(argThat(u -> "egarcia".equals(u.id)));
+    }
+
+    @Test
     public void test_backfill_deletes_domain_admin_roles_of_instance_admins_only() throws Exception {
         when(repository.getProjects()).thenReturn(List.of());
         when(authorizer.getGroupPermissions()).thenReturn(List.of(
