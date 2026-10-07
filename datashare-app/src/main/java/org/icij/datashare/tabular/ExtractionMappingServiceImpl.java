@@ -1,25 +1,35 @@
 package org.icij.datashare.tabular;
 
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.tabular.DuplicateExtractionMapping.Reason;
+import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.user.User;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.tasks.StructuredEntityExtractionTask.MAPPING_ID_OPT;
 
 public class ExtractionMappingServiceImpl implements ExtractionMappingService {
     private final ExtractionMappingRepository mappings;
     private final Authorizer authorizer;
+    private final TaskManager taskManager;
 
     /** Without an {@link Authorizer}, project roles are not enforced: local modes grant none. */
-    public ExtractionMappingServiceImpl(ExtractionMappingRepository mappings) {
-        this(mappings, null);
+    public ExtractionMappingServiceImpl(ExtractionMappingRepository mappings, TaskManager taskManager) {
+        this(mappings, null, taskManager);
     }
 
-    public ExtractionMappingServiceImpl(ExtractionMappingRepository mappings, Authorizer authorizer) {
+    public ExtractionMappingServiceImpl(ExtractionMappingRepository mappings, Authorizer authorizer,
+                                        TaskManager taskManager) {
         this.mappings = mappings;
         this.authorizer = authorizer;
+        this.taskManager = taskManager;
     }
 
     @Override
@@ -72,6 +82,15 @@ public class ExtractionMappingServiceImpl implements ExtractionMappingService {
     // An unknown id has no author, so only an admin learns that it is unknown.
     private static Role requiredRole(String ownerId, User requester) {
         return Objects.equals(ownerId, requester.id) ? Role.PROJECT_MEMBER : Role.PROJECT_ADMIN;
+    }
+
+    @Override
+    public String run(String projectId, String id, User user) throws UnknownExtractionMapping, IOException {
+        if (mappings.get(projectId, id).isEmpty()) {
+            throw new UnknownExtractionMapping(projectId, id);
+        }
+        Map<String, Object> args = new HashMap<>(Map.of(DEFAULT_PROJECT_OPT, projectId, MAPPING_ID_OPT, id));
+        return taskManager.startTask(StructuredEntityExtractionTask.class, user, args);
     }
 
     // A stored definition that no longer reads cannot be the caller's, so it stays a conflict.

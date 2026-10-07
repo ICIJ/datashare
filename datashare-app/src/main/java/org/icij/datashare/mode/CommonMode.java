@@ -401,11 +401,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @Provides
     @Singleton
     ExtractionMappingService provideExtractionMappingService(ExtractionMappingRepository mappings,
-                                                             Provider<Authorizer> authorizer) {
+                                                             Provider<Authorizer> authorizer, TaskManager taskManager) {
         if (mode.isLocal() || mode == Mode.CLI) {
-            return new ExtractionMappingServiceImpl(mappings);
+            return new ExtractionMappingServiceImpl(mappings, taskManager);
         }
-        return new ExtractionMappingServiceImpl(mappings, authorizer.get());
+        return new ExtractionMappingServiceImpl(mappings, authorizer.get(), taskManager);
     }
 
     @Provides

@@ -61,7 +61,7 @@ public class StructuredEntityExtractionTaskTest {
             spy(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True));
     private final InMemoryStatementRepository statements = new InMemoryStatementRepository();
     private final ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
-    private final ExtractionMappingServiceImpl service = new ExtractionMappingServiceImpl(mappings);
+    private final ExtractionMappingServiceImpl service = new ExtractionMappingServiceImpl(mappings, null);
 
     @Before
     public void setUp() throws IOException {
@@ -138,7 +138,7 @@ public class StructuredEntityExtractionTaskTest {
 
         assertThrows(ForbiddenExtractionMapping.class,
                      () -> new StructuredEntityExtractionTask(indexer, statements,
-                                                              new ExtractionMappingServiceImpl(mappings, authorizer),
+                                                              new ExtractionMappingServiceImpl(mappings, authorizer, null),
                                                               new PropertiesProvider(), taskView, done -> null).call());
     }
 

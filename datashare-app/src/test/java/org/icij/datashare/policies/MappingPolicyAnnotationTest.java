@@ -52,7 +52,7 @@ public class MappingPolicyAnnotationTest {
         authorizer.addRoleForUserInProject(localUser("cecile"), Role.PROJECT_ADMIN, Domain.DEFAULT, project("prj"));
         authorizer.addRoleForUserInProject(localUser("john"), Role.PROJECT_MEMBER, Domain.DEFAULT, project("prj"));
         authorizer.addRoleForUserInProject(localUser("vera"), Role.PROJECT_VISITOR, Domain.DEFAULT, project("prj"));
-        annotation = new MappingPolicyAnnotation(new ExtractionMappingServiceImpl(mappings, authorizer));
+        annotation = new MappingPolicyAnnotation(new ExtractionMappingServiceImpl(mappings, authorizer, null));
     }
 
     @After
