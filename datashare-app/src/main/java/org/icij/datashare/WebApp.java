@@ -39,7 +39,7 @@ public class WebApp {
             mode.runWorkers();
         }
 
-        if (!Mode.valueOf(mode.properties().getProperty("mode")).isLocal()) {
+        if (backfillsAtStartup(Mode.valueOf(mode.properties().getProperty("mode")))) {
             backfillWideAdminInventories(mode.get(ProjectAdminService.class));
         }
 
@@ -64,6 +64,12 @@ public class WebApp {
         WebBrowserUtils.openBrowser(port, shouldOpenBrowser);
 
         requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
+    }
+
+    // Only the server: NER also runs a web server, and would rewrite user rows and Casbin roles at the
+    // same time as the server replicas.
+    static boolean backfillsAtStartup(Mode mode) {
+        return mode == Mode.SERVER;
     }
 
     // Admins granted before the wide-role inventory sync existed only list their former project
