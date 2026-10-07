@@ -19,10 +19,13 @@ import org.icij.datashare.policies.MappingPolicy;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.tabular.ExtractionMapping;
+import org.icij.datashare.tabular.ExtractionMappingReader;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
+import org.icij.datashare.web.errors.ForbiddenException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -69,13 +72,22 @@ public class ExtractionMappingResource {
             parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "mappingId", description = "the mapping id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "201", description = "returns the id of the started task")
-    @ApiResponse(responseCode = "403", description = "if the user is neither the mapping's author nor a project admin")
+    @ApiResponse(responseCode = "403",
+            description = "if the user is not granted the project, or is neither the mapping's author nor a project admin")
     @ApiResponse(responseCode = "404", description = "if the project holds no mapping with this id")
+    @ApiResponse(responseCode = "409",
+            description = "if the stored mapping no longer reads, e.g. its target model is gone")
     @Post("/task/structuredEntityExtraction/:project/:mappingId")
     @MappingPolicy
     public Payload runMapping(String project, String mappingId, Context context) throws IOException {
-        if (mappings.get(project, mappingId).isEmpty()) {
-            return notFound();
+        // the task refuses a user the project is not granted to, so a 201 would hand out a run bound to fail
+        ForbiddenException.requireGranted(context, project);
+        try {
+            if (mappings.get(project, mappingId).isEmpty()) {
+                return notFound();
+            }
+        } catch (UnreadableExtractionMapping e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
         }
         Map<String, Object> args = new HashMap<>(Map.of(DEFAULT_PROJECT_OPT, project, MAPPING_ID_OPT, mappingId));
         String taskId = taskManager.startTask(StructuredEntityExtractionTask.class, (User) context.currentUser(), args);
@@ -87,6 +99,6 @@ public class ExtractionMappingResource {
             throw new IllegalArgumentException("the body must be a JSON object");
         }
         node.put("id", id).put("projectId", project).put("userId", userId);
-        return JsonObjectMapper.convertValue(node, ExtractionMapping.class);
+        return ExtractionMappingReader.read(node);
     }
 }

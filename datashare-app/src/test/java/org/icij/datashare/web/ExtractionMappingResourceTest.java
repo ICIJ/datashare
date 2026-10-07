@@ -7,11 +7,16 @@ import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.model.TargetModel;
+import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.MappingPolicy;
+import org.icij.datashare.policies.MappingPolicyAnnotation;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tabular.RowSourceOptions;
+import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.tasks.TestTaskUtils;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -20,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -35,6 +41,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
+import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -60,7 +67,7 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         mocks = openMocks(this);
-        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        when(jooqRepository.getProjects()).thenReturn(List.of(project("prj")));
         LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
         configure(routes -> routes.add(new ExtractionMappingResource(mappings, taskManager)).filter(localUserFilter));
         TestTaskUtils.init(taskFactory);
@@ -166,6 +173,43 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
         when(mappings.get("prj", "m1")).thenReturn(Optional.empty());
 
         post("/api/task/structuredEntityExtraction/prj/m1").should().respond(404);
+    }
+
+    @Test
+    public void test_save_refuses_a_misspelled_field_by_name() {
+        String misspelled = BODY.replace("\"documentId\": \"docId\"", "\"documentId\": \"docId\", \"rootID\": \"zip\"");
+
+        put("/api/prj/extraction-mappings/m1", misspelled).should().respond(400).contain("unknown field 'rootID'");
+        verify(mappings, never()).save(any());
+    }
+
+    @Test
+    public void test_run_forbids_a_user_the_project_is_not_granted_to() throws Exception {
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping()));
+
+        // the task refuses such a user, so answering 201 would hand out the id of a run bound to fail
+        post("/api/task/structuredEntityExtraction/prj/m1").should().respond(403);
+        assertThat(taskManager.getTasks().count()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_run_reports_an_unreadable_mapping_as_a_conflict() {
+        when(mappings.get("prj", "m1")).thenThrow(new UnreadableExtractionMapping("m1", new IOException("unknown model")));
+
+        post("/api/task/structuredEntityExtraction/prj/m1").should().respond(409).contain("could not be read");
+    }
+
+    @Test
+    public void test_run_is_guarded_by_the_mapping_policy() throws Exception {
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping()));
+        MappingPolicyAnnotation policy = new MappingPolicyAnnotation(new Authorizer(mock(CasbinRuleAdapter.class)), mappings);
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
+        configure(routes -> routes.registerAroundAnnotation(MappingPolicy.class, policy)
+                                  .add(new ExtractionMappingResource(mappings, taskManager)).filter(localUserFilter));
+
+        // the local user holds no role on the project in this authorizer
+        post("/api/task/structuredEntityExtraction/prj/m1").should().respond(403);
     }
 
     private static ExtractionMapping mapping() {
