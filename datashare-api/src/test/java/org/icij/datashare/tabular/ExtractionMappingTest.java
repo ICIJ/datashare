@@ -8,6 +8,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Map;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
 
@@ -267,5 +268,42 @@ public class ExtractionMappingTest {
         String json = JsonObjectMapper.getMapper().writeValueAsString(mapping);
 
         assertThat(JsonObjectMapper.readValue(json, ExtractionMapping.class).rootId()).isEqualTo("zipId");
+    }
+
+    @Test
+    public void test_a_mapping_equals_itself_once_round_tripped_through_json() throws Exception {
+        ExtractionMapping mapping = new ExtractionMapping("m1", "prj", null, "companies", "ftm", "docId", null,
+                RowSourceOptions.defaults().withCharset(UTF_8),
+                Map.of("c", person(Map.of("name", column("name")))));
+
+        String json = JsonObjectMapper.getMapper().writeValueAsString(mapping);
+
+        assertThat(JsonObjectMapper.readValue(json, ExtractionMapping.class)).isEqualTo(mapping);
+    }
+
+    @Test
+    public void test_validate_reports_a_blank_id() {
+        String violations = mappingIn("prj", " ").validate().toString();
+
+        assertThat(violations).contains("blank id");
+    }
+
+    @Test
+    public void test_validate_reports_an_id_longer_than_its_column() {
+        String violations = mappingIn("prj", "m".repeat(97)).validate().toString();
+
+        assertThat(violations).contains("longer than 96");
+    }
+
+    @Test
+    public void test_validate_reports_a_project_id_no_project_can_have() {
+        String violations = mappingIn("My_Project", "m1").validate().toString();
+
+        assertThat(violations).contains("'My_Project'");
+    }
+
+    private static ExtractionMapping mappingIn(String projectId, String id) {
+        return new ExtractionMapping(id, projectId, null, "members", "ftm", "doc-1", null,
+                RowSourceOptions.defaults(), Map.of("member", person(Map.of("name", column("full_name")))));
     }
 }
