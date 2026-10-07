@@ -1,5 +1,7 @@
 package org.icij.datashare.tabular;
 
+import java.util.Optional;
+
 /** Saves extraction mappings for the CLI and the REST API, so both entry points apply the same rules. */
 public interface ExtractionMappingService {
     /**
@@ -13,4 +15,7 @@ public interface ExtractionMappingService {
      *  run that failed after its save can be retried with the same input.
      *  @return false when that very mapping was already stored, so the caller can say nothing new was saved. */
     boolean saveIfIdentical(ExtractionMapping mapping) throws DuplicateExtractionMapping;
+
+    /** @throws UnreadableExtractionMapping when the stored definition no longer parses. */
+    Optional<ExtractionMapping> get(String projectId, String id);
 }
