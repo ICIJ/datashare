@@ -70,8 +70,8 @@ public interface TargetModel {
                                "' relation rather than written");
             }
         }
-        type.required().stream().filter(required -> !filled.contains(required)).forEach(
-                required -> violations.add("type '" + type.name() + "' requires '" + required + "'"));
+        type.required().stream().filter(required -> !filled.contains(required))
+            .forEach(required -> violations.add("type '" + type.name() + "' requires '" + required + "'"));
         if (type.edge() != null) {
             Stream.of(type.edge().source(), type.edge().target()).filter(end -> !type.required().contains(end))
                   .filter(end -> !filled.contains(end))
