@@ -92,8 +92,8 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         DateFormats formats = new DateFormats();
         for (String alias : new TreeSet<>(entities.keySet())) {
             EntityMapping entity = entities.get(alias);
-            target.validateShape(entity.type(), entity.properties().keySet()).forEach(violation -> violations.add(
-                    "entity '" + alias + "': " + violation));
+            target.validateShape(entity.type(), entity.properties().keySet())
+                  .forEach(violation -> violations.add("entity '" + alias + "': " + violation));
             if (entity.properties().isEmpty()) {
                 violations.add("entity '" + alias + "' maps no property, so no row can produce a statement for it");
             }
@@ -182,7 +182,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         }
         return target.type(referenced.type())
                      .filter(type -> !type.name().equals(range) && !type.ancestors().contains(range))
-                     .map(type -> on + "needs a '" + range + "', but entity '" + reference + "' is a '" +
-                                   type.name() + "'");
+                     .map(type -> on + "needs a '" + range + "', but entity '" + reference + "' is a '" + type.name() +
+                                  "'");
     }
 }
