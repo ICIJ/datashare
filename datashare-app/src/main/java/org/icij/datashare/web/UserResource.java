@@ -62,6 +62,7 @@ import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 @Prefix("/api/users")
 public class UserResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserResource.class);
+    private static final Domain INSTANCE_SCOPE = Domain.of("*");
     private final Repository repository;
     private final Authorizer authorizer;
     private final UserAdminService userAdminService;
@@ -96,6 +97,28 @@ public class UserResource {
             // Shouldn't happen: userId was already resolved above by userAdminService.get(userId).
             LOGGER.warn("user {} disappeared before its project inventory could be synced", userId, e);
         }
+    }
+
+    // Instance admin and default-domain admin authorize every project; other domains do not (yet).
+    private static boolean coversEveryProject(Domain scope) {
+        return INSTANCE_SCOPE.equals(scope) || Domain.DEFAULT.equals(scope);
+    }
+
+    // A wide role replaces what it covers: project roles, and domain admin under instance admin.
+    private void deleteGrantsReplacedBy(User user, Domain scope) {
+        if (coversEveryProject(scope)) {
+            authorizer.deleteProjectRolesForUser(user);
+        }
+        if (INSTANCE_SCOPE.equals(scope)) {
+            authorizer.deleteDomainRolesForUser(user);
+        }
+    }
+
+    // Another grant still covering every project keeps the inventory full after this one is revoked.
+    // A scope only ever holds its own role type (see grantRoleToUser), so any role there counts.
+    private boolean holdsAnotherGrantCoveringEveryProject(User user, Domain scope) {
+        return Stream.of(INSTANCE_SCOPE, Domain.DEFAULT).filter(other -> !other.equals(scope))
+                     .anyMatch(other -> !authorizer.getRolesForUserInDomain(user, other).isEmpty());
     }
 
     @Inject
@@ -347,28 +370,16 @@ public class UserResource {
             // A scope only ever holds the one role type it was granted with (an instance scope only ever
             // holds INSTANCE_ADMIN, a domain scope only ever holds DOMAIN_ADMIN), so the previous role at
             // that scope is either this same role, or none.
-            Domain scopeDomain = role == Role.INSTANCE_ADMIN ? Domain.of("*") : domain;
-            boolean alreadyGranted = authorizer.getRolesForUserInDomain(user, scopeDomain).contains(role.name());
-            boolean coversEveryProject = role == Role.INSTANCE_ADMIN || Domain.DEFAULT.equals(domain);
+            Domain scope = role == Role.INSTANCE_ADMIN ? INSTANCE_SCOPE : domain;
+            boolean alreadyGranted = authorizer.getRolesForUserInDomain(user, scope).contains(role.name());
             if (!alreadyGranted) {
-                if (coversEveryProject) {
+                if (coversEveryProject(scope)) {
                     syncProjectInventoryForWideRole(userId, true);
                 }
-                if (role == Role.INSTANCE_ADMIN) {
-                    authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
-                } else {
-                    authorizer.addRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
-                }
+                authorizer.addRoleForUserInDomain(user, role, scope);
             }
-            // A wide role replaces project roles, and instance admin also replaces domain admin. Also
-            // run when the role was already held, so a retry after a failure here, or a re-grant,
-            // clears leftovers.
-            if (coversEveryProject) {
-                authorizer.deleteProjectRolesForUser(user);
-            }
-            if (role == Role.INSTANCE_ADMIN) {
-                authorizer.deleteDomainRolesForUser(user);
-            }
+            // Also when the role was already held, so a retry or a re-grant clears leftovers.
+            deleteGrantsReplacedBy(user, scope);
             return new Payload(new RoleGranted(role, userId, alreadyGranted ? role : null, alreadyGranted));
         } catch (Validators.InvalidValueException e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -394,25 +405,14 @@ public class UserResource {
             Domain domain = Domain.of(getStringValue(context.get("domain")).orElse(Domain.DEFAULT.id()));
             User user = userAdminService.get(userId);
 
-            Domain scopeDomain = role == Role.INSTANCE_ADMIN ? Domain.of("*") : domain;
-            boolean currentlyGranted = authorizer.getRolesForUserInDomain(user, scopeDomain).contains(role.name());
+            Domain scope = role == Role.INSTANCE_ADMIN ? INSTANCE_SCOPE : domain;
+            boolean currentlyGranted = authorizer.getRolesForUserInDomain(user, scope).contains(role.name());
             if (currentlyGranted) {
-                // The other wide role still authorizes every project, so the inventory stays as is.
                 //TODO #DOMAIN: also consider domain admin grants on other domains once domains are operational.
-                boolean otherWideRole = role == Role.INSTANCE_ADMIN ?
-                                        authorizer.getRolesForUserInDomain(user, Domain.DEFAULT)
-                                                  .contains(Role.DOMAIN_ADMIN.name()) :
-                                        authorizer.getRolesForUserInDomain(user, Domain.of("*"))
-                                                  .contains(Role.INSTANCE_ADMIN.name());
-                boolean coversEveryProject = role == Role.INSTANCE_ADMIN || Domain.DEFAULT.equals(domain);
-                if (coversEveryProject && !otherWideRole) {
+                if (coversEveryProject(scope) && !holdsAnotherGrantCoveringEveryProject(user, scope)) {
                     syncProjectInventoryForWideRole(userId, false);
                 }
-                if (role == Role.INSTANCE_ADMIN) {
-                    authorizer.deleteRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
-                } else {
-                    authorizer.deleteRoleForUserInDomain(user, Role.DOMAIN_ADMIN, domain);
-                }
+                authorizer.deleteRoleForUserInDomain(user, role, scope);
             }
             return new Payload(new RoleRevoked(role, userId, currentlyGranted ? role : null, !currentlyGranted));
         } catch (Validators.InvalidValueException e) {
