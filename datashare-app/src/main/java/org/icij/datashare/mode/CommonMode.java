@@ -58,6 +58,8 @@ import net.codestory.http.security.Users;
 import org.icij.datashare.session.UsersIdProviderCache;
 import org.icij.datashare.session.UsersIdProviderRedisCache;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingService;
+import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.Utils;
@@ -562,6 +564,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ExtractionMappingRepository.class).toInstance(repositoryFactory.createExtractionMappingRepository());
         bind(UserAdminService.class).to(UserAdminServiceImpl.class).in(Singleton.class);
         bind(ProjectAdminService.class).to(ProjectAdminServiceImpl.class).in(Singleton.class);
+        bind(ExtractionMappingService.class).to(ExtractionMappingServiceImpl.class).in(Singleton.class);
 
         TaskRepositoryType taskRepositoryType =
                 TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));
