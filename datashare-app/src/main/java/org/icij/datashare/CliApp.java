@@ -20,12 +20,12 @@ import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.project.admin.ProjectStats;
+import org.icij.datashare.tabular.DuplicateExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingReader;
-import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tabular.MalformedExtractionMapping;
-import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
@@ -49,7 +49,6 @@ import org.icij.datashare.user.admin.UserCreated;
 import org.icij.datashare.user.admin.UserExistsException;
 import org.icij.datashare.user.admin.UserNotFoundException;
 import org.icij.datashare.user.admin.ValidationException;
-import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
@@ -211,7 +210,7 @@ class CliApp {
 
         Properties runProperties = new Properties();
         runProperties.putAll(mode.properties());
-        int mappingSave = saveMappingFile(mode.get(ExtractionMappingRepository.class), pipeline, runProperties);
+        int mappingSave = saveMappingFile(mode.get(ExtractionMappingService.class), pipeline, runProperties);
         if (mappingSave != EXIT_SUCCESS) {
             System.exit(mappingSave);
         }
@@ -263,7 +262,7 @@ class CliApp {
      *
      * @return {@link #EXIT_SUCCESS}, {@link #EXIT_CONFLICT}, {@link #EXIT_VALIDATION} or {@link #EXIT_RUNTIME}
      */
-    static int saveMappingFile(ExtractionMappingRepository mappings, PipelineHelper pipeline, Properties properties) {
+    static int saveMappingFile(ExtractionMappingService mappings, PipelineHelper pipeline, Properties properties) {
         String mappingFile = properties.getProperty(MAPPING_FILE_OPT);
         boolean hasMappingFile = mappingFile != null && !mappingFile.isBlank();
         if (!pipeline.stages.contains(Stage.ENTITIES)) {
@@ -304,30 +303,21 @@ class CliApp {
         return ExtractionMappingReader.read(node);
     }
 
-    private static int saveMapping(ExtractionMappingRepository mappings, ExtractionMapping mapping,
+    private static int saveMapping(ExtractionMappingService mappings, ExtractionMapping mapping,
                                    Properties properties) {
         try {
-            if (!mappings.save(mapping) && !isAlreadyStored(mappings, mapping)) {
-                return error("mapping '%s' already exists in project '%s'".formatted(mapping.id(), mapping.projectId()),
-                             "conflict", EXIT_CONFLICT, false);
-            }
+            mappings.saveIfIdentical(mapping);
+        } catch (DuplicateExtractionMapping e) {
+            return error(e.getMessage(), "conflict", EXIT_CONFLICT, false);
         } catch (InvalidExtractionMapping e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
-        } catch (DataAccessException e) {
-            // jOOQ throws unchecked: escaping here would skip the task manager shutdown and leave the JVM running
+        } catch (RuntimeException e) {
+            // jOOQ throws an unchecked DataAccessException: escaping here would skip the task manager
+            // shutdown and leave the JVM running
             return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, false);
         }
         properties.setProperty(MAPPING_ID_OPT, mapping.id());
         return EXIT_SUCCESS;
-    }
-
-    // A stored definition that no longer reads cannot be the file's, so it stays a conflict.
-    private static boolean isAlreadyStored(ExtractionMappingRepository mappings, ExtractionMapping mapping) {
-        try {
-            return mappings.get(mapping.projectId(), mapping.id()).filter(mapping::equals).isPresent();
-        } catch (UnreadableExtractionMapping e) {
-            return false;
-        }
     }
 
     static final Map<Stage, Class<?>> TASK_CLASSES =
