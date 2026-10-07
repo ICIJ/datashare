@@ -271,6 +271,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 }
             } catch (UserNotFoundException e) {
                 LOGGER.warn("skipping backfill of wide admin {}: user not found", userLogin);
+            } catch (RuntimeException e) {
+                LOGGER.error("cannot backfill wide admin {}", userLogin, e);
             }
         }
     }
