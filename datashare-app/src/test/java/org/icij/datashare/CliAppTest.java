@@ -6,8 +6,9 @@ import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
+import org.icij.datashare.tabular.DuplicateExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMapping;
-import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.IndexTask;
@@ -25,7 +26,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -60,14 +61,13 @@ public class CliAppTest {
 
     @Test
     public void test_save_mapping_file_saves_it_under_the_cli_project_with_no_owner() throws Exception {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
-        when(mappings.save(any())).thenReturn(true);
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
         Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
 
         assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_SUCCESS);
 
         ArgumentCaptor<ExtractionMapping> saved = ArgumentCaptor.forClass(ExtractionMapping.class);
-        verify(mappings).save(saved.capture());
+        verify(mappings).saveIfIdentical(saved.capture());
         assertThat(saved.getValue().id()).isEqualTo("m1");
         assertThat(saved.getValue().projectId()).isEqualTo("prj");
         assertThat(saved.getValue().userId()).isNull();
@@ -76,8 +76,8 @@ public class CliAppTest {
 
     @Test
     public void test_save_mapping_file_reports_an_existing_id_as_a_conflict() throws Exception {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
-        when(mappings.save(any())).thenReturn(false);
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        doThrow(new DuplicateExtractionMapping("prj", "m1")).when(mappings).saveIfIdentical(any());
         Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
 
         assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_CONFLICT);
@@ -86,8 +86,8 @@ public class CliAppTest {
 
     @Test
     public void test_save_mapping_file_reports_an_invalid_mapping() throws Exception {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
-        when(mappings.save(any())).thenThrow(new InvalidExtractionMapping("m1", List.of("unknown property")));
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        doThrow(new InvalidExtractionMapping("m1", List.of("unknown property"))).when(mappings).saveIfIdentical(any());
         Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
 
         assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_VALIDATION);
@@ -95,62 +95,46 @@ public class CliAppTest {
 
     @Test
     public void test_save_mapping_file_reports_a_file_that_is_not_a_mapping() throws Exception {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
         Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), "[1, 2]").toString());
 
         assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_VALIDATION);
-        verify(mappings, never()).save(any());
+        verify(mappings, never()).saveIfIdentical(any());
     }
 
     @Test
-    public void test_save_mapping_file_reports_a_missing_file() {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+    public void test_save_mapping_file_reports_a_missing_file() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
 
         assertThat(saveMappingFile(mappings, entitiesProperties("/does/not/exist.json"))).isEqualTo(CliApp.EXIT_VALIDATION);
-        verify(mappings, never()).save(any());
+        verify(mappings, never()).saveIfIdentical(any());
     }
 
     @Test
     public void test_save_mapping_file_requires_the_option_with_entities() {
-        assertThat(saveMappingFile(mock(ExtractionMappingRepository.class), entitiesProperties(null))).isEqualTo(CliApp.EXIT_VALIDATION);
-    }
-
-    @Test
-    public void test_save_mapping_file_runs_a_saved_mapping_identical_to_the_file() throws Exception {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
-        Properties properties = entitiesProperties(mappingFile(MAPPING_JSON));
-        when(mappings.save(any())).thenReturn(false);
-        when(mappings.get("prj", "m1")).thenAnswer(invocation -> {
-            ArgumentCaptor<ExtractionMapping> saved = ArgumentCaptor.forClass(ExtractionMapping.class);
-            verify(mappings).save(saved.capture());
-            return Optional.of(saved.getValue());
-        });
-
-        // a run that failed after its save is retried with the very same command
-        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_SUCCESS);
-        assertThat(properties.getProperty("mappingId")).isEqualTo("m1");
+        assertThat(saveMappingFile(mock(ExtractionMappingService.class), entitiesProperties(null))).isEqualTo(CliApp.EXIT_VALIDATION);
     }
 
     @Test
     public void test_save_mapping_file_reports_a_database_failure_as_a_runtime_error() throws Exception {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
-        when(mappings.save(any())).thenThrow(new DataAccessException("connection refused"));
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        doThrow(new DataAccessException("connection refused")).when(mappings).saveIfIdentical(any());
 
         assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(MAPPING_JSON)))).isEqualTo(CliApp.EXIT_RUNTIME);
     }
 
     @Test
     public void test_save_mapping_file_refuses_a_misspelled_field() throws Exception {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
         String misspelled = MAPPING_JSON.replace("\"documentId\": \"docId\"", "\"documentId\": \"docId\", \"rootID\": \"zip\"");
 
         assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(misspelled)))).isEqualTo(CliApp.EXIT_VALIDATION);
-        verify(mappings, never()).save(any());
+        verify(mappings, never()).saveIfIdentical(any());
     }
 
     @Test
     public void test_save_mapping_file_rejects_the_option_without_entities() throws Exception {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
         Properties properties = entitiesProperties(mappingFile(MAPPING_JSON));
         properties.setProperty("stages", "SCAN,INDEX");
 
@@ -161,7 +145,7 @@ public class CliAppTest {
 
     @Test
     public void test_save_mapping_file_does_nothing_without_entities() {
-        ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
         Properties properties = new Properties();
         properties.setProperty("stages", "SCAN,INDEX");
 
@@ -183,7 +167,7 @@ public class CliAppTest {
         return Files.writeString(Files.createTempFile("mapping", ".json"), json).toString();
     }
 
-    private static int saveMappingFile(ExtractionMappingRepository mappings, Properties properties) {
+    private static int saveMappingFile(ExtractionMappingService mappings, Properties properties) {
         return CliApp.saveMappingFile(mappings, new PipelineHelper(new PropertiesProvider(properties)), properties);
     }
 
