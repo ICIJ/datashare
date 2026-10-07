@@ -1,6 +1,7 @@
 package org.icij.datashare.tabular;
 
 import com.google.inject.Inject;
+import java.util.Optional;
 
 public class ExtractionMappingServiceImpl implements ExtractionMappingService {
     private final ExtractionMappingRepository mappings;
@@ -22,6 +23,11 @@ public class ExtractionMappingServiceImpl implements ExtractionMappingService {
         if (!mappings.save(mapping) && !isStored(mapping)) {
             throw new DuplicateExtractionMapping(mapping.projectId(), mapping.id());
         }
+    }
+
+    @Override
+    public Optional<ExtractionMapping> get(String projectId, String id) {
+        return mappings.get(projectId, id);
     }
 
     // A stored definition that no longer reads cannot be the caller's, so it stays a conflict.

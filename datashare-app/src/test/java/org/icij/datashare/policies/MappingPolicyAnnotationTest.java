@@ -4,7 +4,7 @@ import net.codestory.http.Context;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tabular.ExtractionMapping;
-import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.junit.After;
@@ -37,7 +37,7 @@ public class MappingPolicyAnnotationTest {
     @Mock
     CasbinRuleAdapter adapter;
     @Mock
-    ExtractionMappingRepository mappings;
+    ExtractionMappingService mappings;
     private AutoCloseable mocks;
     private MappingPolicyAnnotation annotation;
 

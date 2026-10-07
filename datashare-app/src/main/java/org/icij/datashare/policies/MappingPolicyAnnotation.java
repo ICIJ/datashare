@@ -8,7 +8,7 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.policies.errors.InvalidValueException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tabular.ExtractionMapping;
-import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.utils.PayloadFormatter;
 import java.util.Objects;
@@ -17,10 +17,10 @@ import java.util.function.Function;
 
 public class MappingPolicyAnnotation implements ApplyAroundAnnotation<MappingPolicy> {
     private final Authorizer authorizer;
-    private final ExtractionMappingRepository mappings;
+    private final ExtractionMappingService mappings;
 
     @Inject
-    public MappingPolicyAnnotation(Authorizer authorizer, ExtractionMappingRepository mappings) {
+    public MappingPolicyAnnotation(Authorizer authorizer, ExtractionMappingService mappings) {
         this.authorizer = authorizer;
         this.mappings = mappings;
     }
