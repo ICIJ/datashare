@@ -349,8 +349,11 @@ public class UserResource {
             // that scope is either this same role, or none.
             Domain scopeDomain = role == Role.INSTANCE_ADMIN ? Domain.of("*") : domain;
             boolean alreadyGranted = authorizer.getRolesForUserInDomain(user, scopeDomain).contains(role.name());
+            boolean coversEveryProject = role == Role.INSTANCE_ADMIN || Domain.DEFAULT.equals(domain);
             if (!alreadyGranted) {
-                syncProjectInventoryForWideRole(userId, true);
+                if (coversEveryProject) {
+                    syncProjectInventoryForWideRole(userId, true);
+                }
                 if (role == Role.INSTANCE_ADMIN) {
                     authorizer.addRoleForUserInInstance(user, Role.INSTANCE_ADMIN);
                 } else {
@@ -360,7 +363,9 @@ public class UserResource {
             // A wide role replaces project roles, and instance admin also replaces domain admin. Also
             // run when the role was already held, so a retry after a failure here, or a re-grant,
             // clears leftovers.
-            authorizer.deleteProjectRolesForUser(user);
+            if (coversEveryProject) {
+                authorizer.deleteProjectRolesForUser(user);
+            }
             if (role == Role.INSTANCE_ADMIN) {
                 authorizer.deleteDomainRolesForUser(user);
             }
