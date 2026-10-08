@@ -120,9 +120,9 @@ public class UserAdminServiceImpl implements UserAdminService {
 
         // A password is write-only: a resubmitted password is indistinguishable from a new one, so
         // any password at all counts as a change rather than reporting a noop that silently rehashed.
-        boolean changed = !java.util.Objects.equals(newEmail, existing.email)
-                          || !java.util.Objects.equals(newName, existing.name)
-                          || !newGroups.equals(currentGroups) || req.password() != null;
+        boolean changed = !java.util.Objects.equals(newEmail, existing.email) ||
+                          !java.util.Objects.equals(newName, existing.name) || !newGroups.equals(currentGroups) ||
+                          req.password() != null;
 
         Map<String, Object> details = new HashMap<>(existing.details);
         details.put("uid", login);
