@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskManagerTemporal;
+import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -35,6 +36,18 @@ public class Main {
             new CommandLine(new DatashareCommand()).getSubcommands().keySet();
 
     /**
+     * Maps a {@link CliExitException} to its own exit code. Without it picocli prints the exception
+     * and returns 1, so a validation error (5) and a runtime failure (1) are indistinguishable to a
+     * caller script. Anything else keeps picocli's default handling, stack trace included.
+     */
+    static final CommandLine.IExecutionExceptionHandler CLI_EXIT_HANDLER = (ex, commandLine, parseResult) -> {
+        if (ex instanceof CliExitException exit) {
+            return exit.exitCode();
+        }
+        throw ex;
+    };
+
+    /**
      * Application entry point. Routes to the legacy jopt-simple parser or the picocli subcommand
      * parser based on isLegacyInvocation(), then starts the appropriate mode.
      */
@@ -65,6 +78,7 @@ public class Main {
         // right help page is shown. Otherwise it registers the executed subcommand on
         // DatashareCommand so its properties can be collected after execution.
         commandLine.setExecutionStrategy(parseResult -> resolveSubcommand(parseResult, cmd));
+        commandLine.setExecutionExceptionHandler(CLI_EXIT_HANDLER);
         int exitCode = commandLine.execute(args);
         if (exitCode != 0) {
             System.exit(exitCode);
