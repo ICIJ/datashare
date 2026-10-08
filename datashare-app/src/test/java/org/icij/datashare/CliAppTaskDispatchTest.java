@@ -3,6 +3,7 @@ package org.icij.datashare;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.GenApiKeyTask;
 import org.icij.datashare.tasks.GetApiKeyTask;
+import org.icij.datashare.tasks.GrantAdminPolicyTask;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,5 +88,35 @@ public class CliAppTaskDispatchTest {
         assertThat(CliApp.handleApiKeyGet(taskFactory, "ghost")).isEqualTo(CliApp.EXIT_NOT_FOUND);
 
         assertThat(out.toString().trim()).isEmpty();
+    }
+
+    @Test
+    public void test_grant_admin_exits_conflict_when_an_admin_already_exists() throws Exception {
+        // `datashare --grantAdmin alice && setup-rest.sh` must not continue on a refused grant
+        GrantAdminPolicyTask task = mock(GrantAdminPolicyTask.class);
+        when(task.call()).thenReturn(false);
+        when(taskFactory.createGrantAdminPolicyTask(any())).thenReturn(task);
+
+        assertThat(CliApp.handleGrantAdmin(taskFactory, "alice")).isEqualTo(CliApp.EXIT_CONFLICT);
+    }
+
+    @Test
+    public void test_grant_admin_exits_zero_on_success() throws Exception {
+        GrantAdminPolicyTask task = mock(GrantAdminPolicyTask.class);
+        when(task.call()).thenReturn(true);
+        when(taskFactory.createGrantAdminPolicyTask(any())).thenReturn(task);
+
+        assertThat(CliApp.handleGrantAdmin(taskFactory, "alice")).isEqualTo(CliApp.EXIT_SUCCESS);
+    }
+
+    @Test
+    public void test_grant_admin_exits_conflict_on_a_null_result() throws Exception {
+        // the task is declared Boolean, so null is reachable; treating it as success would be
+        // the exact silent-pass this task exists to remove
+        GrantAdminPolicyTask task = mock(GrantAdminPolicyTask.class);
+        when(task.call()).thenReturn(null);
+        when(taskFactory.createGrantAdminPolicyTask(any())).thenReturn(task);
+
+        assertThat(CliApp.handleGrantAdmin(taskFactory, "alice")).isEqualTo(CliApp.EXIT_CONFLICT);
     }
 }

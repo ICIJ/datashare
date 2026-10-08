@@ -132,9 +132,7 @@ class CliApp {
         }
 
         if (properties.getProperty(GRANT_ADMIN_OPT) != null) {
-            String userName = properties.getProperty(GRANT_ADMIN_OPT);
-            taskFactory.createGrantAdminPolicyTask(localUser(userName)).call();
-            System.exit(0);
+            System.exit(handleGrantAdmin(taskFactory, properties.getProperty(GRANT_ADMIN_OPT)));
         }
 
         if (properties.getProperty(USER_CREATE_OPT) != null) {
@@ -827,6 +825,16 @@ class CliApp {
         } else {
             System.err.println("aborted");
         }
+    }
+
+    /**
+     * A refused grant (an instance admin already exists) is a conflict, not a success: exiting 0
+     * would let `datashare --grantAdmin alice && setup-rest.sh` carry on as if alice were admin.
+     * The task reports the refusal in its own log line.
+     */
+    static int handleGrantAdmin(DatashareTaskFactory taskFactory, String userName) throws Exception {
+        Boolean granted = taskFactory.createGrantAdminPolicyTask(localUser(userName)).call();
+        return Boolean.TRUE.equals(granted) ? EXIT_SUCCESS : EXIT_CONFLICT;
     }
 
     /**
