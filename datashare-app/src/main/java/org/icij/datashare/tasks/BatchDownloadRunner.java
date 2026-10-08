@@ -45,8 +45,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -117,11 +115,6 @@ public class BatchDownloadRunner
         callThread = Thread.currentThread();
         callWaiterLatchForTests.countDown(); // for tests
         BatchDownload batchDownload = getBatchDownload();
-        Path downloadDir = Paths.get(propertiesProvider.get(BATCH_DOWNLOAD_DIR_OPT).orElse(DEFAULT_BATCH_DOWNLOAD_DIR));
-        if (!downloadDir.toAbsolutePath().normalize()
-                        .equals(batchDownload.filename.toAbsolutePath().normalize().getParent())) {
-            throw new IllegalArgumentException("batch download file must be in " + downloadDir);
-        }
 
         logger.info(
                 "running batch download for user {} on project {} with {} scroll with throttle {}ms and scroll size of {}",
