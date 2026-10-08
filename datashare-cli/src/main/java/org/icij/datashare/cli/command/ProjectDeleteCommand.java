@@ -1,5 +1,6 @@
 package org.icij.datashare.cli.command;
 
+import org.icij.datashare.cli.CliErrors;
 import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Prompter;
@@ -54,8 +55,7 @@ public class ProjectDeleteCommand implements Runnable, DatashareSubcommand {
             }
             this.validatedName = name;
         } catch (InvalidValueException | Prompter.ValidationFailedException e) {
-            spec.commandLine().getErr().println("error: " + e.getMessage());
-            throw new CliExitException(5);
+            throw CliErrors.fail(spec, json, "validation", e.getMessage(), 5);
         }
     }
 
@@ -86,10 +86,9 @@ public class ProjectDeleteCommand implements Runnable, DatashareSubcommand {
      */
     private String resolveNameFromPrompt(Prompter prompter) {
         if (prompter == null) {
-            String reason = noInput ? "error: --name is required when --no-input is set" :
-                            "error: --name is required and no TTY available";
-            spec.commandLine().getErr().println(reason);
-            throw new CliExitException(2);
+            String reason = noInput ? "--name is required when --no-input is set" :
+                            "--name is required and no TTY available";
+            throw CliErrors.fail(spec, json, "usage", reason, 2);
         }
         return prompter.promptString("Project name", Validators::projectName);
     }

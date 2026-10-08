@@ -5,6 +5,8 @@ import org.junit.After;
 import org.junit.Before;
 import picocli.CommandLine;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.Properties;
 
 /**
@@ -28,6 +30,26 @@ abstract class AbstractDatashareCommandTest {
         CommandLine commandLine = configure(cmd, args);
         commandLine.execute(args);
         return cmd.collectProperties();
+    }
+
+    /** stderr emitted by the last {@link #parseExitCodeCapturingErr} call. */
+    protected String lastErr;
+
+    /**
+     * Runs the command with stderr captured. picocli builds its error writer from System.err when
+     * the CommandLine is constructed, which {@link #parseExitCode} does inside this call, so the
+     * swap has to wrap the whole thing rather than just the execute.
+     */
+    protected int parseExitCodeCapturingErr(String... args) {
+        PrintStream original = System.err;
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        System.setErr(new PrintStream(buffer, true));
+        try {
+            return parseExitCode(args);
+        } finally {
+            System.setErr(original);
+            lastErr = buffer.toString();
+        }
     }
 
     protected int parseExitCode(String... args) {

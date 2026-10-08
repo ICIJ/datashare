@@ -2,6 +2,7 @@ package org.icij.datashare.cli.command;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.icij.datashare.cli.CliErrors;
 import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Prompter;
@@ -53,19 +54,18 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
             Prompter prompter = null;
             if (login == null) {
                 if (noInput) {
-                    spec.commandLine().getErr().println("error: --login is required when --no-input is set");
-                    throw new CliExitException(2);
+                    throw CliErrors.fail(spec, json, "usage",
+                                         "--login is required when --no-input is set", 2);
                 }
                 prompter = prompterOverride != null ? prompterOverride : new Prompter();
                 if (prompterOverride == null && !prompter.isInteractive()) {
-                    spec.commandLine().getErr().println("error: --login is required and no TTY available");
-                    throw new CliExitException(2);
+                    throw CliErrors.fail(spec, json, "usage",
+                                         "--login is required and no TTY available", 2);
                 }
                 try {
                     login = prompter.promptString("Login", Validators::login);
                 } catch (Prompter.ValidationFailedException e) {
-                    spec.commandLine().getErr().println("error: " + e.getMessage());
-                    throw new CliExitException(5);
+                    throw CliErrors.fail(spec, json, "validation", e.getMessage(), 5);
                 }
             }
 
@@ -86,8 +86,7 @@ public class UserDeleteCommand implements Runnable, DatashareSubcommand {
             this.resolvedLogin = login;
             this.ready = true;
         } catch (InvalidValueException e) {
-            spec.commandLine().getErr().println("error: " + e.getMessage());
-            throw new CliExitException(5);
+            throw CliErrors.fail(spec, json, "validation", e.getMessage(), 5);
         }
     }
 
