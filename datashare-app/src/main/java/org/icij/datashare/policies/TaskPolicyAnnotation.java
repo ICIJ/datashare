@@ -20,6 +20,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
+import org.icij.datashare.utils.PayloadFormatter;
+import net.codestory.http.constants.HttpStatus;
 
 public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
     private final Authorizer authorizer;
@@ -83,14 +85,14 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
             // either we should check for every tasks' projects
             // or we enforce wildcard project access (domain level)to do batch operation (current solution).
             boolean isAllowed = authorizer.can(user.id, domain, "*", annotation.role());
-            return isAllowed ? payloadSupplier.apply(context) : Payload.forbidden();
+            return isAllowed ? payloadSupplier.apply(context) : PayloadFormatter.error("insufficient role", HttpStatus.FORBIDDEN);
         }
         String taskId = Authorizer.requireIdParam(context, annotation.idParam());
         try {
             Task<Serializable> task = taskManager.getTask(taskId);
             boolean isAllowed = isAllowedSingleTask(task, annotation, user, domain);
 
-            return isAllowed ? payloadSupplier.apply(context) : Payload.forbidden();
+            return isAllowed ? payloadSupplier.apply(context) : PayloadFormatter.error("insufficient role", HttpStatus.FORBIDDEN);
 
         } catch (UnknownTask e) {
             return Payload.notFound();

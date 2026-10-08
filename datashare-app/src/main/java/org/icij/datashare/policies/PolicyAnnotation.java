@@ -10,6 +10,8 @@ import org.icij.datashare.session.DatashareUser;
 import java.io.IOException;
 import java.util.function.Function;
 import static org.icij.datashare.policies.Authorizer.requireDomain;
+import org.icij.datashare.utils.PayloadFormatter;
+import net.codestory.http.constants.HttpStatus;
 
 public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -40,7 +42,7 @@ public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
         }
 
         if (!authorizer.can(user.id, domain, projectId, annotation.role())) {
-            return Payload.forbidden();
+            return PayloadFormatter.error("insufficient role", HttpStatus.FORBIDDEN);
         }
 
         return payloadSupplier.apply(context);

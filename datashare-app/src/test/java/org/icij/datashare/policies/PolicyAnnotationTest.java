@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -130,6 +131,19 @@ public class PolicyAnnotationTest {
 
         Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
+    }
+
+    @Test
+    public void should_say_why_access_was_forbidden() {
+        // "{\"error\":\"\"}" tells a client nothing about whether to re-authenticate or give up
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(new DatashareUser("jane"));
+        when(context.pathParam("index")).thenReturn(projectId);
+
+        Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
+
+        assertEquals(403, result.code());
+        assertThat(String.valueOf(result.rawContent())).contains("insufficient role");
     }
 
     @Test
