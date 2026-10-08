@@ -6,6 +6,7 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.user.User;
 import org.icij.extract.extractor.ExtractionStatus;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
+import static org.mockito.Mockito.verify;
 
 public class ScanIndexTaskTest {
     @ClassRule
@@ -54,6 +56,18 @@ public class ScanIndexTaskTest {
                 entry(Paths.get("/path/to/id1"), new Report(ExtractionStatus.SUCCESS)),
                 entry(Paths.get("/path/to/id2"), new Report(ExtractionStatus.SUCCESS))
         );
+    }
+
+    @Test
+    public void test_scan_reads_the_path_from_doc_values_in_index_order() throws Exception {
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("id1").build());
+        SearcherRecorder recorder = new SearcherRecorder();
+
+        new ScanIndexTask(documentCollectionFactory, recorder.recording(indexer), new Task<>(
+                ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call();
+
+        recorder.verifyReadsOnlyDocValues("path");
+        verify(recorder.searchers.get(0)).sort("_doc", Indexer.Searcher.SortOrder.ASC);
     }
 
     @After

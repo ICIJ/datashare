@@ -9,6 +9,7 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.user.User;
 import org.junit.After;
@@ -104,14 +105,29 @@ public class ScanQueryTaskTest {
         assertThat(assertThrows(IllegalArgumentException.class, task::call).getMessage()).contains("NLP");
     }
 
+    @Test
+    public void test_query_reads_the_path_from_doc_values_in_index_order() throws Exception {
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("doc1").with(WELSH).build());
+        SearcherRecorder recorder = new SearcherRecorder();
+
+        scanQueryTask(recorder.recording(indexer), Map.of(SEARCH_QUERY_OPT, "language:WELSH")).call();
+
+        recorder.verifyReadsOnlyDocValues("path");
+        verify(recorder.searchers.get(0)).sort("_doc", Indexer.Searcher.SortOrder.ASC);
+    }
+
     private ScanQueryTask scanQueryTaskSearching(String searchQuery) {
         return scanQueryTask(Map.of(SEARCH_QUERY_OPT, searchQuery));
     }
 
     private ScanQueryTask scanQueryTask(Map<String, Object> extraArgs) {
+        return scanQueryTask(indexer, extraArgs);
+    }
+
+    private ScanQueryTask scanQueryTask(Indexer scanIndexer, Map<String, Object> extraArgs) {
         Map<String, Object> args = propertiesToMap(propertiesProvider.getProperties());
         args.putAll(extraArgs);
-        return new ScanQueryTask(documentCollectionFactory, indexer,
+        return new ScanQueryTask(documentCollectionFactory, scanIndexer,
                 new Task<>(ScanQueryTask.class.getName(), User.nullUser(), args), null);
     }
 
@@ -125,16 +141,4 @@ public class ScanQueryTaskTest {
         es.removeAll();
     }
 
-    @Test
-    public void test_query_reads_the_path_from_doc_values_without_loading_the_source() throws Exception {
-        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("doc1").with(WELSH).build());
-        SearcherRecorder recorder = new SearcherRecorder();
-        Map<String, Object> args = propertiesToMap(propertiesProvider.getProperties());
-        args.put(SEARCH_QUERY_OPT, "language:WELSH");
-
-        new ScanQueryTask(documentCollectionFactory, recorder.recording(indexer),
-                new Task<>(ScanQueryTask.class.getName(), User.nullUser(), args), null).call();
-
-        verify(recorder.searchers.get(0)).withDocValues("path");
-    }
 }
