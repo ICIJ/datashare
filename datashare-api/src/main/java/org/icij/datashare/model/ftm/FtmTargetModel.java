@@ -44,7 +44,7 @@ public class FtmTargetModel implements TargetModel {
         String library = libraryVersion();
         if (!version.equals(library)) {
             throw new UnreadableModelResource(RESOURCE,
-                    "version '" + version + "' does not match followthemoney " + library);
+                                              "version '" + version + "' does not match followthemoney " + library);
         }
         try {
             Model model = Model.fromJson(JsonObjectMapper.getMapper(), root);
