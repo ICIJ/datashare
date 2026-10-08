@@ -512,6 +512,19 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_scroll_with_doc_values_reads_the_field_without_loading_the_source() throws IOException {
+        Document doc = createDoc("id").with("some content").build();
+        indexer.add(es.getIndexName(), doc);
+
+        Indexer.Searcher searcher = indexer.search(singletonList(es.getIndexName()), Document.class).withDocValues("path");
+        Document actualDoc = (Document) searcher.scroll(KEEP_ALIVE).toList().get(0);
+        searcher.clearScroll();
+
+        assertThat(actualDoc.getPath().toString()).isEqualTo(doc.getPath().toString());
+        assertThat(actualDoc.getContent()).isEmpty();
+    }
+
+    @Test
     public void test_search_size_limit() throws IOException {
         for (int i = 0 ; i < 20; i++) {
             Document doc = createDoc("id" + i).build();

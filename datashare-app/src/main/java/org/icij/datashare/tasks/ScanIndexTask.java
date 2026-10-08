@@ -82,7 +82,7 @@ public class ScanIndexTask extends PipelineTask<Path> {
 
     private Long slicedScroll(int sliceNum) {
         Indexer.Searcher search =
-                indexer.search(singletonList(projectName), Document.class).withSource("path").limit(scrollSize);
+                indexer.search(singletonList(projectName), Document.class).withDocValues("path").limit(scrollSize);
         List<? extends Entity> docsToProcess = new ArrayList<>();
         long nbProcessed = 0;
         do {
