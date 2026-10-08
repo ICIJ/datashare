@@ -155,9 +155,8 @@ public class FtmTargetModel implements TargetModel {
         return new Property(property.getRange().map(Schema::getName).orElse(null), property.isStub());
     }
 
-    // FtM keeps required per schema, but datashare also enforces what the ancestors require: stricter than
-    // FtM for 28 of the 64 concrete schemata. The type's own requirements come first so a violation list
-    // still reads in the order the schema states them.
+    // FtM keeps required per schema, but datashare also enforces what the ancestors require. The type's
+    // own requirements come first so a violation list still reads in the order the schema states them.
     private static Set<String> required(Schema schema) {
         Set<String> required = new LinkedHashSet<>(names(schema.getRequiredProperties()));
         schema.getSchemata().stream().sorted(Comparator.comparing(Schema::getName))
