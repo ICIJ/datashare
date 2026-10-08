@@ -19,6 +19,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
  */
 public class FtmTargetModel implements TargetModel {
     private static final String RESOURCE = "/defaultModel.json";
+    private static final String LIBRARY = "/META-INF/maven/tech.followthemoney/followthemoney/pom.properties";
     private final String version;
     private final Map<String, EntityType> types;
 
@@ -36,6 +38,12 @@ public class FtmTargetModel implements TargetModel {
         JsonNode root = ontology();
         JsonNode schemata = present(root, "schemata");
         this.version = present(root, "version").asText();
+        // The ontology sits at a generic root path, so another jar on the classpath could shadow it.
+        String library = libraryVersion();
+        if (!version.equals(library)) {
+            throw new UnreadableModelResource(RESOURCE,
+                    "version '" + version + "' does not match followthemoney " + library);
+        }
         try {
             Model model = Model.fromJson(JsonObjectMapper.getMapper(), root);
             this.types = model.getSchemata().values().stream()
@@ -110,6 +118,19 @@ public class FtmTargetModel implements TargetModel {
             return JsonObjectMapper.getMapper().readTree(stream);
         } catch (IOException e) {
             throw new UnreadableModelResource(RESOURCE, e);
+        }
+    }
+
+    private static String libraryVersion() {
+        try (InputStream stream = Model.class.getResourceAsStream(LIBRARY)) {
+            if (stream == null) {
+                throw new UnreadableModelResource(LIBRARY);
+            }
+            Properties properties = new Properties();
+            properties.load(stream);
+            return properties.getProperty("version");
+        } catch (IOException e) {
+            throw new UnreadableModelResource(LIBRARY, e);
         }
     }
 
