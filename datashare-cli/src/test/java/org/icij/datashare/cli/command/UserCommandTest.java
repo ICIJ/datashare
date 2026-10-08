@@ -307,4 +307,24 @@ public class UserCommandTest extends AbstractDatashareCommandTest {
 
         assertThat(lastErr).excludes("process listings");
     }
+
+    @Test
+    public void test_user_create_refuses_an_empty_password_flag_like_an_empty_stdin_one() {
+        // the two ways of supplying a password must agree: --password "" used to sail through
+        int exitCode = parseExitCodeCapturingErr("user", "create", "alice", "--email", "a@e.test",
+                                                 "--password", "", "--no-input");
+
+        assertThat(exitCode).isEqualTo(5);
+    }
+
+    @Test
+    public void test_user_create_for_oauth_does_not_require_a_password_from_stdin() {
+        // a password is optional outside the local provider, so reading an empty one is not an error
+        System.setIn(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)));
+
+        int exitCode = parseExitCodeCapturingErr("user", "create", "alice", "--email", "a@e.test",
+                                                 "--provider", "oauth", "--password-stdin", "--no-input");
+
+        assertThat(exitCode).isEqualTo(0);
+    }
 }

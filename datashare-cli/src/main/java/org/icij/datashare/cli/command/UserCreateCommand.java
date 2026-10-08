@@ -81,6 +81,10 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
                                          2);
                 }
                 password = readPasswordFromStdin();
+            }
+            // Below the stdin read and gated on the provider, so --password and --password-stdin
+            // agree with each other and neither demands one where the provider does not need it.
+            if (password != null && User.LOCAL.equals(provider)) {
                 Validators.password(password);
             }
 
