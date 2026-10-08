@@ -182,6 +182,7 @@ public class ProjectResource {
             parameters = {@Parameter(name = "id", description = "project id")})
     @ApiResponse(responseCode = "204", description = "if project is deleted")
     @ApiResponse(responseCode = "401", description = "if project id is not in the current user's projects")
+    @ApiResponse(responseCode = "500", description = "if a step of the delete cascade failed")
     @Delete("/:id")
     public Payload projectDelete(String id, Context context) throws IOException {
         modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
@@ -194,6 +195,10 @@ public class ProjectResource {
         // from every user's inventory
         ProjectDeleted deleted = projectAdminService.deleteIfExists(id, new ProjectDeleteOptions(false));
         LoggerFactory.getLogger(getClass()).info("Deleted project {}: {}", id, deleted);
+        if (!deleted.dbDeleted() || !deleted.indexDeleted() || !deleted.casbinDeleted() ||
+            !deleted.inventoryDeleted()) {
+            return PayloadFormatter.error("Unable to delete the project", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
         return new Payload(204);
     }
 
@@ -227,16 +232,20 @@ public class ProjectResource {
     public Payload deleteProjects(Context context) throws IOException {
         DatashareUser user = (DatashareUser) context.currentUser();
         Logger logger = LoggerFactory.getLogger(getClass());
-        getUserProjects(user).forEach(project -> {
+        // reduce(), not anyMatch(): every project must be attempted before the status is decided
+        boolean allDeleted = getUserProjects(user).stream().map(project -> {
             try {
-                projectDelete(project.name, context);
+                return projectDelete(project.name, context).code() == 204;
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }).reduce(true, Boolean::logicalAnd);
         logger.info("Stopping tasks : {}", taskManager.stopTasks(user));
         taskManager.waitTasksToBeDone(taskManager.getTerminationPollingInterval() * 2, MILLISECONDS);
         logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
+        if (!allDeleted) {
+            return PayloadFormatter.error("Unable to delete the projects", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
         return new Payload(204);
     }
 
