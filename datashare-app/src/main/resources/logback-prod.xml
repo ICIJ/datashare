@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <contextName>production</contextName>
-    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <!-- stderr, not stdout: stdout carries CLI command results, JSON output included,
              and must stay parseable -->
         <target>System.err</target>
@@ -21,6 +21,6 @@
     <logger name="org.casbin" level="warn" />
 
     <root level="INFO">
-        <appender-ref ref="stdout"/>
+        <appender-ref ref="console"/>
     </root>
 </configuration>
