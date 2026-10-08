@@ -1,5 +1,6 @@
 package org.icij.datashare.cli.command;
 
+import org.icij.datashare.cli.CliErrors;
 import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Prompter;
@@ -92,8 +93,7 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
             promptForUnsetFields(prompter, name);
             this.validatedName = name;
         } catch (InvalidValueException | Prompter.ValidationFailedException e) {
-            spec.commandLine().getErr().println("error: " + e.getMessage());
-            throw new CliExitException(5);
+            throw CliErrors.fail(spec, json, "validation", e.getMessage(), 5);
         }
     }
 
@@ -148,9 +148,8 @@ public class ProjectCreateCommand implements Runnable, DatashareSubcommand {
         if (name != null)
             return name;
         if (prompter == null) {
-            spec.commandLine().getErr()
-                .println("error: --name is required when --no-input is set or no TTY is available");
-            throw new CliExitException(2);
+            throw CliErrors.fail(spec, json, "usage",
+                                 "--name is required when --no-input is set or no TTY is available", 2);
         }
         return prompter.promptString("Project name", Validators::projectName);
     }
