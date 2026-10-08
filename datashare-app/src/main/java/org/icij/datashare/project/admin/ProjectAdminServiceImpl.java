@@ -19,6 +19,7 @@ import org.icij.datashare.policies.Role;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
+import org.icij.datashare.user.admin.UserFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
@@ -324,6 +325,25 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return updated;
     }
 
+    // A wide admin carries the project name without holding a Casbin row for it (see #2439), so the
+    // rows are not a complete index of who lists the project: the only reliable source is the user
+    // list. One pass per project delete, an admin-rate operation.
+    private void removeProjectFromAllInventories(String projectName) {
+        List<User> allUsers = userStore.listUsers(new UserFilter(null), null, 0, Integer.MAX_VALUE).items;
+        for (User user : allUsers) {
+            try {
+                if (safeStringListOf(safeStringKeyedMapOf(user.details.get(GROUPS_BY_APPLICATIONS))
+                                             .get(DATASHARE_APP)).contains(projectName)) {
+                    removeFromInventory(user, List.of(projectName));
+                }
+            } catch (RuntimeException e) {
+                // one unusable or unsaveable user row must not strand the project name in
+                // everybody else's inventory
+                LOGGER.error("cannot remove project {} from user {} inventory", projectName, user.id, e);
+            }
+        }
+    }
+
     private User removeFromInventory(User user, List<String> projectNames) {
         Map<String, Object> newDetails = new HashMap<>(user.details);
         Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
@@ -418,6 +438,17 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                                                                         indexer.deleteAll(entitiesIndex));
         boolean indexDeleted = documentsDeleted && entitiesDeleted;
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
+        // Casbin rows and inventory entries outlive the project row otherwise, and a project
+        // re-created with the same name resurrects both (see #2441). Contained like every other
+        // cascade step: a failure here must not stop the queues and index cleanup.
+        runStep("casbin rows", name, () -> {
+            authorizer.removeAllPoliciesForProject(Domain.DEFAULT, name);
+            return true;
+        });
+        runStep("inventory entries", name, () -> {
+            removeProjectFromAllInventories(name);
+            return true;
+        });
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
         boolean artifactsDeleted = deleteArtifacts(name);
