@@ -325,6 +325,17 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return updated;
     }
 
+    /**
+     * Strips a deleted project's name from every user's inventory.
+     * <p>
+     * Lists all users on purpose. A wide admin carries the project name without holding a Casbin row
+     * for it (see #2439), and a user created with --groups carries it before their first login
+     * writes one, so the rows are not a complete index of who lists the project.
+     * <p>
+     * Cost is one full listing per project delete, which is bounded in practice: the looping
+     * endpoint DELETE /api/project/ is restricted to LOCAL and EMBEDDED, where the user base is one,
+     * and on a server instance deletion goes through the CLI, one project per invocation.
+     */
     private void removeProjectFromAllInventories(String projectName) {
         List<User> allUsers = userStore.listUsers(new UserFilter(null), null, 0, Integer.MAX_VALUE).items;
         for (User user : allUsers) {
