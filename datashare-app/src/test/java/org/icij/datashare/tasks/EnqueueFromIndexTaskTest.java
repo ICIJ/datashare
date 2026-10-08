@@ -23,7 +23,6 @@ import static org.junit.Assert.fail;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
-import static org.mockito.Mockito.verify;
 
 public class EnqueueFromIndexTaskTest {
     @ClassRule
@@ -263,7 +262,7 @@ public class EnqueueFromIndexTaskTest {
         new EnqueueFromIndexTask(new MemoryDocumentCollectionFactory<>(), recorder.recording(indexer),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
 
-        verify(recorder.searchers.get(0)).withDocValues("rootDocument");
+        recorder.verifyReadsOnlyDocValues("rootDocument");
     }
 
     @Test
@@ -279,6 +278,6 @@ public class EnqueueFromIndexTaskTest {
         new EnqueueFromIndexTask(new MemoryDocumentCollectionFactory<>(), recorder.recording(indexer),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
 
-        verify(recorder.searchers.get(0)).withDocValues("rootDocument");
+        recorder.verifyReadsOnlyDocValues("rootDocument");
     }
 }
