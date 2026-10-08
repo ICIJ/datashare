@@ -101,6 +101,7 @@ public class UserResource {
     }
 
     // Instance admin and default-domain admin authorize every project; other domains do not (yet).
+
     /**
      * The parsed value, the fallback when absent, or null when it is not an integer or is negative.
      * Zero is valid: `size=0` is a legitimate count-only page, not an error.
