@@ -371,7 +371,7 @@ public class TaskResource {
     @Post("/batchDownload")
     public TaskResponse batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws IOException {
         Map<String, Object> options = optionsWrapper.getOptions();
-        Properties properties = applyProjectProperties(optionsWrapper);
+        Properties properties = propertiesProvider.getProperties();
         Path downloadDir = get(properties.getProperty(BATCH_DOWNLOAD_DIR_OPT));
         if (!downloadDir.toFile().exists())
             downloadDir.toFile().mkdirs();

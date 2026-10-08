@@ -22,6 +22,7 @@ import java.util.concurrent.CountDownLatch;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -71,6 +72,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
     private PropertiesProvider createProvider() {
         return new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
+            put(BATCH_DOWNLOAD_DIR_OPT, fs.getRoot().toString());
             put("rootHost", "https://datashare-demo.icij.org");
         }});
     }
