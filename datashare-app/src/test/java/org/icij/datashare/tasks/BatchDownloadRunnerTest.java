@@ -27,6 +27,7 @@ import java.util.zip.ZipFile;
 import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
@@ -50,6 +51,7 @@ public class BatchDownloadRunnerTest {
         BatchDownload batchDownload = new BatchDownload(singletonList(project("test-datashare")), User.local(), "query");
         Task<File> taskView = getTaskView(batchDownload);
         BatchDownloadRunnerResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+                    put(BATCH_DOWNLOAD_DIR_OPT, System.getProperty("java.io.tmpdir"));
                     put(BATCH_DOWNLOAD_MAX_NB_FILES_OPT, "3");
                     put(SCROLL_SIZE_OPT, "3");
                 }}), taskView, taskView.progress(updater::progress)).call();
@@ -64,12 +66,44 @@ public class BatchDownloadRunnerTest {
         mockSearch.willReturn(2, documents);
         Task<File> taskView = getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"));
         BatchDownloadRunnerResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+            put(BATCH_DOWNLOAD_DIR_OPT, System.getProperty("java.io.tmpdir"));
             put(BATCH_DOWNLOAD_MAX_SIZE_OPT, valueOf(documents[0].getContent().getBytes(StandardCharsets.UTF_8).length * 3 - 1)); // to avoid adding the 4th & 5th doc
             put(SCROLL_SIZE_OPT, "3");
         }}), taskView, taskView.progress(updater::progress)).call();
 
         assertThat(new ZipFile(new File(result.uri())).size()).isEqualTo(3); // the 4th & 5th doc must have been skipped
         assertThat(result.truncationReason()).isEqualTo(BatchDownloadRunnerResult.TruncationReason.SIZE_LIMIT);
+    }
+
+    @Test
+    public void test_rejects_zip_outside_of_download_dir() throws Exception {
+        Path downloadDir = fs.newFolder("downloads").toPath();
+        BatchDownload batchDownload = new BatchDownload(singletonList(project("test-datashare")), User.local(), "query", null, fs.newFolder("elsewhere").toPath(), false);
+
+        assertRejected(batchDownload, downloadDir);
+    }
+
+    @Test
+    public void test_rejects_zip_escaping_download_dir_with_dot_dot() throws Exception {
+        Path downloadDir = fs.newFolder("downloads").toPath();
+        BatchDownload batchDownload = new BatchDownload(singletonList(project("test-datashare")), User.local(), "query", null, downloadDir.resolve(".."), false);
+
+        assertRejected(batchDownload, downloadDir);
+    }
+
+    private void assertRejected(BatchDownload batchDownload, Path downloadDir) throws Exception {
+        mockSearch.willReturn(1, createFiveHelloWorldDocs());
+        Task<File> taskView = getTaskView(batchDownload);
+        BatchDownloadRunner runner = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+            put(BATCH_DOWNLOAD_DIR_OPT, downloadDir.toString());
+        }}), taskView, taskView.progress(updater::progress));
+
+        try {
+            runner.call();
+            fail("expected IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {
+            assertThat(Files.exists(batchDownload.filename)).isFalse();
+        }
     }
 
     @Test

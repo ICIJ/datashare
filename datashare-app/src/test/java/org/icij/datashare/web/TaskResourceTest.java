@@ -13,6 +13,7 @@ import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
+import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
@@ -39,6 +40,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
@@ -710,6 +713,18 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         assertThat(response.contentType()).startsWith("application/json");
         TaskResource.TaskResponse taskResponse = JsonObjectMapper.readValue(response.content(), TaskResource.TaskResponse.class);
         assertThat(taskManager.getTask(taskResponse.taskId())).isNotNull();
+    }
+
+    @Test
+    public void test_batch_download_ignores_client_download_dir_and_encryption() throws Exception {
+        Path clientDir = Files.createTempDirectory("ds-test").resolve("client-dir");
+        Response response = post("/api/task/batchDownload", format("{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\", \"batchDownloadDir\": \"%s\", \"batchDownloadEncrypt\": \"true\" }}", clientDir)).response();
+
+        TaskResource.TaskResponse taskResponse = JsonObjectMapper.readValue(response.content(), TaskResource.TaskResponse.class);
+        BatchDownload batchDownload = (BatchDownload) taskManager.getTask(taskResponse.taskId()).args.get("batchDownload");
+        assertThat(batchDownload.filename.getParent().toString()).isEqualTo("app/tmp");
+        assertThat(batchDownload.encrypted).isFalse();
+        assertThat(Files.exists(clientDir)).isFalse();
     }
 
     @Test
