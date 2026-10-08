@@ -119,7 +119,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     public ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException {
         Project project = repository.getProject(name);
         if (project == null) {
-            return new ProjectDeleted(name, false, false, false, false, false, true);
+            return new ProjectDeleted(name, false, false, false, false, false, false, false, true);
         }
         return cascade(project, options);
     }
@@ -442,11 +442,14 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // Casbin rows and inventory entries outlive the project row otherwise, and a project
         // re-created with the same name resurrects both (see #2441). Contained like every other
         // cascade step: a failure here must not stop the queues and index cleanup.
-        runStep("casbin rows", name, () -> {
+        // Gated on dbDeleted: if the project row survives, stripping its grants would leave a live
+        // project nobody can reach, and grants are the one cascade output that cannot be rebuilt.
+        //TODO #DOMAIN: drop the rows of every domain once projects carry one.
+        boolean casbinDeleted = dbDeleted && runStep("casbin rows", name, () -> {
             authorizer.removeAllPoliciesForProject(Domain.DEFAULT, name);
             return true;
         });
-        runStep("inventory entries", name, () -> {
+        boolean inventoryDeleted = dbDeleted && runStep("inventory entries", name, () -> {
             removeProjectFromAllInventories(name);
             return true;
         });
@@ -454,8 +457,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
         boolean artifactsDeleted = deleteArtifacts(name);
 
-        return new ProjectDeleted(name, dbDeleted, indexDeleted, queuesDeleted, reportMapDeleted, artifactsDeleted,
-                                  false);
+        return new ProjectDeleted(name, dbDeleted, indexDeleted, casbinDeleted, inventoryDeleted, queuesDeleted,
+                                  reportMapDeleted, artifactsDeleted, false);
     }
 
     @FunctionalInterface

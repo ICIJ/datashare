@@ -1242,6 +1242,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_delete_removes_the_projects_casbin_rows() throws Exception {
         when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
 
         service.delete("proj", new ProjectDeleteOptions(true));
 
@@ -1251,6 +1252,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_delete_removes_the_project_from_every_users_inventory() throws Exception {
         when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
         User alice = userWithProjects("alice", List.of("proj", "keep"));
         User bob = userWithProjects("bob", List.of("keep"));
         when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
@@ -1269,6 +1271,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_delete_skips_a_user_whose_inventory_is_missing_or_malformed() throws Exception {
         when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
         User noDetails = new User("nodetails", "No Details", "n@e.test", "local", new HashMap<>());
         Map<String, Object> broken = new HashMap<>();
         broken.put("groups_by_applications", "not-a-map");
@@ -1288,6 +1291,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_delete_still_deletes_the_db_row_when_the_casbin_cleanup_fails() throws Exception {
         when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
         User alice = userWithProjects("alice", List.of("proj"));
         when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
                 .thenReturn(new WebResponse<>(List.of(alice), 0, 1, 1));
@@ -1299,6 +1303,48 @@ public class ProjectAdminServiceImplTest {
         // per-step containment: the failing step must not strand the rest of the cascade
         verify(repository).deleteAll("proj");
         verify(userStore).save(any(User.class));
+    }
+
+    @Test
+    public void test_delete_keeps_the_grants_when_the_db_delete_fails() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenThrow(new RuntimeException("db down"));
+        User alice = userWithProjects("alice", List.of("proj"));
+        when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, 1, 1));
+
+        ProjectDeleted deleted = service.delete("proj", new ProjectDeleteOptions(true));
+
+        // the project row survives, so wiping its grants would leave a live project nobody can
+        // reach, and grants are the one cascade output that cannot be rebuilt
+        assertThat(deleted.dbDeleted()).isFalse();
+        verify(authorizer, never()).removeAllPoliciesForProject(any(), any());
+        verify(userStore, never()).save(any(User.class));
+    }
+
+    @Test
+    public void test_delete_reports_a_failed_casbin_cleanup() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
+        doThrow(new RuntimeException("casbin down"))
+                .when(authorizer).removeAllPoliciesForProject(Domain.DEFAULT, "proj");
+
+        ProjectDeleted deleted = service.delete("proj", new ProjectDeleteOptions(true));
+
+        // reporting db OK and exiting 0 while the access cleanup failed is a silent security hole
+        assertThat(deleted.casbinDeleted()).isFalse();
+        assertThat(deleted.dbDeleted()).isTrue();
+    }
+
+    @Test
+    public void test_delete_reports_a_successful_access_cleanup() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
+
+        ProjectDeleted deleted = service.delete("proj", new ProjectDeleteOptions(true));
+
+        assertThat(deleted.casbinDeleted()).isTrue();
+        assertThat(deleted.inventoryDeleted()).isTrue();
     }
 
     private static User userWithProjects(String id, List<String> projects) {

@@ -279,12 +279,15 @@ public class UserAdminServiceImplTest {
     }
 
     @Test
-    public void test_delete_if_exists_on_unknown_user_touches_no_policy() {
+    public void test_delete_if_exists_cleans_orphan_rows_for_an_unknown_user() {
         when(userStore.delete("ghost")).thenReturn(false);
 
         assertThat(service.deleteIfExists("ghost")).isFalse();
 
-        verify(authorizer, never()).removeAllPoliciesForUser(any());
+        // The wipe is unconditional and idempotent. Gating it on the store delete would make rows
+        // left behind by an earlier bug unreachable: the user row is already gone, so no later
+        // delete could ever clear them. This is the retry path operators have.
+        verify(authorizer).removeAllPoliciesForUser("ghost");
     }
 
     @Test
