@@ -9,6 +9,7 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectDeleteOptions;
+import org.icij.datashare.project.admin.ProjectDeleted;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
@@ -569,10 +570,11 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_delete_project() {
+    public void test_delete_project() throws Exception {
         Project foo = new Project("local-datashare");
         when(repository.getProjects(any())).thenReturn(List.of(foo));
-        when(repository.deleteAll("local-datashare")).thenReturn(true).thenReturn(false);
+        when(projectAdminService.deleteIfExists(eq("local-datashare"), any(ProjectDeleteOptions.class)))
+                .thenReturn(fullyDeleted("local-datashare"));
         delete("/api/project/local-datashare").should().respond(204);
         delete("/api/project/local-datashare").should().respond(204);
     }
@@ -583,10 +585,28 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         // casbin rows and inventories (see #2441)
         Project foo = new Project("to-delete");
         when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(projectAdminService.deleteIfExists(eq("to-delete"), any(ProjectDeleteOptions.class)))
+                .thenReturn(fullyDeleted("to-delete"));
 
         delete("/api/project/to-delete").should().respond(204);
 
-        verify(projectAdminService).deleteIfExists(eq("to-delete"), any(ProjectDeleteOptions.class));
+        verify(projectAdminService).deleteIfExists(eq("to-delete"), eq(new ProjectDeleteOptions(false)));
+    }
+
+    @Test
+    public void test_project_delete_reports_a_failed_cascade_step() throws Exception {
+        // answering 204 while the grants, the row or the index survive shows the project as deleted
+        // in the UI when it is not
+        Project foo = new Project("to-delete");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(projectAdminService.deleteIfExists(eq("to-delete"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("to-delete", true, true, false, true, true, true, true, false));
+
+        delete("/api/project/to-delete").should().respond(500);
+    }
+
+    private static ProjectDeleted fullyDeleted(String name) {
+        return new ProjectDeleted(name, true, true, true, true, true, true, true, false);
     }
 
     @Test
@@ -608,10 +628,28 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         Project bar = new Project("bar");
         Task<?> task = new Task<>("name", User.local(), new HashMap<>());
         when(repository.getProjects(any())).thenReturn(asList(foo, bar));
-        when(repository.deleteAll("foo")).thenReturn(true).thenReturn(false);
-        when(repository.deleteAll("bar")).thenReturn(true).thenReturn(false);
+        when(projectAdminService.deleteIfExists(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(fullyDeleted("foo"));
+        when(projectAdminService.deleteIfExists(eq("bar"), any(ProjectDeleteOptions.class)))
+                .thenReturn(fullyDeleted("bar"));
         when(taskManager.clearDoneTasks()).thenReturn(List.of(task)).thenReturn(List.of());
         delete("/api/project/").should().respond(204);
+    }
+
+    @Test
+    public void test_delete_all_projects_reports_a_failed_cascade_step() throws Exception {
+        Project foo = new Project("foo");
+        Project bar = new Project("bar");
+        when(repository.getProjects(any())).thenReturn(asList(foo, bar));
+        when(projectAdminService.deleteIfExists(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("foo", true, true, false, true, true, true, true, false));
+        when(projectAdminService.deleteIfExists(eq("bar"), any(ProjectDeleteOptions.class)))
+                .thenReturn(fullyDeleted("bar"));
+
+        delete("/api/project/").should().respond(500);
+
+        // the failing project must not stop the others from being attempted
+        verify(projectAdminService).deleteIfExists(eq("bar"), any(ProjectDeleteOptions.class));
     }
 
     @Test
