@@ -13,14 +13,14 @@ import co.elastic.clients.elasticsearch.core.search.ResponseBody;
 import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import co.elastic.clients.json.JsonData;
 import jakarta.json.JsonException;
-import java.io.InterruptedIOException;
 import java.util.Objects;
+import org.apache.commons.io.function.IOSupplier;
 import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +43,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchSearcher.class);
     private static final int TOO_MANY_REQUESTS = 429;
     private static final int MAX_SCROLL_ATTEMPTS = 5;
-    private static final long FIRST_SCROLL_RETRY_DELAY_MILLIS = 1000;
+    private static final int FIRST_SCROLL_RETRY_DELAY_MILLIS = 1000;
     protected final List<String> indexesNames;
     protected final ElasticsearchClient client;
     protected final Class<? extends Entity> cls;
@@ -74,17 +74,10 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     }
 
     static <T extends Entity> T hitToObject(Hit<ObjectNode> searchHit, Class<T> cls) {
-        Map<String, Object> source = withDocValues(JsonUtils.nodeToMap(searchHit.source()), searchHit.fields());
+        Map<String, Object> source =
+                searchHit.source() == null ? new HashMap<>() : JsonUtils.nodeToMap(searchHit.source());
+        searchHit.fields().forEach((field, values) -> source.put(field, values.to(List.class).get(0)));
         return JsonObjectMapper.getObject(searchHit.id(), searchHit.index(), source, cls);
-    }
-
-    private static Map<String, Object> withDocValues(Map<String, Object> source, Map<String, JsonData> docValues) {
-        if (docValues.isEmpty()) {
-            return source;
-        }
-        Map<String, Object> sourceWithDocValues = source == null ? new HashMap<>() : new HashMap<>(source);
-        docValues.forEach((field, values) -> sourceWithDocValues.put(field, values.to(List.class).get(0)));
-        return sourceWithDocValues;
     }
 
     @Override
@@ -166,13 +159,13 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         return resultStream(this.cls, () -> response.hits().hits().iterator());
     }
 
-    // A 429 comes from an Elasticsearch circuit breaker rejecting the request before running it, so the
-    // scroll cursor has not moved and the same request can be sent again once the heap pressure drops.
-    // Any other error, or a breaker still tripped after the last attempt, reaches the caller.
-    private <T> T retryingTooManyRequests(ElasticsearchCall<T> call) throws IOException {
+    // A circuit breaker 429 rejects the request before it runs, so the scroll cursor has not moved and the
+    // same request can be sent again once the heap pressure drops. A 429 from a full search queue is raised
+    // on the shard, which frees the scroll: its retry fails with a missing search context instead.
+    private static <T> T retryingTooManyRequests(IOSupplier<T> call) throws IOException {
         for (int attempt = 1; ; attempt++) {
             try {
-                return call.execute();
+                return call.get();
             } catch (ResponseException e) {
                 if (!isTooManyRequests(e) || attempt == MAX_SCROLL_ATTEMPTS) {
                     throw e;
@@ -186,22 +179,25 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         return e.getResponse().getStatusLine().getStatusCode() == TOO_MANY_REQUESTS;
     }
 
-    private static void waitBeforeRetry(int attempt, ResponseException e) throws IOException {
-        long delayMillis = FIRST_SCROLL_RETRY_DELAY_MILLIS << (attempt - 1);
-        LOGGER.warn("elasticsearch rejected scroll attempt {}/{} with too many requests, retrying in {}ms", attempt,
-                    MAX_SCROLL_ATTEMPTS, delayMillis);
+    private static void waitBeforeRetry(int attempt, ResponseException e) {
+        int delayMillis = FIRST_SCROLL_RETRY_DELAY_MILLIS << (attempt - 1);
+        LOGGER.warn("elasticsearch rejected attempt {}/{} with too many requests, retrying in {}ms: {}", attempt,
+                    MAX_SCROLL_ATTEMPTS, delayMillis, e.getMessage());
         try {
-            Thread.sleep(delayMillis);
+            DatashareTime.getInstance().sleep(delayMillis);
         } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            throw (IOException) new InterruptedIOException("interrupted while waiting to retry the scroll").initCause(
-                    e);
+            throw interruptedWhileWaiting(interrupted, e);
         }
     }
 
-    @FunctionalInterface
-    private interface ElasticsearchCall<T> {
-        T execute() throws IOException;
+    // Same shape as the rest client's own interrupt, a RuntimeException wrapping the InterruptedException,
+    // so the task loop records a cancelled scroll as a terminal error and causedByInterrupt recognizes it.
+    private static RuntimeException interruptedWhileWaiting(InterruptedException interrupted, ResponseException e) {
+        Thread.currentThread().interrupt();
+        RuntimeException interruptedWhileWaiting =
+                new RuntimeException("interrupted while waiting to retry the request", interrupted);
+        interruptedWhileWaiting.addSuppressed(e);
+        return interruptedWhileWaiting;
     }
 
     @Override
@@ -263,7 +259,11 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public void clearScroll() throws IOException {
-        this.client.clearScroll(ClearScrollRequest.of(csr -> csr.scrollId(scrollId)));
+        if (scrollId == null) {
+            return;
+        }
+        ClearScrollRequest clearScrollRequest = ClearScrollRequest.of(csr -> csr.scrollId(scrollId));
+        retryingTooManyRequests(() -> client.clearScroll(clearScrollRequest));
         scrollId = null;
         totalHits = 0;
     }

@@ -125,9 +125,9 @@ public interface Indexer extends Closeable {
         Searcher withSource(boolean source);
 
         /**
-         * Reads these fields from the index doc values instead of the stored source, which is not fetched at
-         * all: the cluster skips loading and decompressing each document's source, content included. Only for
-         * single-valued fields that have doc values (keywords, numbers, dates), the first value is kept.
+         * Reads these fields from the index doc values instead of the stored source, which is not returned: the
+         * cluster skips building, sending and parsing each document's source, content included. Only for
+         * top-level single-valued fields that have doc values (keywords, numbers, dates), the first value is kept.
          */
         Searcher withDocValues(String... fields);
 
