@@ -5,6 +5,7 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
@@ -20,6 +21,7 @@ import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.junit.After;
@@ -87,5 +89,28 @@ public class CreateNlpBatchesFromIndexTest {
         // Then
         List<List<String>> expected = List.of(List.of("my_id"));
         assertThat(queued).isEqualTo(expected);
+    }
+
+    @Test
+    public void test_batches_read_root_id_and_language_from_doc_values_without_loading_the_source() throws Exception {
+        indexer.add(es.getIndexName(), createDoc("my_id").with(Language.FRENCH)
+            .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build());
+        SearcherRecorder recorder = new SearcherRecorder();
+        Map<String, Object> properties = Map.of(
+            "defaultProject", es.getIndexName(),
+            "stages", "BATCHENQUEUEIDX",
+            "queueName", "test:queue",
+            "nlpPipeline", "OPENNLP",
+            "batchSize", 3,
+            "scrollSize", 5);
+
+        new CreateNlpBatchesFromIndex(taskManager, recorder.recording(indexer),
+            new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null).call();
+
+        verify(recorder.searchers.get(0)).withDocValues("rootDocument", "language");
+        List<Language> batchedLanguages = taskManager.getTasks()
+            .flatMap(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream())
+            .map(CreateNlpBatchesFromIndex.BatchDocument::language).toList();
+        assertThat(batchedLanguages).containsOnly(Language.FRENCH);
     }
 }

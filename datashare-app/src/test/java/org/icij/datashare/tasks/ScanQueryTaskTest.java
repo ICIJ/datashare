@@ -27,6 +27,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SEARCH_QUERY_OPT;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Language.WELSH;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.verify;
 
 /**
  * Covers the one invariant of SCANQUERY: every file its query selects lands in the queue the next
@@ -122,5 +123,18 @@ public class ScanQueryTaskTest {
     @After
     public void tearDown() throws IOException {
         es.removeAll();
+    }
+
+    @Test
+    public void test_query_reads_the_path_from_doc_values_without_loading_the_source() throws Exception {
+        indexer.add(es.getIndexName(), DocumentBuilder.createDoc("doc1").with(WELSH).build());
+        SearcherRecorder recorder = new SearcherRecorder();
+        Map<String, Object> args = propertiesToMap(propertiesProvider.getProperties());
+        args.put(SEARCH_QUERY_OPT, "language:WELSH");
+
+        new ScanQueryTask(documentCollectionFactory, recorder.recording(indexer),
+                new Task<>(ScanQueryTask.class.getName(), User.nullUser(), args), null).call();
+
+        verify(recorder.searchers.get(0)).withDocValues("path");
     }
 }
