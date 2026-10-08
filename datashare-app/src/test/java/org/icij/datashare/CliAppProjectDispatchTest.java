@@ -180,7 +180,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_happy_path_with_yes_skips_prompt() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, true, true, false, false));
+                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, true, false, false));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -196,7 +196,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_with_typed_name_confirmation_proceeds() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, true, true, false, false));
+                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, true, false, false));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
 
@@ -252,7 +252,7 @@ public class CliAppProjectDispatchTest {
         org.mockito.ArgumentCaptor<ProjectDeleteOptions> captor =
                 org.mockito.ArgumentCaptor.forClass(ProjectDeleteOptions.class);
         when(service.delete(eq("foo"), captor.capture()))
-                .thenReturn(new ProjectDeleted("foo", true, false, true, true, false, false));
+                .thenReturn(new ProjectDeleted("foo", true, false, true, true, true, true, false, false));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_KEEP_INDEX_OPT, "true");
@@ -268,7 +268,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_json_output() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, false));
+                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, true, true, false));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");

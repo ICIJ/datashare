@@ -66,11 +66,11 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public boolean deleteIfExists(String login) {
-        if (!userStore.delete(login)) {
-            return false;
-        }
+        boolean removed = userStore.delete(login);
+        // Unconditional and idempotent: rows left behind by an earlier delete outlive the user row,
+        // so gating this on `removed` would make them unreachable through any API or CLI path.
         authorizer.removeAllPoliciesForUser(login);
-        return true;
+        return removed;
     }
 
     @Override

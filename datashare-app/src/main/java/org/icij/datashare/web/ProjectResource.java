@@ -33,13 +33,8 @@ import org.icij.datashare.utils.PayloadFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
@@ -56,7 +51,6 @@ public class ProjectResource {
     private final DataDirVerifier dataDirVerifier;
     private final ModeVerifier modeVerifier;
     private final ProjectAdminService projectAdminService;
-    private final PropertiesProvider propertiesProvider;
 
     @Inject
     public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager,
@@ -64,7 +58,6 @@ public class ProjectResource {
         this.repository = repository;
         this.indexer = indexer;
         this.taskManager = taskManager;
-        this.propertiesProvider = propertiesProvider;
         this.dataDirVerifier = new DataDirVerifier(propertiesProvider);
         this.modeVerifier = new ModeVerifier(propertiesProvider);
         this.projectAdminService = projectAdminService;

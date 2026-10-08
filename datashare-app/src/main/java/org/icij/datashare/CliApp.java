@@ -647,7 +647,11 @@ class CliApp {
 
     private static void warnIfPartialFailure(ProjectDeleted deleted, ProjectDeleteOptions options) {
         boolean indexFailed = !options.keepIndex() && !deleted.indexDeleted();
-        if (!deleted.dbDeleted() || indexFailed || !deleted.queuesDeleted() || !deleted.reportMapDeleted()) {
+        // the access cleanup counts: reporting success while the project's roles survive is the
+        // silent half of the bug #2441 is about
+        boolean accessFailed = !deleted.casbinDeleted() || !deleted.inventoryDeleted();
+        if (!deleted.dbDeleted() || indexFailed || accessFailed || !deleted.queuesDeleted() ||
+            !deleted.reportMapDeleted()) {
             // Some load-bearing step failed: keep the cascade exit code 0
             // (the cascade did run to completion) but nudge the operator
             // to retry with --if-exists, which is continuation-friendly.
@@ -679,6 +683,8 @@ class CliApp {
         return Map.ofEntries(Map.entry("deleted", !deleted.noop()), Map.entry("noop", deleted.noop()),
                              Map.entry("name", deleted.name()), Map.entry("dbDeleted", deleted.dbDeleted()),
                              Map.entry("indexDeleted", deleted.indexDeleted()),
+                             Map.entry("casbinDeleted", deleted.casbinDeleted()),
+                             Map.entry("inventoryDeleted", deleted.inventoryDeleted()),
                              Map.entry("queuesDeleted", deleted.queuesDeleted()),
                              Map.entry("reportMapDeleted", deleted.reportMapDeleted()),
                              Map.entry("artifactsDeleted", deleted.artifactsDeleted()));
@@ -687,7 +693,7 @@ class CliApp {
     private static void emitDeleteNoop(String name, boolean json) {
         String fallback = "project '" + name + "' does not exist (no-op)";
         if (json) {
-            ProjectDeleted noop = new ProjectDeleted(name, false, false, false, false, false, true);
+            ProjectDeleted noop = new ProjectDeleted(name, false, false, false, false, false, false, false, true);
             printJsonOrFallback(deleteResultMap(noop), fallback);
         } else {
             System.out.println(fallback);
