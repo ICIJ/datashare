@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
 import org.icij.datashare.tasks.GetApiKeyTask;
 import org.icij.datashare.tasks.GrantAdminPolicyTask;
@@ -117,5 +118,33 @@ public class CliAppTaskDispatchTest {
         when(taskFactory.createGrantAdminPolicyTask(any())).thenReturn(task);
 
         assertThat(CliApp.handleGrantAdmin(taskFactory, "alice")).isEqualTo(CliApp.EXIT_CONFLICT);
+    }
+
+    @Test
+    public void test_delete_api_key_exits_not_found_when_the_user_had_none() throws Exception {
+        // same outcome as --apiKey on a user with no key: both report not found, with the same code
+        DelApiKeyTask task = mock(DelApiKeyTask.class);
+        when(task.call()).thenReturn(false);
+        when(taskFactory.createDelApiKey(any())).thenReturn(task);
+
+        assertThat(CliApp.handleApiKeyDelete(taskFactory, "ghost")).isEqualTo(CliApp.EXIT_NOT_FOUND);
+    }
+
+    @Test
+    public void test_delete_api_key_exits_zero_when_a_key_was_deleted() throws Exception {
+        DelApiKeyTask task = mock(DelApiKeyTask.class);
+        when(task.call()).thenReturn(true);
+        when(taskFactory.createDelApiKey(any())).thenReturn(task);
+
+        assertThat(CliApp.handleApiKeyDelete(taskFactory, "alice")).isEqualTo(CliApp.EXIT_SUCCESS);
+    }
+
+    @Test
+    public void test_delete_api_key_exits_not_found_on_a_null_result() throws Exception {
+        DelApiKeyTask task = mock(DelApiKeyTask.class);
+        when(task.call()).thenReturn(null);
+        when(taskFactory.createDelApiKey(any())).thenReturn(task);
+
+        assertThat(CliApp.handleApiKeyDelete(taskFactory, "ghost")).isEqualTo(CliApp.EXIT_NOT_FOUND);
     }
 }
