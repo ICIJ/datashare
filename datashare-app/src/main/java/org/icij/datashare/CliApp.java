@@ -126,9 +126,7 @@ class CliApp {
         }
 
         if (properties.getProperty(DEL_API_KEY_OPT) != null) {
-            String userName = properties.getProperty(DEL_API_KEY_OPT);
-            taskFactory.createDelApiKey(localUser(userName)).call();
-            System.exit(0);
+            System.exit(handleApiKeyDelete(taskFactory, properties.getProperty(DEL_API_KEY_OPT)));
         }
 
         if (properties.getProperty(GRANT_ADMIN_OPT) != null) {
@@ -847,6 +845,16 @@ class CliApp {
                     userName);
         System.out.println(secretKey);
         return EXIT_SUCCESS;
+    }
+
+    /**
+     * Same not-found contract as {@link #handleApiKeyGet}: a user with no key is reported the same
+     * way by both commands, so a caller can branch on the exit code without knowing which it ran.
+     * The task logs the outcome itself.
+     */
+    static int handleApiKeyDelete(DatashareTaskFactory taskFactory, String userName) throws Exception {
+        Boolean deleted = taskFactory.createDelApiKey(localUser(userName)).call();
+        return Boolean.TRUE.equals(deleted) ? EXIT_SUCCESS : EXIT_NOT_FOUND;
     }
 
     static int handleApiKeyGet(DatashareTaskFactory taskFactory, String userName) throws Exception {

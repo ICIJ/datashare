@@ -32,7 +32,7 @@ public class DelApiKeyTask extends DefaultTask<Boolean> implements UserTask {
         if (result) {
             logger.info("key for user {} has been deleted", user.id);
         } else {
-            logger.info("no key for user {}", user.id);
+            logger.info("no api key for user {}", user.id);
         }
         return result;
     }
