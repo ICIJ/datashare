@@ -100,8 +100,7 @@ public class CreateNlpBatchesFromIndex extends DefaultTask<List<String>> impleme
         } else {
             searcher = indexer.search(singletonList(projectName), Document.class, new SearchQuery(searchQuery));
         }
-        searcher = searcher.limit(scrollSize).withoutSource("language", "rootDocument")
-                           .withoutSource("content", "contentTranslated")
+        searcher = searcher.limit(scrollSize).withDocValues("rootDocument", "language")
                            .sort("language", Indexer.Searcher.SortOrder.ASC);
         Map<Language, ? extends List<? extends Entity>> scrolledDocsByLanguage =
                 searcher.scroll(scrollDuration).collect(groupingBy(d -> ((Document) d).getLanguage()));

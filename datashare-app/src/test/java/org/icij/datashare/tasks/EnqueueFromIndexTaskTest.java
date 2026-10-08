@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
+import static org.mockito.Mockito.verify;
 
 public class EnqueueFromIndexTaskTest {
     @ClassRule
@@ -247,5 +248,37 @@ public class EnqueueFromIndexTaskTest {
 
         assertThat(factory.queues.get("test:queue:nlp"))
                 .contains(root.getId(), embedded.getId() + "|" + root.getId());
+    }
+
+    @Test
+    public void test_no_query_reads_the_root_id_from_doc_values_without_loading_the_source() throws Exception {
+        indexer.add(es.getIndexName(), createDoc("doc").with(project(es.getIndexName())).build());
+        SearcherRecorder recorder = new SearcherRecorder();
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "queueName", "test:queue",
+                NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
+
+        new EnqueueFromIndexTask(new MemoryDocumentCollectionFactory<>(), recorder.recording(indexer),
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
+
+        verify(recorder.searchers.get(0)).withDocValues("rootDocument");
+    }
+
+    @Test
+    public void test_query_reads_the_root_id_from_doc_values_without_loading_the_source() throws Exception {
+        indexer.add(es.getIndexName(), createDoc("doc").with(project(es.getIndexName())).build());
+        SearcherRecorder recorder = new SearcherRecorder();
+        Map<String, Object> properties = Map.of(
+                "defaultProject", es.getIndexName(),
+                "stages", "ENQUEUEIDX",
+                "queueName", "test:queue",
+                "searchQuery", "{\"match_all\":{}}");
+
+        new EnqueueFromIndexTask(new MemoryDocumentCollectionFactory<>(), recorder.recording(indexer),
+                new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
+
+        verify(recorder.searchers.get(0)).withDocValues("rootDocument");
     }
 }
