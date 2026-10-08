@@ -13,6 +13,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
+import org.icij.datashare.web.WebResponse;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.report.ReportMap;
 import org.junit.Before;
@@ -23,6 +24,7 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +36,7 @@ import java.util.Properties;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -62,6 +65,9 @@ public class ProjectAdminServiceImplTest {
         service = new ProjectAdminServiceImpl(
                 repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, users, userStore,
                 usersIdProviderCache);
+        // the #2441 inventory sweep lists every user on each project delete; empty by default
+        when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(), 0, 0, 0));
     }
 
     private ProjectCreateRequest minimalRequest(String name) {
@@ -1229,5 +1235,77 @@ public class ProjectAdminServiceImplTest {
 
     private static CasbinRule casbinRule(String userId, String role, String domainProject) {
         return new CasbinRule("g", userId, role, domainProject);
+    }
+
+    // --- #2441: casbin rows and inventory entries on project delete ---
+
+    @Test
+    public void test_delete_removes_the_projects_casbin_rows() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+
+        service.delete("proj", new ProjectDeleteOptions(true));
+
+        verify(authorizer).removeAllPoliciesForProject(Domain.DEFAULT, "proj");
+    }
+
+    @Test
+    public void test_delete_removes_the_project_from_every_users_inventory() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        User alice = userWithProjects("alice", List.of("proj", "keep"));
+        User bob = userWithProjects("bob", List.of("keep"));
+        when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(alice, bob), 0, 2, 2));
+
+        service.delete("proj", new ProjectDeleteOptions(true));
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(captor.capture());
+        User saved = captor.getValue();
+        assertThat(saved.id).isEqualTo("alice");
+        assertThat(((Map<String, Object>) saved.details.get("groups_by_applications")).get("datashare"))
+                .isEqualTo(List.of("keep"));
+    }
+
+    @Test
+    public void test_delete_skips_a_user_whose_inventory_is_missing_or_malformed() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        User noDetails = new User("nodetails", "No Details", "n@e.test", "local", new HashMap<>());
+        Map<String, Object> broken = new HashMap<>();
+        broken.put("groups_by_applications", "not-a-map");
+        User malformed = new User("broken", "Broken", "b@e.test", "local", broken);
+        User alice = userWithProjects("alice", List.of("proj"));
+        when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(noDetails, malformed, alice), 0, 3, 3));
+
+        service.delete("proj", new ProjectDeleteOptions(true));
+
+        // the two unusable rows must not abort the sweep before alice is reached
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(captor.capture());
+        assertThat(captor.getValue().id).isEqualTo("alice");
+    }
+
+    @Test
+    public void test_delete_still_deletes_the_db_row_when_the_casbin_cleanup_fails() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        User alice = userWithProjects("alice", List.of("proj"));
+        when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, 1, 1));
+        doThrow(new RuntimeException("casbin down"))
+                .when(authorizer).removeAllPoliciesForProject(Domain.DEFAULT, "proj");
+
+        service.delete("proj", new ProjectDeleteOptions(true));
+
+        // per-step containment: the failing step must not strand the rest of the cascade
+        verify(repository).deleteAll("proj");
+        verify(userStore).save(any(User.class));
+    }
+
+    private static User userWithProjects(String id, List<String> projects) {
+        Map<String, Object> details = new HashMap<>();
+        Map<String, Object> apps = new HashMap<>();
+        apps.put("datashare", new ArrayList<>(projects));
+        details.put("groups_by_applications", apps);
+        return new User(id, id, id + "@e.test", "local", details);
     }
 }
