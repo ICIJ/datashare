@@ -119,7 +119,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     public ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException {
         Project project = repository.getProject(name);
         if (project == null) {
-            return new ProjectDeleted(name, false, false, false, false, false, false, false, true);
+            // Access rows outlive the project row (an earlier cascade that failed halfway, a
+            // hand-deleted row), so the noop branch still sweeps them: otherwise no API or CLI path
+            // can reach them, and the next project of the same name inherits the grants.
+            boolean casbinDeleted = deleteCasbinRows(name);
+            boolean inventoryDeleted = deleteInventoryEntries(name);
+            return new ProjectDeleted(name, false, false, casbinDeleted, inventoryDeleted, false, false, false, true);
         }
         return cascade(project, options);
     }
@@ -336,8 +341,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
      * endpoint DELETE /api/project/ is restricted to LOCAL and EMBEDDED, where the user base is one,
      * and on a server instance deletion goes through the CLI, one project per invocation.
      */
-    private void removeProjectFromAllInventories(String projectName) {
+    private boolean removeProjectFromAllInventories(String projectName) {
         List<User> allUsers = userStore.listUsers(new UserFilter(null), null, 0, Integer.MAX_VALUE).items;
+        boolean allRemoved = true;
         for (User user : allUsers) {
             try {
                 if (safeStringListOf(
@@ -349,8 +355,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 // one unusable or unsaveable user row must not strand the project name in
                 // everybody else's inventory
                 LOGGER.error("cannot remove project {} from user {} inventory", projectName, user.id, e);
+                allRemoved = false;
             }
         }
+        return allRemoved;
     }
 
     private User removeFromInventory(User user, List<String> projectNames) {
@@ -450,20 +458,25 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // Gated on dbDeleted: if the project row survives, stripping its grants would leave a live
         // project nobody can reach, and grants are the one cascade output that cannot be rebuilt.
         //TODO #DOMAIN: drop the rows of every domain once projects carry one.
-        boolean casbinDeleted = dbDeleted && runStep("casbin rows", name, () -> {
-            authorizer.removeAllPoliciesForProject(Domain.DEFAULT, name);
-            return true;
-        });
-        boolean inventoryDeleted = dbDeleted && runStep("inventory entries", name, () -> {
-            removeProjectFromAllInventories(name);
-            return true;
-        });
+        boolean casbinDeleted = dbDeleted && deleteCasbinRows(name);
+        boolean inventoryDeleted = dbDeleted && deleteInventoryEntries(name);
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
         boolean artifactsDeleted = deleteArtifacts(name);
 
         return new ProjectDeleted(name, dbDeleted, indexDeleted, casbinDeleted, inventoryDeleted, queuesDeleted,
                                   reportMapDeleted, artifactsDeleted, false);
+    }
+
+    private boolean deleteCasbinRows(String name) {
+        return runStep("casbin rows", name, () -> {
+            authorizer.removeAllPoliciesForProject(Domain.DEFAULT, name);
+            return true;
+        });
+    }
+
+    private boolean deleteInventoryEntries(String name) {
+        return runStep("inventory entries", name, () -> removeProjectFromAllInventories(name));
     }
 
     @FunctionalInterface

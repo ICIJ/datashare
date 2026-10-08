@@ -596,7 +596,9 @@ class CliApp {
             return service.stats(name, !options.keepIndex());
         } catch (ProjectNotFoundException e) {
             if (ifExists) {
-                emitDeleteNoop(name, json);
+                // through the service, not a canned no-op: a missing project row can still leave
+                // grants and inventory entries behind, and this is the path that clears them
+                emitDeleteResult(service.deleteIfExists(name, options), options, json);
                 return null;
             }
             throw e;
@@ -631,6 +633,7 @@ class CliApp {
         }
         if (deleted.noop()) {
             System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
+            warnIfAccessCleanupFailed(deleted);
             return;
         }
         String indexBadge =
@@ -639,10 +642,22 @@ class CliApp {
         String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
         String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
         String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
+        String grantsBadge = deleted.casbinDeleted() ? "grants OK" : "grants FAILED";
+        String inventoryBadge = deleted.inventoryDeleted() ? "inventory OK" : "inventory FAILED";
         System.out.println(
                 "deleted project '" + deleted.name() + "' (" + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", " +
-                reportMapBadge + ", " + artifactsBadge + ")");
+                reportMapBadge + ", " + artifactsBadge + ", " + grantsBadge + ", " + inventoryBadge + ")");
         warnIfPartialFailure(deleted, options);
+    }
+
+    /**
+     * A no-op delete still runs the access cleanup, so it can still fail; the summary line for that
+     * case carries no badges, which would otherwise leave the failure unreported.
+     */
+    private static void warnIfAccessCleanupFailed(ProjectDeleted deleted) {
+        if (!deleted.casbinDeleted() || !deleted.inventoryDeleted()) {
+            System.err.println("warning: leftover grants or inventory entries could not be cleaned");
+        }
     }
 
     private static void warnIfPartialFailure(ProjectDeleted deleted, ProjectDeleteOptions options) {
@@ -688,16 +703,6 @@ class CliApp {
                              Map.entry("queuesDeleted", deleted.queuesDeleted()),
                              Map.entry("reportMapDeleted", deleted.reportMapDeleted()),
                              Map.entry("artifactsDeleted", deleted.artifactsDeleted()));
-    }
-
-    private static void emitDeleteNoop(String name, boolean json) {
-        String fallback = "project '" + name + "' does not exist (no-op)";
-        if (json) {
-            ProjectDeleted noop = new ProjectDeleted(name, false, false, false, false, false, false, false, true);
-            printJsonOrFallback(deleteResultMap(noop), fallback);
-        } else {
-            System.out.println(fallback);
-        }
     }
 
     private static void emitDeleteAborted(String name, boolean json) {
