@@ -332,8 +332,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         List<User> allUsers = userStore.listUsers(new UserFilter(null), null, 0, Integer.MAX_VALUE).items;
         for (User user : allUsers) {
             try {
-                if (safeStringListOf(safeStringKeyedMapOf(user.details.get(GROUPS_BY_APPLICATIONS))
-                                             .get(DATASHARE_APP)).contains(projectName)) {
+                if (safeStringListOf(
+                        safeStringKeyedMapOf(user.details.get(GROUPS_BY_APPLICATIONS)).get(DATASHARE_APP)).contains(
+                        projectName)) {
                     removeFromInventory(user, List.of(projectName));
                 }
             } catch (RuntimeException e) {

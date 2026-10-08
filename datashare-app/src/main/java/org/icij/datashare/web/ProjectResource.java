@@ -60,8 +60,7 @@ public class ProjectResource {
 
     @Inject
     public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager,
-                           PropertiesProvider propertiesProvider,
-                           ProjectAdminService projectAdminService) {
+                           PropertiesProvider propertiesProvider, ProjectAdminService projectAdminService) {
         this.repository = repository;
         this.indexer = indexer;
         this.taskManager = taskManager;
@@ -260,7 +259,6 @@ public class ProjectResource {
     Project getUserProject(DatashareUser user, String id) {
         return getUserProjects(user).stream().filter((Project p) -> p.getId().equals(id)).findAny().orElse(null);
     }
-
 
     /** Saves the row and creates the indices, undoing the row if index creation fails: a row left
      *  behind makes {@code projectExists} true, so every retry would answer 409 instead. */
