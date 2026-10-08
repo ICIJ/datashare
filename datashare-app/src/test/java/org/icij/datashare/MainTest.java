@@ -1,6 +1,8 @@
 package org.icij.datashare;
 
 import org.icij.datashare.cli.CliExitException;
+
+import java.util.Properties;
 import org.junit.Test;
 import picocli.CommandLine;
 
@@ -169,6 +171,42 @@ public class MainTest {
         commandLine.setExecutionExceptionHandler(Main.CLI_EXIT_HANDLER);
 
         assertThat(commandLine.execute()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_a_cli_only_task_flag_under_a_web_server_mode_is_refused() {
+        Properties properties = new Properties();
+        properties.setProperty("mode", "LOCAL");
+        properties.setProperty("grantAdmin", "alice");
+
+        assertThat(Main.cliOnlyTaskOptIn(properties)).isEqualTo("grantAdmin");
+    }
+
+    @Test
+    public void test_no_task_flag_means_no_refusal() {
+        Properties properties = new Properties();
+        properties.setProperty("mode", "LOCAL");
+
+        assertThat(Main.cliOnlyTaskOptIn(properties)).isNull();
+    }
+
+    @Test
+    public void test_a_task_flag_under_cli_mode_is_fine() {
+        Properties properties = new Properties();
+        properties.setProperty("mode", "CLI");
+        properties.setProperty("grantAdmin", "alice");
+
+        assertThat(Main.cliOnlyTaskOptIn(properties)).isNull();
+    }
+
+    @Test
+    public void test_an_absent_mode_defaults_to_local_and_still_refuses() {
+        // the legacy parser leaves mode unset, which is exactly the reported case:
+        // `datashare --grantAdmin alice` started a web server instead of running the task
+        Properties properties = new Properties();
+        properties.setProperty("createApiKey", "alice");
+
+        assertThat(Main.cliOnlyTaskOptIn(properties)).isEqualTo("createApiKey");
     }
 
     @CommandLine.Command(name = "throwing")
