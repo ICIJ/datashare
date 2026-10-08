@@ -7,6 +7,7 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
+import org.icij.datashare.utils.PayloadFormatter;
 
 /**
  * Base class for Datashare cookie-based authentication filters.
@@ -52,7 +53,7 @@ public abstract class DatashareAuthFilter extends CookieAuthFilter {
         if (uri.equals("/") || uri.isEmpty()) {
             return nextFilter.get();
         }
-        return new Payload(401);
+        return PayloadFormatter.error("authentication required", 401);
     }
 
     @Override

@@ -77,6 +77,25 @@ public class FormAuthFilterTest implements FluentRestTest {
     }
 
     @Test
+    public void test_a_failed_login_says_authentication_required() {
+        postLogin("alice", "wrong").should().respond(401).contain("authentication required");
+    }
+
+    @Test
+    public void test_a_failed_login_does_not_reveal_whether_the_user_exists() {
+        // same body for an unknown login and a wrong password: no enumeration oracle
+        String unknownUser = postLogin("ghost", "x").response().content();
+        String wrongPassword = postLogin("alice", "x").response().content();
+
+        assertThat(unknownUser).isEqualTo(wrongPassword);
+    }
+
+    @Test
+    public void test_unauthenticated_api_says_authentication_required() {
+        this.get("/api/users/me").should().respond(401).contain("authentication required");
+    }
+
+    @Test
     public void test_login_with_missing_username_returns_401() {
         postLoginRaw(Map.of("password", "secret")).should().respond(401);
     }
