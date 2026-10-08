@@ -2,7 +2,6 @@ package org.icij.datashare.cli;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,8 +21,8 @@ public final class CliErrors {
      * CliExitException so callers can write {@code throw CliErrors.fail(...)} where the compiler
      * needs a terminal statement.
      */
-    public static CliExitException fail(CommandLine.Model.CommandSpec spec, boolean json, String code,
-                                        String message, int exitCode) {
+    public static CliExitException fail(CommandLine.Model.CommandSpec spec, boolean json, String code, String message,
+                                        int exitCode) {
         if (json) {
             // HashMap, not Map.of: a null message is a programming slip we would rather report as
             // {"message":null} than swallow behind a NullPointerException from Map.of

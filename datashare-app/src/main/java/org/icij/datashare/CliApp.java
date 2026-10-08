@@ -843,8 +843,9 @@ class CliApp {
      */
     static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName) throws Exception {
         String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
-        logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot "
-                    + "retrieve it later)", userName);
+        logger.info(
+                "generated secret key for user {} (store it somewhere safe, datashare cannot " + "retrieve it later)",
+                userName);
         System.out.println(secretKey);
         return EXIT_SUCCESS;
     }
