@@ -2,7 +2,7 @@
 <configuration>
     <contextName>production</contextName>
     <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
-        <!-- stderr, not stdout: stdout carries CLI command results (--json output included)
+        <!-- stderr, not stdout: stdout carries CLI command results, JSON output included,
              and must stay parseable -->
         <target>System.err</target>
         <!-- Drop benign, high-volume PDFBox/FontBox font-fallback, xref-repair and no-Unicode-mapping
