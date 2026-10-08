@@ -166,7 +166,7 @@ public class MainTest {
 
     @Test
     public void test_cli_exit_exception_with_code_zero_still_exits_zero() {
-        // UserDeleteCommand throws CliExitException(0) on the --if-exists noop path:
+        // UserDeleteCommand throws CliExitException(0) when the operator declines the prompt:
         // a handler mapping "threw" to "failed" would turn that into a spurious failure
         CommandLine commandLine = new CommandLine(new ThrowingCommand(0));
         commandLine.setExecutionExceptionHandler(Main.cliExitHandler(new AtomicBoolean()));
@@ -196,6 +196,18 @@ public class MainTest {
         Properties properties = new Properties();
         properties.setProperty("mode", "CLI");
         properties.setProperty("grantAdmin", "alice");
+
+        assertThat(Main.cliOnlyTaskOptIn(properties)).isNull();
+    }
+
+    @Test
+    public void test_create_index_is_not_refused_outside_cli_mode() {
+        // app start accepts --createIndex through the PipelineOptions mixin and inherits it from a
+        // settings file, so guarding it would kill a server sharing one settings.properties with an
+        // indexing run, with advice (--mode CLI) that does not apply to that subcommand.
+        Properties properties = new Properties();
+        properties.setProperty("mode", "SERVER");
+        properties.setProperty("createIndex", "myindex");
 
         assertThat(Main.cliOnlyTaskOptIn(properties)).isNull();
     }
