@@ -2,6 +2,7 @@ package org.icij.datashare.user.admin;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import org.icij.datashare.Repository;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.session.DatashareUser;
@@ -17,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
@@ -24,32 +26,34 @@ public class UserAdminServiceImpl implements UserAdminService {
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
     private final Authorizer authorizer;
+    private final Repository repository;
 
     @Inject
     public UserAdminServiceImpl(UserStore userStore, @Nullable PostLoginEnroller postLoginEnroller,
-                                Authorizer authorizer) {
+                                Authorizer authorizer, Repository repository) {
         this.userStore = userStore;
         this.postLoginEnroller = postLoginEnroller;
         this.authorizer = authorizer;
+        this.repository = repository;
     }
 
     @Override
     public UserCreated create(UserCreateRequest request) throws UserExistsException, ValidationException {
-        validate(request);
+        List<String> groups = validate(request);
         if (userStore.find(request.login()) != null) {
             throw new UserExistsException(request.login());
         }
-        return persist(request);
+        return persist(request, groups);
     }
 
     @Override
     public UserCreated createIfNotExists(UserCreateRequest request) throws ValidationException {
-        validate(request);
+        List<String> groups = validate(request);
         if (userStore.find(request.login()) != null) {
             String name = request.name() == null ? request.login() : request.name();
-            return new UserCreated(request.login(), request.email(), name, request.provider(), request.groups(), true);
+            return new UserCreated(request.login(), request.email(), name, request.provider(), groups, true);
         }
-        return persist(request);
+        return persist(request, groups);
     }
 
     @Override
@@ -100,9 +104,25 @@ public class UserAdminServiceImpl implements UserAdminService {
         }
         User existing = (User) found;
 
+        if (req.email() != null) {
+            try {
+                Validators.email(req.email());
+            } catch (Validators.InvalidValueException e) {
+                throw new ValidationException(e.field(), e.getMessage());
+            }
+        }
+        List<String> requestedGroups = validateGroups(req.groups());
+
         String newEmail = req.email() != null ? req.email() : existing.email;
         String newName = req.name() != null ? req.name() : existing.name;
-        List<String> newGroups = req.groups() != null ? req.groups() : existing.getApplicationProjectNames();
+        List<String> currentGroups = existing.getApplicationProjectNames();
+        List<String> newGroups = requestedGroups != null ? requestedGroups : currentGroups;
+
+        // A password is write-only: a resubmitted password is indistinguishable from a new one, so
+        // any password at all counts as a change rather than reporting a noop that silently rehashed.
+        boolean changed = !java.util.Objects.equals(newEmail, existing.email)
+                          || !java.util.Objects.equals(newName, existing.name)
+                          || !newGroups.equals(currentGroups) || req.password() != null;
 
         Map<String, Object> details = new HashMap<>(existing.details);
         details.put("uid", login);
@@ -125,7 +145,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         if (postLoginEnroller != null) {
             postLoginEnroller.enroll(new DatashareUser(updated));
         }
-        return new UserCreated(login, newEmail, newName, existing.provider, newGroups, false);
+        return new UserCreated(login, newEmail, newName, existing.provider, newGroups, !changed);
     }
 
     private static boolean isLocal(UserCreateRequest request) {
@@ -136,7 +156,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         return User.EXTERNAL.equals(request.provider());
     }
 
-    private void validate(UserCreateRequest request) throws ValidationException {
+    private List<String> validate(UserCreateRequest request) throws ValidationException {
         try {
             Validators.login(request.login());
             Validators.email(request.email());
@@ -147,9 +167,35 @@ public class UserAdminServiceImpl implements UserAdminService {
         } catch (Validators.InvalidValueException e) {
             throw new ValidationException(e.field(), e.getMessage());
         }
+        return validateGroups(request.groups());
     }
 
-    private UserCreated persist(UserCreateRequest request) {
+    /**
+     * Canonicalizes a groups list through the same validator the CLI uses, then rejects names that
+     * are not existing projects. PostLoginEnroller writes a PROJECT_MEMBER row per name at every
+     * login, so an unknown name is not inert: it accumulates rows for a project nobody can reach.
+     * Returns null for a null input, which callers read as "the request did not touch groups".
+     */
+    private List<String> validateGroups(List<String> groups) throws ValidationException {
+        if (groups == null) {
+            return null;
+        }
+        List<String> canonical;
+        try {
+            canonical = Validators.groups(String.join(",", groups));
+        } catch (Validators.InvalidValueException e) {
+            throw new ValidationException(e.field(), e.getMessage());
+        }
+        List<String> deduplicated = canonical.stream().distinct().collect(Collectors.toList());
+        for (String projectName : deduplicated) {
+            if (repository.getProject(projectName) == null) {
+                throw new ValidationException("groups", "project '" + projectName + "' does not exist");
+            }
+        }
+        return deduplicated;
+    }
+
+    private UserCreated persist(UserCreateRequest request, List<String> groups) {
         String name = request.name() == null ? request.login() : request.name();
         Map<String, Object> details = new HashMap<>();
         details.put("uid", request.login());
@@ -161,11 +207,11 @@ public class UserAdminServiceImpl implements UserAdminService {
         }
 
         Map<String, Object> appsByGroup = new LinkedHashMap<>();
-        appsByGroup.put("datashare", List.copyOf(request.groups()));
+        appsByGroup.put("datashare", List.copyOf(groups));
         details.put("groups_by_applications", appsByGroup);
 
         User user = new User(request.login(), name, request.email(), request.provider(), details);
         userStore.save(user);
-        return new UserCreated(request.login(), request.email(), name, request.provider(), request.groups(), false);
+        return new UserCreated(request.login(), request.email(), name, request.provider(), groups, false);
     }
 }

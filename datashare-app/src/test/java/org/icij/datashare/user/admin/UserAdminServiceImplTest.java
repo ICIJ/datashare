@@ -1,5 +1,6 @@
 package org.icij.datashare.user.admin;
 
+import org.icij.datashare.Repository;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRule;
 import org.icij.datashare.policies.Domain;
@@ -24,6 +25,7 @@ import java.util.Map;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -33,13 +35,17 @@ import static org.mockito.Mockito.when;
 public class UserAdminServiceImplTest {
     private UserStore userStore;
     private Authorizer authorizer;
+    private Repository repository;
     private UserAdminServiceImpl service;
 
     @Before
     public void setUp() {
         userStore = mock(UserStore.class);
         authorizer = mock(Authorizer.class);
-        service = new UserAdminServiceImpl(userStore, new PostLoginEnroller(authorizer), authorizer);
+        repository = mock(Repository.class);
+        // most cases are not about project existence; the rejection tests override this
+        when(repository.getProject(anyString())).thenReturn(new Project("any"));
+        service = new UserAdminServiceImpl(userStore, new PostLoginEnroller(authorizer), authorizer, repository);
     }
 
     @Test
@@ -503,5 +509,107 @@ public class UserAdminServiceImplTest {
         service.update("alice", new UserUpdateRequest(null, null, null, List.of("p2")));
 
         verify(authorizer).addRoleForUserInProject(any(User.class), eq(Role.PROJECT_MEMBER), eq(Domain.DEFAULT), eq(new Project("p2")));
+    }
+
+    // --- #2443: validation on update, unknown projects in groups, real noop ---
+
+    @Test
+    public void test_update_rejects_an_invalid_email() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        try {
+            service.update("alice", new UserUpdateRequest("not-an-email", null, null, null));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.getMessage()).contains("email");
+        }
+        verify(userStore, never()).save(any());
+    }
+
+    @Test
+    public void test_update_rejects_an_unknown_project_in_groups() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+        when(repository.getProject("nope-project")).thenReturn(null);
+
+        try {
+            service.update("alice", new UserUpdateRequest(null, null, null, List.of("nope-project")));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.getMessage()).contains("nope-project");
+        }
+        verify(userStore, never()).save(any());
+    }
+
+    @Test
+    public void test_create_rejects_an_unknown_project_in_groups() {
+        when(userStore.find("alice")).thenReturn(null);
+        when(repository.getProject("nope-project")).thenReturn(null);
+
+        try {
+            service.create(new UserCreateRequest("alice", "a@e.test", "Alice", "pw", "local",
+                                                 List.of("nope-project")));
+            fail("expected ValidationException");
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(ValidationException.class);
+            assertThat(e.getMessage()).contains("nope-project");
+        }
+        verify(userStore, never()).save(any());
+    }
+
+    @Test
+    public void test_update_canonicalizes_groups_the_way_create_does() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        service.update("alice", new UserUpdateRequest(null, null, null, List.of(" p1 ", "p2", "p1", "")));
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(captor.capture());
+        assertThat(((Map<String, Object>) captor.getValue().details.get("groups_by_applications"))
+                           .get("datashare")).isEqualTo(List.of("p1", "p2"));
+    }
+
+    @Test
+    public void test_update_with_nothing_to_change_reports_a_noop() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        UserCreated updated = service.update("alice", new UserUpdateRequest(null, null, null, null));
+
+        assertThat(updated.noop()).isTrue();
+    }
+
+    @Test
+    public void test_update_that_changes_the_name_is_not_a_noop() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        UserCreated updated = service.update("alice", new UserUpdateRequest(null, "Alice B", null, null));
+
+        assertThat(updated.noop()).isFalse();
+    }
+
+    @Test
+    public void test_update_that_only_sets_a_password_is_not_a_noop() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        // a password is write-only: a resubmitted one is indistinguishable from a new one, and
+        // reporting noop would claim nothing was written when the hash was in fact rewritten
+        UserCreated updated = service.update("alice", new UserUpdateRequest(null, null, "newpw", null));
+
+        assertThat(updated.noop()).isFalse();
+    }
+
+    @Test
+    public void test_update_resubmitting_identical_values_reports_a_noop() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        UserCreated updated = service.update("alice",
+                new UserUpdateRequest("alice@example.org", "Alice", null, List.of("p1")));
+
+        assertThat(updated.noop()).isTrue();
+    }
+
+    private static User existingAlice() {
+        return new User("alice", "Alice", "alice@example.org", "local",
+                        Map.of("uid", "alice", "name", "Alice", "email", "alice@example.org",
+                               "groups_by_applications", Map.of("datashare", List.of("p1"))));
     }
 }
