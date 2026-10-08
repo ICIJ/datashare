@@ -14,15 +14,14 @@ import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.apache.commons.io.FileUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.Mode;
-import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.project.admin.ProjectAdminService;
+import org.icij.datashare.project.admin.ProjectDeleteOptions;
+import org.icij.datashare.project.admin.ProjectDeleted;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Project;
@@ -31,11 +30,8 @@ import org.icij.datashare.utils.DataDirVerifier;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.ModeVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
-import org.icij.extract.queue.DocumentQueue;
-import org.icij.extract.report.ReportMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -48,8 +44,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
 import static org.apache.tika.utils.StringUtils.isEmpty;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
 import static org.icij.datashare.text.Project.isAllowed;
 
 @Singleton
@@ -61,14 +55,12 @@ public class ProjectResource {
     private final TaskManager taskManager;
     private final DataDirVerifier dataDirVerifier;
     private final ModeVerifier modeVerifier;
-    private final DocumentCollectionFactory<Path> documentCollectionFactory;
     private final ProjectAdminService projectAdminService;
     private final PropertiesProvider propertiesProvider;
 
     @Inject
     public ProjectResource(Repository repository, Indexer indexer, TaskManager taskManager,
                            PropertiesProvider propertiesProvider,
-                           DocumentCollectionFactory<Path> documentCollectionFactory,
                            ProjectAdminService projectAdminService) {
         this.repository = repository;
         this.indexer = indexer;
@@ -76,7 +68,6 @@ public class ProjectResource {
         this.propertiesProvider = propertiesProvider;
         this.dataDirVerifier = new DataDirVerifier(propertiesProvider);
         this.modeVerifier = new ModeVerifier(propertiesProvider);
-        this.documentCollectionFactory = documentCollectionFactory;
         this.projectAdminService = projectAdminService;
     }
 
@@ -207,21 +198,10 @@ public class ProjectResource {
         if (project == null) {
             throw new UnauthorizedException();
         }
-        Logger logger = LoggerFactory.getLogger(getClass());
-        logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
-        logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
-        logger.info("Deleted {}'s entities index: {}", id, deleteEntitiesIndex(id));
-        logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
-        logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
-        propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).ifPresent(dir -> {
-            try {
-                File projectArtifactDir = Path.of(dir).resolve(id).toFile();
-                FileUtils.deleteDirectory(projectArtifactDir);
-                logger.info("Deleted artifacts dir {}", projectArtifactDir);
-            } catch (IOException e) {
-                logger.error("cannot delete project {} artifact dir", id, e);
-            }
-        });
+        // one cascade, in the service: it also clears the project's casbin rows and its name
+        // from every user's inventory (see #2441)
+        ProjectDeleted deleted = projectAdminService.deleteIfExists(id, new ProjectDeleteOptions(false));
+        LoggerFactory.getLogger(getClass()).info("Deleted project {}: {}", id, deleted);
         return new Payload(204);
     }
 
@@ -281,45 +261,6 @@ public class ProjectResource {
         return getUserProjects(user).stream().filter((Project p) -> p.getId().equals(id)).findAny().orElse(null);
     }
 
-    boolean deleteQueues(Project project) {
-        return getQueues(project).stream().allMatch(DocumentQueue::delete);
-    }
-
-    // contained like the CLI cascade does it (ProjectAdminServiceImpl#cascade): a disposable
-    // projection must not abort the delete and leave the queues, report map and artifacts behind
-    boolean deleteEntitiesIndex(String id) {
-        try {
-            return indexer.deleteAll(Project.entitiesIndex(id));
-        } catch (RuntimeException | IOException e) {
-            LoggerFactory.getLogger(getClass()).error("cannot delete entities index for project {}", id, e);
-            return false;
-        }
-    }
-
-    boolean deleteReportMap(Project project) {
-        return getReportMap(project).delete();
-    }
-
-    List<DocumentQueue<Path>> getQueues(Project project) {
-        String name = project.getName();
-        Properties properties = propertiesProvider.createOverriddenWith(Map.of(DEFAULT_PROJECT_OPT, name));
-        String defaultQueueName = properties.getOrDefault(QUEUE_NAME_OPT, "extract:queue").toString();
-        String queuePrefix = defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
-        String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
-        return Stream.concat(
-                // TODO remove legacy queue name 26/02/2024
-                documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
-                documentCollectionFactory.getQueues(queuePattern, Path.class).stream()).collect(Collectors.toList());
-    }
-
-    ReportMap getReportMap(String reportMapName) {
-        return documentCollectionFactory.createMap(reportMapName);
-    }
-
-    ReportMap getReportMap(Project project) {
-        String reportMapName = "extract:report:" + project.getName();
-        return getReportMap(reportMapName);
-    }
 
     /** Saves the row and creates the indices, undoing the row if index creation fails: a row left
      *  behind makes {@code projectExists} true, so every retry would answer 409 instead. */

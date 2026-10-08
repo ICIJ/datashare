@@ -9,6 +9,7 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.project.admin.ProjectAdminService;
+import org.icij.datashare.project.admin.ProjectDeleteOptions;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
@@ -37,6 +38,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -126,7 +128,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
                 put("mode", Mode.SERVER.name());
             }});
-            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
+            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, projectAdminService);
             Users datashareUsers = get_datashare_users(asList("foo", "biz"));
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", datashareUsers);
             routes.filter(basicAuthFilter).add(projectResource);
@@ -410,7 +412,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 put("mode", "LOCAL");
             }});
 
-            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
+            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, projectAdminService);
             routes.filter(new LocalUserFilter(propertiesProvider, jooqRepository)).add(projectResource);
         });
     }
@@ -437,7 +439,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             put("dataDir", "/my-dir");
         }});
 
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, projectAdminService);
         // add policies
         User john = mockUser("john", projectId, Role.PROJECT_ADMIN);
         PolicyAnnotation policyAnnotation = new PolicyAnnotation(authorizer);
@@ -462,7 +464,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     public void test_cannot_update_project_in_server_mode_by_non_admin() {
         String projectId = "foo";
         PropertiesProvider propertiesProvider =new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, projectAdminService);
 
         User elios = mockUser("elios", projectId, Role.PROJECT_MEMBER);
 
@@ -486,7 +488,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             put("dataDir", "/my-dir");
         }});
 
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, projectAdminService);
 
         DatashareUser jane = new DatashareUser(localUser("jane"));
         authorizer.addRoleForUserInInstance(jane, Role.INSTANCE_ADMIN);
@@ -513,7 +515,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             put("mode", Mode.SERVER.name());
             put("dataDir", "/my-dir");
         }});
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, projectAdminService);
 
         // grant PROJECT_ADMIN on "bar", then PUT to "foo" (which does not exist)
         User john = mockUser("john", "bar", Role.PROJECT_ADMIN);
@@ -536,7 +538,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             put("mode", Mode.SERVER.name());
             put("dataDir", "/my-dir");
         }});
-        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, projectAdminService);
 
         // jane is INSTANCE_ADMIN so policy check passes, but getUserProject must still gate the update branch
         DatashareUser jane = new DatashareUser(localUser("jane"));
@@ -587,72 +589,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_delete_project_even_without_index() throws IOException {
-        Project foo = new Project("foo");
+    public void test_project_delete_routes_through_the_admin_service() throws Exception {
+        // the resource must not run its own cascade: the service one also clears
+        // casbin rows and inventories (see #2441)
+        Project foo = new Project("to-delete");
         when(repository.getProjects(any())).thenReturn(List.of(foo));
-        when(indexer.deleteAll(foo.getId())).thenReturn(false);
-        delete("/api/project/foo").should().respond(204);
-    }
 
-    @Test
-    public void test_delete_project_only_delete_index() throws Exception {
-        Project foo = new Project("local-datashare");
-        when(repository.getProjects(any())).thenReturn(List.of(foo));
-        when(repository.deleteAll("local-datashare")).thenReturn(false).thenReturn(false);
-        when(indexer.deleteAll("local-datashare")).thenReturn(true).thenReturn(false);
-        delete("/api/project/local-datashare").should().respond(204);
-        delete("/api/project/local-datashare").should().respond(204);
-    }
+        delete("/api/project/to-delete").should().respond(204);
 
-    @Test
-    public void test_delete_project_deletes_the_entities_index_too() throws Exception {
-        Project foo = new Project("local-datashare");
-        when(repository.getProjects(any())).thenReturn(List.of(foo));
-        when(repository.deleteAll("local-datashare")).thenReturn(true);
-        when(indexer.deleteAll("local-datashare")).thenReturn(true);
-
-        delete("/api/project/local-datashare").should().respond(204);
-
-        verify(indexer).deleteAll("local-datashare");
-        verify(indexer).deleteAll("local-datashare.entities");
-    }
-
-    @Test
-    public void test_delete_project_finishes_the_cascade_when_the_entities_index_fails() throws Exception {
-        Project foo = new Project("local-datashare");
-        when(repository.getProjects(any())).thenReturn(List.of(foo));
-        when(repository.deleteAll("local-datashare")).thenReturn(true);
-        when(indexer.deleteAll("local-datashare")).thenReturn(true);
-        when(indexer.deleteAll("local-datashare.entities")).thenThrow(new IOException("ES down"));
-
-        // 204 rather than the 500 an uncontained failure would return: the queue, report-map and
-        // artifact steps that come after this one still run
-        delete("/api/project/local-datashare").should().respond(204);
-
-        verify(indexer).deleteAll("local-datashare.entities");
-    }
-
-    @Test
-    public void test_delete_project_delete_artifacts() throws Exception {
-        configure(routes -> {
-            propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-                put("dataDir", "/vault");
-                put("mode", "LOCAL");
-                put("artifactDir", artifactDir.getRoot().toString());
-            }});
-
-            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService);
-            routes.filter(new LocalUserFilter(propertiesProvider, jooqRepository)).add(projectResource);
-        });
-
-        artifactDir.newFolder("test-datashare");
-        artifactDir.newFile("test-datashare/foo");
-        Project project = new Project("test-datashare");
-        when(repository.getProjects(any())).thenReturn(List.of(project));
-        when(repository.deleteAll(project.getId())).thenReturn(false).thenReturn(false);
-        when(indexer.deleteAll(project.getId())).thenReturn(true).thenReturn(false);
-        delete("/api/project/test-datashare").should().respond(204);
-        assertThat(artifactDir.getRoot().toPath().resolve(project.getId()).toFile()).doesNotExist();
+        verify(projectAdminService).deleteIfExists(eq("to-delete"), any(ProjectDeleteOptions.class));
     }
 
     @Test
@@ -660,7 +605,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
             routes.filter(new YesBasicAuthFilter(propertiesProvider, null))
-                    .add(new ProjectResource(repository, indexer, taskManager, propertiesProvider, documentCollectionFactory, projectAdminService));
+                    .add(new ProjectResource(repository, indexer, taskManager, propertiesProvider, projectAdminService));
         });
         when(repository.deleteAll("hacker-datashare")).thenReturn(true);
         when(repository.deleteAll("projectId")).thenReturn(true);
@@ -678,55 +623,6 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(repository.deleteAll("bar")).thenReturn(true).thenReturn(false);
         when(taskManager.clearDoneTasks()).thenReturn(List.of(task)).thenReturn(List.of());
         delete("/api/project/").should().respond(204);
-    }
-
-    @Test
-    public void test_delete_project_and_its_legacy_queue() {
-        Project foo = new Project("foo");
-        DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:foo", Path.class);
-        when(repository.getProjects(any())).thenReturn(List.of(foo));
-        when(repository.deleteAll("foo")).thenReturn(true);
-        queue.add(Path.of("/"));
-        assertThat(queue.size()).isEqualTo(1);
-        delete("/api/project/foo").should().respond(204);
-        assertThat(queue.size()).isEqualTo(0);
-    }
-
-    @Test
-    public void test_delete_project_and_its_index_queue() {
-        Project foo = new Project("foo");
-        DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:foo:index", Path.class);
-        when(repository.getProjects(any())).thenReturn(List.of(foo));
-        when(repository.deleteAll("foo")).thenReturn(true);
-        queue.add(Path.of("/"));
-        assertThat(queue.size()).isEqualTo(1);
-        delete("/api/project/foo").should().respond(204);
-        assertThat(queue.size()).isEqualTo(0);
-    }
-
-
-    @Test
-    public void test_delete_project_and_it_nlp_queue() {
-        Project foo = new Project("foo");
-        DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:foo:index", Path.class);
-        when(repository.getProjects(any())).thenReturn(List.of(foo));
-        when(repository.deleteAll("foo")).thenReturn(true);
-        queue.add(Path.of("/"));
-        assertThat(queue.size()).isEqualTo(1);
-        delete("/api/project/foo").should().respond(204);
-        assertThat(queue.size()).isEqualTo(0);
-    }
-
-    @Test
-    public void test_delete_project_and_its_report_map() {
-        Project foo = new Project("foo");
-        ReportMap reportMap = documentCollectionFactory.createMap("extract:report:foo");
-        when(repository.getProjects(any())).thenReturn(List.of(foo));
-        when(repository.deleteAll("foo")).thenReturn(true);
-        reportMap.put(Path.of("/"), new Report(ExtractionStatus.SUCCESS));
-        assertThat(reportMap.size()).isEqualTo(1);
-        delete("/api/project/foo").should().respond(204);
-        assertThat(reportMap.size()).isEqualTo(0);
     }
 
     @Test
