@@ -6,18 +6,26 @@ import org.junit.After;
 import org.junit.Test;
 import picocli.CommandLine;
 
-import java.io.ByteArrayInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
 public class UserCommandTest extends AbstractDatashareCommandTest {
+    private final InputStream originalStdin = System.in;
+
+    @After
+    public void restoreStdin() {
+        System.setIn(originalStdin);
+    }
+
 
     @Test
     public void test_user_without_subcommand_exits_2() {
@@ -244,18 +252,11 @@ public class UserCommandTest extends AbstractDatashareCommandTest {
         assertThat(lastErr.trim()).contains("\"error\":\"usage\"");
     }
 
-    @After
-    public void restoreStdin() {
-        System.setIn(originalStdin);
-    }
-
-    private final java.io.InputStream originalStdin = System.in;
 
     @Test
     public void test_user_create_reads_the_password_from_stdin() {
         System.setIn(new ByteArrayInputStream("fromstdin\n".getBytes(StandardCharsets.UTF_8)));
         UserCreateCommand command = new UserCreateCommand();
-        command.spec = new CommandLine(command).getCommandSpec();
 
         new CommandLine(command).execute("alice", "--email", "a@e.test", "--password-stdin", "--no-input");
 
@@ -268,7 +269,6 @@ public class UserCommandTest extends AbstractDatashareCommandTest {
         // `printf '%s' "$PW" | datashare user create ...` must behave like `echo "$PW" | ...`
         System.setIn(new ByteArrayInputStream("fromstdin".getBytes(StandardCharsets.UTF_8)));
         UserCreateCommand command = new UserCreateCommand();
-        command.spec = new CommandLine(command).getCommandSpec();
 
         new CommandLine(command).execute("alice", "--email", "a@e.test", "--password-stdin", "--no-input");
 
@@ -295,6 +295,7 @@ public class UserCommandTest extends AbstractDatashareCommandTest {
                                                  "--password-stdin", "--no-input");
 
         assertThat(exitCode).isEqualTo(5);
+        assertThat(lastErr).contains("password is required");
     }
 
     @Test

@@ -1,8 +1,9 @@
 package org.icij.datashare.cli;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import picocli.CommandLine;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -24,14 +25,15 @@ public final class CliErrors {
     public static CliExitException fail(CommandLine.Model.CommandSpec spec, boolean json, String code, String message,
                                         int exitCode) {
         if (json) {
-            // HashMap, not Map.of: a null message is a programming slip we would rather report as
-            // {"message":null} than swallow behind a NullPointerException from Map.of
-            Map<String, String> payload = new HashMap<>();
+            // LinkedHashMap, not Map.of: a null message is a programming slip we would rather
+            // report as {"message":null} than swallow behind a NullPointerException, and the key
+            // order is what the --json contract promises
+            Map<String, String> payload = new LinkedHashMap<>();
             payload.put("error", code);
             payload.put("message", message);
             try {
                 spec.commandLine().getErr().println(MAPPER.writeValueAsString(payload));
-            } catch (Exception e) {
+            } catch (JsonProcessingException e) {
                 spec.commandLine().getErr().println("error: " + message);
             }
         } else {

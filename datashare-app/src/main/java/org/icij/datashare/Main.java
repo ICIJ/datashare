@@ -71,8 +71,8 @@ public class Main {
             Set.of(GRANT_ADMIN_OPT, CRE_API_KEY_OPT, GET_API_KEY_OPT, DEL_API_KEY_OPT);
 
     /** The first CLI-only task flag set under a non-CLI mode, or null when the invocation is fine. */
-    static String cliOnlyTaskOptIn(Properties properties) {
-        if (Mode.CLI == Mode.valueOf(properties.getProperty("mode", "LOCAL"))) {
+    static String cliOnlyTaskOptIn(Mode mode, Properties properties) {
+        if (Mode.CLI == mode) {
             return null;
         }
         return CLI_ONLY_TASK_OPTS.stream().filter(opt -> properties.getProperty(opt) != null).sorted().findFirst()
@@ -152,13 +152,12 @@ public class Main {
     }
 
     private static void startApplication(Properties properties) throws Exception {
-        String misplacedTaskOpt = cliOnlyTaskOptIn(properties);
+        Mode mode = Mode.valueOf(properties.getProperty("mode", "LOCAL"));
+        String misplacedTaskOpt = cliOnlyTaskOptIn(mode, properties);
         if (misplacedTaskOpt != null) {
-            System.err.println(
-                    "error: --" + misplacedTaskOpt + " only runs under --mode CLI; " + "re-run with --mode CLI");
+            System.err.println("error: --" + misplacedTaskOpt + " only runs under --mode CLI");
             System.exit(2);
         }
-        Mode mode = Mode.valueOf(properties.getProperty("mode", "LOCAL"));
         LOGGER.info("Running datashare {}", mode.isWebServer() ? "web server" : "");
         LOGGER.info("JVM version {}", System.getProperty("java.version"));
         LOGGER.info("JVM charset encoding {}", Charset.defaultCharset());

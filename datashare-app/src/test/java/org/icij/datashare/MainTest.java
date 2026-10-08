@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import org.icij.datashare.cli.CliExitException;
+import org.icij.datashare.cli.Mode;
 
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -177,27 +178,24 @@ public class MainTest {
     @Test
     public void test_a_cli_only_task_flag_under_a_web_server_mode_is_refused() {
         Properties properties = new Properties();
-        properties.setProperty("mode", "LOCAL");
         properties.setProperty("grantAdmin", "alice");
 
-        assertThat(Main.cliOnlyTaskOptIn(properties)).isEqualTo("grantAdmin");
+        assertThat(Main.cliOnlyTaskOptIn(Mode.LOCAL, properties)).isEqualTo("grantAdmin");
     }
 
     @Test
     public void test_no_task_flag_means_no_refusal() {
         Properties properties = new Properties();
-        properties.setProperty("mode", "LOCAL");
-
-        assertThat(Main.cliOnlyTaskOptIn(properties)).isNull();
+        
+        assertThat(Main.cliOnlyTaskOptIn(Mode.LOCAL, properties)).isNull();
     }
 
     @Test
     public void test_a_task_flag_under_cli_mode_is_fine() {
         Properties properties = new Properties();
-        properties.setProperty("mode", "CLI");
         properties.setProperty("grantAdmin", "alice");
 
-        assertThat(Main.cliOnlyTaskOptIn(properties)).isNull();
+        assertThat(Main.cliOnlyTaskOptIn(Mode.CLI, properties)).isNull();
     }
 
     @Test
@@ -206,10 +204,9 @@ public class MainTest {
         // settings file, so guarding it would kill a server sharing one settings.properties with an
         // indexing run, with advice (--mode CLI) that does not apply to that subcommand.
         Properties properties = new Properties();
-        properties.setProperty("mode", "SERVER");
         properties.setProperty("createIndex", "myindex");
 
-        assertThat(Main.cliOnlyTaskOptIn(properties)).isNull();
+        assertThat(Main.cliOnlyTaskOptIn(Mode.SERVER, properties)).isNull();
     }
 
     @Test
@@ -219,7 +216,7 @@ public class MainTest {
         Properties properties = new Properties();
         properties.setProperty("createApiKey", "alice");
 
-        assertThat(Main.cliOnlyTaskOptIn(properties)).isEqualTo("createApiKey");
+        assertThat(Main.cliOnlyTaskOptIn(Mode.LOCAL, properties)).isEqualTo("createApiKey");
     }
 
     @Test

@@ -11,7 +11,9 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Properties;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_EMAIL_OPT;
@@ -130,7 +132,7 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
     // `echo pw | ...` behave the same. The scanner is not closed: System.in belongs to the JVM
     // and closing it would break any later read in the same process.
     private String readPasswordFromStdin() {
-        java.util.Scanner scanner = new java.util.Scanner(System.in, java.nio.charset.StandardCharsets.UTF_8);
+        Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8);
         return scanner.hasNextLine() ? scanner.nextLine() : "";
     }
 
