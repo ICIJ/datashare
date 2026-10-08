@@ -316,6 +316,27 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_update_user_with_a_malformed_body_is_a_400() {
+        put("/api/users/admin/alice", "not json").should().respond(400).contain("malformed");
+    }
+
+    @Test
+    public void test_update_user_with_a_malformed_body_does_not_leak_the_exception_class() {
+        put("/api/users/admin/alice", "not json").should().not().contain("IllegalArgumentException");
+    }
+
+    @Test
+    public void test_update_user_with_an_empty_body_is_a_400() {
+        put("/api/users/admin/alice", "").should().respond(400);
+    }
+
+    @Test
+    public void test_update_user_with_a_json_array_body_is_a_400() {
+        // valid JSON, wrong shape: must not reach the service as a half-built request
+        put("/api/users/admin/alice", "[1,2,3]").should().respond(400);
+    }
+
+    @Test
     public void test_list_users_rejects_a_non_numeric_from() {
         get("/api/users/admin?from=abc").should().respond(400).contain("from");
     }
