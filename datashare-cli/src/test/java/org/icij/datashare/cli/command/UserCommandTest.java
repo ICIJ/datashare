@@ -211,4 +211,33 @@ public class UserCommandTest extends AbstractDatashareCommandTest {
         Properties props = cmd.getSubcommandProperties();
         assertThat(props.getProperty("userDelete")).isEqualTo("alice");
     }
+
+    @Test
+    public void test_user_create_reports_a_validation_error_as_json() {
+        int exitCode = parseExitCodeCapturingErr("user", "create", "alice", "--email", "notanemail",
+                                                 "--no-input", "--json");
+
+        assertThat(exitCode).isEqualTo(5);
+        assertThat(lastErr.trim()).contains("\"error\":\"validation\"").contains("RFC 5322");
+    }
+
+    @Test
+    public void test_user_create_reports_a_validation_error_as_text_without_json() {
+        int exitCode = parseExitCodeCapturingErr("user", "create", "alice", "--email", "notanemail",
+                                                 "--no-input");
+
+        assertThat(exitCode).isEqualTo(5);
+        assertThat(lastErr.trim()).startsWith("error: ");
+        assertThat(lastErr).excludes("{");
+    }
+
+    @Test
+    public void test_user_create_reports_a_missing_field_as_json() {
+        // exit 2 is picocli's usage territory, but this one is ours: the field is missing and
+        // --no-input forbids prompting for it, so --json callers need it in their schema too
+        int exitCode = parseExitCodeCapturingErr("user", "create", "--no-input", "--json");
+
+        assertThat(exitCode).isEqualTo(2);
+        assertThat(lastErr.trim()).contains("\"error\":\"usage\"");
+    }
 }

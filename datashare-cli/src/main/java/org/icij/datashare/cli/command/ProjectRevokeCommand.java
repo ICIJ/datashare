@@ -1,5 +1,6 @@
 package org.icij.datashare.cli.command;
 
+import org.icij.datashare.cli.CliErrors;
 import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Prompter;
@@ -66,8 +67,7 @@ public class ProjectRevokeCommand implements Runnable, DatashareSubcommand {
             this.validatedProject = project;
             this.validatedUser = user;
         } catch (InvalidValueException | Prompter.ValidationFailedException e) {
-            spec.commandLine().getErr().println("error: " + e.getMessage());
-            throw new CliExitException(5);
+            throw CliErrors.fail(spec, json, "validation", e.getMessage(), 5);
         }
     }
 
@@ -83,9 +83,8 @@ public class ProjectRevokeCommand implements Runnable, DatashareSubcommand {
     private String require(Prompter prompter, String label, java.util.function.Consumer<String> validator,
                            String flagName) {
         if (prompter == null) {
-            spec.commandLine().getErr()
-                .println("error: " + flagName + " is required when --no-input is set or no TTY is available");
-            throw new CliExitException(2);
+            throw CliErrors.fail(spec, json, "usage",
+                                 flagName + " is required when --no-input is set or no TTY is available", 2);
         }
         return prompter.promptString(label, validator);
     }

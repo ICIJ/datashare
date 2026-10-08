@@ -1,5 +1,6 @@
 package org.icij.datashare.cli.command;
 
+import org.icij.datashare.cli.CliErrors;
 import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.Prompter;
@@ -74,13 +75,13 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
 
             if (login == null || email == null || (User.LOCAL.equals(provider) && password == null)) {
                 if (noInput) {
-                    spec.commandLine().getErr().println("error: missing required field; --no-input prevents prompting");
-                    throw new CliExitException(2);
+                    throw CliErrors.fail(spec, json, "usage",
+                                         "missing required field; --no-input prevents prompting", 2);
                 }
                 Prompter prompter = prompterOverride != null ? prompterOverride : new Prompter();
                 if (prompterOverride == null && !prompter.isInteractive()) {
-                    spec.commandLine().getErr().println("error: missing required field and no TTY available");
-                    throw new CliExitException(2);
+                    throw CliErrors.fail(spec, json, "usage",
+                                         "missing required field and no TTY available", 2);
                 }
                 try {
                     if (login == null)
@@ -91,8 +92,7 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
                         password = prompter.promptPassword();
                     }
                 } catch (Prompter.ValidationFailedException e) {
-                    spec.commandLine().getErr().println("error: " + e.getMessage());
-                    throw new CliExitException(5);
+                    throw CliErrors.fail(spec, json, "validation", e.getMessage(), 5);
                 }
             }
 
@@ -107,8 +107,7 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
             this.canonicalGroupsCsv = String.join(",", groups);
             this.ready = true;
         } catch (InvalidValueException e) {
-            spec.commandLine().getErr().println("error: " + e.getMessage());
-            throw new CliExitException(5);
+            throw CliErrors.fail(spec, json, "validation", e.getMessage(), 5);
         }
     }
 
