@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
  * The FollowTheMoney model, as the official {@code tech.followthemoney:followthemoney} library reads
  * the ontology it bundles. The library resolves inherited properties but exposes neither the
  * ontology version nor which schemata are abstract, so both are read from that same bundled JSON.
+ * FollowTheMoney is MIT-licensed and its jar ships no notice, so datashare ships it as the
+ * {@code META-INF/licenses/followthemoney-LICENSE} resource.
  */
 public class FtmTargetModel implements TargetModel {
     private static final String RESOURCE = "/defaultModel.json";
