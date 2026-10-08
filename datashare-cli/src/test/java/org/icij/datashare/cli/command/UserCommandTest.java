@@ -2,12 +2,15 @@ package org.icij.datashare.cli.command;
 
 import org.icij.datashare.cli.CliExitException;
 import org.icij.datashare.cli.Prompter;
+import org.junit.After;
 import org.junit.Test;
 import picocli.CommandLine;
 
+import java.io.ByteArrayInputStream;
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.io.StringWriter;
 import java.util.Properties;
 
@@ -239,5 +242,69 @@ public class UserCommandTest extends AbstractDatashareCommandTest {
 
         assertThat(exitCode).isEqualTo(2);
         assertThat(lastErr.trim()).contains("\"error\":\"usage\"");
+    }
+
+    @After
+    public void restoreStdin() {
+        System.setIn(originalStdin);
+    }
+
+    private final java.io.InputStream originalStdin = System.in;
+
+    @Test
+    public void test_user_create_reads_the_password_from_stdin() {
+        System.setIn(new ByteArrayInputStream("fromstdin\n".getBytes(StandardCharsets.UTF_8)));
+        UserCreateCommand command = new UserCreateCommand();
+        command.spec = new CommandLine(command).getCommandSpec();
+
+        new CommandLine(command).execute("alice", "--email", "a@e.test", "--password-stdin", "--no-input");
+
+        assertThat(command.getSubcommandProperties().getProperty("userCreate.password"))
+                .isEqualTo("fromstdin");
+    }
+
+    @Test
+    public void test_user_create_reads_a_password_without_a_trailing_newline() {
+        // `printf '%s' "$PW" | datashare user create ...` must behave like `echo "$PW" | ...`
+        System.setIn(new ByteArrayInputStream("fromstdin".getBytes(StandardCharsets.UTF_8)));
+        UserCreateCommand command = new UserCreateCommand();
+        command.spec = new CommandLine(command).getCommandSpec();
+
+        new CommandLine(command).execute("alice", "--email", "a@e.test", "--password-stdin", "--no-input");
+
+        assertThat(command.getSubcommandProperties().getProperty("userCreate.password"))
+                .isEqualTo("fromstdin");
+    }
+
+    @Test
+    public void test_user_create_refuses_both_password_flags() {
+        System.setIn(new ByteArrayInputStream("fromstdin\n".getBytes(StandardCharsets.UTF_8)));
+
+        int exitCode = parseExitCodeCapturingErr("user", "create", "alice", "--email", "a@e.test",
+                                                 "--password", "pw", "--password-stdin", "--no-input");
+
+        assertThat(exitCode).isEqualTo(2);
+        assertThat(lastErr).contains("mutually exclusive");
+    }
+
+    @Test
+    public void test_user_create_refuses_an_empty_stdin_password() {
+        System.setIn(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)));
+
+        int exitCode = parseExitCodeCapturingErr("user", "create", "alice", "--email", "a@e.test",
+                                                 "--password-stdin", "--no-input");
+
+        assertThat(exitCode).isEqualTo(5);
+    }
+
+    @Test
+    public void test_user_create_does_not_warn_about_process_listings_with_password_stdin() {
+        // the warning exists because --password is visible in `ps`; --password-stdin is not
+        System.setIn(new ByteArrayInputStream("fromstdin\n".getBytes(StandardCharsets.UTF_8)));
+
+        parseExitCodeCapturingErr("user", "create", "alice", "--email", "a@e.test",
+                                  "--password-stdin", "--no-input");
+
+        assertThat(lastErr).excludes("process listings");
     }
 }
