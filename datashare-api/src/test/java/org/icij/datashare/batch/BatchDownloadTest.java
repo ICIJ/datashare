@@ -58,6 +58,12 @@ public class BatchDownloadTest {
                 isEqualTo("/bar/archive_local_2021-07-07T14_15_16Z[GMT].zip");
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_constructor_rejects_user_id_escaping_download_dir() {
+        new BatchDownload(singletonList(project("prj")), new User("x/../../../tmp/evil"), "foo", null,
+                Paths.get("/bar"), false);
+    }
+
     @Test
     public void test_batch_download_constructor_with_uri() {
         DatashareTime.getInstance().setMockDate("2021-07-07T14:15:16Z");
