@@ -235,6 +235,8 @@ public class CliAppProjectDispatchTest {
     @Test
     public void test_delete_if_exists_missing_returns_0_noop() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
+        when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("ghost", false, false, true, true, false, false, false, true));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
@@ -244,6 +246,39 @@ public class CliAppProjectDispatchTest {
 
         assertThat(exit).isEqualTo(0);
         assertThat(stdout.toString()).contains("does not exist (no-op)");
+        // the no-op still goes through the service: that is where leftover grants get cleared
+        verify(service).deleteIfExists(eq("ghost"), eq(new ProjectDeleteOptions(false)));
+    }
+
+    @Test
+    public void test_delete_if_exists_missing_warns_when_the_access_cleanup_fails() throws Exception {
+        when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
+        when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("ghost", false, false, false, true, false, false, false, true));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "ghost");
+        props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
+
+        assertThat(stderr.toString()).contains("leftover grants");
+    }
+
+    @Test
+    public void test_delete_summary_reports_the_access_cleanup() throws Exception {
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
+        when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("foo", true, true, false, true, true, true, true, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
+
+        // an all-OK summary next to a generic warning is what hides a failed access cleanup
+        assertThat(stdout.toString()).contains("grants FAILED");
+        assertThat(stdout.toString()).contains("inventory OK");
     }
 
     @Test

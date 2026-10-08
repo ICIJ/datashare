@@ -1347,6 +1347,39 @@ public class ProjectAdminServiceImplTest {
         assertThat(deleted.inventoryDeleted()).isTrue();
     }
 
+    @Test
+    public void test_delete_if_exists_clears_the_access_rows_of_a_missing_project() throws Exception {
+        when(repository.getProject("ghost")).thenReturn(null);
+        User alice = userWithProjects("alice", List.of("ghost"));
+        when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, 1, 1));
+
+        ProjectDeleted deleted = service.deleteIfExists("ghost", new ProjectDeleteOptions(false));
+
+        // rows outliving the project row are reachable from nowhere else, and a later project of the
+        // same name would inherit them
+        verify(authorizer).removeAllPoliciesForProject(Domain.DEFAULT, "ghost");
+        verify(userStore).save(any(User.class));
+        assertThat(deleted.noop()).isTrue();
+        assertThat(deleted.casbinDeleted()).isTrue();
+        assertThat(deleted.inventoryDeleted()).isTrue();
+    }
+
+    @Test
+    public void test_delete_reports_a_failed_inventory_cleanup() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
+        User alice = userWithProjects("alice", List.of("proj"));
+        when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, 1, 1));
+        doThrow(new RuntimeException("user store down")).when(userStore).save(any(User.class));
+
+        ProjectDeleted deleted = service.delete("proj", new ProjectDeleteOptions(true));
+
+        // alice keeps listing a deleted project, so the step must not report success
+        assertThat(deleted.inventoryDeleted()).isFalse();
+    }
+
     private static User userWithProjects(String id, List<String> projects) {
         Map<String, Object> details = new HashMap<>();
         Map<String, Object> apps = new HashMap<>();
