@@ -843,9 +843,8 @@ class CliApp {
      */
     static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName) throws Exception {
         String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
-        logger.info(
-                "generated secret key for user {} (store it somewhere safe, datashare cannot " + "retrieve it later)",
-                userName);
+        logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later)",
+                    userName);
         System.out.println(secretKey);
         return EXIT_SUCCESS;
     }
@@ -853,7 +852,7 @@ class CliApp {
     static int handleApiKeyGet(DatashareTaskFactory taskFactory, String userName) throws Exception {
         String hashedKey = taskFactory.createGetApiKey(localUser(userName)).call();
         if (hashedKey == null) {
-            logger.info("no user {} exists", userName);
+            logger.info("no api key for user {}", userName);
             return EXIT_NOT_FOUND;
         }
         System.out.println(hashedKey);
