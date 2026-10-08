@@ -22,7 +22,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import static org.icij.datashare.cli.DatashareCliOptions.CREATE_INDEX_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.CRE_API_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEL_API_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.GET_API_KEY_OPT;
@@ -62,12 +61,16 @@ public class Main {
     }
 
     /**
-     * Legacy flags that run a one-shot task and then exit. They are only dispatched under
+     * Legacy flags that run a one-shot task and then exit. Deliberately excludes createIndex, which
+     * app start also accepts through the PipelineOptions mixin and inherits from a settings file:
+     * guarding it would kill a server sharing one settings file with an indexing run.
+     * <p>
+     * They are only dispatched under
      * {@code --mode CLI}; under any other mode Datashare starts a web server and never runs them,
      * which reads as a hang.
      */
     static final Set<String> CLI_ONLY_TASK_OPTS =
-            Set.of(GRANT_ADMIN_OPT, CRE_API_KEY_OPT, GET_API_KEY_OPT, DEL_API_KEY_OPT, CREATE_INDEX_OPT);
+            Set.of(GRANT_ADMIN_OPT, CRE_API_KEY_OPT, GET_API_KEY_OPT, DEL_API_KEY_OPT);
 
     /** The first CLI-only task flag set under a non-CLI mode, or null when the invocation is fine. */
     static String cliOnlyTaskOptIn(Properties properties) {

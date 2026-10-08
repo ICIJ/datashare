@@ -17,8 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * The one-shot task flags CliApp dispatches before the pipeline: api key create/get, and (see
- * CliAppGrantAdminTest) grant admin. Exercised through the package-visible handlers rather than
+ * The one-shot task flags CliApp dispatches before the pipeline: api key create/get, and grant admin. Exercised through the package-visible handlers rather than
  * runTaskWorker, which calls System.exit; same shape as CliAppUserDispatchTest.
  */
 public class CliAppTaskDispatchTest {
