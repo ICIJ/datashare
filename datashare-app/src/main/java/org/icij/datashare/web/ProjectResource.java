@@ -191,7 +191,7 @@ public class ProjectResource {
             throw new UnauthorizedException();
         }
         // one cascade, in the service: it also clears the project's casbin rows and its name
-        // from every user's inventory (see #2441)
+        // from every user's inventory
         ProjectDeleted deleted = projectAdminService.deleteIfExists(id, new ProjectDeleteOptions(false));
         LoggerFactory.getLogger(getClass()).info("Deleted project {}: {}", id, deleted);
         return new Payload(204);
