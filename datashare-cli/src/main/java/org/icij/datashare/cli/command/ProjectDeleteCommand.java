@@ -86,8 +86,8 @@ public class ProjectDeleteCommand implements Runnable, DatashareSubcommand {
      */
     private String resolveNameFromPrompt(Prompter prompter) {
         if (prompter == null) {
-            String reason = noInput ? "--name is required when --no-input is set" :
-                            "--name is required and no TTY available";
+            String reason =
+                    noInput ? "--name is required when --no-input is set" : "--name is required and no TTY available";
             throw CliErrors.fail(spec, json, "usage", reason, 2);
         }
         return prompter.promptString("Project name", Validators::projectName);

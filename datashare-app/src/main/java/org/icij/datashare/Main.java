@@ -39,7 +39,6 @@ public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     private static final Set<String> SUBCOMMAND_NAMES =
             new CommandLine(new DatashareCommand()).getSubcommands().keySet();
-
     /**
      * Maps a {@link CliExitException} to its own exit code. Without it picocli prints the exception
      * and returns 1, so a validation error (5) and a runtime failure (1) are indistinguishable to a
@@ -51,7 +50,6 @@ public class Main {
         }
         throw ex;
     };
-
     /**
      * Legacy flags that run a one-shot task and then exit. They are only dispatched under
      * {@code --mode CLI}; under any other mode Datashare starts a web server and never runs them,
@@ -140,8 +138,8 @@ public class Main {
     private static void startApplication(Properties properties) throws Exception {
         String misplacedTaskOpt = cliOnlyTaskOptIn(properties);
         if (misplacedTaskOpt != null) {
-            System.err.println("error: --" + misplacedTaskOpt + " only runs under --mode CLI; "
-                               + "re-run with --mode CLI");
+            System.err.println(
+                    "error: --" + misplacedTaskOpt + " only runs under --mode CLI; " + "re-run with --mode CLI");
             System.exit(2);
         }
         Mode mode = Mode.valueOf(properties.getProperty("mode", "LOCAL"));
