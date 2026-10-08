@@ -2,6 +2,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Time;
+import co.elastic.clients.elasticsearch._types.query_dsl.FieldAndFormat;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.ClearScrollRequest;
 import co.elastic.clients.elasticsearch.core.ScrollRequest;
@@ -12,6 +13,7 @@ import co.elastic.clients.elasticsearch.core.search.ResponseBody;
 import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import co.elastic.clients.json.JsonData;
 import jakarta.json.JsonException;
 import java.io.InterruptedIOException;
 import java.util.Objects;
@@ -24,7 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -70,8 +74,17 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     }
 
     static <T extends Entity> T hitToObject(Hit<ObjectNode> searchHit, Class<T> cls) {
-        return JsonObjectMapper.getObject(searchHit.id(), searchHit.index(), JsonUtils.nodeToMap(searchHit.source()),
-                                          cls);
+        Map<String, Object> source = withDocValues(JsonUtils.nodeToMap(searchHit.source()), searchHit.fields());
+        return JsonObjectMapper.getObject(searchHit.id(), searchHit.index(), source, cls);
+    }
+
+    private static Map<String, Object> withDocValues(Map<String, Object> source, Map<String, JsonData> docValues) {
+        if (docValues.isEmpty()) {
+            return source;
+        }
+        Map<String, Object> sourceWithDocValues = source == null ? new HashMap<>() : new HashMap<>(source);
+        docValues.forEach((field, values) -> sourceWithDocValues.put(field, values.to(List.class).get(0)));
+        return sourceWithDocValues;
     }
 
     @Override
@@ -194,6 +207,14 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     @Override
     public Indexer.Searcher withSource(String... fields) {
         sourceBuilder.source(s -> s.filter(f -> f.includes(stream(fields).collect(Collectors.toList()))));
+        return this;
+    }
+
+    @Override
+    public Indexer.Searcher withDocValues(String... fields) {
+        List<FieldAndFormat> docValueFields =
+                stream(fields).map(field -> FieldAndFormat.of(f -> f.field(field))).toList();
+        sourceBuilder.source(s -> s.fetch(false)).docvalueFields(docValueFields);
         return this;
     }
 
