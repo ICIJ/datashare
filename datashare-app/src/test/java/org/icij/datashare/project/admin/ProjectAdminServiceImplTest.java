@@ -798,7 +798,8 @@ public class ProjectAdminServiceImplTest {
                 org.icij.datashare.policies.Role.PROJECT_EDITOR);
 
         assertThat(granted.noop()).isTrue();
-        assertThat(granted.previousRole()).isNull();
+        // the held role, not null: the wide-role endpoint already answers it on its own noop (#2444)
+        assertThat(granted.previousRole()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_EDITOR);
         verify(userStore, never()).save(any(User.class));
         verify(authorizer, never()).addRoleForUserInProject(any(), any(), any(), any());
     }
@@ -1386,5 +1387,22 @@ public class ProjectAdminServiceImplTest {
         apps.put("datashare", new ArrayList<>(projects));
         details.put("groups_by_applications", apps);
         return new User(id, id, id + "@e.test", "local", details);
+    }
+
+    // --- #2444: a noop grant reports the held role ---
+
+    @Test
+    public void test_a_real_grant_still_returns_the_replaced_role() throws Exception {
+        User alice = new User("alice", "Alice", "a@e.test", "local", new HashMap<>());
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(users.find("alice")).thenReturn(new DatashareUser(alice));
+        when(authorizer.holdsWideRole(any(User.class))).thenReturn(false);
+        when(authorizer.getRolesForUserInProject(any(User.class), eq(Domain.DEFAULT), any(Project.class)))
+                .thenReturn(List.of(org.icij.datashare.policies.Role.PROJECT_MEMBER.name()));
+
+        ProjectGranted granted = service.grantIfNotExists("proj", "alice", org.icij.datashare.policies.Role.PROJECT_EDITOR);
+
+        assertThat(granted.noop()).isFalse();
+        assertThat(granted.previousRole()).isEqualTo(org.icij.datashare.policies.Role.PROJECT_MEMBER);
     }
 }

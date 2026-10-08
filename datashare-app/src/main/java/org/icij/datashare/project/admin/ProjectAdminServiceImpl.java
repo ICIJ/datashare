@@ -156,7 +156,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // Replace-semantics make "noop" strict: any extra project roles would still
         // need clearing, so a noop is only safe when this exact role is the only one.
         if (ifNotExists && isExactlyThisRole(existing, role)) {
-            return new ProjectGranted(projectName, userLogin, role, null, true);
+            // the held role, matching what the wide-role endpoint answers on its own noop
+            return new ProjectGranted(projectName, userLogin, role, role, true);
         }
 
         User updated = appendToInventory(user, List.of(projectName));
