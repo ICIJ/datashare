@@ -39,7 +39,7 @@ public class UserAdminServiceImplTest {
     public void setUp() {
         userStore = mock(UserStore.class);
         authorizer = mock(Authorizer.class);
-        service = new UserAdminServiceImpl(userStore, new PostLoginEnroller(authorizer));
+        service = new UserAdminServiceImpl(userStore, new PostLoginEnroller(authorizer), authorizer);
     }
 
     @Test
@@ -258,6 +258,58 @@ public class UserAdminServiceImplTest {
     public void test_delete_if_exists_returns_true_when_user_existed() {
         when(userStore.delete("alice")).thenReturn(true);
         assertThat(service.deleteIfExists("alice")).isTrue();
+    }
+
+    @Test
+    public void test_delete_removes_the_users_casbin_rows() throws Exception {
+        when(userStore.delete("alice")).thenReturn(true);
+
+        service.delete("alice");
+
+        verify(authorizer).removeAllPoliciesForUser("alice");
+    }
+
+    @Test
+    public void test_delete_if_exists_removes_the_users_casbin_rows() {
+        when(userStore.delete("alice")).thenReturn(true);
+
+        assertThat(service.deleteIfExists("alice")).isTrue();
+
+        verify(authorizer).removeAllPoliciesForUser("alice");
+    }
+
+    @Test
+    public void test_delete_if_exists_on_unknown_user_touches_no_policy() {
+        when(userStore.delete("ghost")).thenReturn(false);
+
+        assertThat(service.deleteIfExists("ghost")).isFalse();
+
+        verify(authorizer, never()).removeAllPoliciesForUser(any());
+    }
+
+    @Test
+    public void test_delete_of_an_instance_admin_removes_the_wildcard_row_too() throws Exception {
+        when(userStore.delete("root")).thenReturn(true);
+
+        service.delete("root");
+
+        // removeAllPoliciesForUser filters on v0 alone, so "root | INSTANCE_ADMIN | *::*"
+        // goes with the project rows. Pinned here because a narrower filter would
+        // silently leave an instance admin row behind.
+        verify(authorizer).removeAllPoliciesForUser("root");
+        verify(authorizer, never()).deleteProjectRolesForUser(any());
+    }
+
+    @Test
+    public void test_delete_of_a_missing_user_throws_and_touches_no_policy() {
+        when(userStore.delete("ghost")).thenReturn(false);
+
+        try {
+            service.delete("ghost");
+            fail("expected UserNotFoundException");
+        } catch (UserNotFoundException e) {
+            verify(authorizer, never()).removeAllPoliciesForUser(any());
+        }
     }
 
     // --- get ---

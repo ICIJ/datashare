@@ -297,7 +297,6 @@ public class UserResource {
     @Delete("/admin/:userId")
     public Payload deleteUser(String userId) {
         userAdminService.deleteIfExists(userId);
-        authorizer.removeAllPoliciesForUser(userId);
         return new Payload(204);
     }
 
