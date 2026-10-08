@@ -214,7 +214,6 @@ public class BatchDownloadRunnerIntTest {
         Task<File> taskView = createTaskView(bd);
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
-            put(BATCH_DOWNLOAD_DIR_OPT, fs.getRoot().toString());
             put(SCROLL_SIZE_OPT, "100");
             put(BATCH_DOWNLOAD_SCROLL_SIZE_OPT, "0");
         }});
@@ -226,7 +225,6 @@ public class BatchDownloadRunnerIntTest {
         BatchDownload bd = createBatchDownload("*");
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
-            put(BATCH_DOWNLOAD_DIR_OPT, fs.getRoot().toString());
             put(SCROLL_SIZE_OPT, "0");
         }});
         Task<File> taskView = createTaskView(bd);
@@ -238,7 +236,6 @@ public class BatchDownloadRunnerIntTest {
         BatchDownload bd = createBatchDownload("*");
         PropertiesProvider propertiesProvider = new PropertiesProvider(
                 Map.of("downloadFolder", "/unused",
-                BATCH_DOWNLOAD_DIR_OPT, fs.getRoot().toString(),
                 BATCH_DOWNLOAD_SCROLL_DURATION_OPT, "10foo"));
         Task<File> taskView = createTaskView(bd);
         new BatchDownloadRunner(indexer, propertiesProvider, taskView, taskView.progress(taskModifier::progress)).call();
@@ -273,7 +270,6 @@ public class BatchDownloadRunnerIntTest {
     private PropertiesProvider createProvider() {
         return new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
-            put(BATCH_DOWNLOAD_DIR_OPT, fs.getRoot().toString());
         }});
     }
 }
