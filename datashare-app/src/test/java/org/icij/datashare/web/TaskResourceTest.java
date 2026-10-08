@@ -720,14 +720,14 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_batch_download_ignores_client_download_dir() throws Exception {
+    public void test_batch_download_ignores_client_download_dir_and_encryption() throws Exception {
         Path clientDir = tmp.getRoot().toPath().resolve("client-dir");
         Response response = post("/api/task/batchDownload", format("{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\", \"batchDownloadDir\": \"%s\", \"batchDownloadEncrypt\": \"true\" }}", clientDir)).response();
 
         TaskResource.TaskResponse taskResponse = JsonObjectMapper.readValue(response.content(), TaskResource.TaskResponse.class);
         BatchDownload batchDownload = (BatchDownload) taskManager.getTask(taskResponse.taskId()).args.get("batchDownload");
         assertThat(batchDownload.filename.getParent().toString()).isEqualTo((String) getDefaultProperties().get(BATCH_DOWNLOAD_DIR_OPT));
-        assertThat(batchDownload.encrypted).isTrue();
+        assertThat(batchDownload.encrypted).isFalse();
         assertThat(Files.exists(clientDir)).isFalse();
     }
 
