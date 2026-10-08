@@ -5,7 +5,6 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
@@ -107,7 +106,7 @@ public class CreateNlpBatchesFromIndexTest {
         new CreateNlpBatchesFromIndex(taskManager, recorder.recording(indexer),
             new Task<>(CreateNlpBatchesFromIndex.class.getName(), new User("test"), properties), null).call();
 
-        verify(recorder.searchers.get(0)).withDocValues("rootDocument", "language");
+        recorder.verifyReadsOnlyDocValues("rootDocument", "language");
         List<Language> batchedLanguages = taskManager.getTasks()
             .flatMap(t -> ((List<CreateNlpBatchesFromIndex.BatchDocument>) t.args.get("docs")).stream())
             .map(CreateNlpBatchesFromIndex.BatchDocument::language).toList();

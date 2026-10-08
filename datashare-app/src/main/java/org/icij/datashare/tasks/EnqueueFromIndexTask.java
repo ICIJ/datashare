@@ -74,12 +74,11 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
             if (nextStage == Stage.NLP) {
                 builder = builder.without(nlpPipeline);
             }
-            searcher = builder.withDocValues("rootDocument").limit(scrollSize);
+            searcher = builder;
         } else {
-            searcher = indexer.search(singletonList(projectName), Document.class, new SearchQuery(searchQuery))
-                              .withDocValues("rootDocument").limit(scrollSize);
+            searcher = indexer.search(singletonList(projectName), Document.class, new SearchQuery(searchQuery));
         }
-        searcher.sort("language", Indexer.Searcher.SortOrder.ASC);
+        searcher.withDocValues("rootDocument").limit(scrollSize).sort("language", Indexer.Searcher.SortOrder.ASC);
         List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
         long totalHits = searcher.totalHits();
         String pipelineInfo = (nextStage == Stage.NLP) ? " excluding already processed by " + nlpPipeline : "";
