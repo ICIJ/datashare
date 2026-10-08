@@ -1,11 +1,18 @@
 package org.icij.datashare.model.ftm;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.EntityType;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
 import org.junit.Test;
+import tech.followthemoney.model.Model;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -113,5 +120,28 @@ public class FtmTargetModelTest {
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("employers");
         assertThat(violations.get(0).message()).contains("stub");
+    }
+
+    @Test
+    public void test_no_two_ancestors_declare_the_same_property_differently() throws IOException {
+        JsonNode schemata;
+        try (InputStream stream = Model.class.getResourceAsStream("/defaultModel.json")) {
+            schemata = JsonObjectMapper.getMapper().readTree(stream).path("schemata");
+        }
+        List<String> conflicts = new ArrayList<>();
+        schemata.properties().forEach(type -> {
+            Map<String, String> declared = new HashMap<>();
+            type.getValue().path("schemata").forEach(ancestor ->
+                    schemata.path(ancestor.asText()).path("properties").properties().forEach(property -> {
+                        String shape = property.getValue().path("range").asText("") + "/"
+                                       + property.getValue().path("stub").asBoolean(false);
+                        String previous = declared.putIfAbsent(property.getKey(), shape);
+                        if (previous != null && !previous.equals(shape)) {
+                            conflicts.add(type.getKey() + "." + property.getKey());
+                        }
+                    }));
+        });
+
+        assertThat(conflicts).isEmpty();
     }
 }
