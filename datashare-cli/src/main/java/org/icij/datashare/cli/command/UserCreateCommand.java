@@ -26,7 +26,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.USER_CREATE_PROVIDER_OP
 @Command(name = "create", mixinStandardHelpOptions = true, description = {"Create a Datashare user.", "", "Examples:",
         "  datashare user create alice --email alice@example.org",
         "  datashare user create alice --email alice@example.org --password $PW --groups p1,p2",
-        "  datashare user create alice --email alice@example.org --provider oauth --no-input"})
+        "  datashare user create alice --email alice@example.org --provider oauth --no-input",
+        "  printf '%s' \"$PW\" | datashare user create alice --email alice@example.org --password-stdin"})
 public class UserCreateCommand implements Runnable, DatashareSubcommand {
     @Parameters(index = "0", arity = "0..1", description = "Login (positional)")
     String loginPositional;
@@ -38,6 +39,8 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
     String name;
     @Option(names = "--password", description = "Password (local provider)")
     String password;
+    @Option(names = "--password-stdin", description = "Read the password from the first line of stdin")
+    boolean passwordStdin;
     @Option(names = "--provider", defaultValue = "local", description = "local | oauth | external (default: local)")
     String provider;
     @Option(names = "--groups", description = "Comma-separated project names")
@@ -72,6 +75,14 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
             List<String> groups = Validators.groups(groupsCsv);
 
             boolean passwordFromFlag = password != null;
+            if (passwordStdin) {
+                if (passwordFromFlag) {
+                    throw CliErrors.fail(spec, json, "usage",
+                                         "--password and --password-stdin are mutually exclusive", 2);
+                }
+                password = readPasswordFromStdin();
+                Validators.password(password);
+            }
 
             if (login == null || email == null || (User.LOCAL.equals(provider) && password == null)) {
                 if (noInput) {
@@ -98,7 +109,8 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
 
             if (passwordFromFlag) {
                 spec.commandLine().getErr().println(
-                        "warning: passing --password on the command line exposes it in process listings; consider using the interactive prompt instead");
+                        "warning: passing --password on the command line exposes it in process "
+                        + "listings; use --password-stdin or the interactive prompt instead");
             }
 
             this.resolvedLogin = login;
@@ -109,6 +121,14 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
         } catch (InvalidValueException e) {
             throw CliErrors.fail(spec, json, "validation", e.getMessage(), 5);
         }
+    }
+
+    // One line, no trailing newline, so `printf 'pw' | datashare user create ...` and
+    // `echo pw | ...` behave the same. The scanner is not closed: System.in belongs to the JVM
+    // and closing it would break any later read in the same process.
+    private String readPasswordFromStdin() {
+        java.util.Scanner scanner = new java.util.Scanner(System.in, java.nio.charset.StandardCharsets.UTF_8);
+        return scanner.hasNextLine() ? scanner.nextLine() : "";
     }
 
     @Override
