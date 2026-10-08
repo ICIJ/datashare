@@ -3,6 +3,8 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpServer;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
@@ -14,7 +16,10 @@ import org.icij.datashare.test.ElasticsearchRule;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.fest.assertions.Assertions.assertThat;
@@ -68,6 +73,34 @@ public class ElasticsearchConfigurationTest {
         Response response = restClient.performRequest(new Request("GET", es.getIndexName()));
 
         assertThat(response.getHeader("X-Elastic-Product")).isNotNull();
+    }
+
+    @Test
+    public void test_create_client_sends_plain_json_content_type() throws Exception {
+        AtomicReference<Headers> requestHeaders = new AtomicReference<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        server.createContext("/", exchange -> {
+            requestHeaders.set(exchange.getRequestHeaders());
+            byte[] body = "{\"took\":1,\"timed_out\":false,\"_shards\":{\"total\":1,\"successful\":1,\"failed\":0},\"hits\":{\"hits\":[]}}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            String address = "http://localhost:" + server.getAddress().getPort();
+            ElasticsearchClient esClient = ElasticsearchConfiguration.createESClient(new PropertiesProvider(new HashMap<>() {{
+                put("elasticsearchAddress", address);
+            }}));
+
+            esClient.search(s -> s.index("test"), Object.class);
+
+            assertThat(requestHeaders.get().getFirst("Content-Type")).isEqualTo("application/json");
+            assertThat(requestHeaders.get().getFirst("Accept")).isEqualTo("application/json");
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
