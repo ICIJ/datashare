@@ -1043,6 +1043,33 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_create_new_task_is_owned_by_the_current_user() throws Exception {
+        put("/api/task/my_spoofed_task_id", String.format("""
+            {"@type":"Task","id":"my_spoofed_task_id","name":"%s",
+            "args": {"user":{"@type":"org.icij.datashare.user.User", "id":"victim","name":null,"email":null,"provider":"local","details":{"uid":"victim","groups_by_applications":{"datashare":["local-datashare"]}}
+            }}}""", TaskCreation.class.getName()))
+                .should().respond(201);
+
+        assertThat(taskManager.getTask("my_spoofed_task_id").getUser().id).isEqualTo("local");
+    }
+
+    @Test
+    public void test_create_new_task_with_batch_download_returns_400() throws Exception {
+        BatchDownload batchDownload = new BatchDownload(List.of(project("local-datashare")), local(), "*");
+        put("/api/task/my_batch_download_id", JsonObjectMapper.writeValueAsString(
+                new Task<>("my_batch_download_id", BatchDownloadRunner.class.getName(), local(), Map.of("batchDownload", batchDownload))))
+                .should().respond(400);
+    }
+
+    @Test
+    public void test_create_new_task_with_batch_search_returns_400() throws Exception {
+        BatchSearchRecord batchRecord = new BatchSearchRecord(List.of(project("local-datashare")), "name", "description", 1, new Date(), "/");
+        put("/api/task/my_batch_search_id", JsonObjectMapper.writeValueAsString(
+                new Task<>("my_batch_search_id", BatchSearchRunner.class.getName(), local(), Map.of("batchRecord", batchRecord))))
+                .should().respond(400);
+    }
+
+    @Test
     public void test_task_list_by_unsupported_filter_should_return_400() {
         get("/api/task/all?filter=foo").should().respond(400);
     }

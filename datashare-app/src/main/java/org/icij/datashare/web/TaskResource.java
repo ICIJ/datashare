@@ -181,9 +181,14 @@ public class TaskResource {
             return new JsonPayload(400, new ErrorResponse(
                     "body should contain a taskView, URL id should be present and equal to body id"));
         }
+        if (taskView.args.containsKey("batchDownload") || taskView.args.containsKey("batchRecord")) {
+            return new JsonPayload(400, new ErrorResponse(
+                    "batch downloads and batch searches must be created with their dedicated endpoints"));
+        }
+        Task<V> task = new Task<>(taskView.id, taskView.name, (User) context.currentUser(), taskView.args);
         try {
-            return new JsonPayload(201, new TaskResponse(
-                    notFoundIfUnknown(() -> taskManager.startTask(taskView, taskGroup))));
+            return new JsonPayload(201,
+                                   new TaskResponse(notFoundIfUnknown(() -> taskManager.startTask(task, taskGroup))));
         } catch (TaskAlreadyExists e) {
             return new JsonPayload(200);
         }
