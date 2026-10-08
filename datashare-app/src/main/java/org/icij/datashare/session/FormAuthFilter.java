@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import static java.util.Optional.ofNullable;
 import org.icij.datashare.utils.PayloadFormatter;
+import net.codestory.http.constants.HttpStatus;
 
 @Singleton
 public class FormAuthFilter extends DatashareAuthFilter {
@@ -52,17 +53,17 @@ public class FormAuthFilter extends DatashareAuthFilter {
         try {
             body = new ObjectMapper().readTree(context.request().content());
         } catch (IOException e) {
-            return PayloadFormatter.error("authentication required", 401);
+            return PayloadFormatter.error("authentication required", HttpStatus.UNAUTHORIZED);
         }
         String username = ofNullable(body.get("username")).map(JsonNode::asText).orElse(null);
         String password = ofNullable(body.get("password")).map(JsonNode::asText).orElse(null);
         if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
-            return PayloadFormatter.error("authentication required", 401);
+            return PayloadFormatter.error("authentication required", HttpStatus.UNAUTHORIZED);
         }
         User user = users.find(username, password);
         if (user == null) {
             logger.warn("failed login attempt for user {}", username);
-            return PayloadFormatter.error("authentication required", 401);
+            return PayloadFormatter.error("authentication required", HttpStatus.UNAUTHORIZED);
         }
         logger.debug("user {} logged in successfully", username);
         if (postLoginEnroller != null) {

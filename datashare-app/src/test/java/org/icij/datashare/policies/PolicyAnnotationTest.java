@@ -131,19 +131,9 @@ public class PolicyAnnotationTest {
 
         Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
-    }
-
-    @Test
-    public void should_say_why_access_was_forbidden() {
-        // "{\"error\":\"\"}" tells a client nothing about whether to re-authenticate or give up
-        Context context = mock(Context.class);
-        when(context.currentUser()).thenReturn(new DatashareUser("jane"));
-        when(context.pathParam("index")).thenReturn(projectId);
-
-        Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
-
-        assertEquals(403, result.code());
+        // an empty body tells a client nothing about whether to re-authenticate or give up
         assertThat(String.valueOf(result.rawContent())).contains("insufficient role");
+        assertThat(result.rawContentType()).contains("application/json");
     }
 
     @Test

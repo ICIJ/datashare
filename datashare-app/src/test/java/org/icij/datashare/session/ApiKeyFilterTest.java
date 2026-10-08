@@ -108,4 +108,27 @@ public class ApiKeyFilterTest {
         assertThat(payload.code()).isEqualTo(200);
     }
 
+    @Test
+    public void test_unauthenticated_api_call_says_authentication_required() throws Exception {
+        // ApiKeyFilter sits in front of the auth filters for every /api URI in server mode, so this
+        // short circuit, not DatashareAuthFilter, is what an unauthenticated API caller actually
+        // hits (see #2444). It used to answer with no body at all.
+        Payload payload = apiKeyFilter.apply("/api/users/me", context, nextFilter);
+
+        assertThat(payload.code()).isEqualTo(401);
+        assertThat(String.valueOf(payload.rawContent())).contains("authentication required");
+    }
+
+    @Test
+    public void test_an_unknown_api_key_is_not_distinguishable_from_a_missing_one() throws Exception {
+        // same body either way: telling them apart would say whether a key exists
+        when(context.header("authorization")).thenReturn("Bearer nope");
+        when(apiKeyStore.getLogin("nope")).thenReturn(null);
+        Payload withBadKey = apiKeyFilter.apply("/api/users/me", context, nextFilter);
+
+        when(context.header("authorization")).thenReturn(null);
+        Payload withNoKey = apiKeyFilter.apply("/api/users/me", context, nextFilter);
+
+        assertThat(String.valueOf(withBadKey.rawContent())).isEqualTo(String.valueOf(withNoKey.rawContent()));
+    }
 }
