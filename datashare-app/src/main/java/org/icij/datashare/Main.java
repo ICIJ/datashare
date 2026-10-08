@@ -19,6 +19,7 @@ import java.io.Closeable;
 import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import static org.icij.datashare.cli.DatashareCliOptions.CREATE_INDEX_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.CRE_API_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEL_API_KEY_OPT;
@@ -37,17 +38,27 @@ public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     private static final Set<String> SUBCOMMAND_NAMES =
             new CommandLine(new DatashareCommand()).getSubcommands().keySet();
+
     /**
      * Maps a {@link CliExitException} to its own exit code. Without it picocli prints the exception
      * and returns 1, so a validation error (5) and a runtime failure (1) are indistinguishable to a
      * caller script. Anything else keeps picocli's default handling, stack trace included.
+     * <p>
+     * {@code handled} records that the command terminated itself. The exit code alone cannot say
+     * so: {@code UserDeleteCommand} throws {@code CliExitException(0)} when the operator declines
+     * the confirmation, and a bare 0 would let {@link #runPicocli} fall through to
+     * {@code startApplication} with no task flag set, which starts a full indexing pipeline.
      */
-    static final CommandLine.IExecutionExceptionHandler CLI_EXIT_HANDLER = (ex, commandLine, parseResult) -> {
-        if (ex instanceof CliExitException exit) {
-            return exit.exitCode();
-        }
-        throw ex;
-    };
+    static CommandLine.IExecutionExceptionHandler cliExitHandler(AtomicBoolean handled) {
+        return (ex, commandLine, parseResult) -> {
+            if (ex instanceof CliExitException exit) {
+                handled.set(true);
+                return exit.exitCode();
+            }
+            throw ex;
+        };
+    }
+
     /**
      * Legacy flags that run a one-shot task and then exit. They are only dispatched under
      * {@code --mode CLI}; under any other mode Datashare starts a web server and never runs them,
@@ -96,9 +107,13 @@ public class Main {
         // right help page is shown. Otherwise it registers the executed subcommand on
         // DatashareCommand so its properties can be collected after execution.
         commandLine.setExecutionStrategy(parseResult -> resolveSubcommand(parseResult, cmd));
-        commandLine.setExecutionExceptionHandler(CLI_EXIT_HANDLER);
+        AtomicBoolean cliExitHandled = new AtomicBoolean();
+        commandLine.setExecutionExceptionHandler(cliExitHandler(cliExitHandled));
         int exitCode = commandLine.execute(args);
-        if (exitCode != 0) {
+        // cliExitHandled, not just a non-zero code: a command that threw CliExitException has
+        // already done its work, and exit code 0 is a legitimate outcome of that (a declined
+        // confirmation). Falling through would hand its empty properties to startApplication.
+        if (exitCode != 0 || cliExitHandled.get()) {
             System.exit(exitCode);
         }
         if (cmd.getExecutedSubcommand() == null) {
