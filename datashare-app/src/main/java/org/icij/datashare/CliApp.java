@@ -118,23 +118,11 @@ class CliApp {
         }
 
         if (properties.getProperty(CRE_API_KEY_OPT) != null) {
-            String userName = properties.getProperty(CRE_API_KEY_OPT);
-            String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
-            logger.info(
-                    "generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}",
-                    userName, secretKey);
-            System.exit(0);
+            System.exit(handleApiKeyCreate(taskFactory, properties.getProperty(CRE_API_KEY_OPT)));
         }
 
         if (properties.getProperty(GET_API_KEY_OPT) != null) {
-            String userName = properties.getProperty(GET_API_KEY_OPT);
-            String hashedKey = taskFactory.createGetApiKey(localUser(userName)).call();
-            if ((hashedKey == null)) {
-                logger.info("no user {} exists", userName);
-            } else {
-                logger.info("hashed key for user {} is {}", userName, hashedKey);
-            }
-            System.exit(0);
+            System.exit(handleApiKeyGet(taskFactory, properties.getProperty(GET_API_KEY_OPT)));
         }
 
         if (properties.getProperty(DEL_API_KEY_OPT) != null) {
@@ -839,6 +827,28 @@ class CliApp {
         } else {
             System.err.println("aborted");
         }
+    }
+
+    /**
+     * The generated key is the command's result, not a diagnostic: it goes to stdout so
+     * `datashare --createApiKey alice | read KEY` keeps working now that logs go to stderr (#2442).
+     */
+    static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName) throws Exception {
+        String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
+        logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot "
+                    + "retrieve it later)", userName);
+        System.out.println(secretKey);
+        return EXIT_SUCCESS;
+    }
+
+    static int handleApiKeyGet(DatashareTaskFactory taskFactory, String userName) throws Exception {
+        String hashedKey = taskFactory.createGetApiKey(localUser(userName)).call();
+        if (hashedKey == null) {
+            logger.info("no user {} exists", userName);
+            return EXIT_NOT_FOUND;
+        }
+        System.out.println(hashedKey);
+        return EXIT_SUCCESS;
     }
 
     private static int error(String message, String code, int exit, boolean json) {

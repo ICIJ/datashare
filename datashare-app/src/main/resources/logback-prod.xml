@@ -2,6 +2,9 @@
 <configuration>
     <contextName>production</contextName>
     <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- stderr, not stdout: stdout carries CLI command results (--json output included)
+             and must stay parseable -->
+        <target>System.err</target>
         <!-- Drop benign, high-volume PDFBox/FontBox font-fallback, xref-repair and no-Unicode-mapping
              warnings (~85% of WARN volume) while keeping genuine PDF/font errors visible. -->
         <filter class="org.icij.extract.log.PdfBoxNoiseFilter"/>
@@ -12,6 +15,10 @@
     <!-- Drop benign, high-volume Apache POI parsing noise on legacy Office files;
          message-targeted so other POI diagnostics stay visible (see the filter class). -->
     <turboFilter class="org.icij.datashare.log.PoiNoiseTurboFilter" />
+
+    <!-- jcasbin's DomainManager.printRoles dumps the whole role graph at INFO on every policy
+         load: noise on every command, and every user's roles in the terminal and the log file -->
+    <logger name="org.casbin" level="warn" />
 
     <root level="INFO">
         <appender-ref ref="stdout"/>

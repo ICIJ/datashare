@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- stderr, not stdout: stdout carries CLI command results (--json output included)
+             and must stay parseable -->
+        <target>System.err</target>
         <encoder>
             <pattern>%d [%thread] %-5level %logger{0} - %msg%n</pattern>
         </encoder>
@@ -24,6 +27,10 @@
     <turboFilter class="org.icij.datashare.log.PoiNoiseTurboFilter" />
 
     <logger name="com.amazonaws.request" level="warn" />
+
+    <!-- jcasbin's DomainManager.printRoles dumps the whole role graph at INFO on every policy
+         load: noise on every command, and every user's roles in the terminal and the log file -->
+    <logger name="org.casbin" level="warn" />
 
     <root level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
