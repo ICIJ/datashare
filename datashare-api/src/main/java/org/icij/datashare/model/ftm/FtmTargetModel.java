@@ -34,11 +34,15 @@ public class FtmTargetModel implements TargetModel {
 
     public FtmTargetModel() {
         JsonNode root = ontology();
-        Model model = Model.fromJson(JsonObjectMapper.getMapper(), root);
         JsonNode schemata = present(root, "schemata");
         this.version = present(root, "version").asText();
-        this.types = model.getSchemata().values().stream()
-                          .collect(Collectors.toUnmodifiableMap(Schema::getName, schema -> type(schema, schemata)));
+        try {
+            Model model = Model.fromJson(JsonObjectMapper.getMapper(), root);
+            this.types = model.getSchemata().values().stream()
+                              .collect(Collectors.toUnmodifiableMap(Schema::getName, schema -> type(schema, schemata)));
+        } catch (RuntimeException e) {
+            throw new UnreadableModelResource(RESOURCE, e);
+        }
     }
 
     @Override
@@ -147,8 +151,8 @@ public class FtmTargetModel implements TargetModel {
                                    edge.isDirected());
     }
 
-    // Every field this parser needs is read through here rather than with get(), so a bundle whose
-    // shape moved fails as UnreadableModelResource naming the field instead of as a bare NPE.
+    // Read through here rather than with get(), so a missing field fails as UnreadableModelResource
+    // naming it instead of as a bare NPE.
     private static JsonNode present(JsonNode node, String field) {
         JsonNode value = node.path(field);
         if (value.isMissingNode() || value.isNull()) {
