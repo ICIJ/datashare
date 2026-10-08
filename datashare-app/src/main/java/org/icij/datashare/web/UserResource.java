@@ -43,6 +43,7 @@ import org.icij.datashare.utils.PayloadFormatter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Comparator;
@@ -305,7 +306,18 @@ public class UserResource {
     @ApiResponse(responseCode = "404", description = "user not found")
     @Policy(role = Role.INSTANCE_ADMIN)
     @Put("/admin/:userId")
-    public Payload updateUser(String userId, UserUpdateRequest request) {
+    public Payload updateUser(String userId, Context context) {
+        // extract here rather than in the signature: fluent-http deserializes a route parameter
+        // before the method runs, so a malformed body escapes as a 500 carrying the Java class name
+        UserUpdateRequest request;
+        try {
+            request = context.extract(UserUpdateRequest.class);
+        } catch (IOException | RuntimeException e) {
+            return PayloadFormatter.error("malformed JSON body", HttpStatus.BAD_REQUEST);
+        }
+        if (request == null) {
+            return PayloadFormatter.error("malformed JSON body", HttpStatus.BAD_REQUEST);
+        }
         try {
             return new Payload(userAdminService.update(userId, request));
         } catch (UserNotFoundException e) {
