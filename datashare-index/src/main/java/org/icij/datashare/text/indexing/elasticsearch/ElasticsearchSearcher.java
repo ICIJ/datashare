@@ -13,11 +13,15 @@ import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.json.JsonException;
+import java.io.InterruptedIOException;
 import java.util.Objects;
+import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
@@ -32,6 +36,10 @@ import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQu
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
 
 class ElasticsearchSearcher implements Indexer.Searcher {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchSearcher.class);
+    private static final int TOO_MANY_REQUESTS = 429;
+    private static final int MAX_SCROLL_ATTEMPTS = 5;
+    private static final long FIRST_SCROLL_RETRY_DELAY_MILLIS = 1000;
     protected final List<String> indexesNames;
     protected final ElasticsearchClient client;
     protected final Class<? extends Entity> cls;
@@ -130,19 +138,57 @@ class ElasticsearchSearcher implements Indexer.Searcher {
                         s -> s.id(String.valueOf(scrollQuery.getNumSlice())).max(scrollQuery.getNbSlices()));
             }
             scrollSearchRequest = sourceBuilder.scroll(Time.of(t -> t.time(scrollQuery.getDuration()))).build();
-            response = client.search(scrollSearchRequest, ObjectNode.class);
+            response = retryingTooManyRequests(() -> client.search(scrollSearchRequest, ObjectNode.class));
             totalHits = Objects.requireNonNull(response.hits().total()).value();
         } else if (scrollQuery.getStringQuery() == null) {
-            response = client.scroll(ScrollRequest.of(s -> s.scroll(Time.of(t -> t.time(scrollQuery.getDuration())))
-                                                            .scrollId(ofNullable(scrollId).orElseThrow(
-                                                                    () -> new IllegalStateException(
-                                                                            "ScrollId must have been cleared")))),
-                                     ObjectNode.class);
+            ScrollRequest scrollRequest = ScrollRequest.of(
+                    s -> s.scroll(Time.of(t -> t.time(scrollQuery.getDuration()))).scrollId(
+                            ofNullable(scrollId).orElseThrow(
+                                    () -> new IllegalStateException("ScrollId must have been cleared"))));
+            response = retryingTooManyRequests(() -> client.scroll(scrollRequest, ObjectNode.class));
         } else {
             throw new IllegalStateException("cannot change query when scroll is pending");
         }
         scrollId = response.scrollId();
         return resultStream(this.cls, () -> response.hits().hits().iterator());
+    }
+
+    // A 429 comes from an Elasticsearch circuit breaker rejecting the request before running it, so the
+    // scroll cursor has not moved and the same request can be sent again once the heap pressure drops.
+    // Any other error, or a breaker still tripped after the last attempt, reaches the caller.
+    private <T> T retryingTooManyRequests(ElasticsearchCall<T> call) throws IOException {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return call.execute();
+            } catch (ResponseException e) {
+                if (!isTooManyRequests(e) || attempt == MAX_SCROLL_ATTEMPTS) {
+                    throw e;
+                }
+                waitBeforeRetry(attempt, e);
+            }
+        }
+    }
+
+    private static boolean isTooManyRequests(ResponseException e) {
+        return e.getResponse().getStatusLine().getStatusCode() == TOO_MANY_REQUESTS;
+    }
+
+    private static void waitBeforeRetry(int attempt, ResponseException e) throws IOException {
+        long delayMillis = FIRST_SCROLL_RETRY_DELAY_MILLIS << (attempt - 1);
+        LOGGER.warn("elasticsearch rejected scroll attempt {}/{} with too many requests, retrying in {}ms", attempt,
+                    MAX_SCROLL_ATTEMPTS, delayMillis);
+        try {
+            Thread.sleep(delayMillis);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw (IOException) new InterruptedIOException("interrupted while waiting to retry the scroll").initCause(
+                    e);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ElasticsearchCall<T> {
+        T execute() throws IOException;
     }
 
     @Override
