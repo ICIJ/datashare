@@ -189,7 +189,11 @@ public class UserAdminServiceImpl implements UserAdminService {
         List<String> deduplicated = canonical.stream().distinct().collect(Collectors.toList());
         for (String projectName : deduplicated) {
             if (repository.getProject(projectName) == null) {
-                throw new ValidationException("groups", "project '" + projectName + "' does not exist");
+                // Projects must exist before the users that reference them. Note the default project
+                // (local-datashare) has no row until something creates it: YesCookieAuthFilter
+                // synthesizes it in memory for the session, it is not persisted.
+                throw new ValidationException("groups",
+                                              "project '" + projectName + "' does not exist, create it first");
             }
         }
         return deduplicated;
