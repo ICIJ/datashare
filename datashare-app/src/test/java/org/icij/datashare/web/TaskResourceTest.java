@@ -37,6 +37,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
 import java.io.IOException;
@@ -52,6 +53,7 @@ import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
@@ -63,6 +65,8 @@ import static org.mockito.MockitoAnnotations.openMocks;
 public class TaskResourceTest extends AbstractProdWebServerTest {
     // matches the name field only: a ScanTask id also appears inside the IndexTask args
     private static final String SCAN_TASK_NAME_FIELD = "\"name\":\"org.icij.datashare.tasks.ScanTask\"";
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
     @Rule
     public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     @Mock
@@ -716,14 +720,14 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_batch_download_ignores_client_download_dir_and_encryption() throws Exception {
-        Path clientDir = Files.createTempDirectory("ds-test").resolve("client-dir");
+    public void test_batch_download_ignores_client_download_dir() throws Exception {
+        Path clientDir = tmp.getRoot().toPath().resolve("client-dir");
         Response response = post("/api/task/batchDownload", format("{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\", \"batchDownloadDir\": \"%s\", \"batchDownloadEncrypt\": \"true\" }}", clientDir)).response();
 
         TaskResource.TaskResponse taskResponse = JsonObjectMapper.readValue(response.content(), TaskResource.TaskResponse.class);
         BatchDownload batchDownload = (BatchDownload) taskManager.getTask(taskResponse.taskId()).args.get("batchDownload");
-        assertThat(batchDownload.filename.getParent().toString()).isEqualTo("app/tmp");
-        assertThat(batchDownload.encrypted).isFalse();
+        assertThat(batchDownload.filename.getParent().toString()).isEqualTo((String) getDefaultProperties().get(BATCH_DOWNLOAD_DIR_OPT));
+        assertThat(batchDownload.encrypted).isTrue();
         assertThat(Files.exists(clientDir)).isFalse();
     }
 

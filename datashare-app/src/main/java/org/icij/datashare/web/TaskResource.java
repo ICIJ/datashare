@@ -384,7 +384,8 @@ public class TaskResource {
                        (String) options.get("query");
         String uri = (String) options.get("uri");
         boolean batchDownloadEncrypt =
-                parseBoolean(properties.getOrDefault("batchDownloadEncrypt", "false").toString());
+                parseBoolean(properties.getOrDefault(BATCH_DOWNLOAD_ENCRYPT_OPT, "false").toString()) ||
+                parseBoolean(String.valueOf(options.get(BATCH_DOWNLOAD_ENCRYPT_OPT)));
         List<String> projectIds = (List<String>) options.get("projectIds");
 
         BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()),
