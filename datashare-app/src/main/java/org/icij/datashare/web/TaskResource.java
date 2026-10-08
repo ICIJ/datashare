@@ -377,7 +377,7 @@ public class TaskResource {
     public TaskResponse batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws IOException {
         Map<String, Object> options = optionsWrapper.getOptions();
         Properties properties = propertiesProvider.getProperties();
-        Path downloadDir = get(properties.getProperty(BATCH_DOWNLOAD_DIR_OPT));
+        Path downloadDir = get(properties.getProperty(BATCH_DOWNLOAD_DIR_OPT, DEFAULT_BATCH_DOWNLOAD_DIR));
         if (!downloadDir.toFile().exists())
             downloadDir.toFile().mkdirs();
         String query = options.get("query") instanceof Map ? JsonObjectMapper.writeValueAsString(options.get("query")) :
