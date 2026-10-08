@@ -8,7 +8,10 @@ import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.http.Header;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -48,6 +51,7 @@ public class ElasticsearchConfiguration {
     public static final String ELASTICSEARCH_MAX_IDLE_CONNECTION_TIME_OPT = "elasticsearchMaxIdleConnectionTime";
     public static final String DEFAULT_ADDRESS = "http://localhost:9200";
     public static final String ES_CLUSTER_NAME = "datashare";
+    private static final String ES_COMPATIBLE_JSON_PREFIX = "application/vnd.elasticsearch+json";
     static final String ES_DOCUMENT_TYPE = "Document";
     static final String ES_DUPLICATE_TYPE = "Duplicate";
     static final String ES_CONTENT_FIELD = "content";
@@ -87,6 +91,11 @@ public class ElasticsearchConfiguration {
                         // This header is expected from the client, versions of ES server below 7.14 don't provide it
                         // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
                         response.addHeader("X-Elastic-Product", "Elasticsearch"));
+                // OpenSearch rejects the Elasticsearch compatibility media type with a 406
+                httpAsyncClientBuilder.addInterceptorLast((HttpRequestInterceptor) (request, context) -> {
+                    usePlainJson(request, "Content-Type");
+                    usePlainJson(request, "Accept");
+                });
                 if (indexUrl.getUserInfo() != null) {
                     String[] userInfo = indexUrl.getUserInfo().split(":");
                     LOGGER.info("using credentials from url (user={})", userInfo[0]);
@@ -111,6 +120,13 @@ public class ElasticsearchConfiguration {
             return new ElasticsearchClient(transport);
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static void usePlainJson(HttpRequest request, String headerName) {
+        Header header = request.getFirstHeader(headerName);
+        if (header != null && header.getValue().startsWith(ES_COMPATIBLE_JSON_PREFIX)) {
+            request.setHeader(headerName, "application/json");
         }
     }
 
