@@ -77,8 +77,8 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
             boolean passwordFromFlag = password != null;
             if (passwordStdin) {
                 if (passwordFromFlag) {
-                    throw CliErrors.fail(spec, json, "usage",
-                                         "--password and --password-stdin are mutually exclusive", 2);
+                    throw CliErrors.fail(spec, json, "usage", "--password and --password-stdin are mutually exclusive",
+                                         2);
                 }
                 password = readPasswordFromStdin();
                 Validators.password(password);
@@ -86,13 +86,12 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
 
             if (login == null || email == null || (User.LOCAL.equals(provider) && password == null)) {
                 if (noInput) {
-                    throw CliErrors.fail(spec, json, "usage",
-                                         "missing required field; --no-input prevents prompting", 2);
+                    throw CliErrors.fail(spec, json, "usage", "missing required field; --no-input prevents prompting",
+                                         2);
                 }
                 Prompter prompter = prompterOverride != null ? prompterOverride : new Prompter();
                 if (prompterOverride == null && !prompter.isInteractive()) {
-                    throw CliErrors.fail(spec, json, "usage",
-                                         "missing required field and no TTY available", 2);
+                    throw CliErrors.fail(spec, json, "usage", "missing required field and no TTY available", 2);
                 }
                 try {
                     if (login == null)
@@ -109,8 +108,8 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
 
             if (passwordFromFlag) {
                 spec.commandLine().getErr().println(
-                        "warning: passing --password on the command line exposes it in process "
-                        + "listings; use --password-stdin or the interactive prompt instead");
+                        "warning: passing --password on the command line exposes it in process " +
+                        "listings; use --password-stdin or the interactive prompt instead");
             }
 
             this.resolvedLogin = login;
