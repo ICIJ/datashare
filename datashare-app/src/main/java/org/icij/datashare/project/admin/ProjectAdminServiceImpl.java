@@ -325,9 +325,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return updated;
     }
 
-    // A wide admin carries the project name without holding a Casbin row for it (see #2439), so the
-    // rows are not a complete index of who lists the project: the only reliable source is the user
-    // list. One pass per project delete, an admin-rate operation.
     private void removeProjectFromAllInventories(String projectName) {
         List<User> allUsers = userStore.listUsers(new UserFilter(null), null, 0, Integer.MAX_VALUE).items;
         for (User user : allUsers) {
@@ -439,9 +436,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                                                                         indexer.deleteAll(entitiesIndex));
         boolean indexDeleted = documentsDeleted && entitiesDeleted;
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
-        // Casbin rows and inventory entries outlive the project row otherwise, and a project
-        // re-created with the same name resurrects both (see #2441). Contained like every other
-        // cascade step: a failure here must not stop the queues and index cleanup.
         // Gated on dbDeleted: if the project row survives, stripping its grants would leave a live
         // project nobody can reach, and grants are the one cascade output that cannot be rebuilt.
         //TODO #DOMAIN: drop the rows of every domain once projects carry one.
@@ -468,7 +462,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private static boolean runStep(String label, String project, CascadeStep step) {
         try {
-            return step.run();
+            boolean done = step.run();
+            // per step, not just a summary at the end: a cascade killed midway otherwise leaves no
+            // trace of how far it got. Both the API and the CLI go through here now.
+            LOGGER.info("deleted {} for project {}: {}", label, project, done);
+            return done;
         } catch (Exception e) {
             LOGGER.error("cannot delete {} for project {}", label, project, e);
             return false;
