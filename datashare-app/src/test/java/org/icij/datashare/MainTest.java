@@ -1,6 +1,8 @@
 package org.icij.datashare;
 
+import org.icij.datashare.cli.CliExitException;
 import org.junit.Test;
+import picocli.CommandLine;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -141,5 +143,45 @@ public class MainTest {
     @Test
     public void test_new_app_after_options() {
         assertThat(Main.isLegacyInvocation(new String[]{"--elasticsearchPath", "/path", "app", "start"})).isFalse();
+    }
+
+    @Test
+    public void test_cli_exit_exception_sets_its_own_exit_code() {
+        CommandLine commandLine = new CommandLine(new ThrowingCommand(5));
+        commandLine.setExecutionExceptionHandler(Main.CLI_EXIT_HANDLER);
+
+        assertThat(commandLine.execute()).isEqualTo(5);
+    }
+
+    @Test
+    public void test_other_exceptions_keep_the_default_handling() {
+        CommandLine commandLine = new CommandLine(new ThrowingCommand(-1));
+        commandLine.setExecutionExceptionHandler(Main.CLI_EXIT_HANDLER);
+
+        assertThat(commandLine.execute()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_cli_exit_exception_with_code_zero_still_exits_zero() {
+        // UserDeleteCommand throws CliExitException(0) on the --if-exists noop path:
+        // a handler mapping "threw" to "failed" would turn that into a spurious failure
+        CommandLine commandLine = new CommandLine(new ThrowingCommand(0));
+        commandLine.setExecutionExceptionHandler(Main.CLI_EXIT_HANDLER);
+
+        assertThat(commandLine.execute()).isEqualTo(0);
+    }
+
+    @CommandLine.Command(name = "throwing")
+    static class ThrowingCommand implements Runnable {
+        private final int code;
+
+        ThrowingCommand(int code) {
+            this.code = code;
+        }
+
+        @Override
+        public void run() {
+            throw code < 0 ? new IllegalStateException("boom") : new CliExitException(code);
+        }
     }
 }
