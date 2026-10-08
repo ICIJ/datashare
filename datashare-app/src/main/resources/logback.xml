@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <!-- stderr, not stdout: stdout carries CLI command results (--json output included)
+        <!-- stderr, not stdout: stdout carries CLI command results, JSON output included,
              and must stay parseable -->
         <target>System.err</target>
         <encoder>
