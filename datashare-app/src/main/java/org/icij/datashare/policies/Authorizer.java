@@ -288,6 +288,16 @@ public final class Authorizer implements Closeable {
         enforcer.removeFilteredGroupingPolicy(0, userId);
     }
 
+    /**
+     * Deletes every grouping rule scoped to one project, for every user. Used when the project is
+     * deleted: the rows would otherwise outlive it and resurface if a project with the same name is
+     * created later. Filters on field index 2 (the "domain::project" column), so instance and domain
+     * wildcard rows are untouched.
+     */
+    public void removeAllPoliciesForProject(Domain domain, String projectId) {
+        enforcer.removeFilteredGroupingPolicy(2, domainSepProject(domain, projectId));
+    }
+
     public void startAutoLoadPolicy(long intervalMs) {
         if (intervalMs > 0)
             enforcer.startAutoLoadPolicy(intervalMs);

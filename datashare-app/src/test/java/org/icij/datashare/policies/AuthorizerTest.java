@@ -522,4 +522,36 @@ public class AuthorizerTest {
         watchedAuthorizer.close();
     }
 
+    @Test
+    public void test_remove_all_policies_for_project_drops_every_role_on_it() {
+        User alice = new User("alice");
+        User bob = new User("bob");
+        Project proj = project("proj");
+        Project other = project("other");
+        authorizer.addRoleForUserInProject(alice, Role.PROJECT_EDITOR, Domain.DEFAULT, proj);
+        authorizer.addRoleForUserInProject(bob, Role.PROJECT_MEMBER, Domain.DEFAULT, proj);
+        authorizer.addRoleForUserInProject(alice, Role.PROJECT_ADMIN, Domain.DEFAULT, other);
+        authorizer.addRoleForUserInInstance(alice, Role.INSTANCE_ADMIN);
+
+        authorizer.removeAllPoliciesForProject(Domain.DEFAULT, "proj");
+
+        assertThat(authorizer.getRolesForUserInProject(alice, Domain.DEFAULT, proj)).isEmpty();
+        assertThat(authorizer.getRolesForUserInProject(bob, Domain.DEFAULT, proj)).isEmpty();
+        assertThat(authorizer.getRolesForUserInProject(alice, Domain.DEFAULT, other))
+                .contains(Role.PROJECT_ADMIN.name());
+        assertThat(authorizer.getRolesForUserInDomain(alice, Domain.of("*")))
+                .contains(Role.INSTANCE_ADMIN.name());
+    }
+
+    @Test
+    public void test_remove_all_policies_for_an_unknown_project_is_a_noop() {
+        User alice = new User("alice");
+        authorizer.addRoleForUserInProject(alice, Role.PROJECT_EDITOR, Domain.DEFAULT, project("proj"));
+
+        authorizer.removeAllPoliciesForProject(Domain.DEFAULT, "ghost");
+
+        assertThat(authorizer.getRolesForUserInProject(alice, Domain.DEFAULT, project("proj")))
+                .contains(Role.PROJECT_EDITOR.name());
+    }
+
 }
