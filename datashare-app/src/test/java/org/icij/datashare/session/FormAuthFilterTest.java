@@ -83,11 +83,30 @@ public class FormAuthFilterTest implements FluentRestTest {
 
     @Test
     public void test_a_failed_login_does_not_reveal_whether_the_user_exists() {
-        // same body for an unknown login and a wrong password: no enumeration oracle
+        // alice exists, ghost does not, and neither password is right. Without this stub both
+        // lookups return null and take the same branch, so the test could never catch an oracle
+        // introduced by an existence pre-check.
+        when(users.find("alice")).thenReturn(new DatashareUser("alice"));
+        when(users.find("alice", "x")).thenReturn(null);
+        when(users.find("ghost")).thenReturn(null);
+        when(users.find("ghost", "x")).thenReturn(null);
+
         String unknownUser = postLogin("ghost", "x").response().content();
         String wrongPassword = postLogin("alice", "x").response().content();
 
         assertThat(unknownUser).isEqualTo(wrongPassword);
+    }
+
+    @Test
+    public void test_the_unauthenticated_api_chain_includes_the_api_key_filter() {
+        // ApiKeyFilter sits in front of this filter for every /api URI in server mode, so a test
+        // wiring only FormAuthFilter asserts a chain no deployment runs (see #2444).
+        server.configure(routes -> routes
+                .get("/api/users/me", context -> "never reached")
+                .filter(new ApiKeyFilter(users, apiKey -> null, null))
+                .filter(filter));
+
+        this.get("/api/users/me").should().respond(401).contain("authentication required");
     }
 
     @Test

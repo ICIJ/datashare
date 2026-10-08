@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import static net.codestory.http.constants.Headers.CACHE_CONTROL;
 import static net.codestory.http.constants.HttpStatus.UNAUTHORIZED;
+import org.icij.datashare.utils.PayloadFormatter;
 
 @Singleton
 public class ApiKeyFilter implements Filter {
@@ -54,7 +55,9 @@ public class ApiKeyFilter implements Filter {
                 return nextFilter.get().withHeader(CACHE_CONTROL, "must-revalidate");
             }
         }
-        return new Payload(UNAUTHORIZED);
+        // same message as the auth filters: the body must not say whether a key or a user
+        // exists, only that credentials are required (see #2444)
+        return PayloadFormatter.error("authentication required", UNAUTHORIZED);
     }
 
     protected String readApiKeyInHeader(Context context) {

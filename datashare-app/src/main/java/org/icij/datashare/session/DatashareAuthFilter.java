@@ -8,6 +8,7 @@ import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
 import org.icij.datashare.utils.PayloadFormatter;
+import net.codestory.http.constants.HttpStatus;
 
 /**
  * Base class for Datashare cookie-based authentication filters.
@@ -53,7 +54,10 @@ public abstract class DatashareAuthFilter extends CookieAuthFilter {
         if (uri.equals("/") || uri.isEmpty()) {
             return nextFilter.get();
         }
-        return PayloadFormatter.error("authentication required", 401);
+        // Deliberate: attaching a body skips the content negotiation that used to render an HTML
+        // error page for browsers, so a logged-out deep link now shows JSON. Accepted because every
+        // caller reaching here is the SPA or an API client, and a silent empty body was worse.
+        return PayloadFormatter.error("authentication required", HttpStatus.UNAUTHORIZED);
     }
 
     @Override

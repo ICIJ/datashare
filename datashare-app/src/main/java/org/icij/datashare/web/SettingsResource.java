@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 import static net.codestory.http.payload.Payload.ok;
+import org.icij.datashare.utils.PayloadFormatter;
 
 @Singleton
 @Prefix("/api/settings")
@@ -69,7 +70,7 @@ public class SettingsResource {
     @Patch()
     public Payload patchSettings(Context context, JsonData data) throws IOException {
         if (propertiesProvider.get("mode").orElse(Mode.LOCAL.name()).equals(Mode.SERVER.name())) {
-            return Payload.forbidden();
+            return PayloadFormatter.error("settings are read-only in server mode", HttpStatus.FORBIDDEN);
         }
         logger.info("user {} is updating the settings", context.currentUser().login());
         try {
