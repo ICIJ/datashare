@@ -7,7 +7,6 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectDeleteOptions;
 import org.icij.datashare.policies.*;
@@ -19,14 +18,8 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
-import org.icij.extract.extractor.ExtractionStatus;
-import org.icij.extract.queue.DocumentQueue;
-import org.icij.extract.report.Report;
-import org.icij.extract.report.ReportMap;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
 import java.io.IOException;
@@ -51,8 +44,6 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock ProjectAdminService projectAdminService;
     @Mock
     TaskManager taskManager;
-    @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
-    MemoryDocumentCollectionFactory<Path> documentCollectionFactory;
     PropertiesProvider propertiesProvider;
     Authorizer authorizer;
     @Mock
@@ -404,7 +395,6 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         initMocks(this);
         authorizer = new Authorizer(adapter);
 
-        documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {
             propertiesProvider = new PropertiesProvider(new HashMap<>() {{
@@ -559,7 +549,6 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         String body = "{ \"name\": \"foo\", \"sourcePath\": \"/my-dir/foo\"}";
         put("/api/project/foo", body).withPreemptiveAuthentication("jane", "pass").should().respond(404).contain("Project not found");
     }
-
 
     @Test
     public void test_is_allowed() {
