@@ -377,13 +377,18 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_delete_user_removes_casbin_policies() throws Exception {
+    public void test_delete_user_delegates_the_casbin_cleanup_to_the_service() throws Exception {
+        // The cleanup moved into UserAdminServiceImpl so the CLI gets it too (see #2441).
+        // userAdminService is a mock here, so the resource's whole contract is the delegation;
+        // UserAdminServiceImplTest owns the assertion that the rows actually go.
         authorizer.addRoleForUserInInstance(new User("alice"), Role.PROJECT_MEMBER);
-        when(userAdminService.delete("alice")).thenReturn(true);
 
         delete("/api/users/admin/alice").should().respond(204);
 
-        assertTrue(authorizer.getGroupPermissions(localUser("alice")).isEmpty());
+        verify(userAdminService).deleteIfExists("alice");
+        // untouched: the stubbed service is a no-op, so a surviving row proves the
+        // resource is no longer wiping policies behind the service's back
+        assertFalse(authorizer.getGroupPermissions(localUser("alice")).isEmpty());
     }
 
     @Test

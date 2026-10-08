@@ -3,6 +3,7 @@ package org.icij.datashare.user.admin;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.icij.datashare.cli.Validators;
+import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.PostLoginEnroller;
 import org.icij.datashare.session.UserStore;
@@ -22,11 +23,14 @@ public class UserAdminServiceImpl implements UserAdminService {
     private final UserStore userStore;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
+    private final Authorizer authorizer;
 
     @Inject
-    public UserAdminServiceImpl(UserStore userStore, @Nullable PostLoginEnroller postLoginEnroller) {
+    public UserAdminServiceImpl(UserStore userStore, @Nullable PostLoginEnroller postLoginEnroller,
+                                Authorizer authorizer) {
         this.userStore = userStore;
         this.postLoginEnroller = postLoginEnroller;
+        this.authorizer = authorizer;
     }
 
     @Override
@@ -50,16 +54,23 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public boolean delete(String login) throws UserNotFoundException {
-        boolean removed = userStore.delete(login);
-        if (!removed) {
+        if (!userStore.delete(login)) {
             throw new UserNotFoundException(login);
         }
+        // Rows outlive the user row otherwise, and a user re-created with the same
+        // login inherits them (see #2441). Store first: a Casbin wipe for a user we
+        // failed to delete would strip a live user of every role.
+        authorizer.removeAllPoliciesForUser(login);
         return true;
     }
 
     @Override
     public boolean deleteIfExists(String login) {
-        return userStore.delete(login);
+        if (!userStore.delete(login)) {
+            return false;
+        }
+        authorizer.removeAllPoliciesForUser(login);
+        return true;
     }
 
     @Override
