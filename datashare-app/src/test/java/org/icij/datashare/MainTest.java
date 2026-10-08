@@ -3,6 +3,7 @@ package org.icij.datashare;
 import org.icij.datashare.cli.CliExitException;
 
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 import picocli.CommandLine;
 
@@ -150,7 +151,7 @@ public class MainTest {
     @Test
     public void test_cli_exit_exception_sets_its_own_exit_code() {
         CommandLine commandLine = new CommandLine(new ThrowingCommand(5));
-        commandLine.setExecutionExceptionHandler(Main.CLI_EXIT_HANDLER);
+        commandLine.setExecutionExceptionHandler(Main.cliExitHandler(new AtomicBoolean()));
 
         assertThat(commandLine.execute()).isEqualTo(5);
     }
@@ -158,7 +159,7 @@ public class MainTest {
     @Test
     public void test_other_exceptions_keep_the_default_handling() {
         CommandLine commandLine = new CommandLine(new ThrowingCommand(-1));
-        commandLine.setExecutionExceptionHandler(Main.CLI_EXIT_HANDLER);
+        commandLine.setExecutionExceptionHandler(Main.cliExitHandler(new AtomicBoolean()));
 
         assertThat(commandLine.execute()).isEqualTo(1);
     }
@@ -168,7 +169,7 @@ public class MainTest {
         // UserDeleteCommand throws CliExitException(0) on the --if-exists noop path:
         // a handler mapping "threw" to "failed" would turn that into a spurious failure
         CommandLine commandLine = new CommandLine(new ThrowingCommand(0));
-        commandLine.setExecutionExceptionHandler(Main.CLI_EXIT_HANDLER);
+        commandLine.setExecutionExceptionHandler(Main.cliExitHandler(new AtomicBoolean()));
 
         assertThat(commandLine.execute()).isEqualTo(0);
     }
@@ -207,6 +208,36 @@ public class MainTest {
         properties.setProperty("createApiKey", "alice");
 
         assertThat(Main.cliOnlyTaskOptIn(properties)).isEqualTo("createApiKey");
+    }
+
+    @Test
+    public void test_a_cli_exit_exception_is_recorded_as_handled() {
+        // exit code 0 alone cannot tell runPicocli that the command already finished its work.
+        // Without this flag, declining a `user delete` confirmation (CliExitException(0)) falls
+        // through to startApplication with empty properties and starts a full indexing pipeline.
+        AtomicBoolean handled = new AtomicBoolean();
+        CommandLine commandLine = new CommandLine(new ThrowingCommand(0));
+        commandLine.setExecutionExceptionHandler(Main.cliExitHandler(handled));
+
+        assertThat(commandLine.execute()).isEqualTo(0);
+        assertThat(handled.get()).isTrue();
+    }
+
+    @Test
+    public void test_a_command_that_does_not_throw_is_not_recorded_as_handled() {
+        AtomicBoolean handled = new AtomicBoolean();
+        CommandLine commandLine = new CommandLine(new QuietCommand());
+        commandLine.setExecutionExceptionHandler(Main.cliExitHandler(handled));
+
+        assertThat(commandLine.execute()).isEqualTo(0);
+        assertThat(handled.get()).isFalse();
+    }
+
+    @CommandLine.Command(name = "quiet")
+    static class QuietCommand implements Runnable {
+        @Override
+        public void run() {
+        }
     }
 
     @CommandLine.Command(name = "throwing")
