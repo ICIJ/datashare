@@ -85,14 +85,16 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
             // either we should check for every tasks' projects
             // or we enforce wildcard project access (domain level)to do batch operation (current solution).
             boolean isAllowed = authorizer.can(user.id, domain, "*", annotation.role());
-            return isAllowed ? payloadSupplier.apply(context) : PayloadFormatter.error("insufficient role", HttpStatus.FORBIDDEN);
+            return isAllowed ? payloadSupplier.apply(context) :
+                   PayloadFormatter.error("insufficient role", HttpStatus.FORBIDDEN);
         }
         String taskId = Authorizer.requireIdParam(context, annotation.idParam());
         try {
             Task<Serializable> task = taskManager.getTask(taskId);
             boolean isAllowed = isAllowedSingleTask(task, annotation, user, domain);
 
-            return isAllowed ? payloadSupplier.apply(context) : PayloadFormatter.error("insufficient role", HttpStatus.FORBIDDEN);
+            return isAllowed ? payloadSupplier.apply(context) :
+                   PayloadFormatter.error("insufficient role", HttpStatus.FORBIDDEN);
 
         } catch (UnknownTask e) {
             return Payload.notFound();
