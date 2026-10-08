@@ -19,6 +19,11 @@ import java.io.Closeable;
 import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Set;
+import static org.icij.datashare.cli.DatashareCliOptions.CREATE_INDEX_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.CRE_API_KEY_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEL_API_KEY_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.GET_API_KEY_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.GRANT_ADMIN_OPT;
 import static java.util.Optional.ofNullable;
 
 /**
@@ -44,6 +49,23 @@ public class Main {
         }
         throw ex;
     };
+
+    /**
+     * Legacy flags that run a one-shot task and then exit. They are only dispatched under
+     * {@code --mode CLI}; under any other mode Datashare starts a web server and never runs them,
+     * which reads as a hang.
+     */
+    static final Set<String> CLI_ONLY_TASK_OPTS =
+            Set.of(GRANT_ADMIN_OPT, CRE_API_KEY_OPT, GET_API_KEY_OPT, DEL_API_KEY_OPT, CREATE_INDEX_OPT);
+
+    /** The first CLI-only task flag set under a non-CLI mode, or null when the invocation is fine. */
+    static String cliOnlyTaskOptIn(Properties properties) {
+        if (Mode.CLI == Mode.valueOf(properties.getProperty("mode", "LOCAL"))) {
+            return null;
+        }
+        return CLI_ONLY_TASK_OPTS.stream().filter(opt -> properties.getProperty(opt) != null).sorted().findFirst()
+                                 .orElse(null);
+    }
 
     /**
      * Application entry point. Routes to the legacy jopt-simple parser or the picocli subcommand
@@ -114,6 +136,12 @@ public class Main {
     }
 
     private static void startApplication(Properties properties) throws Exception {
+        String misplacedTaskOpt = cliOnlyTaskOptIn(properties);
+        if (misplacedTaskOpt != null) {
+            System.err.println("error: --" + misplacedTaskOpt + " only runs under --mode CLI; "
+                               + "re-run with --mode CLI");
+            System.exit(2);
+        }
         Mode mode = Mode.valueOf(properties.getProperty("mode", "LOCAL"));
         LOGGER.info("Running datashare {}", mode.isWebServer() ? "web server" : "");
         LOGGER.info("JVM version {}", System.getProperty("java.version"));
