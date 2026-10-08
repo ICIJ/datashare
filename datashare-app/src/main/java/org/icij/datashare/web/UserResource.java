@@ -100,6 +100,22 @@ public class UserResource {
     }
 
     // Instance admin and default-domain admin authorize every project; other domains do not (yet).
+    /**
+     * The parsed value, the fallback when absent, or null when it is not an integer or is negative.
+     * Zero is valid: `size=0` is a legitimate count-only page, not an error.
+     */
+    private static Integer parseNonNegativeInt(String raw, int fallback) {
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        try {
+            int parsed = Integer.parseInt(raw.trim());
+            return parsed < 0 ? null : parsed;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     private static boolean coversEveryProject(Domain scope) {
         return INSTANCE_SCOPE.equals(scope) || Domain.DEFAULT.equals(scope);
     }
@@ -146,8 +162,8 @@ public class UserResource {
         String index = context.get("index");
         String sortParam = context.get("sort");
         boolean desc = Boolean.parseBoolean(context.get("desc"));
-        int from = Integer.parseInt(Optional.ofNullable(context.get("from")).orElse("0"));
-        int size = Integer.parseInt(Optional.ofNullable(context.get("size")).orElse("100"));
+        Integer fromParam = parseNonNegativeInt(context.get("from"), 0);
+        Integer sizeParam = parseNonNegativeInt(context.get("size"), 100);
         String noRoleParam = context.get("noRole");
         Boolean noRole = noRoleParam != null ? Boolean.parseBoolean(noRoleParam) : null;
         boolean isScoped = domain != null || index != null;
@@ -158,6 +174,15 @@ public class UserResource {
             !"role".equalsIgnoreCase(sortParam)) {
             return PayloadFormatter.error("sort must be one of: uid, email, name, role", HttpStatus.BAD_REQUEST);
         }
+
+        if (fromParam == null) {
+            return PayloadFormatter.error("from must be a non-negative integer", HttpStatus.BAD_REQUEST);
+        }
+        if (sizeParam == null) {
+            return PayloadFormatter.error("size must be a non-negative integer", HttpStatus.BAD_REQUEST);
+        }
+        int from = fromParam;
+        int size = sizeParam;
 
         // 1. Fetch users: an exact uid lookup, or all users (q pre-filtered via UserFilter.matches in UsersInDb)
         List<User> users;
