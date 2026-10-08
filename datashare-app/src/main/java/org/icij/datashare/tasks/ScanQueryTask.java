@@ -75,7 +75,7 @@ public class ScanQueryTask extends PipelineTask<Path> {
     private long enqueueSelectedPaths() throws Exception {
         Indexer.Searcher search =
                 indexer.search(singletonList(projectName), Document.class, new SearchQuery(searchQuery))
-                       .withDocValues("path").limit(parseInt(scrollSize));
+                       .withDocValues("path").limit(parseInt(scrollSize)).sort("_doc", Indexer.Searcher.SortOrder.ASC);
         long nbEnqueued = 0;
         List<? extends Entity> selected;
         try {
