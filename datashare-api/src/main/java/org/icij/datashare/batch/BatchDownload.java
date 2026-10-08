@@ -42,7 +42,7 @@ public class BatchDownload {
 
     public BatchDownload(final List<Project> projects, User user, String query, String uri, Path downloadDir,
                          boolean isEncrypted) {
-        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)),
+        this(UUID.randomUUID().toString(), projects, resolveInside(downloadDir, createFilename(user)),
              new SearchQuery(ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null"))),
              uri, user, isEncrypted);
     }
@@ -62,6 +62,13 @@ public class BatchDownload {
         this.uri = uri;
         this.filename = filename;
         this.encrypted = encrypted;
+    }
+
+    private static Path resolveInside(Path downloadDir, Path filename) {
+        if (filename.getNameCount() != 1) {
+            throw new IllegalArgumentException("batch download file must be in " + downloadDir);
+        }
+        return downloadDir.resolve(filename);
     }
 
     public static Path createFilename(User user) {
