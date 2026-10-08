@@ -316,6 +316,49 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_list_users_rejects_a_non_numeric_from() {
+        get("/api/users/admin?from=abc").should().respond(400).contain("from");
+    }
+
+    @Test
+    public void test_list_users_rejects_a_non_numeric_size() {
+        get("/api/users/admin?size=abc").should().respond(400).contain("size");
+    }
+
+    @Test
+    public void test_list_users_rejects_a_negative_from() {
+        get("/api/users/admin?from=-1").should().respond(400);
+    }
+
+    @Test
+    public void test_list_users_rejects_a_negative_size() {
+        // 200 with an empty page reads as "there are no users", which is worse than an error
+        get("/api/users/admin?size=-1").should().respond(400);
+    }
+
+    @Test
+    public void test_list_users_does_not_leak_the_exception_class_on_a_bad_from() {
+        get("/api/users/admin?from=abc").should().not().contain("NumberFormatException");
+    }
+
+    @Test
+    public void test_list_users_accepts_size_zero_as_an_empty_page() {
+        // a legitimate "count only" request, not an error
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
+
+        get("/api/users/admin?size=0").should().respond(200);
+    }
+
+    @Test
+    public void test_list_users_accepts_a_from_past_the_end_as_an_empty_page() {
+        when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
+                .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
+
+        get("/api/users/admin?from=100000").should().respond(200);
+    }
+
+    @Test
     public void test_list_users_without_role_does_not_call_get_by_ids() {
         User alice = new User("alice", "Alice", "alice@example.org", "local", new HashMap<>());
         when(userAdminService.list(any(UserFilter.class), isNull(), eq(0), eq(Integer.MAX_VALUE)))
