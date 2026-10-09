@@ -228,7 +228,7 @@ public class McpResource {
             return error(id, -32602, e.getMessage());
         } catch (Exception e) {
             logger.error("MCP tool {} failed", name, e);
-            return result(id, toolResult(String.valueOf(e.getMessage()), true));
+            return result(id, toolResult(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName(), true));
         }
     }
 
