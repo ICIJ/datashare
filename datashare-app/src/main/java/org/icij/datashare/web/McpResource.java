@@ -12,8 +12,15 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
+import org.icij.datashare.policies.TaskPolicyAnnotation;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.ExtractedText;
@@ -41,9 +48,9 @@ public class McpResource {
 
     @Inject
     public McpResource(ProjectResource projectResource, Indexer indexer, DocumentResource documentResource,
-                       TaskFinder taskFinder) {
+                       TaskFinder taskFinder, TaskManager taskManager, TaskPolicyAnnotation taskPolicy) {
         this(List.of(listProjects(projectResource), searchDocuments(indexer), getDocument(documentResource),
-                     listTasks(taskFinder)));
+                     listTasks(taskFinder), stopTask(taskManager, taskPolicy)));
     }
 
     McpResource(List<McpTool> tools) {
@@ -67,6 +74,21 @@ public class McpResource {
                 filters = filters.with(name);
             }
             return taskFinder.findVisibleTasksFor(user, filters).toList();
+        });
+    }
+
+    static McpTool stopTask(TaskManager taskManager, TaskPolicyAnnotation taskPolicy) {
+        Map<String, Object> schema =
+                Map.of("type", "object", "properties", Map.of("taskId", Map.of("type", "string")), "required",
+                       List.of("taskId"));
+        return new McpTool("stop_task", "Stops a running task.", schema, (args, context) -> {
+            String taskId = requireText(args, "taskId");
+            DatashareUser user = Authorizer.requireUser((DatashareUser) context.currentUser());
+            Task<?> task = taskManager.getTask(taskId);
+            if (!taskPolicy.isAllowed(user, task, Domain.DEFAULT, Role.PROJECT_ADMIN, Role.PROJECT_MEMBER)) {
+                throw new ForbiddenException("forbidden");
+            }
+            return Map.of("taskId", taskId, "stopped", taskManager.stopTask(taskId));
         });
     }
 
