@@ -140,4 +140,12 @@ public class McpResourceTest extends AbstractProdWebServerTest {
         assertThat(response.get("result").isObject()).isTrue();
         assertThat(response.get("result").size()).isEqualTo(0);
     }
+
+    @Test
+    public void test_exception_without_message_is_named_in_the_tool_error() throws Exception {
+        serve(List.of(new McpTool("t", "", NO_ARGS, (args, context) -> { throw new NullPointerException(); })));
+        JsonNode response = call("t", "{}");
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("NullPointerException");
+    }
 }
