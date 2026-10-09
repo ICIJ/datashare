@@ -139,8 +139,11 @@ public class UserAdminServiceImpl implements UserAdminService {
         details.put("email", newEmail);
 
         if (req.password() != null) {
-            if (req.password().isEmpty()) {
-                throw new ValidationException("password", "password cannot be empty");
+            // isBlank, not isEmpty, to match the Validators.password check create goes through:
+            // UsersInDb.find authenticates on a bare hash comparison, so a whitespace password
+            // accepted here is stored as a usable credential
+            if (req.password().isBlank()) {
+                throw new ValidationException("password", "password cannot be blank");
             }
             details.put("password", Hasher.SHA_256.hash(req.password()));
         }
