@@ -54,6 +54,16 @@
       "version": "1.1.5",
       "extensions": ["datashare-extension-neo4j"],
       "type": "PLUGIN"
+    },
+    {
+      "id": "datashare-plugin-asr",
+      "name": "ASR",
+      "description": "A Datashare plugin for audio and video transcription using speech recognition",
+      "url": "https://github.com/ICIJ/datashare-extension-asr/releases/download/1.0.0/datashare-plugin-asr-0.1.0.tgz",
+      "homepage": "https://github.com/ICIJ/datashare-extension-asr",
+      "version": "1.0.0",
+      "extensions": ["datashare-extension-asr"],
+      "type": "PLUGIN"
     }
   ]
 }
