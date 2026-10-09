@@ -17,8 +17,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
@@ -39,21 +39,24 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public UserCreated create(UserCreateRequest request) throws UserExistsException, ValidationException {
-        List<String> groups = validate(request);
         if (userStore.find(request.login()) != null) {
+            // before validate(): it reaches the database for the project check, and an existing
+            // user must still answer 409 rather than 400 on an unknown group
             throw new UserExistsException(request.login());
         }
-        return persist(request, groups);
+        return persist(request, validate(request));
     }
 
     @Override
     public UserCreated createIfNotExists(UserCreateRequest request) throws ValidationException {
-        List<String> groups = validate(request);
-        if (userStore.find(request.login()) != null) {
+        if (userStore.find(request.login()) instanceof User existing) {
+            // the groups the stored user has, not the ones asked for: nothing was written, so
+            // echoing the request would claim a membership that does not exist
             String name = request.name() == null ? request.login() : request.name();
-            return new UserCreated(request.login(), request.email(), name, request.provider(), groups, true);
+            return new UserCreated(request.login(), request.email(), name, request.provider(),
+                                   existing.getApplicationProjectNames(), true);
         }
-        return persist(request, groups);
+        return persist(request, validate(request));
     }
 
     @Override
@@ -120,9 +123,14 @@ public class UserAdminServiceImpl implements UserAdminService {
 
         // A password is write-only: a resubmitted password is indistinguishable from a new one, so
         // any password at all counts as a change rather than reporting a noop that silently rehashed.
-        boolean changed = !java.util.Objects.equals(newEmail, existing.email) ||
-                          !java.util.Objects.equals(newName, existing.name) || !newGroups.equals(currentGroups) ||
-                          req.password() != null;
+        boolean changed = !Objects.equals(newEmail, existing.email) || !Objects.equals(newName, existing.name) ||
+                          !newGroups.equals(currentGroups) || req.password() != null;
+
+        if (!changed) {
+            // returning before the save, so the flag matches the behaviour: a "noop" that still
+            // writes and re-enrolls through PostLoginEnroller is not one
+            return new UserCreated(login, newEmail, newName, existing.provider, newGroups, true);
+        }
 
         Map<String, Object> details = new HashMap<>(existing.details);
         details.put("uid", login);
@@ -180,13 +188,17 @@ public class UserAdminServiceImpl implements UserAdminService {
         if (groups == null) {
             return null;
         }
+        if (groups.stream().anyMatch(g -> g != null && g.contains(","))) {
+            // Validators.groups parses a CSV, so one entry holding a comma would come back as two
+            throw new ValidationException("groups", "a group name cannot contain a comma");
+        }
         List<String> canonical;
         try {
             canonical = Validators.groups(String.join(",", groups));
         } catch (Validators.InvalidValueException e) {
             throw new ValidationException(e.field(), e.getMessage());
         }
-        List<String> deduplicated = canonical.stream().distinct().collect(Collectors.toList());
+        List<String> deduplicated = canonical.stream().distinct().toList();
         for (String projectName : deduplicated) {
             if (repository.getProject(projectName) == null) {
                 // Projects must exist before the users that reference them. Note the default project
