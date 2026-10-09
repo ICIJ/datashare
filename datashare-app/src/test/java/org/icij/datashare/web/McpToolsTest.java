@@ -61,7 +61,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                                             new DocumentSourceAccess(repository, indexer,
                                                                                      propertiesProvider)),
                                        new TaskFinder(taskManager, batchSearchRepository), taskManager,
-                                       new TaskPolicyAnnotation(mock(Authorizer.class), taskManager));
+                                       new TaskPolicyAnnotation(mock(Authorizer.class), taskManager),
+                                       propertiesProvider);
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }

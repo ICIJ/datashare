@@ -7,6 +7,7 @@ import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.policies.Authorizer;
@@ -43,13 +44,18 @@ public class McpStopTaskTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() throws Exception {
+        serve(Mode.SERVER.name());
+    }
+
+    private void serve(String mode) throws Exception {
         TestTaskUtils.init(taskFactory);
         authorizer = new Authorizer(mock(CasbinRuleAdapter.class));
         authorizer.addRoleForUserInProject(localUser("cecile"), Role.PROJECT_ADMIN, Domain.DEFAULT, project("foo"));
         authorizer.addRoleForUserInProject(localUser("john"), Role.PROJECT_MEMBER, Domain.DEFAULT, project("foo"));
         authorizer.addRoleForUserInProject(localUser("jane"), Role.PROJECT_MEMBER, Domain.DEFAULT, project("foo"));
         McpResource mcp = new McpResource(List.of(McpResource.stopTask(taskManager,
-                                                                       new TaskPolicyAnnotation(authorizer, taskManager))));
+                                                                       new TaskPolicyAnnotation(authorizer, taskManager),
+                                                                       new PropertiesProvider(Map.of("mode", mode)))));
         Users users = new Users() {
             @Override
             public User find(String login, String password) {
@@ -75,6 +81,14 @@ public class McpStopTaskTest extends AbstractProdWebServerTest {
         }});
     }
 
+    private void waitForState(String taskId, Task.State state) throws Exception {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (taskManager.getTask(taskId).getState() != state && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20);
+        }
+        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(state);
+    }
+
     private JsonNode stop(String login, String taskId) throws Exception {
         String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"stop_task\","
                       + "\"arguments\":{\"taskId\":\"" + taskId + "\"}}}";
@@ -84,10 +98,21 @@ public class McpStopTaskTest extends AbstractProdWebServerTest {
     @Test
     public void test_project_admin_can_stop_any_task() throws Exception {
         String taskId = johnsTask();
+        waitForState(taskId, Task.State.RUNNING);
         JsonNode response = stop("cecile", taskId);
         assertThat(response.at("/result/isError").asBoolean()).as(response.toString()).isFalse();
         assertThat(MAPPER.readTree(response.at("/result/content/0/text").asText()).get("taskId").asText()).isEqualTo(taskId);
-        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(Task.State.CANCELLED);
+        waitForState(taskId, Task.State.CANCELLED);
+    }
+
+    @Test
+    public void test_local_mode_stops_without_policy_check() throws Exception {
+        serve(Mode.LOCAL.name());
+        String taskId = johnsTask();
+        waitForState(taskId, Task.State.RUNNING);
+        JsonNode response = stop("nobody", taskId);
+        assertThat(response.at("/result/isError").asBoolean()).as(response.toString()).isFalse();
+        waitForState(taskId, Task.State.CANCELLED);
     }
 
     @Test
@@ -99,10 +124,12 @@ public class McpStopTaskTest extends AbstractProdWebServerTest {
     @Test
     public void test_non_owner_project_member_is_forbidden() throws Exception {
         String taskId = johnsTask();
+        waitForState(taskId, Task.State.RUNNING);
         JsonNode response = stop("jane", taskId);
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: " + taskId);
-        assertThat(taskManager.getTask(taskId).getState()).isNotEqualTo(Task.State.CANCELLED);
+        Thread.sleep(300);
+        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(Task.State.RUNNING);
     }
 
     @Test
