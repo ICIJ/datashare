@@ -529,32 +529,42 @@ public class UserAdminServiceImplTest {
     }
 
     @Test
-    public void test_update_rejects_an_unknown_project_in_groups() throws Exception {
+    public void test_update_accepts_a_group_with_no_project_row() throws Exception {
         when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
         when(repository.getProject("nope-project")).thenReturn(null);
 
-        try {
-            service.update("alice", new UserUpdateRequest(null, null, null, List.of("nope-project")));
-            fail("expected ValidationException");
-        } catch (ValidationException e) {
-            assertThat(e.getMessage()).contains("nope-project");
-        }
-        verify(userStore, never()).save(any());
+        UserCreated updated = service.update("alice", new UserUpdateRequest(null, null, null,
+                                                                           List.of("nope-project")));
+
+        assertThat(updated.groups()).isEqualTo(List.of("nope-project"));
+        verify(userStore).save(any());
     }
 
     @Test
-    public void test_create_rejects_an_unknown_project_in_groups() throws Exception {
+    public void test_create_accepts_a_group_with_no_project_row() throws Exception {
         when(userStore.find("alice")).thenReturn(null);
         when(repository.getProject("nope-project")).thenReturn(null);
 
-        try {
-            service.create(new UserCreateRequest("alice", "a@e.test", "Alice", "pw", "local",
-                                                 List.of("nope-project")));
-            fail("expected ValidationException");
-        } catch (ValidationException e) {
-            assertThat(e.getMessage()).contains("nope-project");
-        }
-        verify(userStore, never()).save(any());
+        UserCreated created = service.create(new UserCreateRequest("alice", "a@e.test", "Alice", "pw", "local",
+                                                                   List.of("nope-project")));
+
+        assertThat(created.groups()).isEqualTo(List.of("nope-project"));
+        verify(userStore).save(any());
+    }
+
+    @Test
+    public void test_create_if_not_exists_accepts_the_default_project_before_it_has_a_row() throws Exception {
+        // the CLI provisioning path: `datashare --user-create bob --user-create-groups local-datashare`
+        // on a stock install, where YesCookieAuthFilter synthesizes local-datashare without persisting it
+        when(userStore.find("bob")).thenReturn(null);
+        when(repository.getProject("local-datashare")).thenReturn(null);
+
+        UserCreated created = service.createIfNotExists(new UserCreateRequest("bob", "b@e.test", "Bob", "pw", "local",
+                                                                             List.of("local-datashare")));
+
+        assertThat(created.noop()).isFalse();
+        assertThat(created.groups()).isEqualTo(List.of("local-datashare"));
+        verify(userStore).save(any());
     }
 
     @Test
