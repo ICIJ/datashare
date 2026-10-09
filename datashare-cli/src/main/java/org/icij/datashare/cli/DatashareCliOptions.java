@@ -149,6 +149,9 @@ public final class DatashareCliOptions {
             "Query selecting the indexed documents a stage works on, either a JSON query or a query " +
             "string. ENQUEUEIDX and CREATENLPBATCHESFROMIDX select the documents they enqueue, SCANQUERY " +
             "selects the files to extract again.";
+    public static final String MAPPING_FILE_OPT = "mappingFile";
+    public static final String MAPPING_FILE_DESC =
+            "JSON extraction mapping the ENTITIES stage saves, then runs. Its id must not exist in the project yet.";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
     public static final String OAUTH_USER_PROJECTS_KEY_OPT = "oauthUserProjectsAttribute";
@@ -902,6 +905,10 @@ public final class DatashareCliOptions {
 
     public static void searchQuery(OptionParser parser) {
         parser.acceptsAll(singletonList(SEARCH_QUERY_OPT), SEARCH_QUERY_DESC).withRequiredArg().ofType(String.class);
+    }
+
+    public static void mappingFile(OptionParser parser) {
+        parser.acceptsAll(singletonList(MAPPING_FILE_OPT), MAPPING_FILE_DESC).withRequiredArg().ofType(String.class);
     }
 
     public static void pollingInterval(OptionParser parser) {

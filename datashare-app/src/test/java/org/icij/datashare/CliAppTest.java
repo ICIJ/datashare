@@ -6,17 +6,26 @@ import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskResult;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
+import org.icij.datashare.model.TargetModel;
+import org.icij.datashare.tabular.DuplicateExtractionMapping;
+import org.icij.datashare.tabular.ExtractionMapping;
+import org.icij.datashare.tabular.ExtractionMappingService;
+import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.UpstreamGate;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.user.User;
+import org.jooq.exception.DataAccessException;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -30,10 +39,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class CliAppTest {
@@ -42,6 +54,123 @@ public class CliAppTest {
             mock(DatashareTaskFactory.class), taskRepository,
             new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "100")),
             new CountDownLatch(1));
+    private static final String MAPPING_JSON = """
+            {"id": "m1", "projectId": "from-file", "userId": "someone", "name": "companies", "model": "ftm",
+             "documentId": "docId",
+             "entities": {"c": {"type": "Company", "keys": ["id"], "properties": {"name": {"columns": ["name"]}}}}}
+            """;
+
+    @Test
+    public void test_save_mapping_file_saves_it_under_the_cli_project_with_no_owner() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_SUCCESS);
+
+        ArgumentCaptor<ExtractionMapping> saved = ArgumentCaptor.forClass(ExtractionMapping.class);
+        verify(mappings).saveIfIdentical(saved.capture());
+        assertThat(saved.getValue().id()).isEqualTo("m1");
+        assertThat(saved.getValue().projectId()).isEqualTo("prj");
+        assertThat(saved.getValue().userId()).isNull();
+        assertThat(properties.getProperty("mappingId")).isEqualTo("m1");
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_an_existing_id_as_a_conflict() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        doThrow(new DuplicateExtractionMapping("prj", "m1")).when(mappings).saveIfIdentical(any());
+        Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_CONFLICT);
+        assertThat(properties.containsKey("mappingId")).isFalse();
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_an_invalid_mapping() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        doThrow(new InvalidExtractionMapping("m1", List.of(new TargetModel.Violation("unknown property")))).when(mappings).saveIfIdentical(any());
+        Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_a_file_that_is_not_a_mapping() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), "[1, 2]").toString());
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_VALIDATION);
+        verify(mappings, never()).saveIfIdentical(any());
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_a_missing_file() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+
+        assertThat(saveMappingFile(mappings, entitiesProperties("/does/not/exist.json"))).isEqualTo(CliApp.EXIT_VALIDATION);
+        verify(mappings, never()).saveIfIdentical(any());
+    }
+
+    @Test
+    public void test_save_mapping_file_requires_the_option_with_entities() {
+        assertThat(saveMappingFile(mock(ExtractionMappingService.class), entitiesProperties(null))).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_save_mapping_file_reports_a_database_failure_as_a_runtime_error() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        doThrow(new DataAccessException("connection refused")).when(mappings).saveIfIdentical(any());
+
+        assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(MAPPING_JSON)))).isEqualTo(CliApp.EXIT_RUNTIME);
+    }
+
+    @Test
+    public void test_save_mapping_file_refuses_a_misspelled_field() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        String misspelled = MAPPING_JSON.replace("\"documentId\": \"docId\"", "\"documentId\": \"docId\", \"rootID\": \"zip\"");
+
+        assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(misspelled)))).isEqualTo(CliApp.EXIT_VALIDATION);
+        verify(mappings, never()).saveIfIdentical(any());
+    }
+
+    @Test
+    public void test_save_mapping_file_rejects_the_option_without_entities() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        Properties properties = entitiesProperties(mappingFile(MAPPING_JSON));
+        properties.setProperty("stages", "SCAN,INDEX");
+
+        // nothing but the ENTITIES stage reads the file, so without it the mapping would be dropped in silence
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_VALIDATION);
+        verifyNoInteractions(mappings);
+    }
+
+    @Test
+    public void test_save_mapping_file_does_nothing_without_entities() {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        Properties properties = new Properties();
+        properties.setProperty("stages", "SCAN,INDEX");
+
+        assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_SUCCESS);
+        verifyNoInteractions(mappings);
+    }
+
+    private static Properties entitiesProperties(String mappingFile) {
+        Properties properties = new Properties();
+        properties.setProperty("stages", "ENTITIES");
+        properties.setProperty("defaultProject", "prj");
+        if (mappingFile != null) {
+            properties.setProperty("mappingFile", mappingFile);
+        }
+        return properties;
+    }
+
+    private static String mappingFile(String json) throws IOException {
+        return Files.writeString(Files.createTempFile("mapping", ".json"), json).toString();
+    }
+
+    private static int saveMappingFile(ExtractionMappingService mappings, Properties properties) {
+        return CliApp.saveMappingFile(mappings, new PipelineHelper(new PropertiesProvider(properties)), properties);
+    }
 
     @Test(timeout = 2000)
     public void test_await_termination_with_scope_ignores_stale_tasks_in_repo() throws Exception {

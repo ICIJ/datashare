@@ -210,6 +210,7 @@ public class DatashareCli {
         DatashareCliOptions.noDigestProject(parser);
         DatashareCliOptions.logLevel(parser);
         DatashareCliOptions.searchQuery(parser);
+        DatashareCliOptions.mappingFile(parser);
         DatashareCliOptions.nextStage(parser);
         DatashareCliOptions.taskRoutingStrategy(parser);
         DatashareCliOptions.taskRoutingKey(parser);

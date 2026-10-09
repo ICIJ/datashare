@@ -34,6 +34,12 @@ public class PipelineHelper {
                     String.format("%s and %s are alternatives, not a sequence: configure one or the other, not both",
                                   Stage.SCAN, Stage.SCANQUERY));
         }
+        // runPipeline starts stages side by side and the extraction task waits on no upstream task,
+        // so it would read a document another stage has not indexed yet.
+        if (stages.contains(Stage.ENTITIES) && stages.stream().anyMatch(stage -> stage != Stage.ENTITIES)) {
+            throw new IllegalArgumentException(
+                    String.format("%s runs alone: remove the other stages from --stages", Stage.ENTITIES));
+        }
     }
 
     public String getQueueNameFor(Stage stage) {

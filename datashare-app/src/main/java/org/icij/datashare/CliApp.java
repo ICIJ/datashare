@@ -1,10 +1,13 @@
 package org.icij.datashare;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -17,6 +20,12 @@ import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.project.admin.ProjectStats;
+import org.icij.datashare.tabular.DuplicateExtractionMapping;
+import org.icij.datashare.tabular.ExtractionMapping;
+import org.icij.datashare.tabular.ExtractionMappingReader;
+import org.icij.datashare.tabular.ExtractionMappingService;
+import org.icij.datashare.tabular.InvalidExtractionMapping;
+import org.icij.datashare.tabular.MalformedExtractionMapping;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
@@ -32,6 +41,7 @@ import org.icij.datashare.tasks.UpstreamGate;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanQueryTask;
 import org.icij.datashare.tasks.ScanTask;
+import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreateRequest;
@@ -42,6 +52,9 @@ import org.icij.datashare.user.admin.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
@@ -54,8 +67,10 @@ import java.util.Properties;
 import java.util.function.Supplier;
 import static java.util.Map.entry;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.tasks.StructuredEntityExtractionTask.MAPPING_ID_OPT;
 import static org.icij.datashare.user.User.localUser;
 import static org.icij.datashare.user.User.nullUser;
 
@@ -193,10 +208,17 @@ class CliApp {
             System.exit(nextStageValidation);
         }
 
+        Properties runProperties = new Properties();
+        runProperties.putAll(mode.properties());
+        int mappingSave = saveMappingFile(mode.get(ExtractionMappingService.class), pipeline, runProperties);
+        if (mappingSave != EXIT_SUCCESS) {
+            System.exit(mappingSave);
+        }
+
         logger.info("executing {}", pipeline);
         // the merged provider, not the raw CLI properties: task args are the only config a stage reads,
         // so they need the DS_DOCKER_* and settings-file tiers CommonMode ranked, not just the typed args.
-        boolean completed = runPipeline(taskManager, pipeline, mode.properties());
+        boolean completed = runPipeline(taskManager, pipeline, runProperties);
         taskManager.shutdown();
         if (!completed) {
             // a partial run must not look like a success: `datashare ... && post-process.sh` would
@@ -232,6 +254,72 @@ class CliApp {
         return EXIT_SUCCESS;
     }
 
+    /**
+     * Saves --mappingFile before the ENTITIES stage starts, and hands its id to the task through
+     * {@code properties}. A mapping is immutable, so an id the project already holds is a conflict,
+     * unless the stored mapping is the file's own: a run that failed after its save is then retried
+     * with the very same command.
+     *
+     * @return {@link #EXIT_SUCCESS}, {@link #EXIT_CONFLICT}, {@link #EXIT_VALIDATION} or {@link #EXIT_RUNTIME}
+     */
+    static int saveMappingFile(ExtractionMappingService mappings, PipelineHelper pipeline, Properties properties) {
+        String mappingFile = properties.getProperty(MAPPING_FILE_OPT);
+        boolean hasMappingFile = mappingFile != null && !mappingFile.isBlank();
+        if (!pipeline.stages.contains(Stage.ENTITIES)) {
+            return hasMappingFile ?
+                   error("--mappingFile is only read by the %s stage, which is not in --stages".formatted(
+                           Stage.ENTITIES), "validation", EXIT_VALIDATION, false) : EXIT_SUCCESS;
+        }
+        if (!hasMappingFile) {
+            return error("--mappingFile is required by the %s stage".formatted(Stage.ENTITIES), "validation",
+                         EXIT_VALIDATION, false);
+        }
+        ExtractionMapping mapping;
+        try {
+            mapping = readMappingFile(Path.of(mappingFile), properties.getProperty(DEFAULT_PROJECT_OPT));
+        } catch (NoSuchFileException e) {
+            return error("no such file: %s".formatted(mappingFile), "validation", EXIT_VALIDATION, false);
+        } catch (AccessDeniedException e) {
+            return error("permission denied: %s".formatted(mappingFile), "validation", EXIT_VALIDATION, false);
+        } catch (JsonProcessingException e) {
+            return error("%s is not valid JSON: %s".formatted(mappingFile, e.getOriginalMessage()), "validation",
+                         EXIT_VALIDATION, false);
+        } catch (IOException e) {
+            return error("cannot read %s: %s".formatted(mappingFile, e.getMessage()), "validation", EXIT_VALIDATION,
+                         false);
+        } catch (IllegalArgumentException e) {
+            return error("%s is not a valid mapping: %s".formatted(mappingFile, e.getMessage()), "validation",
+                         EXIT_VALIDATION, false);
+        }
+        return saveMapping(mappings, mapping, properties);
+    }
+
+    private static ExtractionMapping readMappingFile(Path mappingFile, String projectId) throws IOException {
+        if (!(JsonObjectMapper.readTree(Files.readAllBytes(mappingFile)) instanceof ObjectNode node)) {
+            throw new MalformedExtractionMapping("the file must hold a JSON object");
+        }
+        node.put("projectId", projectId);
+        node.putNull("userId");
+        return ExtractionMappingReader.read(node);
+    }
+
+    private static int saveMapping(ExtractionMappingService mappings, ExtractionMapping mapping,
+                                   Properties properties) {
+        try {
+            mappings.saveIfIdentical(mapping);
+        } catch (DuplicateExtractionMapping e) {
+            return error(e.getMessage(), "conflict", EXIT_CONFLICT, false);
+        } catch (InvalidExtractionMapping e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
+        } catch (RuntimeException e) {
+            // jOOQ throws an unchecked DataAccessException: escaping here would skip the task manager
+            // shutdown and leave the JVM running
+            return error("runtime: " + e.getMessage(), "runtime", EXIT_RUNTIME, false);
+        }
+        properties.setProperty(MAPPING_ID_OPT, mapping.id());
+        return EXIT_SUCCESS;
+    }
+
     static final Map<Stage, Class<?>> TASK_CLASSES =
             Map.ofEntries(entry(Stage.SCAN, ScanTask.class), entry(Stage.SCANIDX, ScanIndexTask.class),
                           entry(Stage.SCANQUERY, ScanQueryTask.class), entry(Stage.DEDUPLICATE, DeduplicateTask.class),
@@ -239,7 +327,8 @@ class CliApp {
                           entry(Stage.CATEGORIZE, CategorizeTask.class),
                           entry(Stage.CREATENLPBATCHESFROMIDX, CreateNlpBatchesFromIndex.class),
                           entry(Stage.NLP, ExtractNlpTask.class), entry(Stage.ARTIFACT, ArtifactTask.class),
-                          entry(Stage.LANGUAGE, LanguageDetectTask.class));
+                          entry(Stage.LANGUAGE, LanguageDetectTask.class),
+                          entry(Stage.ENTITIES, StructuredEntityExtractionTask.class));
 
     /**
      * Starts every configured stage, then awaits them all at once. Each stage carries the previous

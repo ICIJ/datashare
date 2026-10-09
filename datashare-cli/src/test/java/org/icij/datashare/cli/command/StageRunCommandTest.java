@@ -194,4 +194,17 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
         assertThat(props.containsKey("ocrRetryConfidence")).isFalse();
         assertThat(props.containsKey("ocrMinConfidence")).isFalse();
     }
+
+    @Test
+    public void test_mapping_file() {
+        Properties props = parse("stage", "run", "--stages", "ENTITIES", "--mappingFile", "/tmp/m.json");
+        assertThat(props).includes(entry("stages", "ENTITIES"));
+        assertThat(props).includes(entry("mappingFile", "/tmp/m.json"));
+    }
+
+    @Test
+    public void test_mapping_file_absent_by_default() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
+        assertThat(props.containsKey("mappingFile")).isFalse();
+    }
 }
