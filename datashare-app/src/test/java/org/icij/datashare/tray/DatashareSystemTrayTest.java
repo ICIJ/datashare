@@ -8,12 +8,15 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
+import java.awt.AWTError;
 import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static org.icij.datashare.tray.SystemThemeDetector.Theme;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,6 +38,16 @@ public class DatashareSystemTrayTest {
                 .thenReturn(new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB));
         when(iconProvider.tracksSystemTheme()).thenReturn(false); // no background watcher in unit tests
         datashareSystemTray = new DatashareSystemTray(systemTray, trayActions, iconProvider);
+    }
+
+    @Test
+    public void test_create_system_tray_throws_tray_unavailable_when_backend_fails() {
+        AWTError cause = new AWTError("Can't connect to X11 window server");
+
+        TrayUnavailableException exception = assertThrows(TrayUnavailableException.class,
+                () -> DatashareSystemTray.createSystemTray(() -> { throw cause; }));
+
+        assertSame(cause, exception.getCause());
     }
 
     @Test

@@ -4,7 +4,6 @@ import dorkbox.systemTray.Menu;
 import dorkbox.systemTray.MenuItem;
 import dorkbox.systemTray.SystemTray;
 import org.icij.datashare.utils.WebBrowserUtils;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.awt.*;
@@ -14,6 +13,7 @@ import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import static java.lang.String.format;
 import static org.icij.datashare.tray.SystemThemeDetector.Theme;
 
@@ -47,7 +47,10 @@ public class DatashareSystemTray implements Closeable {
         }
         TrayIconProvider iconProvider = TrayIconProvider.forCurrentPlatform();
         iconProvider.prepare(); // macOS: force AWT tray + template images BEFORE SystemTray.get()
-        SystemTray systemTray = createSystemTray();
+        SystemTray systemTray = createSystemTray(() -> {
+            GraphicsEnvironment.getLocalGraphicsEnvironment();
+            return SystemTray.get();
+        });
         if (systemTray == null) {
             return null;
         }
@@ -65,14 +68,11 @@ public class DatashareSystemTray implements Closeable {
         }, iconProvider);
     }
 
-    @Nullable
-    private static SystemTray createSystemTray() {
+    static SystemTray createSystemTray(Supplier<SystemTray> backend) {
         try {
-            GraphicsEnvironment.getLocalGraphicsEnvironment();
-            return SystemTray.get();
+            return backend.get();
         } catch (Throwable e) {
-            LOGGER.warn("SystemTray is not supported on this system", e);
-            return null;
+            throw new TrayUnavailableException(e);
         }
     }
 

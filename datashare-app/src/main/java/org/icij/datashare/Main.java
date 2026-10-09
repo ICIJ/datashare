@@ -10,12 +10,14 @@ import org.icij.datashare.cli.command.DatashareHelpFactory;
 import org.icij.datashare.cli.command.DatashareSubcommand;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tray.DatashareSystemTray;
+import org.icij.datashare.tray.TrayUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 import picocli.CommandLine;
 import java.io.Closeable;
 import java.nio.charset.Charset;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import static java.util.Optional.ofNullable;
@@ -115,8 +117,7 @@ public class Main {
             CommonMode commonMode = CommonMode.create(properties);
             Runtime.getRuntime().addShutdownHook(commonMode.closeThread());
             String port = commonMode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT);
-            Closeable tray = DatashareSystemTray.create(port);
-            ofNullable(tray).ifPresent(commonMode::addCloseable);
+            startSystemTray(port).ifPresent(commonMode::addCloseable);
             WebApp.start(commonMode);
             if (QueueType.TEMPORAL == commonMode.getCurrentBatchQueueType()) {
                 TaskManagerTemporal taskManager = (TaskManagerTemporal) commonMode.get(TaskManager.class);
@@ -130,6 +131,16 @@ public class Main {
             CliApp.start(properties);
         }
         LOGGER.info("exiting main");
+    }
+
+    private static Optional<Closeable> startSystemTray(String port) {
+        try {
+            return ofNullable(DatashareSystemTray.create(port));
+        } catch (TrayUnavailableException e) {
+            LOGGER.warn("System tray disabled: {}", e.getMessage());
+            LOGGER.debug("System tray failure", e);
+            return Optional.empty();
+        }
     }
 
     /**
