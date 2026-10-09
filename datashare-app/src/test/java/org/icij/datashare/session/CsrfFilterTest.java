@@ -178,4 +178,27 @@ public class CsrfFilterTest {
         Payload payload = csrfFilter.apply("/api/users", context, nextFilter);
         assertThat(payload.code()).isEqualTo(403);
     }
+
+    @Test
+    public void test_post_authenticated_by_api_key_without_session_cookie_passes_through() throws Exception {
+        when(context.method()).thenReturn("POST");
+        when(context.currentUser()).thenReturn(mock(User.class));
+        when(context.header("authorization")).thenReturn("Bearer some-key");
+
+        Payload payload = csrfFilter.apply("/api/mcp", context, nextFilter);
+        assertThat(payload).isSameAs(next);
+    }
+
+    @Test
+    public void test_post_with_bearer_and_session_cookie_still_needs_csrf_token() throws Exception {
+        when(context.method()).thenReturn("POST");
+        when(context.currentUser()).thenReturn(mock(User.class));
+        when(context.header("authorization")).thenReturn("Bearer some-key");
+        when(context.cookies()).thenReturn(new SimpleCookies() {{
+            put("_ds_session_id", new NewCookie("_ds_session_id", "session"));
+        }});
+
+        Payload payload = csrfFilter.apply("/api/mcp", context, nextFilter);
+        assertThat(payload.code()).isEqualTo(403);
+    }
 }
