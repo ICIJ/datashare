@@ -27,7 +27,7 @@ public class CsrfFilter implements Filter {
             }
             return payload;
         }
-        if (context.currentUser() == null || isAuthenticatedByApiKey(context)) {
+        if (context.currentUser() == null || ApiKeyFilter.isAuthenticated(context)) {
             return nextFilter.get();
         }
         String cookieValue = null;
@@ -40,14 +40,6 @@ public class CsrfFilter implements Filter {
             return nextFilter.get();
         }
         return new Payload("application/json", "{\"error\":\"CSRF token wrong or missing\"}", 403);
-    }
-
-    // ApiKeyFilter only reads the bearer when there is no session cookie, and a browser never
-    // attaches a bearer header on its own, so such a request cannot be forged cross-site.
-    private static boolean isAuthenticatedByApiKey(Context context) {
-        String authorization = context.header("authorization");
-        return authorization != null && authorization.regionMatches(true, 0, "Bearer ", 0, 7) &&
-               context.cookies().get("_ds_session_id") == null;
     }
 
     private boolean needsCsrfCookie(Context context) {

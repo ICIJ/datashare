@@ -45,7 +45,9 @@ public class McpServerModeTest extends AbstractProdWebServerTest {
                 .should().respond(200)
                 .contain("\"jsonrpc\":\"2.0\"")
                 .contain("\"id\":1")
-                .contain("\"protocolVersion\"");
+                .contain("\"protocolVersion\"")
+                .contain("\"name\":\"datashare\"")
+                .contain("\"tools\"");
     }
 
     @Test
