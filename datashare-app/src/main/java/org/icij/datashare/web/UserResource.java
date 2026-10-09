@@ -7,6 +7,9 @@ import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
@@ -102,6 +105,10 @@ public class UserResource {
 
     // Instance admin and default-domain admin authorize every project; other domains do not (yet).
 
+    private static boolean coversEveryProject(Domain scope) {
+        return INSTANCE_SCOPE.equals(scope) || Domain.DEFAULT.equals(scope);
+    }
+
     /**
      * The parsed value, the fallback when absent, or null when it is not an integer or is negative.
      * Zero is valid: `size=0` is a legitimate count-only page, not an error.
@@ -116,10 +123,6 @@ public class UserResource {
         } catch (NumberFormatException e) {
             return null;
         }
-    }
-
-    private static boolean coversEveryProject(Domain scope) {
-        return INSTANCE_SCOPE.equals(scope) || Domain.DEFAULT.equals(scope);
     }
 
     // A wide role replaces what it covers: project roles, and domain admin under instance admin.
@@ -153,7 +156,7 @@ public class UserResource {
                              "noRole (true=include no-role users, false=exclude them). " +
                              "Sort: uid | email | name | role, desc=true for descending. Paginated with from/size.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
-    @ApiResponse(responseCode = "400", description = "invalid sort parameter")
+    @ApiResponse(responseCode = "400", description = "invalid sort, from or size parameter")
     @ApiResponse(responseCode = "501", description = "store does not support listing")
     @Get("/admin")
     @Policy(role = Role.PROJECT_ADMIN)
@@ -270,13 +273,34 @@ public class UserResource {
         }
     }
 
-    @Operation(description = "Creates a new user.")
+    /**
+     * Reads the request body, or null when it cannot be parsed. fluent-http deserializes a route
+     * parameter before the method runs, so taking the body in the signature turns a malformed one
+     * into a 500 carrying the Java class name.
+     */
+    private <T> T extractOrNull(Context context, Class<T> type, String route) {
+        try {
+            return context.extract(type);
+        } catch (IOException | RuntimeException e) {
+            // logged, so a genuine server-side fault is not silently blamed on the caller
+            LOGGER.debug("malformed body on {}", route, e);
+            return null;
+        }
+    }
+
+    @Operation(description = "Creates a new user.", requestBody = @RequestBody(required = true,
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = UserCreateRequest.class))))
     @ApiResponse(responseCode = "201", description = "user created")
-    @ApiResponse(responseCode = "400", description = "validation error")
+    @ApiResponse(responseCode = "400", description = "validation error or malformed body")
     @ApiResponse(responseCode = "409", description = "user already exists")
     @Policy(role = Role.INSTANCE_ADMIN)
     @Post
-    public Payload createUser(UserCreateRequest request) {
+    public Payload createUser(Context context) {
+        UserCreateRequest request = extractOrNull(context, UserCreateRequest.class, "POST /api/users");
+        if (request == null) {
+            return PayloadFormatter.error("malformed JSON body", HttpStatus.BAD_REQUEST);
+        }
         try {
             return new Payload(userAdminService.create(request)).withCode(HttpStatus.CREATED);
         } catch (UserExistsException e) {
@@ -301,21 +325,18 @@ public class UserResource {
     }
 
     @Operation(description = "Updates a user. Omit any field to keep its current value.",
-            parameters = @Parameter(name = "userId", in = ParameterIn.PATH))
+            parameters = @Parameter(name = "userId", in = ParameterIn.PATH), requestBody = @RequestBody(required = true,
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = UserUpdateRequest.class))))
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
-    @ApiResponse(responseCode = "400", description = "validation error")
+    @ApiResponse(responseCode = "400", description = "validation error or malformed body")
     @ApiResponse(responseCode = "404", description = "user not found")
     @Policy(role = Role.INSTANCE_ADMIN)
     @Put("/admin/:userId")
     public Payload updateUser(String userId, Context context) {
         // extract here rather than in the signature: fluent-http deserializes a route parameter
         // before the method runs, so a malformed body escapes as a 500 carrying the Java class name
-        UserUpdateRequest request;
-        try {
-            request = context.extract(UserUpdateRequest.class);
-        } catch (IOException | RuntimeException e) {
-            return PayloadFormatter.error("malformed JSON body", HttpStatus.BAD_REQUEST);
-        }
+        UserUpdateRequest request = extractOrNull(context, UserUpdateRequest.class, "PUT /api/users/admin/:userId");
         if (request == null) {
             return PayloadFormatter.error("malformed JSON body", HttpStatus.BAD_REQUEST);
         }
