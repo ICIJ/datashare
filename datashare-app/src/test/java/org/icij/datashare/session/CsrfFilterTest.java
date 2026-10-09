@@ -7,8 +7,11 @@ import net.codestory.http.NewCookie;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
+import org.icij.datashare.PropertiesProvider;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -22,7 +25,7 @@ public class CsrfFilterTest {
 
     @Before
     public void setUp() {
-        csrfFilter = new CsrfFilter();
+        csrfFilter = filterIn("SERVER");
         when(context.cookies()).thenReturn(mock(Cookies.class));
     }
 
@@ -210,5 +213,45 @@ public class CsrfFilterTest {
 
         Payload payload = csrfFilter.apply("/api/mcp", context, nextFilter);
         assertThat(payload.code()).isEqualTo(403);
+    }
+
+    private static CsrfFilter filterIn(String mode) {
+        return new CsrfFilter(new PropertiesProvider(Map.<String, Object>of("mode", mode)));
+    }
+
+    private Payload postMcp(CsrfFilter filter, String uri, String contentType, String host) throws Exception {
+        when(context.method()).thenReturn("POST");
+        when(context.currentUser()).thenReturn(mock(User.class));
+        when(context.header("Content-Type")).thenReturn(contentType);
+        when(context.header("Host")).thenReturn(host);
+        return filter.apply(uri, context, nextFilter);
+    }
+
+    @Test
+    public void test_local_mode_mcp_json_from_loopback_host_passes_without_csrf_token() throws Exception {
+        for (String mode : new String[]{"LOCAL", "EMBEDDED"}) {
+            for (String host : new String[]{"localhost:8080", "127.0.0.1", "[::1]:8080", "LocalHost:8080"}) {
+                assertThat(postMcp(filterIn(mode), "/api/mcp", "application/json", host)).as(mode + " " + host).isSameAs(next);
+            }
+        }
+        assertThat(postMcp(filterIn("LOCAL"), "/api/mcp?x=1", "Application/JSON; charset=utf-8", "localhost:8080")).isSameAs(next);
+    }
+
+    @Test
+    public void test_local_mode_mcp_rejects_foreign_host_wrong_content_type_or_other_path() throws Exception {
+        CsrfFilter local = filterIn("LOCAL");
+        assertThat(postMcp(local, "/api/mcp", "application/json", "evil.com:8080").code()).isEqualTo(403);
+        assertThat(postMcp(local, "/api/mcp", "application/json", "localhost.evil.com").code()).isEqualTo(403);
+        assertThat(postMcp(local, "/api/mcp", "application/json", null).code()).isEqualTo(403);
+        assertThat(postMcp(local, "/api/mcp", "text/plain", "localhost:8080").code()).isEqualTo(403);
+        assertThat(postMcp(local, "/api/mcp", null, "localhost:8080").code()).isEqualTo(403);
+        assertThat(postMcp(local, "/api/project", "application/json", "localhost:8080").code()).isEqualTo(403);
+        assertThat(postMcp(local, "/api/mcp/x", "application/json", "localhost:8080").code()).isEqualTo(403);
+    }
+
+    @Test
+    public void test_server_or_unset_mode_mcp_still_needs_csrf_token() throws Exception {
+        assertThat(postMcp(filterIn("SERVER"), "/api/mcp", "application/json", "localhost:8080").code()).isEqualTo(403);
+        assertThat(postMcp(new CsrfFilter(new PropertiesProvider(Map.<String, Object>of())), "/api/mcp", "application/json", "localhost:8080").code()).isEqualTo(403);
     }
 }
