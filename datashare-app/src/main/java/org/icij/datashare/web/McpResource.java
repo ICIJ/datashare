@@ -12,19 +12,13 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.Task;
-import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.UnknownTask;
-import org.icij.datashare.cli.Mode;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.policies.Authorizer;
-import org.icij.datashare.policies.Domain;
-import org.icij.datashare.policies.Role;
-import org.icij.datashare.policies.TaskPolicyAnnotation;
+import org.icij.datashare.policies.TaskPolicy;
+import org.icij.datashare.policies.TaskPolicyChecker;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
@@ -38,7 +32,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 @Singleton
 @Prefix("/api/mcp")
@@ -48,13 +41,15 @@ public class McpResource {
     private static final Logger logger = LoggerFactory.getLogger(McpResource.class);
     private final List<McpTool> tools;
     private static final Map<String, Object> NO_ARGS = Map.of("type", "object", "properties", Map.of());
+    // Calling TaskResource.stopTask directly skips its @TaskPolicy, so the route's own annotation is read here
+    // to keep the roles defined in one place.
+    private static final TaskPolicy STOP_TASK_POLICY = stopTaskRoutePolicy();
 
     @Inject
     public McpResource(ProjectResource projectResource, Indexer indexer, DocumentResource documentResource,
-                       TaskFinder taskFinder, TaskManager taskManager, TaskPolicyAnnotation taskPolicy,
-                       PropertiesProvider propertiesProvider) {
+                       TaskResource taskResource, TaskManager taskManager, TaskPolicyChecker taskPolicyChecker) {
         this(List.of(listProjects(projectResource), searchDocuments(indexer), getDocument(documentResource),
-                     listTasks(taskFinder), stopTask(taskManager, taskPolicy, propertiesProvider)));
+                     listTasks(taskResource), stopTask(taskResource, taskManager, taskPolicyChecker)));
     }
 
     McpResource(List<McpTool> tools) {
@@ -66,35 +61,28 @@ public class McpResource {
                            (args, context) -> projectResource.getProjects(context));
     }
 
-    static McpTool listTasks(TaskFinder taskFinder) {
+    static McpTool listTasks(TaskResource taskResource) {
         Map<String, Object> schema = Map.of("type", "object", "properties", Map.of("name", Map.of("type", "string",
                                                                                                   "description",
                                                                                                   "case-insensitive pattern on the task name")));
         return new McpTool("list_tasks", "Lists the tasks you can see.", schema, (args, context) -> {
-            User user = (User) context.currentUser();
-            TaskFilters filters = new TaskFilters().with(Pattern.CASE_INSENSITIVE);
-            String name = args.path("name").asText(null);
-            if (name != null && !name.isBlank()) {
-                filters = filters.with(name);
-            }
-            return taskFinder.findVisibleTasksFor(user, filters).toList();
+            String name = args.path("name").asText("");
+            Map<String, String> filters = name.isBlank() ? Map.of() : Map.of("name", name);
+            return taskResource.findVisibleTasks((User) context.currentUser(), filters).toList();
         });
     }
 
-    static McpTool stopTask(TaskManager taskManager, TaskPolicyAnnotation taskPolicy,
-                            PropertiesProvider propertiesProvider) {
+    static McpTool stopTask(TaskResource taskResource, TaskManager taskManager, TaskPolicyChecker taskPolicyChecker) {
         Map<String, Object> schema =
                 Map.of("type", "object", "properties", Map.of("taskId", Map.of("type", "string")), "required",
                        List.of("taskId"));
         return new McpTool("stop_task", "Stops a running task.", schema, (args, context) -> {
             String taskId = requireText(args, "taskId");
             DatashareUser user = Authorizer.requireUser((DatashareUser) context.currentUser());
-            Task<?> task = taskManager.getTask(taskId);
-            if (Mode.SERVER.name().equals(propertiesProvider.get("mode").orElse(null)) &&
-                !taskPolicy.isAllowed(user, task, Domain.DEFAULT, Role.PROJECT_ADMIN, Role.PROJECT_MEMBER)) {
+            if (!taskPolicyChecker.isAllowed(user, taskManager.getTask(taskId), STOP_TASK_POLICY)) {
                 throw new ForbiddenException("forbidden");
             }
-            return Map.of("taskId", taskId, "stopped", taskManager.stopTask(taskId));
+            return Map.of("taskId", taskId, "stopped", taskResource.stopTask(taskId));
         });
     }
 
@@ -230,6 +218,14 @@ public class McpResource {
         } catch (Exception e) {
             logger.error("MCP tool {} failed", name, e);
             return result(id, toolResult(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName(), true));
+        }
+    }
+
+    private static TaskPolicy stopTaskRoutePolicy() {
+        try {
+            return TaskResource.class.getMethod("stopTask", String.class).getAnnotation(TaskPolicy.class);
+        } catch (NoSuchMethodException e) {
+            throw new AssertionError("TaskResource.stopTask(String) is gone", e);
         }
     }
 

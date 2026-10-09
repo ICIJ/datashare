@@ -1,6 +1,7 @@
 package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.policies.TaskPolicyChecker;
 import org.icij.datashare.session.CsrfFilter;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.*;
@@ -23,6 +24,7 @@ public class LocalMode extends CommonMode {
         bind(StatusResource.class).asEagerSingleton();
         bind(CsrfFilter.class).asEagerSingleton();
         bind(LocalUserFilter.class).asEagerSingleton();
+        bind(TaskPolicyChecker.class).toInstance(TaskPolicyChecker.ALLOW_ALL);
         configurePersistence();
     }
 
