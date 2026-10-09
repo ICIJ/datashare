@@ -8,11 +8,6 @@ import java.io.IOException;
 import java.util.Map;
 
 public class McpListTasksTool implements McpTool {
-    private static final Map<String, Object> INPUT_SCHEMA = Map.of("type", "object", "properties", Map.of("name",
-                                                                                                          Map.of("type",
-                                                                                                                 "string",
-                                                                                                                 "description",
-                                                                                                                 "case-insensitive pattern on the task name")));
     private final TaskResource taskResource;
 
     @Inject
@@ -28,11 +23,6 @@ public class McpListTasksTool implements McpTool {
     @Override
     public String description() {
         return "Lists the tasks you can see.";
-    }
-
-    @Override
-    public Map<String, Object> inputSchema() {
-        return INPUT_SCHEMA;
     }
 
     @Override
