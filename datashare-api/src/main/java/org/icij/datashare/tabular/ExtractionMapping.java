@@ -3,6 +3,7 @@ package org.icij.datashare.tabular;
 import org.icij.datashare.model.Property;
 import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.TargetModelRegistry;
+import org.icij.datashare.text.Project;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,10 @@ import java.util.TreeSet;
  *               inside a ZIP cannot be read without it.
  */
 public record ExtractionMapping(String id, String projectId, String userId, String name, String model, String documentId, String rootId, RowSourceOptions options, Map<String, EntityMapping> entities) {
+    /** The width of the extraction_mapping id column: Postgres refuses a longer id with an unchecked
+     *  database error, and SQLite stores it as-is, so the limit is enforced here for both. */
+    public static final int MAX_ID_LENGTH = 96;
+
     public ExtractionMapping {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(projectId, "projectId");
@@ -86,6 +91,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     public List<TargetModel.Violation> validate() {
         TargetModel target = TargetModelRegistry.get(model);
         List<TargetModel.Violation> violations = new ArrayList<>();
+        refuseUnusableIds(violations);
         refuseNul(violations, options.sheet(), "the sheet name");
         refuseNul(violations, documentId, "the document id");
         refuseNul(violations, rootId, "the root id");
@@ -151,6 +157,20 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             }
         }
         return violations;
+    }
+
+    // The run names the mapping by its id and refuses a project id no project can have, so either
+    // flaw would store a mapping that no run can ever use, and its id could not be saved again.
+    private void refuseUnusableIds(List<TargetModel.Violation> violations) {
+        if (id.isBlank()) {
+            violations.add(new TargetModel.Violation("the mapping has a blank id, which no run can name"));
+        }
+        if (id.length() > MAX_ID_LENGTH) {
+            violations.add(new TargetModel.Violation("the mapping id is longer than " + MAX_ID_LENGTH + " characters"));
+        }
+        if (!Project.NAME_PATTERN.matcher(projectId).matches()) {
+            violations.add(new TargetModel.Violation("'" + projectId + "' is not a valid project id"));
+        }
     }
 
     // Every string a statement would carry is refused the same way and worded the same way: a NUL
