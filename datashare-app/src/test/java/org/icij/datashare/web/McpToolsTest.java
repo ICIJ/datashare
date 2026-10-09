@@ -10,7 +10,11 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.ExtractedText;
+import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -44,7 +48,10 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
     private void serveAs(String login, String... projects) {
         McpResource mcp = new McpResource(new ProjectResource(repository, indexer, taskManager, propertiesProvider,
-                                                              documentCollectionFactory, projectAdminService), indexer);
+                                                              documentCollectionFactory, projectAdminService), indexer,
+                                       new DocumentResource(repository, indexer, propertiesProvider,
+                                                            new DocumentSourceAccess(repository, indexer,
+                                                                                     propertiesProvider)));
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }
@@ -155,5 +162,70 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         serveAs("local", "foo");
         assertThat(call("local", "search_documents", "{\"project\":\"foo\"}").at("/error/code").asInt())
                 .isEqualTo(-32602);
+    }
+
+    private Document doc(String content) {
+        return DocumentBuilder.createDoc("doc1").with(content).with(java.nio.file.Paths.get("/data/a.pdf"))
+                              .ofContentType("application/pdf").build();
+    }
+
+    @Test
+    public void test_get_document_on_granted_project() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get("foo", "doc1", "doc1")).thenReturn(doc("hello world"));
+        when(indexer.getExtractedText("foo", "doc1", null, 0, 11, null))
+                .thenReturn(new ExtractedText("hello world", 0, 11, 11));
+
+        JsonNode result = payload(call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}"));
+
+        assertThat(result.get("id").asText()).isEqualTo("doc1");
+        assertThat(result.get("contentType").asText()).isEqualTo("application/pdf");
+        assertThat(result.get("text").asText()).isEqualTo("hello world");
+        assertThat(result.get("maxOffset").asInt()).isEqualTo(11);
+    }
+
+    @Test
+    public void test_get_document_on_ungranted_project_is_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "get_document", "{\"project\":\"bar\",\"id\":\"doc1\"}");
+
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
+        org.mockito.Mockito.verifyNoInteractions(indexer);
+    }
+
+    @Test
+    public void test_get_document_unknown_id_is_not_found() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "get_document", "{\"project\":\"foo\",\"id\":\"nope\"}");
+
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: nope");
+    }
+
+    @Test
+    public void test_get_document_clamps_slice_to_content_length() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get("foo", "doc1", "doc1")).thenReturn(doc("hello world"));
+        when(indexer.getExtractedText("foo", "doc1", null, 6, 5, null))
+                .thenReturn(new ExtractedText("world", 6, 5, 11));
+
+        JsonNode result = payload(call("local", "get_document",
+                                        "{\"project\":\"foo\",\"id\":\"doc1\",\"offset\":6,\"limit\":500}"));
+
+        assertThat(result.get("text").asText()).isEqualTo("world");
+    }
+
+    @Test
+    public void test_get_document_never_reads_text_from_repository() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get("foo", "doc1", "doc1")).thenReturn(doc("hello world"));
+        when(indexer.getExtractedText(any(), any(), any(), org.mockito.ArgumentMatchers.anyInt(),
+                                      org.mockito.ArgumentMatchers.anyInt(), any()))
+                .thenReturn(new ExtractedText("hello world", 0, 11, 11));
+
+        call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}");
+
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).getDocument(any());
     }
 }

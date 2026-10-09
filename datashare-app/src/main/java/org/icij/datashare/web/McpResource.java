@@ -13,6 +13,8 @@ import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.web.errors.ForbiddenException;
@@ -34,8 +36,8 @@ public class McpResource {
     private static final Map<String, Object> NO_ARGS = Map.of("type", "object", "properties", Map.of());
 
     @Inject
-    public McpResource(ProjectResource projectResource, Indexer indexer) {
-        this(List.of(listProjects(projectResource), searchDocuments(indexer)));
+    public McpResource(ProjectResource projectResource, Indexer indexer, DocumentResource documentResource) {
+        this(List.of(listProjects(projectResource), searchDocuments(indexer), getDocument(documentResource)));
     }
 
     McpResource(List<McpTool> tools) {
@@ -84,6 +86,43 @@ public class McpResource {
                                    hits.add(trimmed);
                                }
                                return Map.of("total", response.at("/hits/total/value").asLong(), "hits", hits);
+                           });
+    }
+
+    static McpTool getDocument(DocumentResource documentResource) {
+        Map<String, Object> schema = Map.of("type", "object", "properties",
+                                            Map.of("project", Map.of("type", "string"), "id",
+                                                   Map.of("type", "string", "description", "document id"), "routing",
+                                                   Map.of("type", "string", "description",
+                                                          "root document id, for embedded documents"), "offset",
+                                                   Map.of("type", "integer", "minimum", 0, "default", 0), "limit",
+                                                   Map.of("type", "integer", "minimum", 1, "default", 10000)),
+                                            "required", List.of("project", "id"));
+        return new McpTool("get_document", "Reads a document's metadata and a slice of its extracted text.", schema,
+                           (args, context) -> {
+                               String project = requireText(args, "project");
+                               String id = requireText(args, "id");
+                               String routing = args.path("routing").asText(null);
+                               Document doc = documentResource.getDoc(project, id, routing, context);
+                               int length = doc.getContentTextLength();
+                               int offset = Math.min(intArg(args, "offset", 0, 0, Integer.MAX_VALUE), length);
+                               int limit =
+                                       Math.min(intArg(args, "limit", 10000, 1, Integer.MAX_VALUE), length - offset);
+                               Payload text =
+                                       documentResource.getExtractedText(project, id, routing, offset, limit, null,
+                                                                         context);
+                               if (text.code() != 200) {
+                                   throw new IllegalStateException(String.valueOf(text.rawContent()));
+                               }
+                               ExtractedText slice = (ExtractedText) text.rawContent();
+                               Map<String, Object> result = new LinkedHashMap<>();
+                               result.put("id", doc.getId());
+                               result.put("path", String.valueOf(doc.getPath()));
+                               result.put("contentType", doc.getContentType());
+                               result.put("offset", slice.offset);
+                               result.put("maxOffset", slice.maxOffset);
+                               result.put("text", slice.content);
+                               return result;
                            });
     }
 
