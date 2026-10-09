@@ -5,8 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.session.DatashareUser;
@@ -16,6 +19,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +43,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Mock TaskManager taskManager;
     @Mock DocumentCollectionFactory<Path> documentCollectionFactory;
     @Mock ProjectAdminService projectAdminService;
+    @Mock BatchSearchRepository batchSearchRepository;
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
 
     @Before
@@ -51,7 +56,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                                               documentCollectionFactory, projectAdminService), indexer,
                                        new DocumentResource(repository, indexer, propertiesProvider,
                                                             new DocumentSourceAccess(repository, indexer,
-                                                                                     propertiesProvider)));
+                                                                                     propertiesProvider)),
+                                       new TaskFinder(taskManager, batchSearchRepository));
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }
@@ -227,5 +233,22 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}");
 
         org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).getDocument(any());
+    }
+
+    @Test
+    public void test_list_tasks_only_returns_the_callers_tasks() throws Exception {
+        serveAs("local", "foo");
+        Task<?> mine = new Task<>("org.icij.datashare.tasks.ScanTask", localUser("local"), Map.of("defaultProject", "foo"));
+        when(taskManager.getTasks(any(TaskFilters.class))).thenAnswer(invocation -> {
+            TaskFilters filters = invocation.getArgument(0);
+            assertThat(filters.getUser().id).isEqualTo("local");
+            return java.util.stream.Stream.of(mine);
+        });
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(List.of());
+
+        JsonNode tasks = payload(call("local", "list_tasks", "{}"));
+
+        assertThat(tasks.size()).isEqualTo(1);
+        assertThat(tasks.at("/0/id").asText()).isEqualTo(mine.id);
     }
 }
