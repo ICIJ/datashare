@@ -12,10 +12,12 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
@@ -48,9 +50,10 @@ public class McpResource {
 
     @Inject
     public McpResource(ProjectResource projectResource, Indexer indexer, DocumentResource documentResource,
-                       TaskFinder taskFinder, TaskManager taskManager, TaskPolicyAnnotation taskPolicy) {
+                       TaskFinder taskFinder, TaskManager taskManager, TaskPolicyAnnotation taskPolicy,
+                       PropertiesProvider propertiesProvider) {
         this(List.of(listProjects(projectResource), searchDocuments(indexer), getDocument(documentResource),
-                     listTasks(taskFinder), stopTask(taskManager, taskPolicy)));
+                     listTasks(taskFinder), stopTask(taskManager, taskPolicy, propertiesProvider)));
     }
 
     McpResource(List<McpTool> tools) {
@@ -77,7 +80,8 @@ public class McpResource {
         });
     }
 
-    static McpTool stopTask(TaskManager taskManager, TaskPolicyAnnotation taskPolicy) {
+    static McpTool stopTask(TaskManager taskManager, TaskPolicyAnnotation taskPolicy,
+                            PropertiesProvider propertiesProvider) {
         Map<String, Object> schema =
                 Map.of("type", "object", "properties", Map.of("taskId", Map.of("type", "string")), "required",
                        List.of("taskId"));
@@ -85,7 +89,8 @@ public class McpResource {
             String taskId = requireText(args, "taskId");
             DatashareUser user = Authorizer.requireUser((DatashareUser) context.currentUser());
             Task<?> task = taskManager.getTask(taskId);
-            if (!taskPolicy.isAllowed(user, task, Domain.DEFAULT, Role.PROJECT_ADMIN, Role.PROJECT_MEMBER)) {
+            if (Mode.SERVER.name().equals(propertiesProvider.get("mode").orElse(null)) &&
+                !taskPolicy.isAllowed(user, task, Domain.DEFAULT, Role.PROJECT_ADMIN, Role.PROJECT_MEMBER)) {
                 throw new ForbiddenException("forbidden");
             }
             return Map.of("taskId", taskId, "stopped", taskManager.stopTask(taskId));
