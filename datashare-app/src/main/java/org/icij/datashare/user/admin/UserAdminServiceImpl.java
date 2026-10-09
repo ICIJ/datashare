@@ -37,8 +37,7 @@ public class UserAdminServiceImpl implements UserAdminService {
     @Override
     public UserCreated create(UserCreateRequest request) throws UserExistsException, ValidationException {
         if (userStore.find(request.login()) != null) {
-            // before validate(): an existing user must answer 409 rather than a 400 about a body
-            // field the caller cannot fix by changing it
+            // before validate(), so an existing login answers 409 and not a 400 about the body
             throw new UserExistsException(request.login());
         }
         return persist(request, validate(request));
@@ -47,8 +46,6 @@ public class UserAdminServiceImpl implements UserAdminService {
     @Override
     public UserCreated createIfNotExists(UserCreateRequest request) throws ValidationException {
         if (userStore.find(request.login()) instanceof User existing) {
-            // the groups the stored user has, not the ones asked for: nothing was written, so
-            // echoing the request would claim a membership that does not exist
             String name = request.name() == null ? request.login() : request.name();
             return new UserCreated(request.login(), request.email(), name, request.provider(),
                                    existing.getApplicationProjectNames(), true);
@@ -118,14 +115,12 @@ public class UserAdminServiceImpl implements UserAdminService {
         List<String> currentGroups = existing.getApplicationProjectNames();
         List<String> newGroups = requestedGroups != null ? requestedGroups : currentGroups;
 
-        // A password is write-only: a resubmitted password is indistinguishable from a new one, so
-        // any password at all counts as a change rather than reporting a noop that silently rehashed.
+        // a password is write-only, so a resubmitted one cannot be told from a new one: it counts
+        // as a change rather than reporting a noop that silently rehashed
         boolean changed = !Objects.equals(newEmail, existing.email) || !Objects.equals(newName, existing.name) ||
                           !newGroups.equals(currentGroups) || req.password() != null;
 
         if (!changed) {
-            // returning before the save, so the flag matches the behaviour: a "noop" that still
-            // writes and re-enrolls through PostLoginEnroller is not one
             return new UserCreated(login, newEmail, newName, existing.provider, newGroups, true);
         }
 
@@ -176,11 +171,11 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     /**
-     * Canonicalizes a groups list through the same validator the CLI uses. Deliberately does not
-     * check that each name has a project row: users are legitimately provisioned before their
-     * projects exist ({@code --user-create --user-create-groups}), and the default local-datashare
-     * project is synthesized in memory by YesCookieAuthFilter rather than persisted.
      * Returns null for a null input, which callers read as "the request did not touch groups".
+     * <p>
+     * Deliberately does not check that each name has a project row: users are legitimately
+     * provisioned before their projects exist ({@code --user-create --user-create-groups}), and the
+     * default local-datashare project is synthesized in memory by YesCookieAuthFilter, not persisted.
      */
     private List<String> validateGroups(List<String> groups) throws ValidationException {
         if (groups == null) {
