@@ -568,6 +568,25 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_handleProjectGrant_json_noop_reports_the_held_role() throws Exception {
+        ProjectAdminService service = mock(ProjectAdminService.class);
+        when(service.grantIfNotExists("banana", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR))
+                .thenReturn(new org.icij.datashare.project.admin.ProjectGranted(
+                        "banana", "promera", org.icij.datashare.policies.Role.PROJECT_EDITOR,
+                        org.icij.datashare.policies.Role.PROJECT_EDITOR, true));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_GRANT_OPT, "banana");
+        props.setProperty(PROJECT_GRANT_USER_OPT, "promera");
+        props.setProperty(PROJECT_GRANT_ROLE_OPT, "editor");
+        props.setProperty(PROJECT_GRANT_IF_NOT_EXISTS_OPT, "true");
+        props.setProperty(PROJECT_GRANT_JSON_OPT, "true");
+
+        assertThat(CliApp.handleProjectGrant(service, props)).isEqualTo(0);
+        assertThat(stdout.toString()).contains("\"previousRole\":\"EDITOR\"");
+        assertThat(stdout.toString()).contains("\"noop\":true");
+    }
+
+    @Test
     public void test_handleProjectGrant_returns_3_when_project_not_found() throws Exception {
         ProjectAdminService service = mock(ProjectAdminService.class);
         when(service.grant("ghost", "promera", org.icij.datashare.policies.Role.PROJECT_ADMIN))

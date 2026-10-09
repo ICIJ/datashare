@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
@@ -196,6 +197,7 @@ public class TaskPolicyAnnotationTest {
 
         Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
+        assertThat(result.rawContent()).isEqualTo(Map.of("error", "insufficient role"));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -469,6 +471,7 @@ public class TaskPolicyAnnotationTest {
         // batchTaskPolicy requires PROJECT_ADMIN; john has only PROJECT_MEMBER
         Payload result = annotation.apply(batchTaskPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
+        assertThat(result.rawContent()).isEqualTo(Map.of("error", "insufficient role"));
     }
 
 }
