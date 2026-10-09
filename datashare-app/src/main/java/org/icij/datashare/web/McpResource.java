@@ -28,14 +28,20 @@ public class McpResource {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(McpResource.class);
     private final List<McpTool> tools;
+    private static final Map<String, Object> NO_ARGS = Map.of("type", "object", "properties", Map.of());
 
     @Inject
-    public McpResource() {
-        this(List.of());
+    public McpResource(ProjectResource projectResource) {
+        this(List.of(listProjects(projectResource)));
     }
 
     McpResource(List<McpTool> tools) {
         this.tools = tools;
+    }
+
+    static McpTool listProjects(ProjectResource projectResource) {
+        return new McpTool("list_projects", "Lists the Datashare projects you can access.", NO_ARGS,
+                           (args, context) -> projectResource.getProjects(context));
     }
 
     @Post()
