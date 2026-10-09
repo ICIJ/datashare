@@ -9,26 +9,12 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.web.errors.ForbiddenException;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 public class McpGetDocumentTool implements McpTool {
     private static final McpArguments.IntArgument OFFSET =
             new McpArguments.IntArgument("offset", 0, 0, Integer.MAX_VALUE);
     private static final McpArguments.IntArgument LIMIT =
             new McpArguments.IntArgument("limit", 10000, 1, Integer.MAX_VALUE);
-    private static final Map<String, Object> INPUT_SCHEMA = Map.of("type", "object", "properties",
-                                                                   Map.of("project", Map.of("type", "string"), "id",
-                                                                          Map.of("type", "string", "description",
-                                                                                 "document id"), "routing",
-                                                                          Map.of("type", "string", "description",
-                                                                                 "root document id, for embedded documents"),
-                                                                          "offset",
-                                                                          Map.of("type", "integer", "minimum", 0,
-                                                                                 "default", 0), "limit",
-                                                                          Map.of("type", "integer", "minimum", 1,
-                                                                                 "default", 10000)), "required",
-                                                                   List.of("project", "id"));
     private final DocumentResource documentResource;
 
     @Inject
@@ -44,11 +30,6 @@ public class McpGetDocumentTool implements McpTool {
     @Override
     public String description() {
         return "Reads a document's metadata and a slice of its extracted text.";
-    }
-
-    @Override
-    public Map<String, Object> inputSchema() {
-        return INPUT_SCHEMA;
     }
 
     @Override

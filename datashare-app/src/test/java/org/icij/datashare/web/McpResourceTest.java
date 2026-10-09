@@ -18,6 +18,8 @@ import static org.icij.datashare.user.User.localUser;
 public class McpResourceTest extends AbstractProdWebServerTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private static final JsonNode NO_ARGUMENTS = MAPPER.createObjectNode().put("type", "object");
+
     private interface Handler {
         Object call(JsonNode arguments, Context context) throws Exception;
     }
@@ -40,7 +42,7 @@ public class McpResourceTest extends AbstractProdWebServerTest {
             }
 
             @Override
-            public Map<String, Object> inputSchema() {
+            public JsonNode inputSchema() {
                 return NO_ARGUMENTS;
             }
 
