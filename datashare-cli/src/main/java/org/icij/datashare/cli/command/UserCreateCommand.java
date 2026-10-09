@@ -93,9 +93,12 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
                 }
                 password = readPasswordFromStdin();
             }
-            // Below the stdin read and gated on the provider, so --password and --password-stdin
-            // agree with each other and neither demands one where the provider does not need it.
-            if (password != null && User.LOCAL.equals(provider)) {
+            // Below the stdin read, so --password and --password-stdin agree with each other, and
+            // gated on whether the provider actually stores one. LOCAL alone is not enough:
+            // UserAdminServiceImpl.persist hashes for local AND external, and UsersInDb.find
+            // authenticates on a bare hash comparison with no provider check, so an empty password
+            // accepted here would be stored as sha256("") and become a usable credential.
+            if (password != null && storesAPassword(provider)) {
                 Validators.password(password);
             }
 
@@ -135,6 +138,12 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
         } catch (InvalidValueException e) {
             throw CliErrors.fail(spec, json, "validation", e.getMessage(), 5);
         }
+    }
+
+    // Mirrors UserAdminServiceImpl.persist: those are the providers whose password is hashed and
+    // stored, so those are the ones whose password has to be valid.
+    private static boolean storesAPassword(String provider) {
+        return User.LOCAL.equals(provider) || User.EXTERNAL.equals(provider);
     }
 
     // One line, no trailing newline, so `printf 'pw' | datashare user create ...` and

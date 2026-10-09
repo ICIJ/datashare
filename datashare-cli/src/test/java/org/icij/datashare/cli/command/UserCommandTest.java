@@ -350,4 +350,18 @@ public class UserCommandTest extends AbstractDatashareCommandTest {
             assertThat(e.exitCode()).isEqualTo(2);
         }
     }
+
+    @Test
+    public void test_user_create_refuses_an_empty_stdin_password_for_an_external_provider() {
+        // UserAdminServiceImpl.persist hashes the password for local AND external, and
+        // UsersInDb.find authenticates on a bare hash comparison with no provider check, so an
+        // empty one stored here is sha256("") and becomes a usable credential
+        System.setIn(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)));
+
+        int exitCode = parseExitCodeCapturingErr("user", "create", "bob", "--email", "b@e.test",
+                                                 "--provider", "external", "--password-stdin", "--no-input");
+
+        assertThat(exitCode).isEqualTo(5);
+        assertThat(lastErr).contains("password is required");
+    }
 }
