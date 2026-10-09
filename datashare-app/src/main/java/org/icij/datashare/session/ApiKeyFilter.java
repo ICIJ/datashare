@@ -11,11 +11,16 @@ import net.codestory.http.security.Users;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
 import static net.codestory.http.constants.Headers.CACHE_CONTROL;
 import static net.codestory.http.constants.HttpStatus.UNAUTHORIZED;
 
 @Singleton
 public class ApiKeyFilter implements Filter {
+    private static final Set<Context> AUTHENTICATED =
+            Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Users users;
     private final ApiKeyStore apiKeyStore;
@@ -48,6 +53,7 @@ public class ApiKeyFilter implements Filter {
             if (login != null) {
                 User user = users.find(login);
                 context.setCurrentUser(user);
+                markAuthenticated(context);
                 if (postLoginEnroller != null && user instanceof DatashareUser dsUser) {
                     postLoginEnroller.enroll(dsUser);
                 }
@@ -55,6 +61,14 @@ public class ApiKeyFilter implements Filter {
             }
         }
         return new Payload(UNAUTHORIZED);
+    }
+
+    static void markAuthenticated(Context context) {
+        AUTHENTICATED.add(context);
+    }
+
+    static boolean isAuthenticated(Context context) {
+        return AUTHENTICATED.contains(context);
     }
 
     protected String readApiKeyInHeader(Context context) {

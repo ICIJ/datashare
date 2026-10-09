@@ -56,6 +56,26 @@ public class ApiKeyFilterTest {
     }
 
     @Test
+    public void test_marks_context_as_authenticated_by_api_key() throws Exception {
+        when(context.header("authorization")).thenReturn("Bearer session_id");
+        when(apiKeyStore.getLogin("session_id")).thenReturn("user_id");
+        when(users.find("user_id")).thenReturn(new DatashareUser("user_id"));
+
+        apiKeyFilter.apply("url", context, nextFilter);
+
+        assertThat(ApiKeyFilter.isAuthenticated(context)).isTrue();
+    }
+
+    @Test
+    public void test_unknown_key_does_not_mark_context() throws Exception {
+        when(context.header("authorization")).thenReturn("Bearer unknown");
+
+        apiKeyFilter.apply("url", context, nextFilter);
+
+        assertThat(ApiKeyFilter.isAuthenticated(context)).isFalse();
+    }
+
+    @Test
     public void test_unauthorized_if_type_is_not_bearer() throws Exception {
         when(context.header("authorization")).thenReturn("Basic session_id");
 
