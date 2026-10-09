@@ -32,7 +32,8 @@ public class GenApiKeyTask extends DefaultTask<String> implements UserTask {
     public String call() throws Exception {
         SecretKey secretKey = DatashareApiKey.generateSecretKey();
         apiKeyRepository.save(new DatashareApiKey(secretKey, user));
-        logger.info("generated secret key for user {}", user.id);
+        logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later)",
+                    user.id);
         return DatashareApiKey.getBase64Encoded(secretKey);
     }
 

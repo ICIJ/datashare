@@ -23,7 +23,9 @@ import static org.mockito.Mockito.when;
  */
 public class CliAppTaskDispatchTest {
     private ByteArrayOutputStream out;
+    private ByteArrayOutputStream err;
     private PrintStream origOut;
+    private PrintStream origErr;
     private DatashareTaskFactory taskFactory;
 
     @Before
@@ -32,14 +34,18 @@ public class CliAppTaskDispatchTest {
         // would land in the capture below and make these assertions depend on test ordering
         org.slf4j.LoggerFactory.getLogger(CliAppTaskDispatchTest.class).debug("initialize logging");
         origOut = System.out;
+        origErr = System.err;
         out = new ByteArrayOutputStream();
+        err = new ByteArrayOutputStream();
         System.setOut(new PrintStream(out));
+        System.setErr(new PrintStream(err));
         taskFactory = mock(DatashareTaskFactory.class);
     }
 
     @After
     public void restore() {
         System.setOut(origOut);
+        System.setErr(origErr);
     }
 
     @Test
@@ -57,14 +63,16 @@ public class CliAppTaskDispatchTest {
 
     @Test
     public void test_create_api_key_keeps_the_key_off_the_log_line() throws Exception {
-        // the log line goes to stderr and into ./logs/datashare.log; the secret must not
+        // the log goes to stderr and into ./logs/datashare.log, so that is where to look: a
+        // stdout-only assertion would pass even if the secret were logged
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("the-generated-key");
         when(taskFactory.createGenApiKey(any())).thenReturn(task);
 
         CliApp.handleApiKeyCreate(taskFactory, "alice");
 
-        assertThat(out.toString().trim().lines().count()).isEqualTo(1);
+        assertThat(out.toString().trim()).isEqualTo("the-generated-key");
+        assertThat(err.toString()).excludes("the-generated-key");
     }
 
     @Test
@@ -146,5 +154,16 @@ public class CliAppTaskDispatchTest {
         when(taskFactory.createDelApiKey(any())).thenReturn(task);
 
         assertThat(CliApp.handleApiKeyDelete(taskFactory, "ghost")).isEqualTo(CliApp.EXIT_NOT_FOUND);
+    }
+
+    @Test
+    public void test_grant_admin_exits_runtime_when_the_write_fails() throws Exception {
+        // "an instance admin already exists" and "the write did not take" are different outcomes:
+        // a script treating 4 as "already provisioned, carry on" must not swallow a real failure
+        GrantAdminPolicyTask task = mock(GrantAdminPolicyTask.class);
+        when(task.call()).thenThrow(new IllegalStateException("could not persist the role"));
+        when(taskFactory.createGrantAdminPolicyTask(any())).thenReturn(task);
+
+        assertThat(CliApp.handleGrantAdmin(taskFactory, "alice")).isEqualTo(CliApp.EXIT_RUNTIME);
     }
 }

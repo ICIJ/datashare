@@ -831,8 +831,14 @@ class CliApp {
      * The task reports the refusal in its own log line.
      */
     static int handleGrantAdmin(DatashareTaskFactory taskFactory, String userName) throws Exception {
-        Boolean granted = taskFactory.createGrantAdminPolicyTask(localUser(userName)).call();
-        return Boolean.TRUE.equals(granted) ? EXIT_SUCCESS : EXIT_CONFLICT;
+        try {
+            Boolean granted = taskFactory.createGrantAdminPolicyTask(localUser(userName)).call();
+            return Boolean.TRUE.equals(granted) ? EXIT_SUCCESS : EXIT_CONFLICT;
+        } catch (RuntimeException e) {
+            // the grant was refused (4) versus the write failed (1): a script treating 4 as
+            // "already provisioned, carry on" must not swallow a persistence failure
+            return error(e.getMessage(), "runtime", EXIT_RUNTIME, false);
+        }
     }
 
     /**
@@ -840,9 +846,9 @@ class CliApp {
      * `datashare --createApiKey alice | read KEY` keeps working now that logs go to stderr (#2442).
      */
     static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName) throws Exception {
+        // GenApiKeyTask logs the generation itself, so nothing is logged here: two near-identical
+        // lines per invocation is noise, and the key belongs on stdout, not in the log
         String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
-        logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later)",
-                    userName);
         System.out.println(secretKey);
         return EXIT_SUCCESS;
     }
