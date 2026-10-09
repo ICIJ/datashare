@@ -453,8 +453,6 @@ public class UserAdminServiceImplTest {
         when(userStore.find("alice")).thenReturn(new DatashareUser(alice));
         when(userStore.save(any(User.class))).thenReturn(true);
 
-        // a different email, so the update is a real one: resubmitting the stored value is a noop
-        // now and would not write at all, which is not what this test is about
         UserCreated result = service.update("alice",
                 new UserUpdateRequest("alice@new.org", null, null, null));
 
@@ -507,8 +505,6 @@ public class UserAdminServiceImplTest {
         verify(authorizer).addRoleForUserInProject(any(User.class), eq(Role.PROJECT_MEMBER), eq(Domain.DEFAULT), eq(new Project("p2")));
     }
 
-    // --- #2443: validation on update, unknown projects in groups, real noop ---
-
     @Test
     public void test_update_rejects_an_invalid_email() throws Exception {
         when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
@@ -541,7 +537,6 @@ public class UserAdminServiceImplTest {
         UserCreated updated = service.update("alice", new UserUpdateRequest(null, null, null, null));
 
         assertThat(updated.noop()).isTrue();
-        // a noop that still writes and re-enrolls is not a noop
         verify(userStore, never()).save(any());
     }
 
@@ -558,8 +553,6 @@ public class UserAdminServiceImplTest {
     public void test_update_that_only_sets_a_password_is_not_a_noop() throws Exception {
         when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
 
-        // a password is write-only: a resubmitted one is indistinguishable from a new one, and
-        // reporting noop would claim nothing was written when the hash was in fact rewritten
         UserCreated updated = service.update("alice", new UserUpdateRequest(null, null, "newpw", null));
 
         assertThat(updated.noop()).isFalse();
@@ -573,7 +566,6 @@ public class UserAdminServiceImplTest {
                 new UserUpdateRequest("alice@example.org", "Alice", null, List.of("p1")));
 
         assertThat(updated.noop()).isTrue();
-        // a noop that still writes and re-enrolls is not a noop
         verify(userStore, never()).save(any());
     }
 
@@ -585,8 +577,6 @@ public class UserAdminServiceImplTest {
 
     @Test
     public void test_groups_cannot_smuggle_two_names_through_one_entry() throws Exception {
-        // validateGroups joins the list into a CSV for Validators.groups, which splits on commas,
-        // so a single entry holding one would silently become two groups
         when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
 
         try {

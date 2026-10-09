@@ -108,10 +108,7 @@ public class UserResource {
         return INSTANCE_SCOPE.equals(scope) || Domain.DEFAULT.equals(scope);
     }
 
-    /**
-     * The parsed value, the fallback when absent, or null when it is not an integer or is negative.
-     * Zero is valid: {@code size=0} is a legitimate count-only page, not an error.
-     */
+    /** Null when not an integer or negative. Zero is valid: {@code size=0} is a count-only page. */
     private static Integer parseNonNegativeInt(String raw, int fallback) {
         if (raw == null || raw.isBlank()) {
             return fallback;
@@ -273,15 +270,14 @@ public class UserResource {
     }
 
     /**
-     * Reads the request body, or null when it cannot be parsed. fluent-http deserializes a route
-     * parameter before the method runs, so taking the body in the signature turns a malformed one
-     * into a 500 carrying the Java class name.
+     * Null when the body cannot be parsed. fluent-http deserializes a route parameter before the
+     * method runs, so taking the body in the signature turns a malformed one into a 500 carrying
+     * the Java class name.
      */
     private <T> T extractOrNull(Context context, Class<T> type, String route) {
         try {
             return context.extract(type);
         } catch (IOException | RuntimeException e) {
-            // logged, so a genuine server-side fault is not silently blamed on the caller
             LOGGER.debug("malformed body on {}", route, e);
             return null;
         }
@@ -333,8 +329,6 @@ public class UserResource {
     @Policy(role = Role.INSTANCE_ADMIN)
     @Put("/admin/:userId")
     public Payload updateUser(String userId, Context context) {
-        // extract here rather than in the signature: fluent-http deserializes a route parameter
-        // before the method runs, so a malformed body escapes as a 500 carrying the Java class name
         UserUpdateRequest request = extractOrNull(context, UserUpdateRequest.class, "PUT /api/users/admin/:userId");
         if (request == null) {
             return PayloadFormatter.error("malformed JSON body", HttpStatus.BAD_REQUEST);

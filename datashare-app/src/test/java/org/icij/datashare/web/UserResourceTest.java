@@ -332,7 +332,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_update_user_with_a_json_array_body_is_a_400() {
-        // valid JSON, wrong shape: must not reach the service as a half-built request
         put("/api/users/admin/alice", "[1,2,3]").should().respond(400);
     }
 
@@ -353,7 +352,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_rejects_a_negative_size() {
-        // 200 with an empty page reads as "there are no users", which is worse than an error
         get("/api/users/admin?size=-1").should().respond(400);
     }
 
@@ -364,7 +362,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_accepts_size_zero_as_an_empty_page() {
-        // a legitimate "count only" request, not an error
         when(userAdminService.list(new UserFilter(null), null, 0, Integer.MAX_VALUE))
                 .thenReturn(new WebResponse<>(List.of(), 0, Integer.MAX_VALUE, 0));
 
@@ -1297,7 +1294,6 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_create_user_with_a_malformed_body_is_a_400() {
-        // POST had the exact 500 this PR fixed for PUT
         post("/api/users", "not json").should().respond(400).contain("malformed");
     }
 
