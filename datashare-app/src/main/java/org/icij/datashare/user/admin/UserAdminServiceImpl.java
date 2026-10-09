@@ -11,6 +11,8 @@ import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.WebResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -22,6 +24,7 @@ import java.util.Set;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserAdminServiceImpl.class);
     private final UserStore userStore;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
@@ -40,8 +43,8 @@ public class UserAdminServiceImpl implements UserAdminService {
     @Override
     public UserCreated create(UserCreateRequest request) throws UserExistsException, ValidationException {
         if (userStore.find(request.login()) != null) {
-            // before validate(): it reaches the database for the project check, and an existing
-            // user must still answer 409 rather than 400 on an unknown group
+            // before validate(): an existing user must answer 409 rather than a 400 about a field
+            // the caller cannot fix by changing it
             throw new UserExistsException(request.login());
         }
         return persist(request, validate(request));
@@ -179,9 +182,12 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     /**
-     * Canonicalizes a groups list through the same validator the CLI uses, then rejects names that
-     * are not existing projects. PostLoginEnroller writes a PROJECT_MEMBER row per name at every
-     * login, so an unknown name is not inert: it accumulates rows for a project nobody can reach.
+     * Canonicalizes a groups list through the same validator the CLI uses, then warns about names
+     * that have no project row. Only a warning: users are legitimately provisioned before their
+     * projects exist ({@code --user-create --user-create-groups}, and the default local-datashare project
+     * is synthesized in memory by YesCookieAuthFilter rather than persisted), so rejecting would
+     * break a supported flow. The stale PROJECT_MEMBER rows this used to guard against are cleaned
+     * up by removeProjectsFromInventory on project delete.
      * Returns null for a null input, which callers read as "the request did not touch groups".
      */
     private List<String> validateGroups(List<String> groups) throws ValidationException {
@@ -201,11 +207,8 @@ public class UserAdminServiceImpl implements UserAdminService {
         List<String> deduplicated = canonical.stream().distinct().toList();
         for (String projectName : deduplicated) {
             if (repository.getProject(projectName) == null) {
-                // Projects must exist before the users that reference them. Note the default project
-                // (local-datashare) has no row until something creates it: YesCookieAuthFilter
-                // synthesizes it in memory for the session, it is not persisted.
-                throw new ValidationException("groups",
-                                              "project '" + projectName + "' does not exist, create it first");
+                LOGGER.warn("group '{}' has no project row: the user will only see it once the project is created",
+                            projectName);
             }
         }
         return deduplicated;
