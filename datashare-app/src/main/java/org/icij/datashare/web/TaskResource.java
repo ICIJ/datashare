@@ -113,10 +113,8 @@ public class TaskResource {
         WebQueryPagination pagination = getPagination(context);
         User user = (User) context.currentUser();
         try {
-            Stream<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, taskFiltersFromContext(context.query(),
-                                                                                                (User) context.currentUser(),
-                                                                                                Pattern.CASE_INSENSITIVE))
-                                              .sorted(new Task.Comparator(pagination.sort, pagination.order));
+            Stream<Task<?>> tasks = findVisibleTasks(user, context.query().keyValues()).sorted(
+                    new Task.Comparator(pagination.sort, pagination.order));
             WebResponse<Task<?>> paginatedTasks = WebResponse.fromStream(tasks, pagination.from, pagination.size);
             // Then finally, use WebResponse to take display the pagination for us
             return new Payload(paginatedTasks);
@@ -146,9 +144,7 @@ public class TaskResource {
     @Deprecated
     public List<Task<?>> getAllTasks(Context context) throws IOException {
         User user = (User) context.currentUser();
-        Stream<Task<?>> tasks = taskFinder.findVisibleTasksFor(user, taskFiltersFromContext(context.query(),
-                                                                                            (User) context.currentUser(),
-                                                                                            Pattern.CASE_INSENSITIVE));
+        Stream<Task<?>> tasks = findVisibleTasks(user, context.query().keyValues());
         return getPagination(context).paginate(tasks, p -> new Task.Comparator(p.sort, p.order)).toList();
     }
 
@@ -711,19 +707,28 @@ public class TaskResource {
         return taskFiltersFromContext(context.query(), (User) context.currentUser(), null);
     }
 
-    // TODO: this is for backwards compatibility, we should updated APIs to use TaskFilters instead
+    Stream<Task<?>> findVisibleTasks(User user, Map<String, String> filters) throws IOException {
+        return taskFinder.findVisibleTasksFor(user, taskFilters(filters, user, Pattern.CASE_INSENSITIVE));
+    }
+
     TaskFilters taskFiltersFromContext(Query query, User user, Integer regexFlags) throws BadRequestException {
-        validatedFilterKeys(query);
-        QueryParameterExtractor querySelector = new QueryParameterExtractor(query);
+        return taskFilters(query.keyValues(), user, regexFlags);
+    }
+
+    // TODO: this is for backwards compatibility, we should updated APIs to use TaskFilters instead
+    private TaskFilters taskFilters(Map<String, String> filters, User user, Integer regexFlags) throws
+            BadRequestException {
+        validatedFilterKeys(filters.keySet());
+        QueryParameterExtractor querySelector = new QueryParameterExtractor(filters);
         return new TaskFilters().with(user).with(querySelector.name()).withTypes(querySelector.types())
                                 .withStates(querySelector.states()).with(querySelector.args()).with(regexFlags);
     }
 
-    void validatedFilterKeys(Query query) throws BadRequestException {
+    void validatedFilterKeys(Set<String> keys) throws BadRequestException {
         Set<String> extraKeys =
-                query.keys().stream().filter(not(PAGINATION_FIELDS::contains)).filter(not(TASK_FILTER_FIELDS::contains))
-                     // We allow nested args search
-                     .filter(not(k -> k.startsWith("args."))).collect(Collectors.toSet());
+                keys.stream().filter(not(PAGINATION_FIELDS::contains)).filter(not(TASK_FILTER_FIELDS::contains))
+                    // We allow nested args search
+                    .filter(not(k -> k.startsWith("args."))).collect(Collectors.toSet());
         if (!extraKeys.isEmpty()) {
             String msg = "invalid task filter keys " + extraKeys.stream().sorted().toList() + ".";
             msg += " Allowed keys" + TASK_FILTER_FIELDS.stream().sorted().toList();
@@ -732,7 +737,7 @@ public class TaskResource {
         }
     }
 
-    private record QueryParameterExtractor(Query query) {
+    private record QueryParameterExtractor(Map<String, String> filters) {
         private enum Fields {name, type, state, args}
 
         String name() {
@@ -753,13 +758,14 @@ public class TaskResource {
 
         TaskFilters.ArgsFilter[] args() {
             String prefix = Fields.args.name() + ".";
-            return query.keys().stream().filter(k -> k.startsWith(prefix))
-                        .map(k -> new TaskFilters.ArgsFilter(k.substring(prefix.length()), ".*" + query.get(k) + ".*"))
-                        .toArray(TaskFilters.ArgsFilter[]::new);
+            return filters.keySet().stream().filter(k -> k.startsWith(prefix))
+                          .map(k -> new TaskFilters.ArgsFilter(k.substring(prefix.length()),
+                                                               ".*" + filters.get(k) + ".*"))
+                          .toArray(TaskFilters.ArgsFilter[]::new);
         }
 
         private <T> T extract(Fields field, Function<String, T> transform, T defaultValue) {
-            return ofNullable(query.get(field.name())).map(transform).orElse(defaultValue);
+            return ofNullable(filters.get(field.name())).map(transform).orElse(defaultValue);
         }
     }
 }
