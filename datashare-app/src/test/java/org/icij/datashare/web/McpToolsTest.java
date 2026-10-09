@@ -12,6 +12,8 @@ import org.icij.datashare.cli.Mode;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.project.admin.ProjectAdminService;
+import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.TaskPolicyAnnotation;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
@@ -33,6 +35,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -57,7 +60,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                        new DocumentResource(repository, indexer, propertiesProvider,
                                                             new DocumentSourceAccess(repository, indexer,
                                                                                      propertiesProvider)),
-                                       new TaskFinder(taskManager, batchSearchRepository));
+                                       new TaskFinder(taskManager, batchSearchRepository), taskManager,
+                                       new TaskPolicyAnnotation(mock(Authorizer.class), taskManager));
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }
