@@ -13,10 +13,13 @@ import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.web.errors.ForbiddenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +34,8 @@ public class McpResource {
     private static final Map<String, Object> NO_ARGS = Map.of("type", "object", "properties", Map.of());
 
     @Inject
-    public McpResource(ProjectResource projectResource) {
-        this(List.of(listProjects(projectResource)));
+    public McpResource(ProjectResource projectResource, Indexer indexer) {
+        this(List.of(listProjects(projectResource), searchDocuments(indexer)));
     }
 
     McpResource(List<McpTool> tools) {
@@ -42,6 +45,43 @@ public class McpResource {
     static McpTool listProjects(ProjectResource projectResource) {
         return new McpTool("list_projects", "Lists the Datashare projects you can access.", NO_ARGS,
                            (args, context) -> projectResource.getProjects(context));
+    }
+
+    static McpTool searchDocuments(Indexer indexer) {
+        Map<String, Object> schema = Map.of("type", "object", "properties",
+                                            Map.of("project", Map.of("type", "string", "description", "project id"),
+                                                   "query", Map.of("type", "string", "description",
+                                                                   "Elasticsearch query_string syntax"), "size",
+                                                   Map.of("type", "integer", "minimum", 1, "maximum", 50, "default",
+                                                          10)), "required", List.of("project", "query"));
+        return new McpTool("search_documents", "Full-text search in the documents of one project.", schema,
+                           (args, context) -> {
+                               String project = IndexAccessVerifier.checkIndices(requireText(args, "project"));
+                               String query = requireText(args, "query");
+                               int size = intArg(args, "size", 10, 1, 50);
+                               String url = IndexAccessVerifier.checkPath(project + "/_search", context);
+                               Map<String, Object> body =
+                                       Map.of("size", size, "_source", List.of("path", "contentType"), "query",
+                                              Map.of("bool",
+                                                     Map.of("must", Map.of("query_string", Map.of("query", query)),
+                                                            "filter", Map.of("term", Map.of("type", "Document")))),
+                                              "highlight", Map.of("fields", Map.of("content", Map.of())));
+                               JsonNode response = MAPPER.readTree(
+                                       indexer.executeRaw("POST", url, MAPPER.writeValueAsString(body)));
+                               List<Map<String, Object>> hits = new ArrayList<>();
+                               for (JsonNode hit : response.at("/hits/hits")) {
+                                   List<String> highlights = new ArrayList<>();
+                                   hit.at("/highlight/content").forEach(fragment -> highlights.add(fragment.asText()));
+                                   Map<String, Object> trimmed = new LinkedHashMap<>();
+                                   trimmed.put("id", hit.path("_id").asText());
+                                   trimmed.put("routing", hit.path("_routing").asText(null));
+                                   trimmed.put("path", hit.at("/_source/path").asText(null));
+                                   trimmed.put("contentType", hit.at("/_source/contentType").asText(null));
+                                   trimmed.put("highlights", highlights);
+                                   hits.add(trimmed);
+                               }
+                               return Map.of("total", response.at("/hits/total/value").asLong(), "hits", hits);
+                           });
     }
 
     @Post()
