@@ -29,6 +29,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -62,8 +63,7 @@ public class McpStopTaskTest extends AbstractProdWebServerTest {
         TaskResource taskResource = new TaskResource(taskFactory, taskManager, new PropertiesProvider(),
                                                      mock(BatchSearchRepository.class),
                                                      new TaskFinder(taskManager, mock(BatchSearchRepository.class)));
-        McpResource mcp =
-                new McpResource(List.of(McpResource.stopTask(taskResource, taskManager, taskPolicyChecker)));
+        McpResource mcp = new McpResource(Set.of(new McpStopTaskTool(taskResource, taskManager, taskPolicyChecker)));
         Users users = new Users() {
             @Override
             public User find(String login, String password) {

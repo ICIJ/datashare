@@ -43,6 +43,7 @@ public class ServerMode extends CommonMode {
                 mode -> propertiesProvider.setProperty(AUTH_MODE_OPT, mode.cliName));
         bindAuthFilter(authFilterClass);
         bind(StatusResource.class).asEagerSingleton();
+        bindMcpTools();
         configurePersistence();
     }
 
