@@ -8,6 +8,7 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.PostLoginEnroller;
 import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.WebResponse;
 import javax.annotation.Nullable;
@@ -36,8 +37,9 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public UserCreated create(UserCreateRequest request) throws UserExistsException, ValidationException {
+        validateLogin(request.login());
         if (userStore.find(request.login()) != null) {
-            // before validate(), so an existing login answers 409 and not a 400 about the body
+            // before the rest of validate(), so an existing login answers 409 and not a 400 about the body
             throw new UserExistsException(request.login());
         }
         return persist(request, validate(request));
@@ -45,9 +47,11 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public UserCreated createIfNotExists(UserCreateRequest request) throws ValidationException {
+        validateLogin(request.login());
         if (userStore.find(request.login()) instanceof User existing) {
-            String name = request.name() == null ? request.login() : request.name();
-            return new UserCreated(request.login(), request.email(), name, request.provider(),
+            // every field off the stored user: nothing was written, so echoing the request would
+            // report an email, name or provider that is not the one on record
+            return new UserCreated(existing.id, existing.email, existing.name, existing.provider,
                                    existing.getApplicationProjectNames(), true);
         }
         return persist(request, validate(request));
@@ -121,6 +125,11 @@ public class UserAdminServiceImpl implements UserAdminService {
                           !newGroups.equals(currentGroups) || req.password() != null;
 
         if (!changed) {
+            // enroll stays: it is idempotent and reconciles the casbin rows of users created
+            // through POST or the CLI, which never went through a login
+            if (postLoginEnroller != null) {
+                postLoginEnroller.enroll(new DatashareUser(existing));
+            }
             return new UserCreated(login, newEmail, newName, existing.provider, newGroups, true);
         }
 
@@ -156,6 +165,14 @@ public class UserAdminServiceImpl implements UserAdminService {
         return User.EXTERNAL.equals(request.provider());
     }
 
+    private void validateLogin(String login) throws ValidationException {
+        try {
+            Validators.login(login);
+        } catch (Validators.InvalidValueException e) {
+            throw new ValidationException(e.field(), e.getMessage());
+        }
+    }
+
     private List<String> validate(UserCreateRequest request) throws ValidationException {
         try {
             Validators.login(request.login());
@@ -173,6 +190,8 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     /**
      * Returns null for a null input, which callers read as "the request did not touch groups".
+     * Each entry is matched on its own rather than joined into a CSV: {@code Validators.groups}
+     * skips blank tokens, which would turn {@code [""]} into "revoke every group" with a 200.
      * <p>
      * Deliberately does not check that each name has a project row: users are legitimately
      * provisioned before their projects exist ({@code --user-create --user-create-groups}), and the
@@ -182,17 +201,13 @@ public class UserAdminServiceImpl implements UserAdminService {
         if (groups == null) {
             return null;
         }
-        if (groups.stream().anyMatch(g -> g != null && g.contains(","))) {
-            // Validators.groups parses a CSV, so one entry holding a comma would come back as two
-            throw new ValidationException("groups", "a group name cannot contain a comma");
+        for (String group : groups) {
+            if (group == null || !Project.NAME_PATTERN.matcher(group).matches()) {
+                throw new ValidationException("groups",
+                                              "project name '" + group + "' must match " + Project.NAME_REGEX);
+            }
         }
-        List<String> canonical;
-        try {
-            canonical = Validators.groups(String.join(",", groups));
-        } catch (Validators.InvalidValueException e) {
-            throw new ValidationException(e.field(), e.getMessage());
-        }
-        return canonical.stream().distinct().toList();
+        return groups.stream().distinct().toList();
     }
 
     private UserCreated persist(UserCreateRequest request, List<String> groups) {
