@@ -459,8 +459,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // two steps rather than one, and combined only once both have run: a failure on either index
         // must neither hide the other nor stop it from being deleted. A project older than the
         // entities index has none, which is nothing to report.
-        boolean documentsDeleted = !options.keepIndex() && runStep("index", name, () -> !indexer.exists(name) ||
-                                                                                         indexer.deleteAll(name));
+        boolean documentsDeleted =
+                !options.keepIndex() && runStep("index", name, () -> !indexer.exists(name) || indexer.deleteAll(name));
         String entitiesIndex = Project.entitiesIndex(name);
         boolean entitiesDeleted = !options.keepIndex() && runStep("entities index", name,
                                                                   () -> !indexer.exists(entitiesIndex) ||
