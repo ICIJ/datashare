@@ -205,6 +205,7 @@ public class McpResource {
                                                                  .map(tool -> Map.of("name", tool.name(), "description",
                                                                                      tool.description(), "inputSchema",
                                                                                      tool.inputSchema())).toList()));
+            case "ping" -> result(id, Map.of());
             case "tools/call" -> callTool(id, request.path("params"), context);
             default -> error(id, -32601, "Method not found: " + method);
         });

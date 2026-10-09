@@ -126,4 +126,18 @@ public class McpResourceTest extends AbstractProdWebServerTest {
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("boom");
     }
+
+    @Test
+    public void test_get_is_not_allowed() {
+        serve(List.of());
+        assertThat(get("/api/mcp").withPreemptiveAuthentication("local", "").response().code()).isEqualTo(405);
+    }
+
+    @Test
+    public void test_ping_returns_an_empty_result() throws Exception {
+        serve(List.of());
+        JsonNode response = rpc("{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"ping\"}");
+        assertThat(response.get("result").isObject()).isTrue();
+        assertThat(response.get("result").size()).isEqualTo(0);
+    }
 }
