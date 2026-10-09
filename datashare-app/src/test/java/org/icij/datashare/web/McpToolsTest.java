@@ -31,6 +31,7 @@ import org.mockito.Mock;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.localUser;
@@ -57,14 +58,19 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
     private void serveAs(String login, String... projects) {
         TaskFinder taskFinder = new TaskFinder(taskManager, batchSearchRepository);
-        McpResource mcp = new McpResource(new ProjectResource(repository, indexer, taskManager, propertiesProvider,
-                                                              documentCollectionFactory, projectAdminService), indexer,
-                                       new DocumentResource(repository, indexer, propertiesProvider,
-                                                            new DocumentSourceAccess(repository, indexer,
-                                                                                     propertiesProvider)),
-                                       new TaskResource(mock(DatashareTaskFactory.class), taskManager,
-                                                        propertiesProvider, batchSearchRepository, taskFinder),
-                                       taskManager, TaskPolicyChecker.ALLOW_ALL);
+        ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider,
+                                                              documentCollectionFactory, projectAdminService);
+        DocumentResource documentResource = new DocumentResource(repository, indexer, propertiesProvider,
+                                                                 new DocumentSourceAccess(repository, indexer,
+                                                                                          propertiesProvider));
+        TaskResource taskResource = new TaskResource(mock(DatashareTaskFactory.class), taskManager, propertiesProvider,
+                                                     batchSearchRepository, taskFinder);
+        McpResource mcp = new McpResource(Set.of(new McpListProjectsTool(projectResource),
+                                                 new McpSearchDocumentsTool(indexer),
+                                                 new McpGetDocumentTool(documentResource),
+                                                 new McpListTasksTool(taskResource),
+                                                 new McpStopTaskTool(taskResource, taskManager,
+                                                                     TaskPolicyChecker.ALLOW_ALL)));
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }

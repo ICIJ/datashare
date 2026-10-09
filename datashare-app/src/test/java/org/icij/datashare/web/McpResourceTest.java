@@ -2,13 +2,13 @@ package org.icij.datashare.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import net.codestory.http.errors.NotFoundException;
+import net.codestory.http.Context;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.web.errors.ForbiddenException;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Test;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -17,11 +17,38 @@ import static org.icij.datashare.user.User.localUser;
 
 public class McpResourceTest extends AbstractProdWebServerTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Map<String, Object> NO_ARGS = Map.of("type", "object", "properties", Map.of());
+
+    private interface Handler {
+        Object call(JsonNode arguments, Context context) throws Exception;
+    }
 
     private void serve(List<McpTool> tools) {
-        configure(routes -> routes.add(new McpResource(tools))
+        configure(routes -> routes.add(new McpResource(new LinkedHashSet<>(tools)))
                 .filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser("local", "foo")))));
+    }
+
+    private static McpTool tool(String name, String description, Handler handler) {
+        return new McpTool() {
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String description() {
+                return description;
+            }
+
+            @Override
+            public Map<String, Object> inputSchema() {
+                return NO_ARGUMENTS;
+            }
+
+            @Override
+            public Object call(JsonNode arguments, Context context) throws Exception {
+                return handler.call(arguments, context);
+            }
+        };
     }
 
     private JsonNode rpc(String body) throws Exception {
@@ -52,7 +79,7 @@ public class McpResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_tools_list() throws Exception {
-        serve(List.of(new McpTool("echo", "Echoes", NO_ARGS, (args, context) -> args)));
+        serve(List.of(tool("echo", "Echoes", (args, context) -> args)));
         JsonNode response = rpc("{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}");
         assertThat(response.at("/result/tools/0/name").asText()).isEqualTo("echo");
         assertThat(response.at("/result/tools/0/description").asText()).isEqualTo("Echoes");
@@ -84,7 +111,7 @@ public class McpResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_call_returns_one_text_block_with_compact_json() throws Exception {
-        serve(List.of(new McpTool("echo", "Echoes", NO_ARGS, (args, context) -> Map.of("a", 1))));
+        serve(List.of(tool("echo", "Echoes", (args, context) -> Map.of("a", 1))));
         JsonNode response = call("echo", "{}");
         assertThat(response.at("/result/isError").asBoolean()).isFalse();
         assertThat(response.at("/result/content/0/type").asText()).isEqualTo("text");
@@ -99,13 +126,13 @@ public class McpResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_call_with_invalid_argument() throws Exception {
-        serve(List.of(new McpTool("t", "", NO_ARGS, (args, context) -> McpResource.requireText(args, "project"))));
+        serve(List.of(tool("t", "", (args, context) -> McpArguments.requireText(args, "project"))));
         assertThat(call("t", "{}").at("/error/code").asInt()).isEqualTo(-32602);
     }
 
     @Test
     public void test_call_forbidden_is_a_tool_error() throws Exception {
-        serve(List.of(new McpTool("t", "", NO_ARGS, (args, context) -> { throw new ForbiddenException("denied"); })));
+        serve(List.of(tool("t", "", (args, context) -> { throw new McpToolException.Forbidden("bar"); })));
         JsonNode response = call("t", "{\"project\":\"bar\"}");
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
@@ -113,7 +140,7 @@ public class McpResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_call_not_found_is_a_tool_error() throws Exception {
-        serve(List.of(new McpTool("t", "", NO_ARGS, (args, context) -> { throw new NotFoundException(); })));
+        serve(List.of(tool("t", "", (args, context) -> { throw new McpToolException.NotFound("doc1"); })));
         JsonNode response = call("t", "{\"project\":\"foo\",\"id\":\"doc1\"}");
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: doc1");
@@ -121,7 +148,7 @@ public class McpResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_call_other_exception_is_a_tool_error_with_its_message() throws Exception {
-        serve(List.of(new McpTool("t", "", NO_ARGS, (args, context) -> { throw new IllegalStateException("boom"); })));
+        serve(List.of(tool("t", "", (args, context) -> { throw new IllegalStateException("boom"); })));
         JsonNode response = call("t", "{}");
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("boom");
@@ -143,7 +170,7 @@ public class McpResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_exception_without_message_is_named_in_the_tool_error() throws Exception {
-        serve(List.of(new McpTool("t", "", NO_ARGS, (args, context) -> { throw new NullPointerException(); })));
+        serve(List.of(tool("t", "", (args, context) -> { throw new NullPointerException(); })));
         JsonNode response = call("t", "{}");
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("NullPointerException");

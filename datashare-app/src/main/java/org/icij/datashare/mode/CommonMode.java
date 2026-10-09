@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import com.google.inject.multibindings.Multibinder;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -66,6 +67,12 @@ import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.web.McpGetDocumentTool;
+import org.icij.datashare.web.McpListProjectsTool;
+import org.icij.datashare.web.McpListTasksTool;
+import org.icij.datashare.web.McpSearchDocumentsTool;
+import org.icij.datashare.web.McpStopTaskTool;
+import org.icij.datashare.web.McpTool;
 import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
@@ -548,6 +555,16 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     }
 
     protected abstract Routes addModeConfiguration(final Routes routes);
+
+    /** Only the modes serving McpResource call this: StopTaskTool needs a TaskPolicyChecker, which they bind. */
+    void bindMcpTools() {
+        Multibinder<McpTool> tools = Multibinder.newSetBinder(binder(), McpTool.class);
+        tools.addBinding().to(McpListProjectsTool.class);
+        tools.addBinding().to(McpSearchDocumentsTool.class);
+        tools.addBinding().to(McpGetDocumentTool.class);
+        tools.addBinding().to(McpListTasksTool.class);
+        tools.addBinding().to(McpStopTaskTool.class);
+    }
 
     void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
