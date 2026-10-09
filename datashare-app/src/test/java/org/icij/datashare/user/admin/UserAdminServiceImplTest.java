@@ -440,6 +440,24 @@ public class UserAdminServiceImplTest {
     }
 
     @Test
+    public void test_update_throws_validation_when_blank_password() {
+        Map<String, Object> details = new HashMap<>(Map.of("uid", "alice", "name", "Alice", "email", "a@b.c"));
+        User existing = new User("alice", "Alice", "a@b.c", "local", details);
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existing));
+
+        try {
+            service.update("alice", new UserUpdateRequest(null, null, "   ", null));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            // UsersInDb.find compares hashes with no provider check, so sha256("   ") would be a
+            // usable credential, which is what Validators.password already blocks on create
+            assertThat(e.field()).isEqualTo("password");
+        } catch (UserNotFoundException e) {
+            fail("unexpected UserNotFoundException");
+        }
+    }
+
+    @Test
     public void test_update_changes_email_and_name() throws Exception {
         User alice = new User("alice", "Alice", "alice@example.org", "local",
                 Map.of("uid", "alice", "name", "Alice", "email", "alice@example.org",
