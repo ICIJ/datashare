@@ -68,6 +68,8 @@ public class ProjectAdminServiceImplTest {
         // the #2441 inventory sweep lists every user on each project delete; empty by default
         when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
                 .thenReturn(new WebResponse<>(List.of(), 0, 0, 0));
+        // a refused inventory write now throws, so the default has to be a store that accepts
+        when(userStore.save(any(User.class))).thenReturn(true);
     }
 
     private ProjectCreateRequest minimalRequest(String name) {
@@ -345,6 +347,7 @@ public class ProjectAdminServiceImplTest {
         Project project = new Project("foo");
         when(repository.getProject("foo")).thenReturn(project);
         when(repository.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo")).thenReturn(true);
         when(indexer.deleteAll("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(true);
         when(indexer.deleteAll("foo.entities")).thenReturn(true);
@@ -381,6 +384,7 @@ public class ProjectAdminServiceImplTest {
         Project project = new Project("foo");
         when(repository.getProject("foo")).thenReturn(project);
         when(repository.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo")).thenReturn(true);
         when(indexer.deleteAll("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(true);
         when(indexer.deleteAll("foo.entities")).thenReturn(true);
@@ -405,6 +409,7 @@ public class ProjectAdminServiceImplTest {
         Project project = new Project("foo");
         when(repository.getProject("foo")).thenReturn(project);
         when(repository.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo")).thenReturn(true);
         when(indexer.deleteAll("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(true);
         when(indexer.deleteAll("foo.entities")).thenThrow(new IOException("ES down"));
@@ -429,6 +434,7 @@ public class ProjectAdminServiceImplTest {
     public void test_delete_reports_index_deleted_when_the_project_has_no_entities_index() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         when(repository.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo")).thenReturn(true);
         when(indexer.deleteAll("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(false);
         when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
@@ -491,6 +497,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_delete_continues_cascade_when_db_delete_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(indexer.exists("foo")).thenReturn(true);
         when(indexer.deleteAll("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(true);
         when(indexer.deleteAll("foo.entities")).thenReturn(true);
@@ -518,6 +525,7 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_delete_continues_cascade_when_index_delete_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(indexer.exists("foo")).thenReturn(true);
         when(indexer.deleteAll("foo")).thenThrow(new IOException("ES down"));
         when(repository.deleteAll("foo")).thenReturn(true);
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
@@ -1379,6 +1387,55 @@ public class ProjectAdminServiceImplTest {
 
         // alice keeps listing a deleted project, so the step must not report success
         assertThat(deleted.inventoryDeleted()).isFalse();
+    }
+
+    @Test
+    public void test_delete_keeps_the_grants_when_the_inventory_sweep_fails() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
+        User alice = userWithProjects("alice", List.of("proj"));
+        when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, 1, 1));
+        when(userStore.save(any(User.class))).thenReturn(false);
+
+        ProjectDeleted deleted = service.delete("proj", new ProjectDeleteOptions(true));
+
+        // alice still lists the project, and PostLoginEnroller would re-add PROJECT_MEMBER on her
+        // next login if the rows were gone, resurrecting what this cascade removes
+        assertThat(deleted.inventoryDeleted()).isFalse();
+        assertThat(deleted.casbinDeleted()).isFalse();
+        verify(authorizer, never()).removeAllPoliciesForProject(any(), any());
+    }
+
+    @Test
+    public void test_delete_reports_a_refused_inventory_write() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
+        User alice = userWithProjects("alice", List.of("proj"));
+        when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
+                .thenReturn(new WebResponse<>(List.of(alice), 0, 1, 1));
+        when(userStore.save(any(User.class))).thenReturn(false);
+
+        ProjectDeleted deleted = service.delete("proj", new ProjectDeleteOptions(true));
+
+        // a write that touched no row is a failure, not a silent success
+        assertThat(deleted.inventoryDeleted()).isFalse();
+    }
+
+    @Test
+    public void test_delete_succeeds_when_the_index_is_already_gone() throws Exception {
+        when(repository.getProject("proj")).thenReturn(new Project("proj"));
+        when(repository.deleteAll("proj")).thenReturn(true);
+        when(userStore.save(any(User.class))).thenReturn(true);
+        when(indexer.exists("proj")).thenReturn(false);
+        when(indexer.exists("proj.entities")).thenReturn(false);
+
+        ProjectDeleted deleted = service.delete("proj", new ProjectDeleteOptions(false));
+
+        // deleteAll answers false on a missing index, which would otherwise make the API answer 500
+        // on exactly the retry the cascade tells operators to run
+        assertThat(deleted.indexDeleted()).isTrue();
+        verify(indexer, never()).deleteAll("proj");
     }
 
     private static User userWithProjects(String id, List<String> projects) {
