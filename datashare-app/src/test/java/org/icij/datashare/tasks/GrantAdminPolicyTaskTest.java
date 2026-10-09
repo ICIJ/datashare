@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.openMocks;
@@ -80,15 +81,6 @@ public class GrantAdminPolicyTaskTest {
     }
 
     @Test
-    public void test_grant_returns_false_when_add_fails_and_can_also_fails() {
-        when(authorizer.getGroupPermissions()).thenReturn(List.of());
-        when(authorizer.addRoleForUserInInstance(User.local(), Role.INSTANCE_ADMIN)).thenReturn(false);
-        when(authorizer.can(User.local().getId(), Domain.of("*"), "*", Role.INSTANCE_ADMIN)).thenReturn(false);
-
-        assertThat(new GrantAdminPolicyTask(authorizer, User.local()).call()).isFalse();
-    }
-
-    @Test
     public void test_grant_is_idempotent_with_real_authorizer() throws IOException {
         CasbinRuleAdapter adapter = mock(CasbinRuleAdapter.class);
         Authorizer realAuthorizer = new Authorizer(adapter);
@@ -103,5 +95,21 @@ public class GrantAdminPolicyTaskTest {
                 .filter(r -> user.getId().equals(r.getV0()))
                 .count();
         assertThat(instanceAdminCount).isEqualTo(1);
+    }
+
+    @Test
+    public void test_a_failed_write_throws_rather_than_returning_false() {
+        // false already means "an instance admin exists"; reusing it for a write that did not take
+        // makes the two indistinguishable to a caller branching on the exit code
+        when(authorizer.getGroupPermissions()).thenReturn(List.of());
+        when(authorizer.addRoleForUserInInstance(any(), eq(Role.INSTANCE_ADMIN))).thenReturn(false);
+        when(authorizer.can(any(), any(), any(), eq(Role.INSTANCE_ADMIN))).thenReturn(false);
+
+        try {
+            new GrantAdminPolicyTask(authorizer, User.local()).call();
+            fail("expected IllegalStateException");
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(IllegalStateException.class);
+        }
     }
 }

@@ -57,8 +57,9 @@ public class GrantAdminPolicyTask extends DefaultTask<Boolean> implements UserTa
             authorizer.deleteDomainRolesForUser(user);
             return true;
         }
-        logger.error("Failed to grant instance admin role to user '{}'.", user.getId());
-        return false;
+        // Not `false`: that already means "an instance admin exists", a benign outcome a
+        // provisioning script carries on from. A write that did not take must not look like it.
+        throw new IllegalStateException("failed to grant instance admin role to user " + user.getId());
     }
 
     @Override
