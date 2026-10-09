@@ -326,8 +326,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         apps.put(DATASHARE_APP, currentProjects);
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
-        userStore.save(updated);
-        usersIdProviderCache.saveOrUpdate(new DatashareUser(updated));
+        saveToInventory(updated);
         return updated;
     }
 
@@ -362,6 +361,18 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return allRemoved;
     }
 
+    /**
+     * A refused write is a failure, not a no-op: {@code save} answers false when the upsert touched no
+     * row, and swallowing that reports a clean grant, revoke or delete while the inventory still holds
+     * the project. Throwing keeps the Casbin half of the operation from running on a stale inventory.
+     */
+    private void saveToInventory(User updated) {
+        if (!userStore.save(updated)) {
+            throw new IllegalStateException("user store refused to save user " + updated.id);
+        }
+        usersIdProviderCache.saveOrUpdate(new DatashareUser(updated));
+    }
+
     private User removeFromInventory(User user, List<String> projectNames) {
         Map<String, Object> newDetails = new HashMap<>(user.details);
         Map<String, Object> apps = safeStringKeyedMapOf(newDetails.get(GROUPS_BY_APPLICATIONS));
@@ -370,8 +381,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         apps.put(DATASHARE_APP, currentProjects);
         newDetails.put(GROUPS_BY_APPLICATIONS, apps);
         User updated = new User(user.id, user.name, user.email, user.provider, newDetails);
-        userStore.save(updated);
-        usersIdProviderCache.saveOrUpdate(new DatashareUser(updated));
+        saveToInventory(updated);
         return updated;
     }
 
@@ -449,18 +459,23 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // two steps rather than one, and combined only once both have run: a failure on either index
         // must neither hide the other nor stop it from being deleted. A project older than the
         // entities index has none, which is nothing to report.
-        boolean documentsDeleted = !options.keepIndex() && runStep("index", name, () -> indexer.deleteAll(name));
+        boolean documentsDeleted = !options.keepIndex() && runStep("index", name, () -> !indexer.exists(name) ||
+                                                                                         indexer.deleteAll(name));
         String entitiesIndex = Project.entitiesIndex(name);
         boolean entitiesDeleted = !options.keepIndex() && runStep("entities index", name,
                                                                   () -> !indexer.exists(entitiesIndex) ||
                                                                         indexer.deleteAll(entitiesIndex));
         boolean indexDeleted = documentsDeleted && entitiesDeleted;
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
-        // Gated on dbDeleted: if the project row survives, stripping its grants would leave a live
-        // project nobody can reach, and grants are the one cascade output that cannot be rebuilt.
+        // Inventory first, and the Casbin wipe gated on it: a project name left in an inventory with
+        // no Casbin row behind it is re-enrolled as PROJECT_MEMBER by PostLoginEnroller on that
+        // user's next login, which resurrects the very rows this cascade removes. Leaving the grants
+        // in place instead is the loud failure -- it is reported, and --if-exists converges on retry.
+        // Both are gated on dbDeleted: if the project row survives, stripping its grants would leave
+        // a live project nobody can reach, and grants cannot be rebuilt.
         //TODO #DOMAIN: drop the rows of every domain once projects carry one.
-        boolean casbinDeleted = dbDeleted && deleteCasbinRows(name);
         boolean inventoryDeleted = dbDeleted && deleteInventoryEntries(name);
+        boolean casbinDeleted = dbDeleted && inventoryDeleted && deleteCasbinRows(name);
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
         boolean artifactsDeleted = deleteArtifacts(name);
