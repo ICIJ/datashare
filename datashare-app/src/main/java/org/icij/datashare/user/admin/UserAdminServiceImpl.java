@@ -2,7 +2,6 @@ package org.icij.datashare.user.admin;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.icij.datashare.Repository;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.session.DatashareUser;
@@ -11,8 +10,6 @@ import org.icij.datashare.session.UserStore;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.WebResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -24,27 +21,24 @@ import java.util.Set;
 
 @Singleton
 public class UserAdminServiceImpl implements UserAdminService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(UserAdminServiceImpl.class);
     private final UserStore userStore;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
     private final Authorizer authorizer;
-    private final Repository repository;
 
     @Inject
     public UserAdminServiceImpl(UserStore userStore, @Nullable PostLoginEnroller postLoginEnroller,
-                                Authorizer authorizer, Repository repository) {
+                                Authorizer authorizer) {
         this.userStore = userStore;
         this.postLoginEnroller = postLoginEnroller;
         this.authorizer = authorizer;
-        this.repository = repository;
     }
 
     @Override
     public UserCreated create(UserCreateRequest request) throws UserExistsException, ValidationException {
         if (userStore.find(request.login()) != null) {
-            // before validate(): an existing user must answer 409 rather than a 400 about a field
-            // the caller cannot fix by changing it
+            // before validate(): an existing user must answer 409 rather than a 400 about a body
+            // field the caller cannot fix by changing it
             throw new UserExistsException(request.login());
         }
         return persist(request, validate(request));
@@ -156,7 +150,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         if (postLoginEnroller != null) {
             postLoginEnroller.enroll(new DatashareUser(updated));
         }
-        return new UserCreated(login, newEmail, newName, existing.provider, newGroups, !changed);
+        return new UserCreated(login, newEmail, newName, existing.provider, newGroups, false);
     }
 
     private static boolean isLocal(UserCreateRequest request) {
@@ -182,12 +176,10 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     /**
-     * Canonicalizes a groups list through the same validator the CLI uses, then warns about names
-     * that have no project row. Only a warning: users are legitimately provisioned before their
-     * projects exist ({@code --user-create --user-create-groups}, and the default local-datashare project
-     * is synthesized in memory by YesCookieAuthFilter rather than persisted), so rejecting would
-     * break a supported flow. The stale PROJECT_MEMBER rows this used to guard against are cleaned
-     * up by removeProjectsFromInventory on project delete.
+     * Canonicalizes a groups list through the same validator the CLI uses. Deliberately does not
+     * check that each name has a project row: users are legitimately provisioned before their
+     * projects exist ({@code --user-create --user-create-groups}), and the default local-datashare
+     * project is synthesized in memory by YesCookieAuthFilter rather than persisted.
      * Returns null for a null input, which callers read as "the request did not touch groups".
      */
     private List<String> validateGroups(List<String> groups) throws ValidationException {
@@ -204,14 +196,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         } catch (Validators.InvalidValueException e) {
             throw new ValidationException(e.field(), e.getMessage());
         }
-        List<String> deduplicated = canonical.stream().distinct().toList();
-        for (String projectName : deduplicated) {
-            if (repository.getProject(projectName) == null) {
-                LOGGER.warn("group '{}' has no project row: the user will only see it once the project is created",
-                            projectName);
-            }
-        }
-        return deduplicated;
+        return canonical.stream().distinct().toList();
     }
 
     private UserCreated persist(UserCreateRequest request, List<String> groups) {
