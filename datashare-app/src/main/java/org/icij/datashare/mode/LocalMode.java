@@ -25,6 +25,7 @@ public class LocalMode extends CommonMode {
         bind(CsrfFilter.class).asEagerSingleton();
         bind(LocalUserFilter.class).asEagerSingleton();
         bind(TaskPolicyChecker.class).toInstance(TaskPolicyChecker.ALLOW_ALL);
+        bindMcpTools();
         configurePersistence();
     }
 
