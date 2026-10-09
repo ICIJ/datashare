@@ -12,10 +12,13 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.UnknownTask;
+import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.web.errors.ForbiddenException;
 import org.slf4j.Logger;
@@ -25,6 +28,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Singleton
 @Prefix("/api/mcp")
@@ -36,8 +40,10 @@ public class McpResource {
     private static final Map<String, Object> NO_ARGS = Map.of("type", "object", "properties", Map.of());
 
     @Inject
-    public McpResource(ProjectResource projectResource, Indexer indexer, DocumentResource documentResource) {
-        this(List.of(listProjects(projectResource), searchDocuments(indexer), getDocument(documentResource)));
+    public McpResource(ProjectResource projectResource, Indexer indexer, DocumentResource documentResource,
+                       TaskFinder taskFinder) {
+        this(List.of(listProjects(projectResource), searchDocuments(indexer), getDocument(documentResource),
+                     listTasks(taskFinder)));
     }
 
     McpResource(List<McpTool> tools) {
@@ -47,6 +53,21 @@ public class McpResource {
     static McpTool listProjects(ProjectResource projectResource) {
         return new McpTool("list_projects", "Lists the Datashare projects you can access.", NO_ARGS,
                            (args, context) -> projectResource.getProjects(context));
+    }
+
+    static McpTool listTasks(TaskFinder taskFinder) {
+        Map<String, Object> schema = Map.of("type", "object", "properties", Map.of("name", Map.of("type", "string",
+                                                                                                  "description",
+                                                                                                  "case-insensitive pattern on the task name")));
+        return new McpTool("list_tasks", "Lists the tasks you can see.", schema, (args, context) -> {
+            User user = (User) context.currentUser();
+            TaskFilters filters = new TaskFilters().with(Pattern.CASE_INSENSITIVE);
+            String name = args.path("name").asText(null);
+            if (name != null && !name.isBlank()) {
+                filters = filters.with(name);
+            }
+            return taskFinder.findVisibleTasksFor(user, filters).toList();
+        });
     }
 
     static McpTool searchDocuments(Indexer indexer) {
