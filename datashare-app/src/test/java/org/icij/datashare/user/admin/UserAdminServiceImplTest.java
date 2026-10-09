@@ -148,6 +148,37 @@ public class UserAdminServiceImplTest {
     }
 
     @Test
+    public void test_create_with_an_empty_password_throws_validation_whatever_the_provider() {
+        when(userStore.find("bob")).thenReturn(null);
+
+        for (String provider : new String[] {"local", "external", "oauth"}) {
+            try {
+                service.create(new UserCreateRequest(
+                        "bob", "b@e.test", "Bob", "", provider, List.of()));
+                fail("expected ValidationException for provider " + provider);
+            } catch (ValidationException e) {
+                assertThat(e.field()).isEqualTo("password");
+            } catch (UserExistsException e) {
+                fail("unexpected UserExistsException");
+            }
+        }
+        verify(userStore, never()).save(any(User.class));
+    }
+
+    @Test
+    public void test_create_external_without_a_password_is_still_allowed() throws Exception {
+        when(userStore.find("bob")).thenReturn(null);
+        when(userStore.save(any(User.class))).thenReturn(true);
+
+        service.create(new UserCreateRequest(
+                "bob", "b@e.test", "Bob", null, "external", List.of()));
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userStore).save(captor.capture());
+        assertThat(captor.getValue().details.containsKey("password")).isFalse();
+    }
+
+    @Test
     public void test_create_with_unknown_provider_throws_validation() {
         when(userStore.find("alice")).thenReturn(null);
 

@@ -161,7 +161,8 @@ public class UserAdminServiceImpl implements UserAdminService {
             Validators.login(request.login());
             Validators.email(request.email());
             Validators.provider(request.provider());
-            if (isLocal(request)) {
+            // Not isLocal alone: persist() hashes for external too, so an empty one is stored as sha256("").
+            if (isLocal(request) || request.password() != null) {
                 Validators.password(request.password());
             }
         } catch (Validators.InvalidValueException e) {
