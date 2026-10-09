@@ -1,16 +1,28 @@
 package org.icij.datashare.session;
 
+import com.google.inject.Inject;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.cli.Mode;
 import net.codestory.http.Context;
 import net.codestory.http.NewCookie;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import java.security.SecureRandom;
+import java.util.regex.Pattern;
 
 public class CsrfFilter implements Filter {
     static final String CSRF_COOKIE_NAME = "_ds_csrf_token";
     static final String CSRF_HEADER_NAME = "X-DS-CSRF-TOKEN";
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final Pattern LOOPBACK_HOST =
+            Pattern.compile("(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d+)?", Pattern.CASE_INSENSITIVE);
+    private final boolean localMode;
+
+    @Inject
+    public CsrfFilter(PropertiesProvider propertiesProvider) {
+        this.localMode = propertiesProvider.get("mode").map(CsrfFilter::isLocal).orElse(false);
+    }
 
     @Override
     public boolean matches(String uri, Context context) {
@@ -27,7 +39,7 @@ public class CsrfFilter implements Filter {
             }
             return payload;
         }
-        if (context.currentUser() == null || ApiKeyFilter.isAuthenticated(context)) {
+        if (context.currentUser() == null || ApiKeyFilter.isAuthenticated(context) || isLocalMcpCall(uri, context)) {
             return nextFilter.get();
         }
         String cookieValue = null;
@@ -40,6 +52,23 @@ public class CsrfFilter implements Filter {
             return nextFilter.get();
         }
         return new Payload("application/json", "{\"error\":\"CSRF token wrong or missing\"}", 403);
+    }
+
+    // JSON content type forces a CORS preflight; the Host check blocks DNS rebinding
+    private boolean isLocalMcpCall(String uri, Context context) {
+        String contentType = context.header("Content-Type");
+        String host = context.header("Host");
+        return localMode && "/api/mcp".equals(uri.split("\\?", 2)[0]) && contentType != null &&
+               contentType.toLowerCase().startsWith("application/json") && host != null &&
+               LOOPBACK_HOST.matcher(host).matches();
+    }
+
+    private static boolean isLocal(String mode) {
+        try {
+            return Mode.valueOf(mode).isLocal();
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     private boolean needsCsrfCookie(Context context) {
