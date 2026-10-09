@@ -459,8 +459,10 @@ public class UserAdminServiceImplTest {
         when(userStore.find("alice")).thenReturn(new DatashareUser(alice));
         when(userStore.save(any(User.class))).thenReturn(true);
 
+        // a different email, so the update is a real one: resubmitting the stored value is a noop
+        // now and would not write at all, which is not what this test is about
         UserCreated result = service.update("alice",
-                new UserUpdateRequest("alice@example.org", null, null, null));
+                new UserUpdateRequest("alice@new.org", null, null, null));
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userStore).save(captor.capture());
@@ -541,7 +543,7 @@ public class UserAdminServiceImplTest {
     }
 
     @Test
-    public void test_create_rejects_an_unknown_project_in_groups() {
+    public void test_create_rejects_an_unknown_project_in_groups() throws Exception {
         when(userStore.find("alice")).thenReturn(null);
         when(repository.getProject("nope-project")).thenReturn(null);
 
@@ -549,8 +551,7 @@ public class UserAdminServiceImplTest {
             service.create(new UserCreateRequest("alice", "a@e.test", "Alice", "pw", "local",
                                                  List.of("nope-project")));
             fail("expected ValidationException");
-        } catch (Exception e) {
-            assertThat(e).isInstanceOf(ValidationException.class);
+        } catch (ValidationException e) {
             assertThat(e.getMessage()).contains("nope-project");
         }
         verify(userStore, never()).save(any());
@@ -575,6 +576,8 @@ public class UserAdminServiceImplTest {
         UserCreated updated = service.update("alice", new UserUpdateRequest(null, null, null, null));
 
         assertThat(updated.noop()).isTrue();
+        // a noop that still writes and re-enrolls is not a noop
+        verify(userStore, never()).save(any());
     }
 
     @Test
@@ -605,11 +608,28 @@ public class UserAdminServiceImplTest {
                 new UserUpdateRequest("alice@example.org", "Alice", null, List.of("p1")));
 
         assertThat(updated.noop()).isTrue();
+        // a noop that still writes and re-enrolls is not a noop
+        verify(userStore, never()).save(any());
     }
 
     private static User existingAlice() {
         return new User("alice", "Alice", "alice@example.org", "local",
                         Map.of("uid", "alice", "name", "Alice", "email", "alice@example.org",
                                "groups_by_applications", Map.of("datashare", List.of("p1"))));
+    }
+
+    @Test
+    public void test_groups_cannot_smuggle_two_names_through_one_entry() throws Exception {
+        // validateGroups joins the list into a CSV for Validators.groups, which splits on commas,
+        // so a single entry holding one would silently become two groups
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        try {
+            service.update("alice", new UserUpdateRequest(null, null, null, List.of("p1,p2")));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.getMessage()).contains("comma");
+        }
+        verify(userStore, never()).save(any());
     }
 }

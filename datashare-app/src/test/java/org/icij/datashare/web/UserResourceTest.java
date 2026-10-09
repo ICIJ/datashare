@@ -322,7 +322,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_update_user_with_a_malformed_body_does_not_leak_the_exception_class() {
-        put("/api/users/admin/alice", "not json").should().not().contain("IllegalArgumentException");
+        put("/api/users/admin/alice", "not json").should().respond(400).not().contain("IllegalArgumentException");
     }
 
     @Test
@@ -359,7 +359,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_users_does_not_leak_the_exception_class_on_a_bad_from() {
-        get("/api/users/admin?from=abc").should().not().contain("NumberFormatException");
+        get("/api/users/admin?from=abc").should().respond(400).not().contain("NumberFormatException");
     }
 
     @Test
@@ -1293,5 +1293,17 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
         get("/api/users/admin?uid=toto&domain=other&noRole=true").should().respond(200)
                 .contain("toto").contain("\"permissions\":[]");
+    }
+
+    @Test
+    public void test_create_user_with_a_malformed_body_is_a_400() {
+        // POST had the exact 500 this PR fixed for PUT
+        post("/api/users", "not json").should().respond(400).contain("malformed");
+    }
+
+    @Test
+    public void test_create_user_with_a_null_group_is_a_400() {
+        // UserCreateRequest's compact constructor calls List.copyOf, which rejects null elements
+        post("/api/users", "{\"login\":\"bob\",\"groups\":[null]}").should().respond(400);
     }
 }
