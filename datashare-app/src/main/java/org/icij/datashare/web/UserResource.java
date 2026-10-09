@@ -104,14 +104,13 @@ public class UserResource {
     }
 
     // Instance admin and default-domain admin authorize every project; other domains do not (yet).
-
     private static boolean coversEveryProject(Domain scope) {
         return INSTANCE_SCOPE.equals(scope) || Domain.DEFAULT.equals(scope);
     }
 
     /**
      * The parsed value, the fallback when absent, or null when it is not an integer or is negative.
-     * Zero is valid: `size=0` is a legitimate count-only page, not an error.
+     * Zero is valid: {@code size=0} is a legitimate count-only page, not an error.
      */
     private static Integer parseNonNegativeInt(String raw, int fallback) {
         if (raw == null || raw.isBlank()) {

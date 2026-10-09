@@ -346,9 +346,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean allRemoved = true;
         for (User user : allUsers) {
             try {
-                if (safeStringListOf(
-                        safeStringKeyedMapOf(user.details.get(GROUPS_BY_APPLICATIONS)).get(DATASHARE_APP)).contains(
-                        projectName)) {
+                List<String> userGroups =
+                        safeStringListOf(safeStringKeyedMapOf(user.details.get(GROUPS_BY_APPLICATIONS))
+                                                 .get(DATASHARE_APP));
+                if (userGroups.contains(projectName)) {
                     removeFromInventory(user, List.of(projectName));
                 }
             } catch (RuntimeException e) {
