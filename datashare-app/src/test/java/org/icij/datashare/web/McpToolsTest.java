@@ -9,6 +9,7 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -255,5 +256,18 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(tasks.size()).isEqualTo(1);
         assertThat(tasks.at("/0/id").asText()).isEqualTo(mine.id);
+    }
+
+    @Test
+    public void test_list_tasks_serializes_batch_download_arguments() throws Exception {
+        serveAs("local", "foo");
+        BatchDownload batchDownload = new BatchDownload(List.of(new Project("foo")), localUser("local"), "leak");
+        Task<?> task = new Task<>(BatchDownload.class.getName(), localUser("local"), Map.of("batchDownload", batchDownload));
+        when(taskManager.getTasks(any(TaskFilters.class))).thenReturn(java.util.stream.Stream.of(task));
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(List.of());
+
+        JsonNode tasks = payload(call("local", "list_tasks", "{}"));
+
+        assertThat(tasks.at("/0/id").asText()).isEqualTo(task.id);
     }
 }
