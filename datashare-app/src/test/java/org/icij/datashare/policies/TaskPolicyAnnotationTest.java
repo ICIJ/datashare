@@ -474,4 +474,25 @@ public class TaskPolicyAnnotationTest {
         assertThat(result.rawContent()).isEqualTo(Map.of("error", "insufficient role"));
     }
 
+    @Test
+    public void is_allowed_matches_the_annotation_decision() throws IOException {
+        String johnsTask = taskManager.startTask(TestSleepingTask.class, localUser("john"), new HashMap<>() {{
+            put("defaultProject", projectId);
+        }});
+        String cecilesTask = taskManager.startTask(TestSleepingTask.class, localUser("cecile"), new HashMap<>() {{
+            put("defaultProject", projectId);
+        }});
+        DatashareUser john = new DatashareUser(localUser("john"));
+        DatashareUser cecile = new DatashareUser(localUser("cecile"));
+
+        assertEquals(true, annotation.isAllowed(cecile, taskManager.getTask(johnsTask), Domain.DEFAULT,
+                                                Role.PROJECT_ADMIN, Role.PROJECT_MEMBER));
+        assertEquals(true, annotation.isAllowed(john, taskManager.getTask(johnsTask), Domain.DEFAULT,
+                                                Role.PROJECT_ADMIN, Role.PROJECT_MEMBER));
+        assertEquals(false, annotation.isAllowed(john, taskManager.getTask(cecilesTask), Domain.DEFAULT,
+                                                 Role.PROJECT_ADMIN, Role.PROJECT_MEMBER));
+        assertEquals(false, annotation.isAllowed(john, taskManager.getTask(johnsTask), Domain.DEFAULT,
+                                                 Role.PROJECT_ADMIN, Role.NONE));
+    }
+
 }
