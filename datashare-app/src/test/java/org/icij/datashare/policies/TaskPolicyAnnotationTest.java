@@ -472,7 +472,7 @@ public class TaskPolicyAnnotationTest {
     }
 
     @Test
-    public void is_allowed_matches_the_annotation_decision() throws IOException {
+    public void should_allow_the_same_as_the_annotation_when_called_directly() throws IOException {
         String johnsTask = taskManager.startTask(TestSleepingTask.class, localUser("john"), new HashMap<>() {{
             put("defaultProject", projectId);
         }});
