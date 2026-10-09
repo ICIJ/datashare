@@ -57,17 +57,20 @@ public class McpResource {
         return new McpTool("search_documents", "Full-text search in the documents of one project.", schema,
                            (args, context) -> {
                                String project = IndexAccessVerifier.checkIndices(requireText(args, "project"));
+                               if (project.contains(",")) {
+                                   throw new IllegalArgumentException("invalid argument: project");
+                               }
                                String query = requireText(args, "query");
                                int size = intArg(args, "size", 10, 1, 50);
-                               String url = IndexAccessVerifier.checkPath(project + "/_search", context);
+                               IndexAccessVerifier.checkPath(project + "/_search", context);
                                Map<String, Object> body =
                                        Map.of("size", size, "_source", List.of("path", "contentType"), "query",
                                               Map.of("bool",
                                                      Map.of("must", Map.of("query_string", Map.of("query", query)),
                                                             "filter", Map.of("term", Map.of("type", "Document")))),
                                               "highlight", Map.of("fields", Map.of("content", Map.of())));
-                               JsonNode response = MAPPER.readTree(
-                                       indexer.executeRaw("POST", url, MAPPER.writeValueAsString(body)));
+                               JsonNode response = MAPPER.readTree(indexer.executeRaw("POST", project + "/_search",
+                                                                                      MAPPER.writeValueAsString(body)));
                                List<Map<String, Object>> hits = new ArrayList<>();
                                for (JsonNode hit : response.at("/hits/hits")) {
                                    List<String> highlights = new ArrayList<>();

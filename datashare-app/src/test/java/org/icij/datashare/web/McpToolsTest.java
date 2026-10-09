@@ -119,10 +119,24 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_search_ignores_the_mcp_request_query_string() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(ES_RESPONSE);
+        String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search_documents\","
+                      + "\"arguments\":{\"project\":\"foo\",\"query\":\"leak\"}}}";
+
+        post("/api/mcp?q=x", body).withPreemptiveAuthentication("local", "").response();
+
+        org.mockito.Mockito.verify(indexer).executeRaw(eq("POST"), eq("foo/_search"), any());
+    }
+
+    @Test
     public void test_search_rejects_project_with_a_path() throws Exception {
         serveAs("local", "foo");
 
         assertThat(call("local", "search_documents", "{\"project\":\"_search/scroll\",\"query\":\"x\"}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "search_documents", "{\"project\":\"foo,bar\",\"query\":\"x\"}")
                            .at("/error/code").asInt()).isEqualTo(-32602);
         assertThat(call("local", "search_documents", "{\"project\":\"foo/_doc/1\",\"query\":\"x\"}")
                            .at("/error/code").asInt()).isEqualTo(-32602);
