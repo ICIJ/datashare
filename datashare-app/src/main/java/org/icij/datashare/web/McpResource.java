@@ -119,9 +119,15 @@ public class McpResource {
                                               Map.of("bool",
                                                      Map.of("must", Map.of("query_string", Map.of("query", query)),
                                                             "filter", Map.of("term", Map.of("type", "Document")))),
-                                              "highlight", Map.of("fields", Map.of("content", Map.of())));
+                                              "highlight", Map.of("fields", Map.of("content", Map.of("max_analyzed_offset", 999999,
+                                                                                                    "fragment_size", 280,
+                                                                                                    "number_of_fragments", 2))));
                                JsonNode response = MAPPER.readTree(indexer.executeRaw("POST", project + "/_search",
                                                                                       MAPPER.writeValueAsString(body)));
+                               int failedShards = response.at("/_shards/failed").asInt();
+                               if (failedShards > 0) {
+                                   throw new IllegalStateException("search failed on " + failedShards + " shard(s)");
+                               }
                                List<Map<String, Object>> hits = new ArrayList<>();
                                for (JsonNode hit : response.at("/hits/hits")) {
                                    List<String> highlights = new ArrayList<>();

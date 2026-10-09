@@ -123,7 +123,21 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(sent.get("size").asInt()).isEqualTo(5);
         assertThat(sent.at("/query/bool/must/query_string/query").asText()).isEqualTo("leak");
         assertThat(sent.at("/query/bool/filter/term/type").asText()).isEqualTo("Document");
-        assertThat(sent.at("/highlight/fields/content").isObject()).isTrue();
+        assertThat(sent.at("/highlight/fields/content/max_analyzed_offset").asInt()).isEqualTo(999999);
+        assertThat(sent.at("/highlight/fields/content/fragment_size").asInt()).isEqualTo(280);
+        assertThat(sent.at("/highlight/fields/content/number_of_fragments").asInt()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_search_with_failed_shards_is_an_error() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
+                .thenReturn("{\"_shards\":{\"failed\":1},\"hits\":{\"total\":{\"value\":0},\"hits\":[]}}");
+
+        JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("search failed on 1 shard(s)");
     }
 
     @Test
