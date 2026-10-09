@@ -15,6 +15,7 @@ import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.PolicyAnnotation;
 import org.icij.datashare.policies.TaskPolicy;
 import org.icij.datashare.policies.TaskPolicyAnnotation;
+import org.icij.datashare.policies.TaskPolicyChecker;
 import org.icij.datashare.session.*;
 import org.icij.datashare.web.*;
 import java.util.Arrays;
@@ -34,6 +35,7 @@ public class ServerMode extends CommonMode {
     protected void configure() {
         super.configure();
         bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
+        bind(TaskPolicyChecker.class).to(TaskPolicyAnnotation.class);
         Class<? extends Filter> authFilterClass = resolveAuthFilterClass();
         // Materialize the effective auth mode back into the properties so the public /settings
         // endpoint reports it (e.g. "form" by default). Unrecognized custom filters write nothing.
