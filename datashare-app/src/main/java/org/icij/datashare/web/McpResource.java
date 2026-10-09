@@ -18,6 +18,7 @@ import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
@@ -43,7 +44,7 @@ import java.util.regex.Pattern;
 @Prefix("/api/mcp")
 public class McpResource {
     static final String PROTOCOL_VERSION = "2025-06-18";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();
     private static final Logger logger = LoggerFactory.getLogger(McpResource.class);
     private final List<McpTool> tools;
     private static final Map<String, Object> NO_ARGS = Map.of("type", "object", "properties", Map.of());
