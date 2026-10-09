@@ -12,6 +12,7 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.util.Map;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.fest.assertions.Assertions.assertThat;
@@ -132,7 +133,7 @@ public class PolicyAnnotationTest {
         Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
         // an empty body tells a client nothing about whether to re-authenticate or give up
-        assertThat(String.valueOf(result.rawContent())).contains("insufficient role");
+        assertThat(result.rawContent()).isEqualTo(Map.of("error", "insufficient role"));
         assertThat(result.rawContentType()).contains("application/json");
     }
 

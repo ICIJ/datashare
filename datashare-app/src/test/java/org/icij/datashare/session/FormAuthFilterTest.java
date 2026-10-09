@@ -43,7 +43,7 @@ public class FormAuthFilterTest implements FluentRestTest {
 
     @Test
     public void test_unauthenticated_api_returns_401() {
-        this.get("/api/users/me").should().respond(401);
+        this.get("/api/users/me").should().respond(401).contain("authentication required");
     }
 
     @Test
@@ -73,11 +73,6 @@ public class FormAuthFilterTest implements FluentRestTest {
     public void test_login_with_invalid_credentials_returns_401() {
         when(users.find("alice", "wrong")).thenReturn(null);
 
-        postLogin("alice", "wrong").should().respond(401);
-    }
-
-    @Test
-    public void test_a_failed_login_says_authentication_required() {
         postLogin("alice", "wrong").should().respond(401).contain("authentication required");
     }
 
@@ -106,11 +101,6 @@ public class FormAuthFilterTest implements FluentRestTest {
                 .filter(new ApiKeyFilter(users, apiKey -> null, null))
                 .filter(filter));
 
-        this.get("/api/users/me").should().respond(401).contain("authentication required");
-    }
-
-    @Test
-    public void test_unauthenticated_api_says_authentication_required() {
         this.get("/api/users/me").should().respond(401).contain("authentication required");
     }
 

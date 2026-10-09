@@ -29,6 +29,7 @@ import static org.icij.datashare.policies.errors.UnknownRoleException.resolveRol
 
 @Singleton
 public final class Authorizer implements Closeable {
+    public static final String INSUFFICIENT_ROLE = "insufficient role";
     private static final String SEPARATOR = "::";
     private static final String DEFAULT_POLICY_FILE = "casbin/model.conf";
     private final SyncedEnforcer enforcer;

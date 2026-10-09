@@ -734,8 +734,8 @@ class CliApp {
         String roleShort = stripPrefix(granted.role());
         String prevShort = granted.previousRole() == null ? null : stripPrefix(granted.previousRole());
         if (json) {
-            // LinkedHashMap (not Map.ofEntries) because previousRole may be null
-            // and we want it to serialize as a JSON null.
+            // LinkedHashMap (not Map.ofEntries) because previousRole may be null on a real
+            // grant that replaced nothing, and we want it to serialize as a JSON null.
             java.util.LinkedHashMap<String, Object> payload = new java.util.LinkedHashMap<>();
             payload.put("project", granted.name());
             payload.put("user", granted.userLogin());

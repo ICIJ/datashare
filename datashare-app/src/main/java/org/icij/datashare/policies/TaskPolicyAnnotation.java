@@ -3,6 +3,7 @@ package org.icij.datashare.policies;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.ApplyAroundAnnotation;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
@@ -11,6 +12,7 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.ProjectProxy;
+import org.icij.datashare.utils.PayloadFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
@@ -20,8 +22,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import org.icij.datashare.utils.PayloadFormatter;
-import net.codestory.http.constants.HttpStatus;
 
 public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
     private final Authorizer authorizer;
@@ -32,6 +32,10 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
     public TaskPolicyAnnotation(Authorizer authorizer, TaskManager taskManager) {
         this.authorizer = authorizer;
         this.taskManager = taskManager;
+    }
+
+    private static Payload insufficientRole() {
+        return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
     }
 
     private static boolean isTaskOwner(DatashareUser user, Task<Serializable> task) {
@@ -85,16 +89,14 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
             // either we should check for every tasks' projects
             // or we enforce wildcard project access (domain level)to do batch operation (current solution).
             boolean isAllowed = authorizer.can(user.id, domain, "*", annotation.role());
-            return isAllowed ? payloadSupplier.apply(context) :
-                   PayloadFormatter.error("insufficient role", HttpStatus.FORBIDDEN);
+            return isAllowed ? payloadSupplier.apply(context) : insufficientRole();
         }
         String taskId = Authorizer.requireIdParam(context, annotation.idParam());
         try {
             Task<Serializable> task = taskManager.getTask(taskId);
             boolean isAllowed = isAllowedSingleTask(task, annotation, user, domain);
 
-            return isAllowed ? payloadSupplier.apply(context) :
-                   PayloadFormatter.error("insufficient role", HttpStatus.FORBIDDEN);
+            return isAllowed ? payloadSupplier.apply(context) : insufficientRole();
 
         } catch (UnknownTask e) {
             return Payload.notFound();

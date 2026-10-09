@@ -5,19 +5,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.utils.PayloadFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import static java.util.Optional.ofNullable;
-import org.icij.datashare.utils.PayloadFormatter;
-import net.codestory.http.constants.HttpStatus;
 
 @Singleton
 public class FormAuthFilter extends DatashareAuthFilter {
