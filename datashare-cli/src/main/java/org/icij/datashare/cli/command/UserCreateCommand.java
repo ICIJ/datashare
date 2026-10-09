@@ -59,6 +59,10 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
     // Package-visible for test injection; when non-null the TTY check is skipped.
     Prompter prompterOverride;
     // Package-visible for test injection: System.console() is always null under surefire.
+    // ponytail: best-effort, not airtight. On JDK 21 System.console() is null as soon as EITHER
+    // stream is redirected, so `--password-stdin > out.log` from a terminal reads the terminal
+    // anyway, blocking with no prompt and with echo on. There is no stdin-only TTY probe in the
+    // JDK 21 standard library; switch to Console.isTerminal() once the build moves past JDK 21.
     BooleanSupplier stdinIsTerminal = () -> System.console() != null;
     private String resolvedLogin;
     private String resolvedEmail;
