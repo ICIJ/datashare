@@ -550,15 +550,54 @@ public class UserAdminServiceImplTest {
     }
 
     @Test
-    public void test_update_canonicalizes_groups_the_way_create_does() throws Exception {
+    public void test_update_deduplicates_groups() throws Exception {
         when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
 
-        service.update("alice", new UserUpdateRequest(null, null, null, List.of(" p1 ", "p2", "p1", "")));
+        service.update("alice", new UserUpdateRequest(null, null, null, List.of("p1", "p2", "p1")));
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userStore).save(captor.capture());
         assertThat(((Map<String, Object>) captor.getValue().details.get("groups_by_applications"))
                            .get("datashare")).isEqualTo(List.of("p1", "p2"));
+    }
+
+    @Test
+    public void test_update_rejects_a_blank_group_instead_of_revoking_everything() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        try {
+            service.update("alice", new UserUpdateRequest(null, null, null, List.of("")));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.getMessage()).contains("must match");
+        }
+        verify(userStore, never()).save(any());
+    }
+
+    @Test
+    public void test_update_rejects_a_blank_group_among_valid_ones() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        try {
+            service.update("alice", new UserUpdateRequest(null, null, null, List.of("p1", "")));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.getMessage()).contains("must match");
+        }
+        verify(userStore, never()).save(any());
+    }
+
+    @Test
+    public void test_update_rejects_an_untrimmed_group() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        try {
+            service.update("alice", new UserUpdateRequest(null, null, null, List.of(" p1 ")));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.getMessage()).contains("must match");
+        }
+        verify(userStore, never()).save(any());
     }
 
     @Test
@@ -614,8 +653,59 @@ public class UserAdminServiceImplTest {
             service.update("alice", new UserUpdateRequest(null, null, null, List.of("p1,p2")));
             fail("expected ValidationException");
         } catch (ValidationException e) {
-            assertThat(e.getMessage()).contains("comma");
+            assertThat(e.getMessage()).contains("p1,p2");
         }
+        verify(userStore, never()).save(any());
+    }
+
+    @Test
+    public void test_update_with_nothing_to_change_still_reconciles_the_casbin_rows() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        service.update("alice", new UserUpdateRequest(null, null, null, null));
+
+        verify(userStore, never()).save(any());
+        verify(authorizer).addRoleForUserInProject(any(User.class), eq(Role.PROJECT_MEMBER), eq(Domain.DEFAULT),
+                                                   eq(new Project("p1")));
+    }
+
+    @Test
+    public void test_create_rejects_a_missing_login_before_reaching_the_store() {
+        try {
+            service.create(new UserCreateRequest(null, "a@e.test", "Alice", "pw", "local", List.of()));
+            fail("expected ValidationException");
+        } catch (UserExistsException e) {
+            fail("unexpected UserExistsException");
+        } catch (ValidationException e) {
+            assertThat(e.getMessage()).contains("login");
+        }
+        verify(userStore, never()).find(any());
+    }
+
+    @Test
+    public void test_create_if_not_exists_rejects_a_missing_login_before_reaching_the_store() {
+        try {
+            service.createIfNotExists(new UserCreateRequest(null, "a@e.test", "Alice", "pw", "local", List.of()));
+            fail("expected ValidationException");
+        } catch (ValidationException e) {
+            assertThat(e.getMessage()).contains("login");
+        }
+        verify(userStore, never()).find(any());
+    }
+
+    @Test
+    public void test_create_if_not_exists_answers_with_the_stored_user_not_the_request() throws Exception {
+        when(userStore.find("alice")).thenReturn(new DatashareUser(existingAlice()));
+
+        UserCreated created = service.createIfNotExists(
+                new UserCreateRequest("alice", "someone-else@example.org", "Not Alice", "pw", "oauth",
+                                      List.of("p2")));
+
+        assertThat(created.noop()).isTrue();
+        assertThat(created.email()).isEqualTo("alice@example.org");
+        assertThat(created.name()).isEqualTo("Alice");
+        assertThat(created.provider()).isEqualTo("local");
+        assertThat(created.groups()).isEqualTo(List.of("p1"));
         verify(userStore, never()).save(any());
     }
 }
