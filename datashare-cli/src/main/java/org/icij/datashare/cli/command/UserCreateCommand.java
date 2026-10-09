@@ -13,6 +13,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.Scanner;
 import java.util.Properties;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
@@ -57,6 +58,8 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
     CommandLine.Model.CommandSpec spec;
     // Package-visible for test injection; when non-null the TTY check is skipped.
     Prompter prompterOverride;
+    // Package-visible for test injection: System.console() is always null under surefire.
+    BooleanSupplier stdinIsTerminal = () -> System.console() != null;
     private String resolvedLogin;
     private String resolvedEmail;
     private String resolvedPassword;
@@ -80,6 +83,12 @@ public class UserCreateCommand implements Runnable, DatashareSubcommand {
             if (passwordStdin) {
                 if (passwordFromFlag) {
                     throw CliErrors.fail(spec, json, "usage", "--password and --password-stdin are mutually exclusive",
+                                         2);
+                }
+                if (stdinIsTerminal.getAsBoolean()) {
+                    // Reading a terminal here blocks with no prompt and with echo on, so the
+                    // password is typed in clear and stays in scrollback.
+                    throw CliErrors.fail(spec, json, "usage", "--password-stdin requires stdin to be a pipe or a file",
                                          2);
                 }
                 password = readPasswordFromStdin();

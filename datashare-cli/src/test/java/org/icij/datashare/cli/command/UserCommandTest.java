@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 import static org.fest.assertions.MapAssert.entry;
 
 public class UserCommandTest extends AbstractDatashareCommandTest {
@@ -327,5 +328,26 @@ public class UserCommandTest extends AbstractDatashareCommandTest {
                                                  "--provider", "oauth", "--password-stdin", "--no-input");
 
         assertThat(exitCode).isEqualTo(0);
+    }
+
+    @Test
+    public void test_user_create_refuses_password_stdin_on_a_terminal() {
+        // read from a terminal it blocks with no prompt and with echo on, so the password is typed
+        // in clear and stays in scrollback: worse than the --password it is advertised as replacing
+        UserCreateCommand command = new UserCreateCommand();
+        command.stdinIsTerminal = () -> true;
+        command.spec = new CommandLine(command).getCommandSpec();
+
+        try {
+            command.loginPositional = "alice";
+            command.email = "a@e.test";
+            command.provider = "local";
+            command.passwordStdin = true;
+            command.noInput = true;
+            command.run();
+            fail("expected CliExitException");
+        } catch (CliExitException e) {
+            assertThat(e.exitCode()).isEqualTo(2);
+        }
     }
 }
