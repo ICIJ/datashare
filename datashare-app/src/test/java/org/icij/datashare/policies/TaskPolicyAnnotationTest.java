@@ -482,14 +482,10 @@ public class TaskPolicyAnnotationTest {
         DatashareUser john = new DatashareUser(localUser("john"));
         DatashareUser cecile = new DatashareUser(localUser("cecile"));
 
-        assertEquals(true, annotation.isAllowed(cecile, taskManager.getTask(johnsTask), Domain.DEFAULT,
-                                                Role.PROJECT_ADMIN, Role.PROJECT_MEMBER));
-        assertEquals(true, annotation.isAllowed(john, taskManager.getTask(johnsTask), Domain.DEFAULT,
-                                                Role.PROJECT_ADMIN, Role.PROJECT_MEMBER));
-        assertEquals(false, annotation.isAllowed(john, taskManager.getTask(cecilesTask), Domain.DEFAULT,
-                                                 Role.PROJECT_ADMIN, Role.PROJECT_MEMBER));
-        assertEquals(false, annotation.isAllowed(john, taskManager.getTask(johnsTask), Domain.DEFAULT,
-                                                 Role.PROJECT_ADMIN, Role.NONE));
+        assertEquals(true, annotation.isAllowed(cecile, taskManager.getTask(johnsTask), adminTaskPolicy));
+        assertEquals(true, annotation.isAllowed(john, taskManager.getTask(johnsTask), adminTaskPolicy));
+        assertEquals(false, annotation.isAllowed(john, taskManager.getTask(cecilesTask), adminTaskPolicy));
+        assertEquals(false, annotation.isAllowed(john, taskManager.getTask(johnsTask), noOwnerRoleTaskPolicy));
     }
 
 }

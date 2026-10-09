@@ -13,8 +13,7 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.project.admin.ProjectAdminService;
-import org.icij.datashare.policies.Authorizer;
-import org.icij.datashare.policies.TaskPolicyAnnotation;
+import org.icij.datashare.policies.TaskPolicyChecker;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
@@ -22,6 +21,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -56,14 +56,15 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     }
 
     private void serveAs(String login, String... projects) {
+        TaskFinder taskFinder = new TaskFinder(taskManager, batchSearchRepository);
         McpResource mcp = new McpResource(new ProjectResource(repository, indexer, taskManager, propertiesProvider,
                                                               documentCollectionFactory, projectAdminService), indexer,
                                        new DocumentResource(repository, indexer, propertiesProvider,
                                                             new DocumentSourceAccess(repository, indexer,
                                                                                      propertiesProvider)),
-                                       new TaskFinder(taskManager, batchSearchRepository), taskManager,
-                                       new TaskPolicyAnnotation(mock(Authorizer.class), taskManager),
-                                       propertiesProvider);
+                                       new TaskResource(mock(DatashareTaskFactory.class), taskManager,
+                                                        propertiesProvider, batchSearchRepository, taskFinder),
+                                       taskManager, TaskPolicyChecker.ALLOW_ALL);
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }

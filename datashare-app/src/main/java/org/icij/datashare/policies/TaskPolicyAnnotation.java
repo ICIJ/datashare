@@ -21,7 +21,7 @@ import java.util.function.Function;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
-public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
+public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy>, TaskPolicyChecker {
     private final Authorizer authorizer;
     private final TaskManager taskManager;
     Logger logger = LoggerFactory.getLogger(TaskPolicyAnnotation.class);
@@ -32,29 +32,31 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
         this.taskManager = taskManager;
     }
 
-    private static boolean isTaskOwner(DatashareUser user, Task<?> task) {
+    private static boolean isTaskOwner(DatashareUser user, Task<Serializable> task) {
         return Objects.equals(task.getUser(), user);
     }
 
-    private boolean isAllowedForProjects(List<String> projectIds, Role role, Role ownerRole, DatashareUser user,
-                                         Domain domain, Task<?> task) {
-        boolean roleAllowed = projectIds.stream().allMatch(id -> authorizer.can(user.id, domain, id, role));
-        boolean ownershipEnabled = ownerRole != Role.NONE;
-        boolean ownerAllowed = ownershipEnabled && isTaskOwner(user, task) &&
-                               projectIds.stream().allMatch(id -> authorizer.can(user.id, domain, id, ownerRole));
+    private boolean isAllowedForProjects(List<String> projectIds, TaskPolicy annotation, DatashareUser user,
+                                         Domain domain, Task<Serializable> task) {
+        boolean roleAllowed =
+                projectIds.stream().allMatch(id -> authorizer.can(user.id, domain, id, annotation.role()));
+        boolean ownershipEnabled = annotation.ownerRole() != Role.NONE;
+        boolean ownerAllowed = ownershipEnabled && isTaskOwner(user, task) && projectIds.stream().allMatch(
+                id -> authorizer.can(user.id, domain, id, annotation.ownerRole()));
         return roleAllowed || ownerAllowed;
     }
 
-    public boolean isAllowed(DatashareUser user, Task<?> task, Domain domain, Role role, Role ownerRole) {
+    private boolean isAllowedSingleTask(Task<Serializable> task, TaskPolicy annotation, DatashareUser user,
+                                        Domain domain) {
         Object batchSearchRecord = task.args.get("batchRecord");
         Object batchDownload = task.args.get("batchDownload");
         if (batchSearchRecord instanceof BatchSearchRecord bsr) {
             // BatchSearches are linked to multiple projects
-            return isAllowedForProjects(bsr.projects.stream().map(ProjectProxy::getId).toList(), role, ownerRole, user,
+            return isAllowedForProjects(bsr.projects.stream().map(ProjectProxy::getId).toList(), annotation, user,
                                         domain, task);
         } else if (batchDownload instanceof BatchDownload bd) {
             // BatchDownloads are linked to multiple projects
-            return isAllowedForProjects(bd.projects.stream().map(ProjectProxy::getId).toList(), role, ownerRole, user,
+            return isAllowedForProjects(bd.projects.stream().map(ProjectProxy::getId).toList(), annotation, user,
                                         domain, task);
         } else {
             // Tasks are linked to ONE project at a time
@@ -63,12 +65,17 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
                             "Task " + task.id + " does not have a project id in its arguments"));
             Authorizer.requireValue(projectId, false);
             // Check if user as role based rights or is owner with access rights (if ownerRole is specified)
-            boolean isAllowed = authorizer.can(user.id, domain, projectId, role);
-            boolean ownershipEnabled = ownerRole != Role.NONE;
-            boolean canAsOwner = authorizer.can(user.id, domain, projectId, ownerRole);
+            boolean isAllowed = authorizer.can(user.id, domain, projectId, annotation.role());
+            boolean ownershipEnabled = annotation.ownerRole() != Role.NONE;
+            boolean canAsOwner = authorizer.can(user.id, domain, projectId, annotation.ownerRole());
             boolean hasOwnerRole = ownershipEnabled && canAsOwner && isTaskOwner(user, task);
             return isAllowed || hasOwnerRole;
         }
+    }
+
+    @Override
+    public boolean isAllowed(DatashareUser user, Task<Serializable> task, TaskPolicy policy) {
+        return isAllowedSingleTask(task, policy, user, Authorizer.requireDomain(policy.domain(), true));
     }
 
     @Override
@@ -86,7 +93,7 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy> {
         String taskId = Authorizer.requireIdParam(context, annotation.idParam());
         try {
             Task<Serializable> task = taskManager.getTask(taskId);
-            boolean isAllowed = isAllowed(user, task, domain, annotation.role(), annotation.ownerRole());
+            boolean isAllowed = isAllowedSingleTask(task, annotation, user, domain);
 
             return isAllowed ? payloadSupplier.apply(context) : Payload.forbidden();
 

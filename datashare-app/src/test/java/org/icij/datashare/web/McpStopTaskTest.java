@@ -15,6 +15,9 @@ import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.policies.TaskPolicyAnnotation;
+import org.icij.datashare.policies.TaskPolicyChecker;
+import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.TestSleepingTask;
 import org.icij.datashare.tasks.TestTaskUtils;
@@ -53,9 +56,14 @@ public class McpStopTaskTest extends AbstractProdWebServerTest {
         authorizer.addRoleForUserInProject(localUser("cecile"), Role.PROJECT_ADMIN, Domain.DEFAULT, project("foo"));
         authorizer.addRoleForUserInProject(localUser("john"), Role.PROJECT_MEMBER, Domain.DEFAULT, project("foo"));
         authorizer.addRoleForUserInProject(localUser("jane"), Role.PROJECT_MEMBER, Domain.DEFAULT, project("foo"));
-        McpResource mcp = new McpResource(List.of(McpResource.stopTask(taskManager,
-                                                                       new TaskPolicyAnnotation(authorizer, taskManager),
-                                                                       new PropertiesProvider(Map.of("mode", mode)))));
+        TaskPolicyChecker taskPolicyChecker =
+                Mode.SERVER.name().equals(mode) ? new TaskPolicyAnnotation(authorizer, taskManager)
+                                                : TaskPolicyChecker.ALLOW_ALL;
+        TaskResource taskResource = new TaskResource(taskFactory, taskManager, new PropertiesProvider(),
+                                                     mock(BatchSearchRepository.class),
+                                                     new TaskFinder(taskManager, mock(BatchSearchRepository.class)));
+        McpResource mcp =
+                new McpResource(List.of(McpResource.stopTask(taskResource, taskManager, taskPolicyChecker)));
         Users users = new Users() {
             @Override
             public User find(String login, String password) {
