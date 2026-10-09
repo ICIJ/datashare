@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "project": {"type": "string"},
+    "id": {"type": "string", "description": "document id"},
+    "routing": {"type": "string", "description": "root document id, for embedded documents"},
+    "offset": {"type": "integer", "minimum": 0, "default": 0},
+    "limit": {"type": "integer", "minimum": 1, "default": 10000}
+  },
+  "required": ["project", "id"]
+}

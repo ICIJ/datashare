@@ -32,10 +32,13 @@ public class McpResource {
     private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();
     private static final Logger logger = LoggerFactory.getLogger(McpResource.class);
     private final List<McpTool> tools;
+    // Built once so a tool without a schema file fails at startup rather than on the first tools/list.
+    private final List<Map<String, Object>> toolDescriptions;
 
     @Inject
     public McpResource(Set<McpTool> tools) {
         this.tools = List.copyOf(tools);
+        this.toolDescriptions = this.tools.stream().map(McpResource::describeTool).toList();
     }
 
     @Post()
@@ -62,7 +65,7 @@ public class McpResource {
             IOException {
         return switch (method) {
             case "initialize" -> result(id, serverDescription());
-            case "tools/list" -> result(id, Map.of("tools", tools.stream().map(McpResource::describeTool).toList()));
+            case "tools/list" -> result(id, Map.of("tools", toolDescriptions));
             case "ping" -> result(id, Map.of());
             case "tools/call" -> callTool(id, params, context);
             default -> error(id, -32601, "Method not found: " + method);

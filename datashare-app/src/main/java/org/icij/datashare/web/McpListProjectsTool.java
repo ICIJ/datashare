@@ -3,7 +3,6 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
-import java.util.Map;
 
 public class McpListProjectsTool implements McpTool {
     private final ProjectResource projectResource;
@@ -21,11 +20,6 @@ public class McpListProjectsTool implements McpTool {
     @Override
     public String description() {
         return "Lists the Datashare projects you can access.";
-    }
-
-    @Override
-    public Map<String, Object> inputSchema() {
-        return NO_ARGUMENTS;
     }
 
     @Override

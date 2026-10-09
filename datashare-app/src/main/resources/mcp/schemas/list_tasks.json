@@ -1,0 +1,6 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {"type": "string", "description": "case-insensitive pattern on the task name"}
+  }
+}

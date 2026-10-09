@@ -15,26 +15,6 @@ import java.util.Map;
 public class McpSearchDocumentsTool implements McpTool {
     private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();
     private static final McpArguments.IntArgument SIZE = new McpArguments.IntArgument("size", 10, 1, 50);
-    private static final Map<String, Object> INPUT_SCHEMA = Map.of("type", "object", "properties", Map.of("project",
-                                                                                                          Map.of("type",
-                                                                                                                 "string",
-                                                                                                                 "description",
-                                                                                                                 "project id"),
-                                                                                                          "query",
-                                                                                                          Map.of("type",
-                                                                                                                 "string",
-                                                                                                                 "description",
-                                                                                                                 "Elasticsearch query_string syntax"),
-                                                                                                          "size",
-                                                                                                          Map.of("type",
-                                                                                                                 "integer",
-                                                                                                                 "minimum",
-                                                                                                                 1,
-                                                                                                                 "maximum",
-                                                                                                                 50,
-                                                                                                                 "default",
-                                                                                                                 10)),
-                                                                   "required", List.of("project", "query"));
     private final Indexer indexer;
 
     @Inject
@@ -50,11 +30,6 @@ public class McpSearchDocumentsTool implements McpTool {
     @Override
     public String description() {
         return "Full-text search in the documents of one project.";
-    }
-
-    @Override
-    public Map<String, Object> inputSchema() {
-        return INPUT_SCHEMA;
     }
 
     @Override

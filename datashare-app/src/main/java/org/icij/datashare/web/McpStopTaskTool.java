@@ -12,13 +12,9 @@ import org.icij.datashare.policies.TaskPolicyChecker;
 import org.icij.datashare.session.DatashareUser;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 
 public class McpStopTaskTool implements McpTool {
-    private static final Map<String, Object> INPUT_SCHEMA =
-            Map.of("type", "object", "properties", Map.of("taskId", Map.of("type", "string")), "required",
-                   List.of("taskId"));
     // Calling TaskResource.stopTask directly skips its @TaskPolicy, so the route's own annotation is read here
     // to keep the roles defined in one place.
     private static final TaskPolicy STOP_TASK_POLICY = stopTaskRoutePolicy();
@@ -41,11 +37,6 @@ public class McpStopTaskTool implements McpTool {
     @Override
     public String description() {
         return "Stops a running task.";
-    }
-
-    @Override
-    public Map<String, Object> inputSchema() {
-        return INPUT_SCHEMA;
     }
 
     @Override
