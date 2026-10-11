@@ -110,19 +110,12 @@ public class SettingsResource {
     private List<Map<String, String>> languageListToMap(String[] languageStrings) {
         List<Map<String, String>> languages = new ArrayList<>();
         for (String languageString : languageStrings) {
-            try {
-                Language language = Language.parse(languageString);
-                languages.add(new HashMap<String, String>() {{
-                    put("iso6392", language.iso6392Code());
-                    put("name", language.name());
-                }});
-                // Ignore unknown languages
-            } catch (IllegalArgumentException ignore) {
-                languages.add(new HashMap<String, String>() {{
-                    put("iso6392", null);
-                    put("name", languageString);
-                }});
-            }
+            Language language = Language.parse(languageString);
+            boolean unparsed = language == Language.UNKNOWN && !Language.UNKNOWN.name().equals(languageString);
+            languages.add(new HashMap<String, String>() {{
+                put("iso6392", unparsed ? null : language.iso6392Code());
+                put("name", unparsed ? languageString : language.name());
+            }});
         }
         return languages;
     }
