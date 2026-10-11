@@ -495,4 +495,16 @@ public class DatashareCliTest {
         assertThat(properties.containsKey("ocrRetryConfidence")).isFalse();
         assertThat(properties.containsKey("ocrMinConfidence")).isFalse();
     }
+
+    @Test
+    public void test_ocr_page_seg_mode_option() {
+        Properties properties = cli.asProperties(cli.createParser().parse("--ocrPageSegMode", "6"), null);
+        assertThat(properties).includes(entry("ocrPageSegMode", "6"));
+    }
+
+    @Test
+    public void test_ocr_page_seg_mode_absent_by_default() {
+        Properties properties = cli.asProperties(cli.createParser().parse(), null);
+        assertThat(properties.containsKey("ocrPageSegMode")).isFalse();
+    }
 }
