@@ -279,6 +279,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     Document getDocument(TikaDocument document, TikaDocument root, TikaDocument parent, short level) throws
             IOException {
+        String content = readContent(document);
         Charset charset = Charset.isSupported(
                 ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN)) ?
                           Charset.forName(document.getMetadata().get(CONTENT_ENCODING)) : StandardCharsets.US_ASCII;
@@ -293,7 +294,6 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                                .withOcrParser(document.getMetadata().get(OCRParser.OCR_PARSER))
                                .with(parseChildRecoveryStatus(document));
 
-        String content = readContent(document);
         if (document.getLanguage() == null) {
             builder.with(languageGuesser.guess(content, document.getPath(), document.getMetadata().get(OCR_CONFIDENCE),
                                                minOcrConfidence));
