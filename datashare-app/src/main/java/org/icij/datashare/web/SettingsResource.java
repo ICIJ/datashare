@@ -110,12 +110,11 @@ public class SettingsResource {
     private List<Map<String, String>> languageListToMap(String[] languageStrings) {
         List<Map<String, String>> languages = new ArrayList<>();
         for (String languageString : languageStrings) {
-            Language language = Language.parse(languageString);
-            boolean unparsed = language == Language.UNKNOWN && !Language.UNKNOWN.name().equals(languageString);
-            languages.add(new HashMap<String, String>() {{
-                put("iso6392", unparsed ? null : language.iso6392Code());
-                put("name", unparsed ? languageString : language.name());
-            }});
+            Optional<Language> language = Language.find(languageString);
+            Map<String, String> entry = new HashMap<>();
+            entry.put("iso6392", language.map(Language::iso6392Code).orElse(null));
+            entry.put("name", language.map(Language::name).orElse(languageString));
+            languages.add(entry);
         }
         return languages;
     }

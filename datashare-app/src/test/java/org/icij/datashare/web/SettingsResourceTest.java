@@ -1,9 +1,9 @@
 package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
+import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.TesseractOCRParserWrapper;
-import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -89,14 +90,14 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
         TesseractOCRParserWrapper wrapper = mock(TesseractOCRParserWrapper.class);
         when(wrapper.hasTesseract()).thenReturn(true);
         when(wrapper.getOcrParser()).thenReturn(parser);
-        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider(), wrapper)));
+        Map<String, String> english = new HashMap<>();
+        english.put("iso6392", "eng");
+        english.put("name", "ENGLISH");
+        Map<String, String> chineseSimplified = new HashMap<>();
+        chineseSimplified.put("iso6392", null);
+        chineseSimplified.put("name", "chi_sim");
 
-        get("/api/settings/ocr/languages")
-                .should()
-                .respond(200)
-                .haveType("application/json")
-                .contain("ENGLISH")
-                .contain("chi_sim");
+        assertThat(new SettingsResource(new PropertiesProvider(), wrapper).ocrLanguages()).containsOnly(english, chineseSimplified);
     }
 
     @Test
