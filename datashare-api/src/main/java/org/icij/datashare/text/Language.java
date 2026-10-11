@@ -2,6 +2,7 @@ package org.icij.datashare.text;
 
 import java.io.Serializable;
 import java.util.Locale;
+import java.util.Optional;
 
 public enum Language implements Serializable {
     // from https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
@@ -62,22 +63,25 @@ public enum Language implements Serializable {
     }
 
     public static Language parse(final String language) {
+        // Never throw on an unknown code: the language detector can return ISO codes
+        // absent from this enum (e.g. "ast" for Asturian), and a thrown exception here
+        // aborts extraction of the whole containing file (e.g. every remaining email in a PST).
+        return find(language).orElse(UNKNOWN);
+    }
+
+    public static Optional<Language> find(final String language) {
         if (language == null || language.isEmpty()) {
-            return UNKNOWN;
+            return Optional.empty();
         }
         for (Language lang : Language.values()) {
             if (language.equalsIgnoreCase(lang.iso6391Code()) || language.equalsIgnoreCase(lang.iso6392Code())) {
-                return lang;
+                return Optional.of(lang);
             }
         }
-        // Fall back to the enum constant name, but never throw on an unknown code:
-        // the language detector can return ISO codes absent from this enum (e.g. "ast"
-        // for Asturian), and a thrown exception here aborts extraction of the whole
-        // containing file (e.g. every remaining email in a PST).
         try {
-            return valueOf(language.toUpperCase(Locale.ROOT));
+            return Optional.of(valueOf(language.toUpperCase(Locale.ROOT)));
         } catch (IllegalArgumentException e) {
-            return UNKNOWN;
+            return Optional.empty();
         }
     }
 
