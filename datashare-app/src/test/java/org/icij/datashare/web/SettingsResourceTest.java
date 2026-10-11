@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.TesseractOCRParserWrapper;
+import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -78,6 +80,23 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
         get("/api/settings/ocr/languages")
                 .should()
                 .respond(503);
+    }
+
+    @Test
+    public void test_list_ocr_languages_keeps_tesseract_code_of_unknown_language() {
+        TesseractOCRParser parser = mock(TesseractOCRParser.class);
+        when(parser.getLangs()).thenReturn(Set.of("eng", "chi_sim"));
+        TesseractOCRParserWrapper wrapper = mock(TesseractOCRParserWrapper.class);
+        when(wrapper.hasTesseract()).thenReturn(true);
+        when(wrapper.getOcrParser()).thenReturn(parser);
+        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider(), wrapper)));
+
+        get("/api/settings/ocr/languages")
+                .should()
+                .respond(200)
+                .haveType("application/json")
+                .contain("ENGLISH")
+                .contain("chi_sim");
     }
 
     @Test
