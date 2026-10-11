@@ -23,6 +23,7 @@ import org.icij.datashare.text.artifact.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
+import org.icij.extract.document.EmbeddedTikaDocument;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
@@ -37,6 +38,7 @@ import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -335,6 +337,22 @@ public class ElasticsearchSpewerTest {
             ocrSpewer.configure(Options.from(Map.<String, Object>of("defaultProject", es.getIndexName())));
             assertThat(writeOcrImage(ocrSpewer, "IMG_0046.png", 0.3).get("language")).isEqualTo("UNKNOWN");
         }
+    }
+
+    @Test
+    public void test_write_indexes_ocr_metadata_merged_when_the_embed_is_read() throws Exception {
+        TikaDocument root = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("chat.doc"));
+        root.setReader(new ParsingReader(new ByteArrayInputStream("chat".getBytes())));
+        EmbeddedTikaDocument image = root.addEmbed(new Metadata());
+        image.setReader(() -> {
+            image.getMetadata().set("ocr:model", "HanS");
+            return new StringReader("hello");
+        });
+
+        spewer.write(root);
+
+        GetResponse<ObjectNode> indexed = es.client.get(doc -> doc.index(es.getIndexName()).id(image.getId()).routing(root.getId()), ObjectNode.class);
+        assertThat((Map<String, Object>) nodeToMap(indexed.source()).get("metadata")).includes(entry("tika_metadata_ocr_model", "HanS"));
     }
 
     private Map<String, Object> indexedOcrImage(String fileName, double confidence, Map<String, String> options) throws Exception {
