@@ -102,6 +102,7 @@ public final class DatashareCliOptions {
     public static final String OCR_ABBR_OPT = "o";
     public static final String OCR_LANGUAGE_OPT = "ocrLanguage";
     public static final String OCR_RETRY_CONFIDENCE_OPT = "ocrRetryConfidence";
+    public static final String OCR_PAGE_SEG_MODE_OPT = "ocrPageSegMode";
     public static final String OCR_MIN_CONFIDENCE_OPT = "ocrMinConfidence";
     public static final String OCR_OPT = "ocr";
     public static final String OCR_TYPE_OPT = "ocrType";
@@ -657,6 +658,13 @@ public final class DatashareCliOptions {
                           "When the OCR language is chosen per image, read an image again with every script model " +
                           "if the first read's confidence is below this value, from 0 to 100. Defaults to 60.")
               .withRequiredArg().ofType(Integer.class);
+    }
+
+    static void ocrPageSegMode(OptionParser parser) {
+        parser.acceptsAll(List.of(OCR_PAGE_SEG_MODE_OPT),
+                          "Tesseract page segmentation mode. AUTO reads with mode 1, then 6 when the read is blank, " +
+                          "then 11. An integer from 1 to 13 (except 2) forces that mode. Defaults to AUTO.")
+              .withRequiredArg().ofType(String.class);
     }
 
     static void ocrMinConfidence(OptionParser parser) {

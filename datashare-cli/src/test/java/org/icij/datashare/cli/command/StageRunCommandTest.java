@@ -194,4 +194,16 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
         assertThat(props.containsKey("ocrRetryConfidence")).isFalse();
         assertThat(props.containsKey("ocrMinConfidence")).isFalse();
     }
+
+    @Test
+    public void test_ocr_page_seg_mode_option() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX", "--ocrPageSegMode", "6");
+        assertThat(props).includes(entry("ocrPageSegMode", "6"));
+    }
+
+    @Test
+    public void test_ocr_page_seg_mode_absent_by_default() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
+        assertThat(props.containsKey("ocrPageSegMode")).isFalse();
+    }
 }

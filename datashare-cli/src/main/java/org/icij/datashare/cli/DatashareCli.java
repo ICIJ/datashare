@@ -130,6 +130,7 @@ public class DatashareCli {
         DatashareCliOptions.language(parser);
         DatashareCliOptions.ocrLanguage(parser);
         DatashareCliOptions.ocrRetryConfidence(parser);
+        DatashareCliOptions.ocrPageSegMode(parser);
         DatashareCliOptions.ocrMinConfidence(parser);
         DatashareCliOptions.ocrType(parser);
         DatashareCliOptions.ocrStrategy(parser);

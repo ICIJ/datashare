@@ -50,6 +50,9 @@ public class PipelineOptions {
     @Option(names = {"--ocrRetryConfidence"},
             description = "When the OCR language is chosen per image, read an image again with every script model if the first read's confidence is below this value, from 0 to 100. Defaults to 60.")
     Integer ocrRetryConfidence;
+    @Option(names = {"--ocrPageSegMode"},
+            description = "Tesseract page segmentation mode. AUTO reads with mode 1, then 6 when the read is blank, then 11. An integer from 1 to 13 (except 2) forces that mode. Defaults to AUTO.")
+    String ocrPageSegMode;
     @Option(names = {"--ocrMinConfidence"},
             description = "OCR confidence, from 0 to 100, under which an image's text is not used to detect its language. Defaults to 60. Only applies when the OCR records a confidence: the language is chosen per image, or the OCR type is TESS4J.")
     Integer ocrMinConfidence;
@@ -116,6 +119,7 @@ public class PipelineOptions {
         DatashareOptions.putIfNotNull(props, OCR_TYPE_OPT, ocrType);
         DatashareOptions.putIfNotNull(props, OCR_LANGUAGE_OPT, ocrLanguage);
         DatashareOptions.putIfNotNull(props, OCR_RETRY_CONFIDENCE_OPT, ocrRetryConfidence);
+        DatashareOptions.putIfNotNull(props, OCR_PAGE_SEG_MODE_OPT, ocrPageSegMode);
         DatashareOptions.putIfNotNull(props, OCR_MIN_CONFIDENCE_OPT, ocrMinConfidence);
         DatashareOptions.putIfNotNull(props, OCR_STRATEGY_OPT, ocrStrategy);
         DatashareOptions.putIfNotNull(props, PARALLELISM_OPT, parallelism);
