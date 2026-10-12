@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 /**
  * @param rootId the container an embedded document was extracted from, or null for a root document:
@@ -20,6 +21,9 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     /** The width of the extraction_mapping id column: Postgres refuses a longer id with an unchecked
      *  database error, and SQLite stores it as-is, so the limit is enforced here for both. */
     public static final int MAX_ID_LENGTH = 96;
+    /** A mapping id names the mapping in a URL path segment, and a stored id can never change. */
+    private static final Pattern ID_PATTERN =
+            Pattern.compile("^[A-Za-z0-9][A-Za-z0-9._-]{0," + (MAX_ID_LENGTH - 1) + "}$");
 
     public ExtractionMapping {
         Objects.requireNonNull(id, "id");
@@ -157,12 +161,11 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     // The run names the mapping by its id and refuses a project id no project can have, so either
     // flaw would store a mapping that no run can ever use, and its id could not be saved again.
     private void refuseUnusableIds(List<String> violations) {
-        if (id.isBlank()) {
-            violations.add("the mapping has a blank id, which no run can name");
+        if (!ID_PATTERN.matcher(id).matches()) {
+            violations.add("the mapping id '" + id + "' is not a letter or digit followed by " +
+                           "letters, digits, '.', '_' or '-', at most " + MAX_ID_LENGTH + " characters in all");
         }
-        if (id.length() > MAX_ID_LENGTH) {
-            violations.add("the mapping id is longer than " + MAX_ID_LENGTH + " characters");
-        }
+        refuseNul(violations, name, "the mapping name");
         if (!Project.NAME_PATTERN.matcher(projectId).matches()) {
             violations.add("'" + projectId + "' is not a valid project id");
         }

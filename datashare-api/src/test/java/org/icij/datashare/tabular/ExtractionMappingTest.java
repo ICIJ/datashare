@@ -284,14 +284,35 @@ public class ExtractionMappingTest {
     public void test_validate_reports_a_blank_id() {
         String violations = mappingIn("prj", " ").validate().toString();
 
-        assertThat(violations).contains("blank id");
+        assertThat(violations).contains("the mapping id ' ' is not");
     }
 
     @Test
     public void test_validate_reports_an_id_longer_than_its_column() {
         String violations = mappingIn("prj", "m".repeat(97)).validate().toString();
 
-        assertThat(violations).contains("longer than 96");
+        assertThat(violations).contains("at most 96 characters");
+    }
+
+    @Test
+    public void test_validate_reports_an_id_no_url_path_segment_can_carry() {
+        assertThat(mappingIn("prj", "a/b").validate().toString()).contains("the mapping id 'a/b' is not");
+        assertThat(mappingIn("prj", " m1").validate().toString()).contains("the mapping id ' m1' is not");
+        assertThat(mappingIn("prj", "m\u00001").validate()).isNotEmpty();
+    }
+
+    @Test
+    public void test_validate_accepts_an_id_of_letters_digits_dots_underscores_and_dashes() {
+        assertThat(mappingIn("prj", "Companies_2024.v-1").validate()).isEmpty();
+        assertThat(mappingIn("prj", "m".repeat(96)).validate()).isEmpty();
+    }
+
+    @Test
+    public void test_validate_refuses_a_name_holding_a_nul() {
+        ExtractionMapping nulled = new ExtractionMapping("m1", "prj", null, "mem\u0000bers", "ftm", "doc-1", null,
+                RowSourceOptions.defaults(), Map.of("member", person(Map.of("name", column("full_name")))));
+
+        assertThat(nulled.validate().toString()).contains("the mapping name holds a NUL");
     }
 
     @Test
