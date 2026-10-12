@@ -145,6 +145,14 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_save_refuses_a_repeated_entity_alias() {
+        String repeated = BODY.replace("\"entities\": {", "\"entities\": {\"c\": {\"type\": \"Person\", \"keys\": [], \"properties\": {}}, ");
+
+        put("/api/prj/extraction-mappings/m1", repeated).should().respond(400).contain("the mapping repeats the field 'c'");
+        verify(mappings, never()).save(any());
+    }
+
+    @Test
     public void test_save_rejects_malformed_json() {
         put("/api/prj/extraction-mappings/m1", "{not json").should().respond(400);
         verify(mappings, never()).save(any());
