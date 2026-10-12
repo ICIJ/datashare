@@ -196,12 +196,13 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                                                                                .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
     }
 
-    public ExecutorService runWorkers() {
+    public void runWorkers() {
         QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, DEFAULT_BATCH_QUEUE_TYPE);
         if (batchQueueType.equals(TEMPORAL)) {
-            return runTemporalWorkers();
+            runTemporalWorkers();
+        } else {
+            runTaskWorkerLoop();
         }
-        return runTaskWorkerLoop();
     }
 
     @Override
@@ -592,12 +593,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             WorkflowRegistry registry = new WorkflowRegistry();
             registry.discoverWorkflows("org.icij.datashare.tasks",
                                        activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
-                                                                                activityClass, taskFactory, temporal.getClient(), taskRepository, 1d)
-                                                                        .getThrows(),
+                                               activityClass, taskFactory, temporal, taskRepository, 1d).getThrows(),
                                        Utils.getRoutingStrategy(propertiesProvider), new Group(TaskGroupType.Java));
             // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
-            addCloseable(TemporalWorkers.start(temporal.getClient(), registry, registry.registeredQueues(),
-                                               TemporalWorkerOptions.defaultValues()));
+            addCloseable(new TemporalWorkers(temporal).start(registry, registry.registeredQueues(),
+                                                             TemporalWorkerOptions.defaultValues()));
         }
     }
 

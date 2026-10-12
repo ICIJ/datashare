@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks.temporal;
 
-import io.temporal.client.WorkflowClient;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 import org.icij.datashare.asynctasks.Group;
@@ -127,21 +126,21 @@ public class WorkflowRegistry {
     /**
      * Returns a Factory that can be used as the {@link ActivityInstantiator} required for instantiating activities
      * if they respect the convention of SingleActivityWorkflows of having a public constructor with the following parameters in this order :
-     * {@link TaskFactory} taskFactory, {@link WorkflowClient} client, {@link TaskRepository} taskRepository, double ProgressWeight
+     * {@link TaskFactory} taskFactory, {@link TemporalInterlocutor} temporal, {@link TaskRepository} taskRepository, double ProgressWeight
      * @param activityCls
      * @param taskFactory
-     * @param client
+     * @param temporal
      * @param taskRepository
      * @param progressWeight
      * @return
      * @param <A>
      */
     public static <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactoryForSingleActivitiesWorkflow(
-            Class<A> activityCls, TaskFactory taskFactory, WorkflowClient client, TaskRepository taskRepository,
+            Class<A> activityCls, TaskFactory taskFactory, TemporalInterlocutor temporal, TaskRepository taskRepository,
             double progressWeight) {
-        return () -> activityCls.getConstructor(TaskFactory.class, WorkflowClient.class, TaskRepository.class,
+        return () -> activityCls.getConstructor(TaskFactory.class, TemporalInterlocutor.class, TaskRepository.class,
                                                 Double.class)
-                                .newInstance(taskFactory, client, taskRepository, progressWeight);
+                                .newInstance(taskFactory, temporal, taskRepository, progressWeight);
     }
 
     private static Class<?> workflowImplementation(Class<?> workflowInterface) {

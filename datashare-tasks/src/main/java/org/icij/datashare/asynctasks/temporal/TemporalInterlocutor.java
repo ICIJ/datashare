@@ -27,6 +27,8 @@ import io.temporal.serviceclient.OperatorServiceStubs;
 import io.temporal.serviceclient.OperatorServiceStubsOptions;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
+import io.temporal.worker.WorkerFactory;
+import io.temporal.worker.WorkerFactoryOptions;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.*;
@@ -406,11 +408,24 @@ public class TemporalInterlocutor {
         }
     }
 
-    /**
-     * The client this interlocutor talks to Temporal with
-     */
-    public WorkflowClient getClient() {
-        return client;
+    public void signalWorkflow(String workflowId, String signalName, Object... args) {
+        client.newUntypedWorkflowStub(workflowId).signal(signalName, args);
+    }
+
+    public <W> W newWorkflowStub(Class<W> workflowInterface, String workflowId) {
+        return client.newWorkflowStub(workflowInterface, workflowId);
+    }
+
+    public <W> W newWorkflowStub(Class<W> workflowInterface, WorkflowOptions options) {
+        return client.newWorkflowStub(workflowInterface, options);
+    }
+
+    WorkerFactory newWorkerFactory(WorkerFactoryOptions options) {
+        return WorkerFactory.newInstance(client, options);
+    }
+
+    public void shutdownClient() {
+        client.getWorkflowServiceStubs().shutdown();
     }
 
     // ------------------------

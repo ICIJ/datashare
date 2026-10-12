@@ -363,31 +363,31 @@ public class TaskManagerTemporalIntTest {
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.discoverWorkflows("org.icij.datashare.asynctasks.routingfixtures",
             activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
-                activityClass, factory, temporal.getClient(), taskRepository, 1d).getThrows(),
+                activityClass, factory, temporal.interlocutor(), taskRepository, 1d).getThrows(),
             strategy, group);
         // this process serves everything it discovered, exactly like CommonMode does
-        return TemporalWorkers.start(temporal.getClient(), registry, registry.registeredQueues(),
+        return new TemporalWorkers(temporal.interlocutor()).start(registry, registry.registeredQueues(),
                                      new TemporalWorkerOptions(1));
     }
 
     private Closeable testCloseableWorkerFactory() {
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(HelloWorldWorkflowImpl.class, WORKFLOWS_DEFAULT);
-        registry.registerActivity(new HelloWorldActivityImpl(taskFactory, temporal.getClient(), taskRepository, 1.0d), WORKFLOWS_DEFAULT);
+        registry.registerActivity(new HelloWorldActivityImpl(taskFactory, temporal.interlocutor(), taskRepository, 1.0d), WORKFLOWS_DEFAULT);
         registry.registerWorkflow(FailingWorkflowImpl.class, WORKFLOWS_DEFAULT);
-        registry.registerActivity(new FailingActivityImpl(taskFactory, temporal.getClient(), taskRepository, 1.0d), WORKFLOWS_DEFAULT);
+        registry.registerActivity(new FailingActivityImpl(taskFactory, temporal.interlocutor(), taskRepository, 1.0d), WORKFLOWS_DEFAULT);
         return startDefaultQueueWorkers(registry);
     }
 
     private Closeable doNothingWorkerFactory(TaskFactory doNothingTaskFactory) {
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(DoNothingWorkflowImpl.class, WORKFLOWS_DEFAULT);
-        registry.registerActivity(new DoNothingActivityImpl(doNothingTaskFactory, temporal.getClient(), taskRepository, 1.0d), WORKFLOWS_DEFAULT);
+        registry.registerActivity(new DoNothingActivityImpl(doNothingTaskFactory, temporal.interlocutor(), taskRepository, 1.0d), WORKFLOWS_DEFAULT);
         return startDefaultQueueWorkers(registry);
     }
 
     private Closeable startDefaultQueueWorkers(WorkflowRegistry registry) {
-        return TemporalWorkers.start(temporal.getClient(), registry, List.of(WORKFLOWS_DEFAULT), new TemporalWorkerOptions(1));
+        return new TemporalWorkers(temporal.interlocutor()).start(registry, List.of(WORKFLOWS_DEFAULT), new TemporalWorkerOptions(1));
     }
 
     protected void awaitClearedInTemporal(Set<String> taskIds, int timeout, TimeUnit timeUnit) throws IOException {

@@ -1,7 +1,7 @@
 package org.icij.datashare.tasks.temporal;
 
 import io.temporal.activity.Activity;
-import io.temporal.client.WorkflowClient;
+import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.extract.ScanCallback;
 import org.icij.datashare.extract.ScanOptions;
 import org.icij.datashare.extract.Scanner;
@@ -15,16 +15,16 @@ public class ScanActivityImpl implements ScanActivity {
     // Kept low enough to stay well under Temporal's ~50k-event history cap even at ~10M scanned paths,
     // while still splitting the work into enough batches for horizontal scaling across index workers.
     private static final int BATCH_SIZE = 1000;
-    final WorkflowClient client;
+    final TemporalInterlocutor temporal;
 
-    public ScanActivityImpl(final WorkflowClient client) {
-        this.client = client;
+    public ScanActivityImpl(final TemporalInterlocutor temporal) {
+        this.temporal = temporal;
     }
 
     @Override
     public Long run(final ScanOptions options, final Path path) throws IOException {
         String workflowId = Activity.getExecutionContext().getInfo().getWorkflowId();
-        PathBatchReceiver self = client.newWorkflowStub(PathBatchReceiver.class, workflowId);
+        PathBatchReceiver self = temporal.newWorkflowStub(PathBatchReceiver.class, workflowId);
 
         PathGrouper grouper = new PathGrouper(BATCH_SIZE, self);
         Scanner scanner = new Scanner(ScanOptions.defaultValues(), grouper);
