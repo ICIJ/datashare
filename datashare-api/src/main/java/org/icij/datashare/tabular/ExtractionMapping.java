@@ -35,6 +35,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         if (entities.isEmpty()) {
             throw new EmptyExtractionMapping(id);
         }
+        entities.forEach((alias, entity) -> Objects.requireNonNull(entity, "entities." + alias));
         entities = Map.copyOf(entities);
         TargetModelRegistry.get(Objects.requireNonNull(model, "model"));
     }

@@ -71,7 +71,7 @@ public class ExtractionMappingReaderTest {
     @Test
     public void test_read_names_the_field_holding_a_null_entity() {
         assertRefused(MAPPING.replaceFirst("\"entities\": \\{.*}", "\"entities\": {\"c\": null}}"),
-                      "the mapping holds a null");
+                      "missing field 'entities.c'");
     }
 
     @Test
