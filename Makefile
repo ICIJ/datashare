@@ -4,7 +4,7 @@ DEVENV_PROPERTIES = datashare-devenv.properties
 DEVENV_PROPERTIES_TEMPLATE = datashare-devenv.properties.template
 MVN = mvn
 
-.PHONY: help build dist install test run clean devenv migrate generate docker release app elasticsearch lint check
+.PHONY: help build dist install test test-integration run clean devenv migrate generate docker release app elasticsearch lint check
 
 help:
 	@echo "Datashare Makefile - Available targets:"
@@ -14,6 +14,7 @@ help:
 	@echo "    install       - Install dependencies and build all modules"
 	@echo "    build         - Build distribution JARs (alias for 'dist')"
 	@echo "    test          - Run all tests"
+	@echo "    test-integration - Run only *IntTest classes"
 	@echo "    lint          - Apply linter corrections"
 	@echo "    check         - Check codestyle"
 	@echo "    run           - Start Datashare (JDWP on port 8090 by default, requires 'build' first)"
@@ -63,6 +64,10 @@ format:
 ## Run all tests
 test:
 	$(MVN) test
+
+## Run only integration tests (*IntTest)
+test-integration:
+	$(MVN) test -Dtest='*IntTest' -Dsurefire.failIfNoSpecifiedTests=false
 
 ## Start Datashare locally
 run:

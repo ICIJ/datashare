@@ -70,6 +70,7 @@ jobs:
       - run: make migrate
       - run: make lint
       - run: make test
+      - run: make test-integration
       - run:
           name: Make install for app and corenlp modules
           command: mvn -s .circleci/resources/maven-release-settings.xml -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
