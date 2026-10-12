@@ -25,7 +25,8 @@ public class ExtractionMappingReader {
     private static final ObjectReader STRICT_READER = JsonObjectMapper.getMapper().readerFor(ExtractionMapping.class)
                                                                       .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     private static final ObjectReader TREE_READER =
-            JsonObjectMapper.getMapper().reader().with(StreamReadFeature.STRICT_DUPLICATE_DETECTION);
+            JsonObjectMapper.getMapper().reader().with(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
+                            .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
 
     private ExtractionMappingReader() {}
 
@@ -36,6 +37,8 @@ public class ExtractionMappingReader {
             if (TREE_READER.readTree(json) instanceof ObjectNode node) {
                 return node;
             }
+        } catch (MismatchedInputException e) {
+            throw new MalformedExtractionMapping("the mapping has content after its closing brace", e);
         } catch (JsonProcessingException e) {
             throw new MalformedExtractionMapping(e.getOriginalMessage(), e);
         } catch (IOException e) {
