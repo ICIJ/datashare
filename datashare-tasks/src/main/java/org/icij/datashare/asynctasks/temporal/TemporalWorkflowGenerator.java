@@ -18,7 +18,6 @@ import com.palantir.javapoet.WildcardTypeName;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.activity.ActivityOptions;
-import io.temporal.client.WorkflowClient;
 import io.temporal.workflow.Workflow;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
@@ -185,10 +184,10 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
         String activityImpl = actInterface + "Impl";
         MethodSpec constructor =
                 MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC).addParameter(TaskFactory.class, "factory")
-                          .addParameter(WorkflowClient.class, "client")
+                          .addParameter(TemporalInterlocutor.class, "temporal")
                           .addParameter(TaskRepository.class, "taskRepository")
                           .addParameter(Double.class, "progressWeight")
-                          .addCode("super(factory, client, taskRepository, progressWeight);").build();
+                          .addCode("super(factory, temporal, taskRepository, progressWeight);").build();
         MethodSpec run = MethodSpec.methodBuilder("run").addAnnotation(Override.class).addModifiers(Modifier.PUBLIC)
                                    .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
                                    .addCode("return super.run(args);").returns(outputType).addException(Exception.class)

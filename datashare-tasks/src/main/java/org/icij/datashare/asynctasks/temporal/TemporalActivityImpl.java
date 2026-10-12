@@ -4,8 +4,6 @@ import static org.icij.datashare.LambdaExceptionUtils.rethrowFunction;
 import static org.icij.datashare.asynctasks.temporal.TemporalHelper.taskWrapper;
 import io.temporal.activity.Activity;
 import io.temporal.activity.ActivityInfo;
-import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowStub;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,14 +23,14 @@ import org.slf4j.LoggerFactory;
 public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final TaskFactory factory;
-    private final WorkflowClient client;
+    private final TemporalInterlocutor temporal;
     private final TaskRepository taskRepository;
     private final Double progressWeight;
 
-    public TemporalActivityImpl(TaskFactory factory, WorkflowClient client, TaskRepository taskRepository,
+    public TemporalActivityImpl(TaskFactory factory, TemporalInterlocutor temporal, TaskRepository taskRepository,
                                 Double progressWeight) {
         this.factory = factory;
-        this.client = client;
+        this.temporal = temporal;
         this.taskRepository = taskRepository;
         this.progressWeight = progressWeight;
     }
@@ -44,11 +42,11 @@ public abstract class TemporalActivityImpl<R, T extends Callable<R>> {
     }
 
     protected BiConsumer<String, Double> getProgressFn(ActivityInfo info) {
-        WorkflowStub workflow = client.newUntypedWorkflowStub(info.getWorkflowId());
         String taskId = info.getWorkflowId();
         return (ignored, progress) -> {
-            workflow.signal("progress",
-                            new ProgressSignal(info.getRunId(), info.getActivityId(), progress, this.progressWeight));
+            temporal.signalWorkflow(taskId, "progress",
+                                    new ProgressSignal(info.getRunId(), info.getActivityId(), progress,
+                                                       this.progressWeight));
             try {
                 logger.debug("Setting progress of {} to {}", taskId, progress);
                 Task<?> task = taskRepository.getTask(taskId);

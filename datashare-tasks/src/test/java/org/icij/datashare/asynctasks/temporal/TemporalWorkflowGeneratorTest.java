@@ -140,7 +140,6 @@ public class TemporalWorkflowGeneratorTest {
             """
                 package org.icij.datashare.asynctasks.temporal;
                 
-                import io.temporal.client.WorkflowClient;
                 import java.lang.Class;
                 import java.lang.Double;
                 import java.lang.Exception;
@@ -154,8 +153,8 @@ public class TemporalWorkflowGeneratorTest {
            
                 public class HelloWorldActivityImpl extends TemporalActivityImpl<String, HelloWorldTask> implements HelloWorldActivity {
 
-                    public HelloWorldActivityImpl(TaskFactory factory, WorkflowClient client, TaskRepository taskRepository, Double progressWeight) {
-                        super(factory, client, taskRepository, progressWeight);
+                    public HelloWorldActivityImpl(TaskFactory factory, TemporalInterlocutor temporal, TaskRepository taskRepository, Double progressWeight) {
+                        super(factory, temporal, taskRepository, progressWeight);
                     }
                 
                     @Override

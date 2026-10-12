@@ -40,14 +40,14 @@ public class IndexActivityImplIntTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider();
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(IndexationWorkflowImpl.class, WORKFLOWS_DEFAULT);
-        registry.registerActivity(new ScanActivityImpl(temporal.getClient()), WORKFLOWS_DEFAULT);
+        registry.registerActivity(new ScanActivityImpl(temporal.interlocutor()), WORKFLOWS_DEFAULT);
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, propertiesProvider);
         registry.registerActivity(new IndexActivityImpl(propertiesProvider, indexer.withRefresh(
                 Refresh.True), text -> Language.ENGLISH), WORKFLOWS_DEFAULT);
 
-        try (Closeable ignored = TemporalWorkers.start(temporal.getClient(), registry, List.of(WORKFLOWS_DEFAULT),
+        try (Closeable ignored = new TemporalWorkers(temporal.interlocutor()).start(registry, List.of(WORKFLOWS_DEFAULT),
                                                        new TemporalWorkerOptions(1))) {
-            temporal.getClient().newWorkflowStub(IndexationWorkflow.class,
+            temporal.interlocutor().newWorkflowStub(IndexationWorkflow.class,
                                                  WorkflowOptions.newBuilder().setTaskQueue(WORKFLOWS_DEFAULT)
                                                                 .setWorkflowId(es.getIndexName()).build())
                     .run(ScanOptions.defaultValues(), tmp.getRoot().toPath(), es.getIndexName(),

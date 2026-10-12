@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks.temporal;
 
-import io.temporal.client.WorkflowClient;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
@@ -42,7 +41,7 @@ public class TemporalRule extends ExternalResource {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } finally {
-            interlocutor.getClient().getWorkflowServiceStubs().shutdown();
+            interlocutor.shutdownClient();
             redissonClient.shutdown();
         }
     }
@@ -61,9 +60,5 @@ public class TemporalRule extends ExternalResource {
 
     public TaskManagerTemporal createTaskManager(RoutingStrategy routingStrategy) {
         return new TaskManagerTemporal(interlocutor, taskRepository, routingStrategy);
-    }
-
-    public WorkflowClient getClient() {
-        return interlocutor.getClient();
     }
 }

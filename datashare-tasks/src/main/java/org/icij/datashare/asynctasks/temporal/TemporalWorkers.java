@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks.temporal;
 
-import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 import io.temporal.worker.WorkerFactoryOptions;
@@ -27,22 +26,22 @@ public class TemporalWorkers {
     // work, so this stays modest per queue; the factory-wide thread pool below is sized to fit every worker's
     // share, so this cap is a real admission limit rather than one silently starved by shared-pool contention.
     private static final int MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION = 20;
+    private final TemporalInterlocutor temporalInterlocutor;
 
-    private TemporalWorkers() {
+    public TemporalWorkers(TemporalInterlocutor temporalInterlocutor) {
+        this.temporalInterlocutor = temporalInterlocutor;
     }
 
     /**
      * Starts a worker for each of the given queues, serving the workflows and activities the registry holds for it.
      *
-     * @param client the client the workers poll Temporal with
      * @param registry what to serve, keyed by task queue
      * @param listeningQueues the queues the workers will poll; registrations bound to any other queue are ignored
      * @param options the concurrency limits applied to every started worker
      * @return a handle closing the started worker factory
      */
-    public static Closeable start(WorkflowClient client, WorkflowRegistry registry, Collection<String> listeningQueues,
-                                  TemporalWorkerOptions options) {
-        Objects.requireNonNull(client, "client");
+    public Closeable start(WorkflowRegistry registry, Collection<String> listeningQueues,
+                           TemporalWorkerOptions options) {
         Objects.requireNonNull(registry, "registry");
 
         Set<String> queues = new LinkedHashSet<>(listeningQueues);
@@ -51,7 +50,7 @@ public class TemporalWorkers {
         // silently starving each other under a fixed factory-wide default
         WorkerFactoryOptions workerFactoryOptions = WorkerFactoryOptions.newBuilder().setMaxWorkflowThreadCount(
                 queues.size() * MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION).build();
-        WorkerFactory workerFactory = WorkerFactory.newInstance(client, workerFactoryOptions);
+        WorkerFactory workerFactory = temporalInterlocutor.newWorkerFactory(workerFactoryOptions);
         WorkerOptions workerOptions = WorkerOptions.newBuilder().setMaxConcurrentWorkflowTaskExecutionSize(
                 MAX_CONCURRENT_WORKFLOW_TASK_EXECUTION).setMaxConcurrentActivityExecutionSize(
                 options.maxConcurrentActivitySize()).build();
