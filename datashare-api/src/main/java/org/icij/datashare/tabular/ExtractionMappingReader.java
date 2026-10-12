@@ -31,9 +31,15 @@ public class ExtractionMappingReader {
 
     /** Parses the document a caller then completes (with the project, the author) before
      *  {@link #read(ObjectNode)}: a repeated field fails here, where the tree would keep only the last. */
-    public static ObjectNode parse(byte[] json) throws IOException {
-        if (TREE_READER.readTree(json) instanceof ObjectNode node) {
-            return node;
+    public static ObjectNode parse(byte[] json) {
+        try {
+            if (TREE_READER.readTree(json) instanceof ObjectNode node) {
+                return node;
+            }
+        } catch (JsonProcessingException e) {
+            throw new MalformedExtractionMapping(e.getOriginalMessage(), e);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
         throw new MalformedExtractionMapping("the mapping is not a JSON object");
     }

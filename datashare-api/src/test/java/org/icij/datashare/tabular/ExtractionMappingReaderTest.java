@@ -1,6 +1,5 @@
 package org.icij.datashare.tabular;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -82,19 +81,13 @@ public class ExtractionMappingReaderTest {
 
     @Test
     public void test_parse_refuses_a_repeated_field_instead_of_keeping_the_last() {
-        JsonParseException repeated = assertThrows(JsonParseException.class,
-                () -> read(MAPPING.replace("\"id\": \"m1\"", "\"id\": \"m1\", \"id\": \"m2\"")));
-
-        assertThat(repeated.getOriginalMessage()).isEqualTo("Duplicate field 'id'");
+        assertRefused(MAPPING.replace("\"id\": \"m1\"", "\"id\": \"m1\", \"id\": \"m2\""), "Duplicate field 'id'");
     }
 
     @Test
     public void test_parse_refuses_a_repeated_entity_alias_instead_of_dropping_one() {
         String entity = "\"c\": {\"type\": \"Company\", \"keys\": [], \"properties\": {\"name\": {\"literal\": \"x\"}}}";
-        JsonParseException repeated = assertThrows(JsonParseException.class,
-                () -> read(MAPPING.replaceFirst("\"entities\": \\{", "\"entities\": {" + entity + ", ")));
-
-        assertThat(repeated.getOriginalMessage()).isEqualTo("Duplicate field 'c'");
+        assertRefused(MAPPING.replaceFirst("\"entities\": \\{", "\"entities\": {" + entity + ", "), "Duplicate field 'c'");
     }
 
     @Test
