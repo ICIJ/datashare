@@ -13,7 +13,6 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.policies.MappingPolicy;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
@@ -88,10 +87,8 @@ public class ExtractionMappingResource {
     }
 
     private static ExtractionMapping read(byte[] body, String project, String id, String userId) throws IOException {
-        if (!(JsonObjectMapper.readTree(body) instanceof ObjectNode node)) {
-            throw new IllegalArgumentException("the body must be a JSON object");
-        }
+        ObjectNode node = ExtractionMappingReader.parse(body);
         node.put("id", id).put("projectId", project).put("userId", userId);
-        return ExtractionMappingReader.read(node);
+        return ExtractionMappingReader.read(node, project, userId);
     }
 }
