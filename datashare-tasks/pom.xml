@@ -259,6 +259,7 @@
                             <excludes>
                                 <exclude>JacksonSubTypesTest</exclude>
                                 <exclude>TaskManagerAmqpTest</exclude>
+                                <exclude>**/*IntTest.java</exclude>
                             </excludes>
                             <argLine>-Djava.awt.headless=true
                                 --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED

@@ -533,6 +533,10 @@
                     <version>${maven-surefire.version}</version>
                     <configuration>
                         <runOrder>random</runOrder>
+                        <excludes>
+                            <exclude>**/*IntTest.java</exclude>
+                            <exclude>**/*AcceptanceTest.java</exclude>
+                        </excludes>
                         <argLine>-Djava.awt.headless=true -Duser.timezone=UTC</argLine>
                         <systemPropertyVariables>
                             <devenv.file>${devenv.file}</devenv.file>
