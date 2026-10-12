@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.icij.datashare.cli.CliExtensionService;
@@ -263,9 +262,6 @@ class CliApp {
             return error("no such file: %s".formatted(mappingFile), "validation", EXIT_VALIDATION, false);
         } catch (AccessDeniedException e) {
             return error("permission denied: %s".formatted(mappingFile), "validation", EXIT_VALIDATION, false);
-        } catch (JsonProcessingException e) {
-            return error("%s is not valid JSON: %s".formatted(mappingFile, e.getOriginalMessage()), "validation",
-                         EXIT_VALIDATION, false);
         } catch (IOException e) {
             return error("cannot read %s: %s".formatted(mappingFile, e.getMessage()), "validation", EXIT_VALIDATION,
                          false);
