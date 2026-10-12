@@ -19,10 +19,14 @@ public class ExtractionMappingServiceImpl implements ExtractionMappingService {
     }
 
     @Override
-    public void saveIfIdentical(ExtractionMapping mapping) throws DuplicateExtractionMapping {
-        if (!mappings.save(mapping) && !isStored(mapping)) {
+    public boolean saveIfIdentical(ExtractionMapping mapping) throws DuplicateExtractionMapping {
+        if (mappings.save(mapping)) {
+            return true;
+        }
+        if (!isStored(mapping)) {
             throw new DuplicateExtractionMapping(mapping.projectId(), mapping.id(), Reason.DIFFERENT_DEFINITION);
         }
+        return false;
     }
 
     // A stored definition that no longer reads cannot be the caller's, so it stays a conflict.

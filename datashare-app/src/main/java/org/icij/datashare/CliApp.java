@@ -282,7 +282,7 @@ class CliApp {
     private static int saveMapping(ExtractionMappingService mappings, ExtractionMapping mapping,
                                    Properties properties) {
         try {
-            mappings.saveIfIdentical(mapping);
+            logSave(mapping, mappings.saveIfIdentical(mapping));
         } catch (DuplicateExtractionMapping e) {
             return error(e.getMessage(), "conflict", EXIT_CONFLICT, false);
         } catch (InvalidExtractionMapping e) {
@@ -294,6 +294,14 @@ class CliApp {
         }
         properties.setProperty(MAPPING_ID_OPT, mapping.id());
         return EXIT_SUCCESS;
+    }
+
+    private static void logSave(ExtractionMapping mapping, boolean isNew) {
+        if (isNew) {
+            logger.info("mapping '{}' saved in project '{}'", mapping.id(), mapping.projectId());
+            return;
+        }
+        logger.info("mapping '{}' already saved in project '{}' (no-op)", mapping.id(), mapping.projectId());
     }
 
     static final Map<Stage, Class<?>> TASK_CLASSES =

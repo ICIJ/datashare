@@ -10,6 +10,7 @@ public interface ExtractionMappingService {
     void save(ExtractionMapping mapping) throws DuplicateExtractionMapping;
 
     /** Idempotent counterpart of {@link #save}: the very mapping stored under its id is not a conflict, so a
-     *  run that failed after its save can be retried with the same input. */
-    void saveIfIdentical(ExtractionMapping mapping) throws DuplicateExtractionMapping;
+     *  run that failed after its save can be retried with the same input.
+     *  @return false when that very mapping was already stored, so the caller can say nothing new was saved. */
+    boolean saveIfIdentical(ExtractionMapping mapping) throws DuplicateExtractionMapping;
 }
