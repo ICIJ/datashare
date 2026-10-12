@@ -91,6 +91,11 @@ public class ExtractionMappingReaderTest {
     }
 
     @Test
+    public void test_parse_refuses_content_after_the_mapping_instead_of_dropping_it() {
+        assertRefused(MAPPING + MAPPING, "the mapping has content after its closing brace");
+    }
+
+    @Test
     public void test_parse_refuses_a_document_that_is_not_an_object() {
         for (String json : new String[] {"", "null", "[" + MAPPING + "]"}) {
             MalformedExtractionMapping malformed = assertThrows(MalformedExtractionMapping.class, () -> read(json));
