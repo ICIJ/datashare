@@ -41,7 +41,14 @@ public class ExtractionMappingServiceImplTest {
         when(mappings.save(mapping("companies"))).thenReturn(false);
         when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping("companies")));
 
-        service.saveIfIdentical(mapping("companies"));
+        assertThat(service.saveIfIdentical(mapping("companies"))).isFalse();
+    }
+
+    @Test
+    public void test_save_if_identical_reports_a_new_mapping() throws Exception {
+        when(mappings.save(mapping("companies"))).thenReturn(true);
+
+        assertThat(service.saveIfIdentical(mapping("companies"))).isTrue();
     }
 
     @Test
