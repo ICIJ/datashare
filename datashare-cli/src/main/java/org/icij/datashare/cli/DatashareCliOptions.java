@@ -152,7 +152,8 @@ public final class DatashareCliOptions {
             "selects the files to extract again.";
     public static final String MAPPING_FILE_OPT = "mappingFile";
     public static final String MAPPING_FILE_DESC =
-            "JSON extraction mapping the ENTITIES stage saves, then runs. Its id must not exist in the project yet.";
+            "JSON extraction mapping the ENTITIES stage saves, then runs. A mapping is immutable: its id must be " +
+            "new in the project, or name the very same mapping, so a failed run can be retried with the same command.";
     public static final String TASK_ROUTING_STRATEGY_OPT = "taskRoutingStrategy";
     public static final String TASK_ROUTING_KEY_OPT = "taskRoutingKey";
     public static final String OAUTH_USER_PROJECTS_KEY_OPT = "oauthUserProjectsAttribute";
