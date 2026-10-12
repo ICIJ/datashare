@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import java.util.concurrent.TimeUnit;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -592,7 +593,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         repositoryFactory.initDatabase();
     }
 
-    private ExecutorService runTaskWorkerLoop() {
+    private void runTaskWorkerLoop() {
         if (getTaskWorkersNb() > 0) {
             List<TaskWorkerLoop> workers = IntStream.range(0, getTaskWorkersNb()).mapToObj(
                     i -> new TaskWorkerLoop(get(DatashareTaskFactory.class), get(TaskSupplier.class),
@@ -600,10 +601,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             workers.forEach(this::addCloseable);
             workers.forEach(executorService::submit);
         }
-        return executorService;
     }
 
-    private ExecutorService runTemporalWorkers() {
+    private void runTemporalWorkers() {
         if (getTaskWorkersNb() > 0) {
             TemporalInterlocutor temporal = get(TemporalInterlocutor.class);
             DatashareTaskFactory taskFactory = get(DatashareTaskFactory.class);
@@ -618,7 +618,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             addCloseable(TemporalWorkers.start(temporal.getClient(), registry, registry.registeredQueues(),
                                                TemporalWorkerOptions.defaultValues()));
         }
-        return executorService;
     }
 
     private Routes defaultRoutes(final Routes routes) {
@@ -658,6 +657,10 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @NotNull
     public static Mode getMode(Properties properties) {
         return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty(MODE_OPT));
+    }
+
+    public boolean waitForWorkers(long value, TimeUnit timeUnit) throws InterruptedException {
+        return executorService.awaitTermination(value, timeUnit);
     }
 
     public static QueueType getQueueType(PropertiesProvider properties, String propertyName,
