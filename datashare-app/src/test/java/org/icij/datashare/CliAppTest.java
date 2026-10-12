@@ -77,7 +77,7 @@ public class CliAppTest {
     @Test
     public void test_save_mapping_file_reports_an_existing_id_as_a_conflict() throws Exception {
         ExtractionMappingService mappings = mock(ExtractionMappingService.class);
-        doThrow(new DuplicateExtractionMapping("prj", "m1")).when(mappings).saveIfIdentical(any());
+        doThrow(new DuplicateExtractionMapping("prj", "m1", DuplicateExtractionMapping.Reason.DIFFERENT_DEFINITION)).when(mappings).saveIfIdentical(any());
         Properties properties = entitiesProperties(Files.writeString(Files.createTempFile("mapping", ".json"), MAPPING_JSON).toString());
 
         assertThat(saveMappingFile(mappings, properties)).isEqualTo(CliApp.EXIT_CONFLICT);

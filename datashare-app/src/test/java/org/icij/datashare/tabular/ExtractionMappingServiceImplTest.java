@@ -30,7 +30,10 @@ public class ExtractionMappingServiceImplTest {
         when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping("companies")));
 
         // an immutable mapping cannot be overwritten, even with an identical body
-        assertThrows(DuplicateExtractionMapping.class, () -> service.save(mapping("companies")));
+        DuplicateExtractionMapping duplicate =
+                assertThrows(DuplicateExtractionMapping.class, () -> service.save(mapping("companies")));
+        assertThat(duplicate.reason).isEqualTo(DuplicateExtractionMapping.Reason.ID_TAKEN);
+        assertThat(duplicate.getMessage()).isEqualTo("mapping 'm1' already exists in project 'prj'");
     }
 
     @Test
@@ -48,7 +51,9 @@ public class ExtractionMappingServiceImplTest {
 
         DuplicateExtractionMapping duplicate =
                 assertThrows(DuplicateExtractionMapping.class, () -> service.saveIfIdentical(mapping("people")));
-        assertThat(duplicate.getMessage()).isEqualTo("mapping 'm1' already exists in project 'prj'");
+        assertThat(duplicate.reason).isEqualTo(DuplicateExtractionMapping.Reason.DIFFERENT_DEFINITION);
+        assertThat(duplicate.getMessage()).isEqualTo(
+                "mapping 'm1' already exists in project 'prj' with a different definition: save the change under a new id");
     }
 
     @Test
@@ -57,7 +62,11 @@ public class ExtractionMappingServiceImplTest {
         when(mappings.get("prj", "m1")).thenThrow(new UnreadableExtractionMapping("m1", new IOException("gone")));
 
         // a stored definition that no longer reads cannot be the caller's, so it stays a conflict
-        assertThrows(DuplicateExtractionMapping.class, () -> service.saveIfIdentical(mapping("companies")));
+        DuplicateExtractionMapping duplicate =
+                assertThrows(DuplicateExtractionMapping.class, () -> service.saveIfIdentical(mapping("companies")));
+        assertThat(duplicate.reason).isEqualTo(DuplicateExtractionMapping.Reason.UNREADABLE_DEFINITION);
+        assertThat(duplicate.getMessage()).isEqualTo(
+                "mapping 'm1' already exists in project 'prj' but its stored definition no longer reads");
     }
 
     private static ExtractionMapping mapping(String name) throws IOException {
