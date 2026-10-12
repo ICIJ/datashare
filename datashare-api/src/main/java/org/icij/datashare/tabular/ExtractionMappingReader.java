@@ -1,9 +1,10 @@
 package org.icij.datashare.tabular;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -23,10 +24,21 @@ import static java.util.stream.Collectors.joining;
 public class ExtractionMappingReader {
     private static final ObjectReader STRICT_READER = JsonObjectMapper.getMapper().readerFor(ExtractionMapping.class)
                                                                       .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    private static final ObjectReader TREE_READER =
+            JsonObjectMapper.getMapper().reader().with(StreamReadFeature.STRICT_DUPLICATE_DETECTION);
 
     private ExtractionMappingReader() {}
 
-    public static ExtractionMapping read(JsonNode node) {
+    /** Parses the document a caller then completes (with the project, the author) before
+     *  {@link #read(ObjectNode)}: a repeated field fails here, where the tree would keep only the last. */
+    public static ObjectNode parse(byte[] json) throws IOException {
+        if (TREE_READER.readTree(json) instanceof ObjectNode node) {
+            return node;
+        }
+        throw new MalformedExtractionMapping("the mapping is not a JSON object");
+    }
+
+    public static ExtractionMapping read(ObjectNode node) {
         try {
             return STRICT_READER.readValue(node);
         } catch (UnrecognizedPropertyException e) {
@@ -43,15 +55,19 @@ public class ExtractionMappingReader {
     }
 
     // The record's constructors refuse a missing field with requireNonNull(field, "field"), so a null
-    // pointer names the missing field, and any other refusal already explains itself.
+    // pointer with a one-word message names the missing field. Any other null pointer comes from a
+    // null inside a field (a list item, a map value), and its message is the JVM's, naming Java code.
     private static String refusalOf(ValueInstantiationException e) {
         String path = pathOf(e);
         Throwable refusal = e.getCause();
+        String message = refusal == null ? e.getOriginalMessage() : refusal.getMessage();
         if (refusal instanceof NullPointerException) {
-            String field = path.isEmpty() ? refusal.getMessage() : path + "." + refusal.getMessage();
-            return "missing field '%s'".formatted(field);
+            if (message != null && message.indexOf(' ') < 0) {
+                return "missing field '%s'".formatted(path.isEmpty() ? message : path + "." + message);
+            }
+            return path.isEmpty() ? "the mapping holds a null" : "field '%s' holds a null".formatted(path);
         }
-        return path.isEmpty() ? refusal.getMessage() : path + ": " + refusal.getMessage();
+        return path.isEmpty() ? message : path + ": " + message;
     }
 
     private static String pathOf(JsonMappingException e) {

@@ -1,6 +1,6 @@
 package org.icij.datashare.tabular;
 
-import org.icij.datashare.json.JsonObjectMapper;
+import com.fasterxml.jackson.core.JsonParseException;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -58,7 +58,61 @@ public class ExtractionMappingReaderTest {
         assertThat(malformed.getMessage()).startsWith("entities.c.properties.name: a property is filled from exactly one");
     }
 
+    @Test
+    public void test_read_names_the_field_holding_a_null_key() {
+        assertRefused(MAPPING.replace("\"keys\": [\"id\"]", "\"keys\": [null]"), "field 'entities.c' holds a null");
+    }
+
+    @Test
+    public void test_read_names_the_field_holding_a_null_column() {
+        assertRefused(MAPPING.replace("\"columns\": [\"name\"]", "\"columns\": [null]"),
+                      "field 'entities.c.properties.name' holds a null");
+    }
+
+    @Test
+    public void test_read_names_the_field_holding_a_null_entity() {
+        assertRefused(MAPPING.replaceFirst("\"entities\": \\{.*}", "\"entities\": {\"c\": null}}"),
+                      "the mapping holds a null");
+    }
+
+    @Test
+    public void test_read_names_the_field_holding_a_null_property() {
+        assertRefused(MAPPING.replace("{\"columns\": [\"name\"]}", "null"), "field 'entities.c' holds a null");
+    }
+
+    @Test
+    public void test_parse_refuses_a_repeated_field_instead_of_keeping_the_last() {
+        JsonParseException repeated = assertThrows(JsonParseException.class,
+                () -> read(MAPPING.replace("\"id\": \"m1\"", "\"id\": \"m1\", \"id\": \"m2\"")));
+
+        assertThat(repeated.getOriginalMessage()).isEqualTo("Duplicate field 'id'");
+    }
+
+    @Test
+    public void test_parse_refuses_a_repeated_entity_alias_instead_of_dropping_one() {
+        String entity = "\"c\": {\"type\": \"Company\", \"keys\": [], \"properties\": {\"name\": {\"literal\": \"x\"}}}";
+        JsonParseException repeated = assertThrows(JsonParseException.class,
+                () -> read(MAPPING.replaceFirst("\"entities\": \\{", "\"entities\": {" + entity + ", ")));
+
+        assertThat(repeated.getOriginalMessage()).isEqualTo("Duplicate field 'c'");
+    }
+
+    @Test
+    public void test_parse_refuses_a_document_that_is_not_an_object() {
+        for (String json : new String[] {"", "null", "[" + MAPPING + "]"}) {
+            MalformedExtractionMapping malformed = assertThrows(MalformedExtractionMapping.class, () -> read(json));
+
+            assertThat(malformed.getMessage()).isEqualTo("the mapping is not a JSON object");
+        }
+    }
+
+    private static void assertRefused(String json, String message) {
+        MalformedExtractionMapping malformed = assertThrows(MalformedExtractionMapping.class, () -> read(json));
+
+        assertThat(malformed.getMessage()).isEqualTo(message);
+    }
+
     private static ExtractionMapping read(String json) throws Exception {
-        return ExtractionMappingReader.read(JsonObjectMapper.readTree(json.getBytes()));
+        return ExtractionMappingReader.read(ExtractionMappingReader.parse(json.getBytes()));
     }
 }
