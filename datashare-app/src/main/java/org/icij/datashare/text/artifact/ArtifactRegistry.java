@@ -1,6 +1,6 @@
 package org.icij.datashare.text.artifact;
 
-import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
+import org.icij.extract.extractor.ExtractorOptions;
 import org.icij.datashare.cli.OcrStrategy;
 import org.icij.datashare.tasks.ArtifactOptions;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ public class ArtifactRegistry {
     /** The app's catalog of Java-produced artifact types, shared by the INDEX and ARTIFACT stages so a
      *  newly registered producer cannot be honored by one and missed by the other. Order matters: raw
      *  first, so structure and page on an embedded document read bytes raw's production has already
-     *  cached. Takes the index options because page builds an extractor from them (OCR in
+     *  cached. Takes the extractor options because page builds an extractor from them (OCR in
      *  particular) and structure records the OCR settings; raw needs none.
      *  <p>
      *  Every catalog type runs when no selector is given, structure included. A deployment that also
@@ -34,20 +34,20 @@ public class ArtifactRegistry {
      *  with it, and the two task inputs can never match, so each run destroys the other's payload:
      *  such a deployment has to pin ownership with an explicit {@code --artifacts raw}. page has no
      *  such rival producer: the pages/ payload is Java's alone. */
-    public static ArtifactRegistry withDefaults(IndexOptions indexOptions) {
-        boolean ocr = indexOptions.ocr() == null || indexOptions.ocr();
-        return new ArtifactRegistry(List.of(new RawArtifact(),
-                new StructureArtifact(ocr, ocrStrategy(indexOptions)),
-                new PageArtifact(ocr, indexOptions.extractorOptions())));
+    public static ArtifactRegistry withDefaults(ExtractorOptions extractorOptions) {
+        boolean ocr = extractorOptions.ocr() == null || Boolean.parseBoolean(extractorOptions.ocr());
+        return new ArtifactRegistry(
+                List.of(new RawArtifact(), new StructureArtifact(ocr, ocrStrategy(extractorOptions)),
+                        new PageArtifact(ocr, extractorOptions.toOptions())));
     }
 
     // Read as the CLI's own OcrStrategy, so this accepts exactly what --ocrStrategy accepts. Unset or
     // unparseable means NO_OCR, as extract-lib resolves it: a scanned PDF renders empty here exactly
     // when the INDEX stage extracted nothing from it either.
-    private static OcrStrategy ocrStrategy(IndexOptions indexOptions) {
+    private static OcrStrategy ocrStrategy(ExtractorOptions extractorOptions) {
         try {
             return OcrStrategy.valueOf(
-                    Optional.ofNullable(indexOptions.ocrStrategy()).orElse("NO_OCR").toUpperCase(Locale.ROOT));
+                    Optional.ofNullable(extractorOptions.ocrStrategy()).orElse("NO_OCR").toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException unknown) {
             return OcrStrategy.NO_OCR;
         }

@@ -1,5 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.icij.datashare.text.Hasher;
+import org.icij.datashare.Entity;
 import org.icij.datashare.text.ContentTypeCategory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
@@ -138,7 +140,7 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
         if (parent == null && isDuplicate(doc.getId(), doc.getPath())) {
             doc.setDuplicate(true);
             copy(doc.getReader(), OutputStream.nullOutputStream()); // flush document content reader
-            indexer.add(indexName, new Duplicate(doc.getPath(), doc.getId(), options.digestAlgorithm()));
+            indexer.add(indexName, new Duplicate(doc.getPath(), doc.getId(), digestAlgorithm()));
             docType = "Duplicate";
         } else {
             Document document = getDocument(doc, root, parent, (short) level);
@@ -398,6 +400,11 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
             end--;
         }
         return content.substring(start, end);
+    }
+
+    private Hasher digestAlgorithm() {
+        String algorithm = options.documentFactory().digestAlgorithm();
+        return algorithm == null ? Entity.DEFAULT_DIGESTER : Hasher.parse(algorithm).orElse(Entity.DEFAULT_DIGESTER);
     }
 
     @Override

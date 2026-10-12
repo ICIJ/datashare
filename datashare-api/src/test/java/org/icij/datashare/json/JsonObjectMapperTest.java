@@ -11,6 +11,18 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.json.JsonObjectMapper.*;
 
 public class JsonObjectMapperTest {
+    record WithDuration(java.time.Duration timeout) {}
+
+    @Test
+    public void test_duration_from_cli_human_form_iso_and_own_serialization() throws Exception {
+        assertThat(getMapper().readValue("{\"timeout\":\"30m\"}", WithDuration.class).timeout()).isEqualTo(java.time.Duration.ofMinutes(30));
+        assertThat(getMapper().readValue("{\"timeout\":\"24h\"}", WithDuration.class).timeout()).isEqualTo(java.time.Duration.ofHours(24));
+        assertThat(getMapper().readValue("{\"timeout\":\"0\"}", WithDuration.class).timeout()).isEqualTo(java.time.Duration.ZERO);
+        assertThat(getMapper().readValue("{\"timeout\":\"PT5S\"}", WithDuration.class).timeout()).isEqualTo(java.time.Duration.ofSeconds(5));
+        WithDuration original = new WithDuration(java.time.Duration.ofMillis(1500));
+        assertThat(getMapper().readValue(getMapper().writeValueAsString(original), WithDuration.class)).isEqualTo(original);
+    }
+
     @Test
     public void test_type_inclusion_mapper() throws Exception {
         String json = JsonObjectMapper.writeValueAsStringTyped(new ExceptionWrapper(new RuntimeException("hello")));

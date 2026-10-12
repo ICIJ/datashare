@@ -80,8 +80,8 @@ public class StructureArtifact implements Artifact {
     }
 
     private OcrSettings runOcrSettings() {
-        return new OcrSettings(ocr, ocr ? PDFParserConfig.OCR_STRATEGY.valueOf(ocrStrategy.name())
-                                        : PDFParserConfig.OCR_STRATEGY.NO_OCR);
+        return new OcrSettings(ocr, ocr ? PDFParserConfig.OCR_STRATEGY.valueOf(ocrStrategy.name()) :
+                                    PDFParserConfig.OCR_STRATEGY.NO_OCR);
     }
 
     @Override
