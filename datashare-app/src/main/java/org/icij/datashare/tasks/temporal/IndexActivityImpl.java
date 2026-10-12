@@ -1,9 +1,13 @@
 package org.icij.datashare.tasks.temporal;
 
 import io.temporal.activity.Activity;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
 import org.icij.datashare.PropertiesProvider;
+import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 import org.icij.datashare.tasks.ArtifactOptions;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
 import org.icij.datashare.text.artifact.ArtifactType;
@@ -13,17 +17,13 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.AbstractElasticSearchSpewer;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
+import org.icij.datashare.text.indexing.elasticsearch.SimpleElasticsearchSpewer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
 import org.icij.spewer.FieldNames;
 import org.icij.time.HumanDuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.List;
-import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 
 public class IndexActivityImpl implements IndexActivity {
     private final Logger logger = LoggerFactory.getLogger(IndexActivityImpl.class);
@@ -34,7 +34,8 @@ public class IndexActivityImpl implements IndexActivity {
     public IndexActivityImpl(final PropertiesProvider propertiesProvider, final Indexer indexer,
                              final LanguageGuesser languageGuesser) {
         this.propertiesProvider =
-                propertiesProvider; // TODO: to be removed after ArtifactStages refactoring into ArtifactOptions or the like
+                propertiesProvider; // TODO: to be removed after ArtifactStages refactoring into ArtifactOptions or
+        // the like
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
     }
@@ -43,19 +44,8 @@ public class IndexActivityImpl implements IndexActivity {
     public void index(IndexOptions indexOptions, List<Path> paths, String index) {
         warnIfParseTimeoutDisabled(indexOptions);
 
-        //TODO créer classe ?
         AbstractElasticSearchSpewer spewer =
-                new AbstractElasticSearchSpewer(new FieldNames(), indexer, languageGuesser, indexOptions) {
-                    @Override
-                    protected void postIndexation(Document document, String indexName) {
-                        // No event to generate, the workflow can continue with data in ES
-                    }
-
-                    @Override
-                    public void close() {
-                        //Nothing to do
-                    }
-                };
+                new SimpleElasticsearchSpewer(new FieldNames(), indexer, languageGuesser, indexOptions);
         try {
             spewer.createIndexIfNotExists(index);
         } catch (IOException e) {
