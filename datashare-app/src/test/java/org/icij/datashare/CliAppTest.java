@@ -133,6 +133,15 @@ public class CliAppTest {
     }
 
     @Test
+    public void test_save_mapping_file_refuses_a_repeated_entity_alias() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        String repeated = MAPPING_JSON.replace("\"entities\": {", "\"entities\": {\"c\": {\"type\": \"Person\", \"keys\": [], \"properties\": {}}, ");
+
+        assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(repeated)))).isEqualTo(CliApp.EXIT_VALIDATION);
+        verify(mappings, never()).saveIfIdentical(any());
+    }
+
+    @Test
     public void test_save_mapping_file_rejects_the_option_without_entities() throws Exception {
         ExtractionMappingService mappings = mock(ExtractionMappingService.class);
         Properties properties = entitiesProperties(mappingFile(MAPPING_JSON));

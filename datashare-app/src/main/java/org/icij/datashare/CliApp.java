@@ -7,7 +7,6 @@ import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.project.admin.ProjectAdminService;
@@ -25,7 +24,6 @@ import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingReader;
 import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.InvalidExtractionMapping;
-import org.icij.datashare.tabular.MalformedExtractionMapping;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
@@ -279,9 +277,7 @@ class CliApp {
     }
 
     private static ExtractionMapping readMappingFile(Path mappingFile, String projectId) throws IOException {
-        if (!(JsonObjectMapper.readTree(Files.readAllBytes(mappingFile)) instanceof ObjectNode node)) {
-            throw new MalformedExtractionMapping("the file must hold a JSON object");
-        }
+        ObjectNode node = ExtractionMappingReader.parse(Files.readAllBytes(mappingFile));
         node.put("projectId", projectId);
         node.putNull("userId");
         return ExtractionMappingReader.read(node);
