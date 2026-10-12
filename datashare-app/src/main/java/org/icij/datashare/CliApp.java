@@ -1,5 +1,6 @@
 package org.icij.datashare;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.icij.datashare.cli.CliExtensionService;
@@ -23,6 +24,7 @@ import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingReader;
 import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.InvalidExtractionMapping;
+import org.icij.datashare.tabular.MalformedExtractionMapping;
 import org.icij.datashare.tasks.ArtifactTask;
 import org.icij.datashare.tasks.CreateNlpBatchesFromIndex;
 import org.icij.datashare.tasks.CategorizeTask;
@@ -274,9 +276,21 @@ class CliApp {
 
     private static ExtractionMapping readMappingFile(Path mappingFile, String projectId) throws IOException {
         ObjectNode node = ExtractionMappingReader.parse(Files.readAllBytes(mappingFile));
+        refuseAnotherProject(node, projectId);
         node.put("projectId", projectId);
         node.putNull("userId");
         return ExtractionMappingReader.read(node);
+    }
+
+    // -P decides where the mapping is saved: a file naming another project would otherwise land in a
+    // project its author did not mean, under an id that can never change.
+    private static void refuseAnotherProject(ObjectNode node, String projectId) {
+        JsonNode declared = node.path("projectId");
+        if (!declared.isMissingNode() && !declared.isNull() && !declared.asText().equals(projectId)) {
+            throw new MalformedExtractionMapping(
+                    "field 'projectId' is '%s' but the run targets '%s': drop the field or run with -P %s".formatted(
+                            declared.asText(), projectId, declared.asText()));
+        }
     }
 
     private static int saveMapping(ExtractionMappingService mappings, ExtractionMapping mapping,

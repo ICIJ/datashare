@@ -54,7 +54,7 @@ public class CliAppTest {
             new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "100")),
             new CountDownLatch(1));
     private static final String MAPPING_JSON = """
-            {"id": "m1", "projectId": "from-file", "userId": "someone", "name": "companies", "model": "ftm",
+            {"id": "m1", "projectId": "prj", "userId": "someone", "name": "companies", "model": "ftm",
              "documentId": "docId",
              "entities": {"c": {"type": "Company", "keys": ["id"], "properties": {"name": {"columns": ["name"]}}}}}
             """;
@@ -72,6 +72,27 @@ public class CliAppTest {
         assertThat(saved.getValue().projectId()).isEqualTo("prj");
         assertThat(saved.getValue().userId()).isNull();
         assertThat(properties.getProperty("mappingId")).isEqualTo("m1");
+    }
+
+    @Test
+    public void test_save_mapping_file_refuses_a_file_naming_another_project() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        String otherProject = MAPPING_JSON.replace("\"projectId\": \"prj\"", "\"projectId\": \"other\"");
+
+        assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(otherProject)))).isEqualTo(CliApp.EXIT_VALIDATION);
+        verify(mappings, never()).saveIfIdentical(any());
+    }
+
+    @Test
+    public void test_save_mapping_file_saves_a_file_naming_no_project_under_the_cli_project() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        String noProject = MAPPING_JSON.replace("\"projectId\": \"prj\", ", "");
+
+        assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(noProject)))).isEqualTo(CliApp.EXIT_SUCCESS);
+
+        ArgumentCaptor<ExtractionMapping> saved = ArgumentCaptor.forClass(ExtractionMapping.class);
+        verify(mappings).saveIfIdentical(saved.capture());
+        assertThat(saved.getValue().projectId()).isEqualTo("prj");
     }
 
     @Test
