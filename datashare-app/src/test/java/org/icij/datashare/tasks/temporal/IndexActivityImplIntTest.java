@@ -19,6 +19,7 @@ import org.icij.datashare.extract.ScanOptions;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.tasks.ArtifactOptions;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 import org.junit.Before;
@@ -42,7 +43,7 @@ public class IndexActivityImplIntTest {
         registry.registerWorkflow(IndexationWorkflowImpl.class, WORKFLOWS_DEFAULT);
         registry.registerActivity(new ScanActivityImpl(temporal.interlocutor()), WORKFLOWS_DEFAULT);
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, propertiesProvider);
-        registry.registerActivity(new IndexActivityImpl(propertiesProvider, indexer.withRefresh(
+        registry.registerActivity(new IndexActivityImpl(indexer.withRefresh(
                 Refresh.True), text -> Language.ENGLISH), WORKFLOWS_DEFAULT);
 
         try (Closeable ignored = new TemporalWorkers(temporal.interlocutor()).start(registry, List.of(WORKFLOWS_DEFAULT),
@@ -51,7 +52,8 @@ public class IndexActivityImplIntTest {
                                                  WorkflowOptions.newBuilder().setTaskQueue(WORKFLOWS_DEFAULT)
                                                                 .setWorkflowId(es.getIndexName()).build())
                     .run(ScanOptions.defaultValues(), tmp.getRoot().toPath(), es.getIndexName(),
-                         IndexOptions.fromPropertiesProvider(propertiesProvider));
+                         IndexOptions.fromPropertiesProvider(propertiesProvider),
+                         propertiesProvider.toRecord(ArtifactOptions.class));
         }
 
         Optional<? extends Entity> doc = indexer.search(List.of(es.getIndexName()), Document.class).execute().findFirst();

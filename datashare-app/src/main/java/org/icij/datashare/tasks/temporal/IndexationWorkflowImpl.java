@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import org.icij.datashare.tasks.ArtifactOptions;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 
 public class IndexationWorkflowImpl implements IndexationWorkflow, PathBatchReceiver {
@@ -26,11 +27,14 @@ public class IndexationWorkflowImpl implements IndexationWorkflow, PathBatchRece
     private final List<Promise<Void>> pendingIndexations = new ArrayList<>();
     private String index;
     private IndexOptions indexOptions;
+    private ArtifactOptions artifactOptions;
 
     @Override
-    public Long run(ScanOptions scanOptions, Path path, String index, IndexOptions indexOptions) throws IOException {
+    public Long run(ScanOptions scanOptions, Path path, String index, IndexOptions indexOptions,
+                    ArtifactOptions artifactOptions) throws IOException {
         this.index = index;
         this.indexOptions = indexOptions;
+        this.artifactOptions = artifactOptions;
 
         // launch scan activity, it will trigger indexation activities via the onPaths signal
         Long totalScanned = scanActivity.run(scanOptions, path);
@@ -45,6 +49,6 @@ public class IndexationWorkflowImpl implements IndexationWorkflow, PathBatchRece
     public void onPaths(List<Path> paths) {
         // We received a batch of paths that can be indexed: fire the indexation asynchronously so
         // several batches can be indexed concurrently, and track it so run() can wait for it.
-        pendingIndexations.add(Async.procedure(indexActivity::index, indexOptions, paths, index));
+        pendingIndexations.add(Async.procedure(indexActivity::index, indexOptions, artifactOptions, paths, index));
     }
 }

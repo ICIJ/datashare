@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import static java.util.Optional.ofNullable;
 import org.icij.datashare.text.artifact.ArtifactType;
@@ -27,7 +28,7 @@ public record ArtifactOptions(String projectName, String defaultProject, boolean
     @JsonCreator
     public ArtifactOptions(@JsonProperty("projectName") String projectName,
                            @JsonProperty("defaultProject") String defaultProject, @JsonProperty("force") boolean force,
-                           @JsonProperty("artifacts") String artifacts, @JsonProperty("artifactDir") Path artifactDir,
+                           @JsonProperty("artifacts") Object artifacts, @JsonProperty("artifactDir") Path artifactDir,
                            @JsonProperty("parallelism") int parallelism) {
         this(projectName, defaultProject, force, parseArtifacts(artifacts), artifactDir, parallelism);
     }
@@ -46,12 +47,16 @@ public record ArtifactOptions(String projectName, String defaultProject, boolean
         }
     }
 
-    private static List<ArtifactType> parseArtifacts(String artifacts) {
-        if (artifacts == null || artifacts.isBlank())
+    /** Accepts both forms the record meets: the --artifacts string from the properties, and the list of
+     *  types the record itself serializes to (what Temporal hands back to the activity). */
+    private static List<ArtifactType> parseArtifacts(Object artifacts) {
+        if (artifacts instanceof Collection<?> types)
+            return types.stream().map(type -> ArtifactType.fromToken(type.toString())).toList();
+        if (artifacts == null || artifacts.toString().isBlank())
             return List.of();
-        if ("true".equals(artifacts))
+        if ("true".equals(artifacts.toString()))
             return List.of(ArtifactType.values());
-        return Arrays.stream(artifacts.split(",")).filter(token -> !token.isBlank()).map(ArtifactType::fromToken)
-                     .toList();
+        return Arrays.stream(artifacts.toString().split(",")).filter(token -> !token.isBlank())
+                     .map(ArtifactType::fromToken).toList();
     }
 }

@@ -4,7 +4,6 @@ import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.extractor.DocumentSelector;
 import org.apache.tika.metadata.TikaCoreProperties;
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
@@ -32,10 +31,12 @@ public class PageArtifact implements Artifact {
     private static final String TIKA_PREFIX = "Apache Tika";
     // Read once: Tika.getString() re-reads a jar resource, and taskInput() is called per document.
     private static final String TIKA_VERSION = Tika.getString().replace(TIKA_PREFIX, "").strip();
-    private final PropertiesProvider propertiesProvider;
+    private final boolean ocr;
+    private final Options<String> extractorOptions;
 
-    public PageArtifact(PropertiesProvider propertiesProvider) {
-        this.propertiesProvider = propertiesProvider;
+    public PageArtifact(boolean ocr, Options<String> extractorOptions) {
+        this.ocr = ocr;
+        this.extractorOptions = extractorOptions;
     }
 
     @Override
@@ -49,7 +50,7 @@ public class PageArtifact implements Artifact {
         // text, extract-lib owns the parser set and the page splitting, and the datashare version covers
         // what this class decides. The run's OCR setting is the best this document-less overload can do;
         // what actually paginated a document is the overload below.
-        return taskInput(Artifact.ocrEnabled(propertiesProvider));
+        return taskInput(ocr);
     }
 
     @Override
@@ -59,7 +60,7 @@ public class PageArtifact implements Artifact {
         // that file with OCR on and nothing the fingerprint sees changes (same bytes, same digest, same
         // artifact dir), so skip-if-current serves the OCR-free pages forever. Still config, not data:
         // the same document under the same run config compares equal in any batch.
-        return taskInput(Artifact.ocrEnabled(propertiesProvider) && document.getOcrParser() != null);
+        return taskInput(ocr && document.getOcrParser() != null);
     }
 
     private static Map<String, Object> taskInput(boolean ocr) {
@@ -133,7 +134,7 @@ public class PageArtifact implements Artifact {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         DocumentFactory documentFactory =
                 new DocumentFactory().configure(Options.from(Map.of("digestAlgorithm", hasher.toStringWithoutDash())));
-        try (Extractor extractor = new Extractor(documentFactory, Options.from(propertiesProvider.getProperties()))) {
+        try (Extractor extractor = new Extractor(documentFactory, extractorOptions)) {
             // Same rule as DocumentResource.getPages: a document indexed without OCR must be
             // paginated without OCR, or its pages would not match its indexed content.
             if (document.getOcrParser() == null) {
