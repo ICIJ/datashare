@@ -13,7 +13,9 @@ import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.type.CollectionType;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexId;
@@ -24,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.*;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
 import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
@@ -51,6 +54,9 @@ public class JsonObjectMapper {
         synchronized (JsonObjectMapper.class) {
             // Handle Optional and other JDK 8 only features
             MAPPER.registerModule(new Jdk8Module());
+            // java.time (Duration in the extract options records), read from the CLI's "30m" form too
+            MAPPER.registerModule(new JavaTimeModule());
+            MAPPER.registerModule(new SimpleModule().addDeserializer(Duration.class, new HumanDurationDeserializer()));
             // Avoid annotations on domain entities by
             // using compiled methods' metadata
             MAPPER.registerModule(new ParameterNamesModule());

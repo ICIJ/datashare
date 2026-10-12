@@ -1,7 +1,7 @@
 package org.icij.datashare.text.artifact;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
+import org.icij.extract.extractor.ExtractorOptions;
 import org.junit.Test;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +39,7 @@ public class ArtifactRegistryTest {
 
     @Test
     public void test_an_unknown_ocr_strategy_degrades_to_no_ocr_as_extract_does() {
-        ArtifactRegistry defaults = ArtifactRegistry.withDefaults(IndexOptions.fromPropertiesProvider(new PropertiesProvider(Map.of("ocrStrategy", "NOPE"))));
+        ArtifactRegistry defaults = ArtifactRegistry.withDefaults(new PropertiesProvider(Map.of("ocrStrategy", "NOPE")).toRecord(ExtractorOptions.class));
         assertThat(defaults.select("structure").get(0).taskInput().get("ocrStrategy")).isEqualTo("NO_OCR");
     }
 
@@ -80,17 +80,17 @@ public class ArtifactRegistryTest {
     @Test
     public void test_the_whole_catalog_runs_by_default() {
         // raw first, so structure and page on an embedded document read bytes raw's production cached.
-        assertThat(types(ArtifactRegistry.withDefaults(IndexOptions.fromPropertiesProvider(new PropertiesProvider())).select((String) null)))
+        assertThat(types(ArtifactRegistry.withDefaults(new PropertiesProvider().toRecord(ExtractorOptions.class)).select((String) null)))
                 .isEqualTo(List.of("raw", "structure", "page"));
-        assertThat(types(ArtifactRegistry.withDefaults(IndexOptions.fromPropertiesProvider(new PropertiesProvider())).select("true")))
+        assertThat(types(ArtifactRegistry.withDefaults(new PropertiesProvider().toRecord(ExtractorOptions.class)).select("true")))
                 .isEqualTo(List.of("raw", "structure", "page"));
-        assertThat(types(ArtifactRegistry.withDefaults(IndexOptions.fromPropertiesProvider(new PropertiesProvider())).select("raw,structure")))
+        assertThat(types(ArtifactRegistry.withDefaults(new PropertiesProvider().toRecord(ExtractorOptions.class)).select("raw,structure")))
                 .isEqualTo(List.of("raw", "structure"));
     }
 
     @Test
     public void test_default_catalog_can_be_narrowed_to_one_type() {
-        assertThat(types(ArtifactRegistry.withDefaults(IndexOptions.fromPropertiesProvider(new PropertiesProvider())).select("page")))
+        assertThat(types(ArtifactRegistry.withDefaults(new PropertiesProvider().toRecord(ExtractorOptions.class)).select("page")))
                 .isEqualTo(List.of("page"));
     }
 }

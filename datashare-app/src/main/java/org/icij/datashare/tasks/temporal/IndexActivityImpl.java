@@ -19,7 +19,6 @@ import org.icij.datashare.text.indexing.elasticsearch.SimpleElasticsearchSpewer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
 import org.icij.spewer.FieldNames;
-import org.icij.time.HumanDuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +27,7 @@ public class IndexActivityImpl implements IndexActivity {
     private final Indexer indexer;
     private final LanguageGuesser languageGuesser;
 
-    public IndexActivityImpl(final Indexer indexer,
-                             final LanguageGuesser languageGuesser) {
+    public IndexActivityImpl(final Indexer indexer, final LanguageGuesser languageGuesser) {
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
     }
@@ -47,13 +45,14 @@ public class IndexActivityImpl implements IndexActivity {
             return;
         }
 
-        DocumentFactory documentFactory = new DocumentFactory().configure(indexOptions.documentFactoryOptions());
+        DocumentFactory documentFactory = new DocumentFactory().configure(indexOptions.documentFactory().toOptions());
         String taskId = Activity.getExecutionContext().getInfo().getWorkflowId();
-        try (Extractor extractor = new Extractor(documentFactory, indexOptions.extractorOptions())) {
+        try (Extractor extractor = new Extractor(documentFactory, indexOptions.extractor().toOptions())) {
             // Opt-in artifact generation (--artifacts): the same manifest recording IndexTask does at
             // index time, so raw embeds captured during this parse aren't lost to a separate stage.
             artifactOptions.artifactProjectRoot().ifPresent(projectRoot -> {
-                List<Artifact> selected = ArtifactRegistry.withDefaults(indexOptions).select(artifactOptions.artifacts());
+                List<Artifact> selected =
+                        ArtifactRegistry.withDefaults(indexOptions.extractor()).select(artifactOptions.artifacts());
                 if (artifactOptions.artifacts().contains(ArtifactType.RAW)) {
                     extractor.setEmbedOutputPath(projectRoot);
                 }
@@ -75,18 +74,10 @@ public class IndexActivityImpl implements IndexActivity {
     }
 
     private void warnIfParseTimeoutDisabled(IndexOptions indexOptions) {
-        String value = indexOptions.parseTimeout();
-        if (value == null) {
-            return;
-        }
-        try {
-            Duration parseTimeout = HumanDuration.parse(value);
-            if (parseTimeout.isZero() || parseTimeout.isNegative()) {
-                logger.warn("parseTimeout is set to {}: the parse timeout is DISABLED. " +
-                            "A pathological document can hang a worker indefinitely.", value);
-            }
-        } catch (RuntimeException e) {
-            // Diagnostic-only check: any parse failure here must never fail activity execution.
+        Duration parseTimeout = indexOptions.extractor().parseTimeout();
+        if (parseTimeout != null && (parseTimeout.isZero() || parseTimeout.isNegative())) {
+            logger.warn("parseTimeout is set to {}: the parse timeout is DISABLED. " +
+                        "A pathological document can hang a worker indefinitely.", parseTimeout);
         }
     }
 }
