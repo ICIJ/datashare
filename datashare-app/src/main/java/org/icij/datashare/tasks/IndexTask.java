@@ -17,6 +17,7 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
+import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 import org.icij.datashare.text.artifact.ArtifactType;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
 import org.icij.datashare.text.artifact.ManifestRecorder;
@@ -127,7 +128,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
         // ManifestRecorder writes manifests to.
         ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
         artifactOptions.artifactProjectRoot().ifPresent(projectRoot -> {
-            List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider)
+            List<Artifact> selected = ArtifactRegistry.withDefaults(IndexOptions.fromPropertiesProvider(propertiesProvider))
                                                       .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
             boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
             boolean artifactStageRuns = new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT);

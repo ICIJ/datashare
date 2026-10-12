@@ -10,7 +10,7 @@ import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.extractor.DocumentSelector;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
-import org.icij.datashare.PropertiesProvider;
+import org.icij.task.Options;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
@@ -57,12 +57,12 @@ public class PageArtifactTest {
 
     @Test
     public void test_type_is_page() {
-        assertThat(new PageArtifact(new PropertiesProvider()).type()).isEqualTo(ArtifactType.PAGE);
+        assertThat(new PageArtifact(true, Options.from(Map.of())).type()).isEqualTo(ArtifactType.PAGE);
     }
 
     @Test
     public void test_task_input_is_the_tika_pipeline_its_version_and_the_run_ocr_setting() {
-        Map<String, Object> taskInput = new PageArtifact(new PropertiesProvider()).taskInput();
+        Map<String, Object> taskInput = new PageArtifact(true, Options.from(Map.of())).taskInput();
 
         assertThat(taskInput.get("pipeline")).isEqualTo("tika");
         assertThat(taskInput.get("ocr")).isEqualTo(true);
@@ -76,7 +76,7 @@ public class PageArtifactTest {
         // Tika's version does not cover the page splitting: extract-lib owns the parser set and the
         // handler that cuts the pages, and this class decides how they are stored. Without both, a
         // release that changes either leaves every existing page artifact looking current.
-        Map<String, Object> taskInput = new PageArtifact(new PropertiesProvider()).taskInput();
+        Map<String, Object> taskInput = new PageArtifact(true, Options.from(Map.of())).taskInput();
 
         assertThat(taskInput.get("extract")).isEqualTo(BuildVersions.EXTRACT);
         assertThat(taskInput.get("datashare")).isEqualTo(BuildVersions.DATASHARE);
@@ -84,11 +84,9 @@ public class PageArtifactTest {
 
     @Test
     public void test_task_input_records_ocr_off_when_the_run_disabled_it() {
-        PropertiesProvider properties = new PropertiesProvider(Map.of("ocr", "false"));
-
-        assertThat(new PageArtifact(properties).taskInput().get("ocr")).isEqualTo(false);
-        assertThat(new PageArtifact(properties).taskInput())
-                .isNotEqualTo(new PageArtifact(new PropertiesProvider()).taskInput());
+        assertThat(new PageArtifact(false, Options.from(Map.of())).taskInput().get("ocr")).isEqualTo(false);
+        assertThat(new PageArtifact(false, Options.from(Map.of())).taskInput())
+                .isNotEqualTo(new PageArtifact(true, Options.from(Map.of())).taskInput());
     }
 
     // A two-page PDF with real text: no tesseract needed, and each page has a distinct body so the
@@ -182,7 +180,7 @@ public class PageArtifactTest {
     public void test_produce_writes_one_content_file_and_nothing_else() throws Exception {
         ArtifactContext context = rootContext(twoPagePdf());
 
-        new PageArtifact(new PropertiesProvider()).produce(context);
+        new PageArtifact(true, Options.from(Map.of())).produce(context);
 
         assertThat(Files.readString(contentTxt(context))).contains(ACCENTED_PAGE).contains("Page two text");
         assertThat(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE).toFile().list())
@@ -197,7 +195,7 @@ public class PageArtifactTest {
     public void test_produce_writes_the_payload_with_the_directorys_default_permissions() throws Exception {
         ArtifactContext context = rootContext(twoPagePdf());
 
-        new PageArtifact(new PropertiesProvider()).produce(context);
+        new PageArtifact(true, Options.from(Map.of())).produce(context);
 
         Path control = ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE).resolve("control");
         Files.write(control, new byte[0]);
@@ -210,7 +208,7 @@ public class PageArtifactTest {
         Path pdf = twoPagePdf();
         ArtifactContext context = rootContext(pdf);
 
-        ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
+        ManifestEntry entry = new PageArtifact(true, Options.from(Map.of())).produce(context);
 
         assertThat(entry.pages().total()).isEqualTo(2);
         assertThat(entry.pages().pagination().type()).isEqualTo("byteRanges");
@@ -247,7 +245,7 @@ public class PageArtifactTest {
             live = extractor.extractPages(pdf);
         }
 
-        ManifestEntry entry = new PageArtifact(new PropertiesProvider(Map.of("ocr", "false"))).produce(context);
+        ManifestEntry entry = new PageArtifact(false, Options.from(Map.of("ocr", "false"))).produce(context);
 
         byte[] content = Files.readAllBytes(contentTxt(context));
         List<long[]> ranges = ((ByteRangePagination) entry.pages().pagination()).ranges();
@@ -281,7 +279,7 @@ public class PageArtifactTest {
         when(sources.getSource(project, doc)).thenThrow(new java.io.FileNotFoundException("no raw payload"));
 
         try {
-            new PageArtifact(new PropertiesProvider()).produce(context);
+            new PageArtifact(true, Options.from(Map.of())).produce(context);
             fail("expected an ArtifactException");
         } catch (ArtifactException expected) {
             assertThat(expected.getMessage()).contains(doc.getId());
@@ -304,7 +302,7 @@ public class PageArtifactTest {
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
         try {
-            new PageArtifact(new PropertiesProvider()).produce(context);
+            new PageArtifact(true, Options.from(Map.of())).produce(context);
             fail("expected an UnreadableContentException");
         } catch (UnreadableContentException expected) {
             assertThat(expected.getMessage()).contains(context.document().getId());
@@ -319,7 +317,7 @@ public class PageArtifactTest {
         Files.createDirectories(context.docArtifactDir());
         Files.copy(twoPagePdf(), context.docArtifactDir().resolve(ArtifactPath.RAW_FILE));
 
-        ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
+        ManifestEntry entry = new PageArtifact(true, Options.from(Map.of())).produce(context);
 
         assertThat(entry.pages().total()).isEqualTo(2);
         assertThat(Files.readString(contentTxt(context))).contains(ACCENTED_PAGE);
@@ -339,7 +337,7 @@ public class PageArtifactTest {
             return Files.newInputStream(pdf);
         });
 
-        ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
+        ManifestEntry entry = new PageArtifact(true, Options.from(Map.of())).produce(context);
 
         assertThat(entry.pages().total()).isEqualTo(2);
         verify(sources).getSource(project, context.document());
@@ -353,7 +351,7 @@ public class PageArtifactTest {
                 .thenThrow(new java.io.FileNotFoundException("/absent/root.eml"));
 
         try {
-            new PageArtifact(new PropertiesProvider()).produce(context);
+            new PageArtifact(true, Options.from(Map.of())).produce(context);
             fail("expected an ArtifactException");
         } catch (ArtifactException expected) {
             assertThat(expected.getMessage()).contains(context.document().getId());
@@ -374,7 +372,7 @@ public class PageArtifactTest {
                 .thenReturn(new java.io.ByteArrayInputStream(new byte[0]));
 
         try {
-            new PageArtifact(new PropertiesProvider()).produce(context);
+            new PageArtifact(true, Options.from(Map.of())).produce(context);
             fail("expected an ArtifactException");
         } catch (ArtifactException expected) {
             assertThat(expected.getMessage()).contains(context.document().getId());
@@ -389,7 +387,7 @@ public class PageArtifactTest {
         Files.writeString(txt, "one line, no page divs");
         ArtifactContext context = rootContext(txt, "text/plain");
 
-        ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
+        ManifestEntry entry = new PageArtifact(true, Options.from(Map.of())).produce(context);
 
         assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
         assertThat(entry.isTerminal()).isTrue();
@@ -403,12 +401,12 @@ public class PageArtifactTest {
         // Same document, produced twice: a version bump makes the first run's entry stale and the second
         // run finds no pages. An EMPTY entry records no ranges, so a content.txt surviving it is served by
         // a reader that lists the directory with nothing left to say how to read it.
-        new PageArtifact(new PropertiesProvider()).produce(rootContext(twoPagePdf()));
+        new PageArtifact(true, Options.from(Map.of())).produce(rootContext(twoPagePdf()));
         Path txt = dir.getRoot().toPath().resolve("note.txt");
         Files.writeString(txt, "one line, no page divs");
         ArtifactContext context = rootContext(txt, "text/plain");
 
-        ManifestEntry entry = new PageArtifact(new PropertiesProvider()).produce(context);
+        ManifestEntry entry = new PageArtifact(true, Options.from(Map.of())).produce(context);
 
         assertThat(entry.status()).isEqualTo(ManifestEntryStatus.EMPTY);
         assertThat(Files.exists(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE))).isFalse();
@@ -417,7 +415,7 @@ public class PageArtifactTest {
     @Test
     public void test_unreadable_content_discards_the_payload_an_earlier_run_left() throws Exception {
         // The producer records this one as an empty entry too, so the same rule applies to it.
-        new PageArtifact(new PropertiesProvider()).produce(rootContext(twoPagePdf()));
+        new PageArtifact(true, Options.from(Map.of())).produce(rootContext(twoPagePdf()));
         Path broken = dir.getRoot().toPath().resolve("broken.docx");
         byte[] garbage = new byte[1024];
         new Random(42).nextBytes(garbage);
@@ -426,7 +424,7 @@ public class PageArtifactTest {
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
         try {
-            new PageArtifact(new PropertiesProvider()).produce(context);
+            new PageArtifact(true, Options.from(Map.of())).produce(context);
             fail("expected an UnreadableContentException");
         } catch (UnreadableContentException expected) {
             assertThat(Files.exists(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE))).isFalse();
@@ -443,7 +441,7 @@ public class PageArtifactTest {
         ArtifactContext context = rootContext(mail, "message/rfc822");
         String indexed = indexedContent(mail);
 
-        ManifestEntry entry = new PageArtifact(new PropertiesProvider(Map.of("ocr", "false"))).produce(context);
+        ManifestEntry entry = new PageArtifact(false, Options.from(Map.of("ocr", "false"))).produce(context);
 
         assertThat(words(indexed)).contains(MAIL_BODY).excludes("Page two text");
         assertThat(entry.pages().total()).isEqualTo(1);
@@ -488,7 +486,7 @@ public class PageArtifactTest {
         // paginated without OCR whatever the run asks for. Stamping those pages ocr:true is what lets
         // the same file, re-indexed with OCR on, keep its OCR-free pages forever: same bytes, same
         // digest, same artifact dir, same fingerprint, so skip-if-current never looks at it again.
-        PageArtifact withOcrRun = new PageArtifact(new PropertiesProvider());
+        PageArtifact withOcrRun = new PageArtifact(true, Options.from(Map.of()));
         Document notOcred = rootContext(twoPagePdf()).document();
         Document ocred = createDoc(notOcred.getId()).with(notOcred.getPath()).ofContentType("application/pdf")
                 .withOcrParser("org.icij.extract.parser.ocr.OCRParserAdapter").build();
@@ -496,7 +494,7 @@ public class PageArtifactTest {
         assertThat(withOcrRun.taskInput(notOcred).get("ocr")).isEqualTo(false);
         assertThat(withOcrRun.taskInput(ocred).get("ocr")).isEqualTo(true);
         // The run's flag still counts: with OCR off the extractor has it off, whatever the document says.
-        assertThat(new PageArtifact(new PropertiesProvider(Map.of("ocr", "false"))).taskInput(ocred).get("ocr"))
+        assertThat(new PageArtifact(false, Options.from(Map.of("ocr", "false"))).taskInput(ocred).get("ocr"))
                 .isEqualTo(false);
     }
 
@@ -505,14 +503,14 @@ public class PageArtifactTest {
         Path pdf = twoPagePdf();
         ArtifactContext context = rootContext(pdf);
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
-        producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
+        producer.run(List.of(new PageArtifact(true, Options.from(Map.of()))), context, false);
         Files.delete(contentTxt(context)); // regenerated only if the second run does not skip
         Document reindexedWithOcr = createDoc(context.document().getId()).with(pdf).ofContentType("application/pdf")
                 .withOcrParser("org.icij.extract.parser.ocr.OCRParserAdapter").build();
         ArtifactContext reindexed = new ArtifactContext(project, reindexedWithOcr, context.docArtifactDir(),
                 mock(SourceExtractor.class));
 
-        assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), reindexed, false)).isTrue();
+        assertThat(producer.run(List.of(new PageArtifact(true, Options.from(Map.of()))), reindexed, false)).isTrue();
 
         assertThat(Files.exists(contentTxt(reindexed))).isTrue();
     }
@@ -521,7 +519,7 @@ public class PageArtifactTest {
     public void test_a_broken_configuration_ends_the_run_instead_of_failing_one_document() throws Exception {
         // It fails every document the same way, so ArtifactTask rethrows it where it rethrows an Error.
         // Catching it as one more document failure would drain the whole queue one ERROR at a time.
-        PageArtifact misconfigured = new PageArtifact(new PropertiesProvider()) {
+        PageArtifact misconfigured = new PageArtifact(true, Options.from(Map.of())) {
             @Override
             List<String> extractPages(Document document, Path source) {
                 throw new ArtifactConfigurationException(new TikaConfigException("no parser for it"));
@@ -570,7 +568,7 @@ public class PageArtifactTest {
     @Test
     public void test_a_failed_regeneration_leaves_the_previous_payload_untouched() throws Exception {
         ArtifactContext good = rootContext(twoPagePdf());
-        new PageArtifact(new PropertiesProvider()).produce(good);
+        new PageArtifact(true, Options.from(Map.of())).produce(good);
         byte[] previous = Files.readAllBytes(contentTxt(good));
 
         Path unreadable = dir.getRoot().toPath().resolve("gone.pdf");
@@ -578,7 +576,7 @@ public class PageArtifactTest {
                 createDoc(good.document().getId()).with(unreadable).ofContentType("application/pdf").build(),
                 good.docArtifactDir(), mock(SourceExtractor.class));
         try {
-            new PageArtifact(new PropertiesProvider()).produce(broken);
+            new PageArtifact(true, Options.from(Map.of())).produce(broken);
             fail("expected an ArtifactException");
         } catch (ArtifactException expected) {
             assertThat(expected.getMessage()).contains(good.document().getId());
@@ -597,7 +595,7 @@ public class PageArtifactTest {
         Files.createDirectories(contentTxt(context));
         Files.createFile(contentTxt(context).resolve("blocking-file"));
 
-        new PageArtifact(new PropertiesProvider()).produce(context);
+        new PageArtifact(true, Options.from(Map.of())).produce(context);
 
         assertThat(Files.readString(contentTxt(context))).contains("Page two text");
         assertThat(ArtifactPath.payloadDir(context.docArtifactDir(), ArtifactType.PAGE).toFile().list())
@@ -609,7 +607,7 @@ public class PageArtifactTest {
         ArtifactContext context = rootContext(twoPagePdf());
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
 
-        assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false)).isTrue();
+        assertThat(producer.run(List.of(new PageArtifact(true, Options.from(Map.of()))), context, false)).isTrue();
 
         JsonNode manifest = JsonObjectMapper.getMapper()
                 .readTree(context.docArtifactDir().resolve(ArtifactPath.MANIFEST_FILE).toFile());
@@ -632,12 +630,12 @@ public class PageArtifactTest {
     public void test_a_second_run_skips_a_document_already_produced_with_the_same_task_input() throws Exception {
         ArtifactContext context = rootContext(twoPagePdf());
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
-        producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
+        producer.run(List.of(new PageArtifact(true, Options.from(Map.of()))), context, false);
         // Overwritten, not deleted: skip-if-current re-produces a payload that left the disk
         // (ArtifactPayload#isMissing), so an absent content.txt would prove nothing about the skip.
         Files.writeString(contentTxt(context), "kept from the first run");
 
-        assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false)).isTrue();
+        assertThat(producer.run(List.of(new PageArtifact(true, Options.from(Map.of()))), context, false)).isTrue();
 
         assertThat(Files.readString(contentTxt(context))).isEqualTo("kept from the first run");
     }
@@ -646,10 +644,10 @@ public class PageArtifactTest {
     public void test_a_second_run_produces_again_when_the_page_payload_left_the_disk() throws Exception {
         ArtifactContext context = rootContext(twoPagePdf());
         ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), () -> false, null);
-        producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false);
+        producer.run(List.of(new PageArtifact(true, Options.from(Map.of()))), context, false);
         Files.delete(contentTxt(context));
 
-        assertThat(producer.run(List.of(new PageArtifact(new PropertiesProvider())), context, false)).isTrue();
+        assertThat(producer.run(List.of(new PageArtifact(true, Options.from(Map.of()))), context, false)).isTrue();
 
         assertThat(Files.readString(contentTxt(context))).contains("Page two text");
     }

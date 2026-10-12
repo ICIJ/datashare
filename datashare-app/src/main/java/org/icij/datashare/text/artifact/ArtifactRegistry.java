@@ -1,10 +1,14 @@
 package org.icij.datashare.text.artifact;
 
-import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
+import org.icij.datashare.cli.OcrStrategy;
+import org.icij.datashare.tasks.ArtifactOptions;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /** The app's catalog of known artifact types and the parser for the --artifacts selector.
@@ -22,17 +26,43 @@ public class ArtifactRegistry {
     /** The app's catalog of Java-produced artifact types, shared by the INDEX and ARTIFACT stages so a
      *  newly registered producer cannot be honored by one and missed by the other. Order matters: raw
      *  first, so structure and page on an embedded document read bytes raw's production has already
-     *  cached. Takes the properties because page builds an extractor from the run's options (OCR in
-     *  particular); raw and structure need none.
+     *  cached. Takes the index options because page builds an extractor from them (OCR in
+     *  particular) and structure records the OCR settings; raw needs none.
      *  <p>
      *  Every catalog type runs when no selector is given, structure included. A deployment that also
      *  runs datashare-python's structure producer shares the manifest key and the structure/ directory
      *  with it, and the two task inputs can never match, so each run destroys the other's payload:
      *  such a deployment has to pin ownership with an explicit {@code --artifacts raw}. page has no
      *  such rival producer: the pages/ payload is Java's alone. */
-    public static ArtifactRegistry withDefaults(PropertiesProvider propertiesProvider) {
-        return new ArtifactRegistry(List.of(new RawArtifact(), new StructureArtifact(propertiesProvider),
-                                            new PageArtifact(propertiesProvider)));
+    public static ArtifactRegistry withDefaults(IndexOptions indexOptions) {
+        boolean ocr = indexOptions.ocr() == null || indexOptions.ocr();
+        return new ArtifactRegistry(List.of(new RawArtifact(),
+                new StructureArtifact(ocr, ocrStrategy(indexOptions)),
+                new PageArtifact(ocr, indexOptions.extractorOptions())));
+    }
+
+    // Read as the CLI's own OcrStrategy, so this accepts exactly what --ocrStrategy accepts. Unset or
+    // unparseable means NO_OCR, as extract-lib resolves it: a scanned PDF renders empty here exactly
+    // when the INDEX stage extracted nothing from it either.
+    private static OcrStrategy ocrStrategy(IndexOptions indexOptions) {
+        try {
+            return OcrStrategy.valueOf(
+                    Optional.ofNullable(indexOptions.ocrStrategy()).orElse("NO_OCR").toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException unknown) {
+            return OcrStrategy.NO_OCR;
+        }
+    }
+
+    /** The artifacts for already-parsed types, as {@link ArtifactOptions#artifacts()} holds them. */
+    public List<Artifact> select(List<ArtifactType> types) {
+        return types.stream().map(type -> {
+            Artifact artifact = byType.get(type);
+            if (artifact == null) {
+                throw new IllegalArgumentException(
+                        "no producer registered for artifact type '" + type.token() + "'; available: " + tokens());
+            }
+            return artifact;
+        }).toList();
     }
 
     public List<Artifact> select(String flagValue) {

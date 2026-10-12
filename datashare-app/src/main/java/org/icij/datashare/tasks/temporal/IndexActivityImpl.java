@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
-import org.icij.datashare.PropertiesProvider;
-import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 import org.icij.datashare.tasks.ArtifactOptions;
 import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
@@ -27,21 +25,17 @@ import org.slf4j.LoggerFactory;
 
 public class IndexActivityImpl implements IndexActivity {
     private final Logger logger = LoggerFactory.getLogger(IndexActivityImpl.class);
-    private final PropertiesProvider propertiesProvider;
     private final Indexer indexer;
     private final LanguageGuesser languageGuesser;
 
-    public IndexActivityImpl(final PropertiesProvider propertiesProvider, final Indexer indexer,
+    public IndexActivityImpl(final Indexer indexer,
                              final LanguageGuesser languageGuesser) {
-        this.propertiesProvider =
-                propertiesProvider; // TODO: to be removed after ArtifactStages refactoring into ArtifactOptions or
-        // the like
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
     }
 
     @Override
-    public void index(IndexOptions indexOptions, List<Path> paths, String index) {
+    public void index(IndexOptions indexOptions, ArtifactOptions artifactOptions, List<Path> paths, String index) {
         warnIfParseTimeoutDisabled(indexOptions);
 
         AbstractElasticSearchSpewer spewer =
@@ -55,15 +49,12 @@ public class IndexActivityImpl implements IndexActivity {
 
         DocumentFactory documentFactory = new DocumentFactory().configure(indexOptions.documentFactoryOptions());
         String taskId = Activity.getExecutionContext().getInfo().getWorkflowId();
-        ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
         try (Extractor extractor = new Extractor(documentFactory, indexOptions.extractorOptions())) {
             // Opt-in artifact generation (--artifacts): the same manifest recording IndexTask does at
             // index time, so raw embeds captured during this parse aren't lost to a separate stage.
             artifactOptions.artifactProjectRoot().ifPresent(projectRoot -> {
-                List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider)
-                                                          .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
-                boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
-                if (rawSelected) {
+                List<Artifact> selected = ArtifactRegistry.withDefaults(indexOptions).select(artifactOptions.artifacts());
+                if (artifactOptions.artifacts().contains(ArtifactType.RAW)) {
                     extractor.setEmbedOutputPath(projectRoot);
                 }
                 spewer.setManifestRecorder(

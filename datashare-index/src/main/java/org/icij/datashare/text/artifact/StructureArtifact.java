@@ -5,7 +5,6 @@ import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.exception.TikaMemoryLimitException;
 import org.apache.tika.parser.pdf.PDFParserConfig;
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.OcrStrategy;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
@@ -21,9 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import static org.icij.datashare.cli.DatashareCliOptions.OCR_STRATEGY_OPT;
 import static org.icij.datashare.text.nlp.DocumentMetadataConstants.RESOURCE_NAME_KEY;
 
 /** The structure artifact: a per-page Tika rendering written as page-N.xhtml (sanitized, the
@@ -37,10 +34,12 @@ public class StructureArtifact implements Artifact {
     // The message AutoDetectParser gives a SecureContentHandler refusal (see isZipBombGuard).
     private static final String ZIP_BOMB_MESSAGE = "Zip bomb detected!";
     private final StructureMarkdownExtractor extractor = new StructureMarkdownExtractor();
-    private final PropertiesProvider propertiesProvider;
+    private final boolean ocr;
+    private final OcrStrategy ocrStrategy;
 
-    public StructureArtifact(PropertiesProvider propertiesProvider) {
-        this.propertiesProvider = propertiesProvider;
+    public StructureArtifact(boolean ocr, OcrStrategy ocrStrategy) {
+        this.ocr = ocr;
+        this.ocrStrategy = ocrStrategy;
     }
 
     @Override
@@ -81,23 +80,8 @@ public class StructureArtifact implements Artifact {
     }
 
     private OcrSettings runOcrSettings() {
-        boolean images = Artifact.ocrEnabled(propertiesProvider);
-        return new OcrSettings(images, images ? pdfOcrStrategy() : PDFParserConfig.OCR_STRATEGY.NO_OCR);
-    }
-
-    // Read as the CLI's own OcrStrategy and mapped by name into Tika's, so this accepts exactly what
-    // --ocrStrategy accepts rather than a second vocabulary that happens to agree today. Unset or
-    // unparseable means NO_OCR, as extract-lib resolves it: a scanned PDF renders empty here exactly
-    // when the INDEX stage extracted nothing from it either. A member renamed on either side lands in
-    // that same fallback rather than in a strategy nobody asked for.
-    private PDFParserConfig.OCR_STRATEGY pdfOcrStrategy() {
-        try {
-            OcrStrategy strategy = OcrStrategy.valueOf(
-                    propertiesProvider.get(OCR_STRATEGY_OPT).orElse("NO_OCR").toUpperCase(Locale.ROOT));
-            return PDFParserConfig.OCR_STRATEGY.valueOf(strategy.name());
-        } catch (IllegalArgumentException unknown) {
-            return PDFParserConfig.OCR_STRATEGY.NO_OCR;
-        }
+        return new OcrSettings(ocr, ocr ? PDFParserConfig.OCR_STRATEGY.valueOf(ocrStrategy.name())
+                                        : PDFParserConfig.OCR_STRATEGY.NO_OCR);
     }
 
     @Override
