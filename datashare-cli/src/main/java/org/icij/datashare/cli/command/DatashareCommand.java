@@ -9,7 +9,8 @@ import java.util.Properties;
 @Command(name = "datashare", mixinStandardHelpOptions = true, versionProvider = DatashareVersionProvider.class,
         subcommands = {AppCommand.class, WorkerCommand.class, StageCommand.class, PluginCommand.class,
                 ExtensionCommand.class, ApiKeyCommand.class, UserCommand.class, ProjectCommand.class,
-                CommandLine.HelpCommand.class}, description = "Datashare - Index and search your documents")
+                EntitiesCommand.class, CommandLine.HelpCommand.class},
+        description = "Datashare - Index and search your documents")
 public class DatashareCommand implements Runnable {
     @Mixin
     GlobalOptions globalOptions = new GlobalOptions();

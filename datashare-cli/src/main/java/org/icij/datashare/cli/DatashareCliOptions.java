@@ -213,6 +213,8 @@ public final class DatashareCliOptions {
     public static final String PROJECT_REVOKE_NO_INPUT_OPT = PROJECT_REVOKE_OPT + ".noInput";
     public static final String PROJECT_REVOKE_IF_EXISTS_OPT = PROJECT_REVOKE_OPT + ".ifExists";
     public static final String PROJECT_REVOKE_JSON_OPT = PROJECT_REVOKE_OPT + ".json";
+    public static final String ENTITIES_EXPORT_OPT = "entitiesExport";
+    public static final String ENTITIES_EXPORT_OUTPUT_OPT = ENTITIES_EXPORT_OPT + ".output";
     private static final Path DEFAULT_DATASHARE_HOME =
             Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
