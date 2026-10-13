@@ -11,6 +11,7 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.payload.StreamingOutput;
+import java.io.UncheckedIOException;
 import org.icij.datashare.model.EntityExporter;
 import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.model.UnknownTargetModel;
@@ -44,10 +45,17 @@ public class EntityExportResource {
         } catch (UnknownTargetModel e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-        StreamingOutput body = out -> statements.entities(project, exporter.model(), entities -> {
-            exporter.export(entities, out);
-            return null;
-        });
+        StreamingOutput body = out -> {
+            try {
+                statements.entities(project, exporter.model(), entities -> {
+                    exporter.export(entities, out);
+                    return null;
+                });
+            } catch (UncheckedIOException e) {
+                // fluent-http only recognises a client hanging up when it gets the bare IOException
+                throw e.getCause();
+            }
+        };
         return new Payload(exporter.mediaType(), body).withHeader("Content-Disposition",
                                                                   "attachment;filename=\"%s.%s.json\"".formatted(
                                                                           project, exporter.model()));
