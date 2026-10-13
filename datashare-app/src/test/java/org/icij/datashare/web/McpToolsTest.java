@@ -11,7 +11,6 @@ import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.policies.TaskPolicyChecker;
 import org.icij.datashare.session.DatashareUser;
@@ -28,7 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +44,6 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
     @Mock Indexer indexer;
     @Mock TaskManager taskManager;
-    @Mock DocumentCollectionFactory<Path> documentCollectionFactory;
     @Mock ProjectAdminService projectAdminService;
     @Mock BatchSearchRepository batchSearchRepository;
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
@@ -59,7 +56,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     private void serveAs(String login, String... projects) {
         TaskFinder taskFinder = new TaskFinder(taskManager, batchSearchRepository);
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider,
-                                                              documentCollectionFactory, projectAdminService);
+                                                              projectAdminService);
         DocumentResource documentResource = new DocumentResource(repository, indexer, propertiesProvider,
                                                                  new DocumentSourceAccess(repository, indexer,
                                                                                           propertiesProvider));
