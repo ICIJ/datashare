@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.icij.datashare.text.Project.project;
@@ -89,4 +90,28 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
 
         verify(statements, never()).entities(anyString(), anyString(), any());
     }
+
+    private void projectFailsAfter(int written) {
+        Stream<ModelEntity> entities = Stream.concat(
+                IntStream.range(0, written).mapToObj(i -> person("p-" + i, "Ada")),
+                Stream.of(new ModelEntity("ftm", "w-1", "Wizard", Set.of(), Set.of(), Map.of())));
+        when(statements.entities(eq("prj"), eq("ftm"), any())).thenAnswer(
+                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2).apply(entities));
+    }
+
+    @Test
+    public void test_a_failure_before_anything_is_sent_is_a_server_error() {
+        projectFailsAfter(1);
+
+        get("/api/prj/entities/export").should().respond(500);
+    }
+
+    @Test
+    public void test_a_failure_after_part_of_the_export_is_sent_keeps_the_200_and_cuts_the_body() {
+        projectFailsAfter(10_000);
+
+        get("/api/prj/entities/export").should().respond(200).contain("\"id\":\"p-0\"")
+                .not().contain("\"id\":\"p-9999\"");
+    }
+
 }
