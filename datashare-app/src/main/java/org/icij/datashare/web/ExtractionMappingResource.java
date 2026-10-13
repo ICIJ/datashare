@@ -27,7 +27,6 @@ import org.icij.datashare.utils.PayloadFormatter;
 import org.icij.datashare.web.errors.ForbiddenException;
 import java.io.IOException;
 import static net.codestory.http.payload.Payload.created;
-import static net.codestory.http.payload.Payload.notFound;
 import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
@@ -85,7 +84,7 @@ public class ExtractionMappingResource {
             String taskId = mappings.run(project, mappingId, (User) context.currentUser());
             return new JsonPayload(201, new TaskResource.TaskResponse(taskId));
         } catch (UnknownExtractionMapping e) {
-            return notFound();
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (UnreadableExtractionMapping e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
         }
