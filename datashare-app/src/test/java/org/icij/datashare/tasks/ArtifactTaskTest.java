@@ -1,6 +1,21 @@
 package org.icij.datashare.tasks;
 
-
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.TaskResult;
@@ -18,35 +33,16 @@ import org.icij.datashare.user.User;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.queue.MemoryDocumentQueue;
+import static org.junit.Assert.assertThrows;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
-import org.slf4j.event.Level;
-
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
+import org.slf4j.event.Level;
 
 public class ArtifactTaskTest {
     private static final String EMBEDDED_DOC_SHA256 = "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e";

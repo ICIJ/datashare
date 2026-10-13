@@ -26,6 +26,9 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import static java.lang.System.currentTimeMillis;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
+import static org.icij.datashare.cli.DatashareCliOptions.OCR_MIN_CONFIDENCE_OPT;
+import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 import static java.util.Optional.ofNullable;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_ENCODING;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
@@ -57,6 +60,8 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
     private IndexOptions options;
     // volatile: set by the task thread before the pipeline starts, read by every consumer thread
     private volatile ManifestRecorder manifestRecorder;
+    // volatile: set by the task thread in configure, read by every consumer thread
+    private volatile int minOcrConfidence = DEFAULT_OCR_MIN_CONFIDENCE;
 
     public AbstractElasticSearchSpewer(FieldNames fields, Indexer indexer, LanguageGuesser languageGuesser,
                                        IndexOptions options) {
@@ -274,6 +279,7 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
 
     Document getDocument(TikaDocument document, TikaDocument root, TikaDocument parent, short level) throws
             IOException {
+        String content = readContent(document);
         Charset charset = Charset.isSupported(
                 ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN)) ?
                           Charset.forName(document.getMetadata().get(CONTENT_ENCODING)) : StandardCharsets.US_ASCII;
@@ -288,9 +294,9 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
                                .withOcrParser(document.getMetadata().get(OCRParser.OCR_PARSER))
                                .with(parseChildRecoveryStatus(document));
 
-        String content = readContent(document);
         if (document.getLanguage() == null) {
-            builder.with(languageGuesser.guess(content, document.getPath()));
+            builder.with(languageGuesser.guess(content, document.getPath(), document.getMetadata().get(OCR_CONFIDENCE),
+                                               minOcrConfidence));
         } else {
             builder.with(Language.parse(document.getLanguage()));
         }
@@ -411,6 +417,8 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
     public Spewer configure(Options<String> options) {
         super.configure(options);
         setIndex(options.valueIfPresent("projectName").orElse(options.get(DEFAULT_PROJECT_OPT).value().get()));
+        minOcrConfidence = options.valueIfPresent(OCR_MIN_CONFIDENCE_OPT).map(Integer::parseInt)
+                                  .orElse(DEFAULT_OCR_MIN_CONFIDENCE);
         return this;
     }
 

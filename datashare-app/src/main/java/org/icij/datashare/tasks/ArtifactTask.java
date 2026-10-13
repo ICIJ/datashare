@@ -18,7 +18,6 @@ import org.icij.datashare.text.artifact.ArtifactConfigurationException;
 import org.icij.datashare.text.artifact.ArtifactContext;
 import org.icij.datashare.text.artifact.ArtifactProducer;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
-import org.icij.extract.extractor.ExtractorOptions;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
@@ -87,7 +86,7 @@ public class ArtifactTask extends PipelineTask<String> {
         SourceExtractor extractor = createSourceExtractor();
         // Decide once per worker which artifact types to produce: an absent --artifacts flag means the
         // whole catalog, raw, structure and page (see ArtifactRegistry#withDefaults).
-        ArtifactRegistry registry = ArtifactRegistry.withDefaults(propertiesProvider.toRecord(ExtractorOptions.class));
+        ArtifactRegistry registry = ArtifactRegistry.withDefaults(propertiesProvider);
         List<Artifact> selected = registry.select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
         boolean force = ArtifactStages.force(propertiesProvider);
         // The producer owns what counts as a cancellation (see ArtifactProducer#isCancellation), so this
