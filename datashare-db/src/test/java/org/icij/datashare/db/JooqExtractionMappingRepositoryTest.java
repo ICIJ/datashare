@@ -152,6 +152,16 @@ public class JooqExtractionMappingRepositoryTest {
     }
 
     @Test
+    public void test_get_on_a_poisoned_row_still_names_its_owner() {
+        repository.save(mapping("map-1", "prj", "jdoe", "Person"));
+        poison("map-1", "prj");
+
+        UnreadableExtractionMapping thrown = assertThrows(UnreadableExtractionMapping.class,
+                () -> repository.get("prj", "map-1"));
+        assertThat(thrown.userId).isEqualTo("jdoe");
+    }
+
+    @Test
     public void test_list_skips_a_row_with_truncated_json_and_returns_the_others() {
         repository.save(mapping("map-1", "prj", "jdoe", "Person"));
         repository.save(mapping("map-2", "prj", "jdoe", "Person"));

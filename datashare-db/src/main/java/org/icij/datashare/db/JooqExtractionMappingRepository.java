@@ -6,7 +6,7 @@ import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.time.DatashareTime;
 import org.jooq.DSLContext;
-import org.jooq.Record3;
+import org.jooq.Record4;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
@@ -46,9 +46,9 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
 
     @Override
     public Optional<ExtractionMapping> get(String projectId, String id) {
-        return create().select(EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
-                       .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId))
-                       .fetchOptional(EXTRACTION_MAPPING.DEFINITION).map(definition -> read(id, definition));
+        return create().select(EXTRACTION_MAPPING.USER_ID, EXTRACTION_MAPPING.DEFINITION).from(EXTRACTION_MAPPING)
+                       .where(EXTRACTION_MAPPING.ID.eq(id)).and(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).fetchOptional()
+                       .map(row -> read(id, row.value1(), row.value2()));
     }
 
     // created_at holds milliseconds, so two mappings authored in the same millisecond tie and the
@@ -56,13 +56,14 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
     // collation would otherwise decide it, and SQLite and Postgres do not sort text alike.
     @Override
     public List<ExtractionMapping> list(String projectId) {
-        return create().select(EXTRACTION_MAPPING.CREATED_AT, EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.DEFINITION)
-                       .from(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).fetch().stream()
-                       .sorted(Comparator.<Record3<LocalDateTime, String, String>, LocalDateTime>comparing(
-                               Record3::value1).thenComparing(Record3::value2, Comparator.naturalOrder()))
+        return create().select(EXTRACTION_MAPPING.CREATED_AT, EXTRACTION_MAPPING.ID, EXTRACTION_MAPPING.DEFINITION,
+                               EXTRACTION_MAPPING.USER_ID).from(EXTRACTION_MAPPING)
+                       .where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).fetch().stream()
+                       .sorted(Comparator.<Record4<LocalDateTime, String, String, String>, LocalDateTime>comparing(
+                               Record4::value1).thenComparing(Record4::value2, Comparator.naturalOrder()))
                        .flatMap(row -> {
                            try {
-                               return Stream.of(read(row.value2(), row.value3()));
+                               return Stream.of(read(row.value2(), row.value4(), row.value3()));
                            } catch (UnreadableExtractionMapping e) {
                                logger.warn("skipping unreadable extraction mapping '{}'", row.value2(), e);
                                return Stream.empty();
@@ -92,11 +93,11 @@ public class JooqExtractionMappingRepository implements ExtractionMappingReposit
         }
     }
 
-    private static ExtractionMapping read(String id, String definition) {
+    private static ExtractionMapping read(String id, String userId, String definition) {
         try {
             return JsonObjectMapper.readValue(definition, ExtractionMapping.class);
         } catch (IOException e) {
-            throw new UnreadableExtractionMapping(id, e);
+            throw new UnreadableExtractionMapping(id, userId, e);
         }
     }
 }
