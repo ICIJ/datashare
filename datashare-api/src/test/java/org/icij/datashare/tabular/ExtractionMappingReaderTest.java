@@ -18,6 +18,34 @@ public class ExtractionMappingReaderTest {
     }
 
     @Test
+    public void test_read_stamps_the_project_and_owner_its_caller_imposes() throws Exception {
+        ExtractionMapping mapping = read(MAPPING.replace("\"projectId\": \"prj\", ", ""), "prj", "alice");
+
+        assertThat(mapping.projectId()).isEqualTo("prj");
+        assertThat(mapping.userId()).isEqualTo("alice");
+    }
+
+    @Test
+    public void test_read_refuses_a_declared_project_its_caller_does_not_impose() {
+        assertRefused(MAPPING.replace("\"projectId\": \"prj\"", "\"projectId\": \"other\""),
+                      "field 'projectId' is 'other' but the mapping is saved in project 'prj': drop the field");
+    }
+
+    @Test
+    public void test_read_refuses_a_declared_owner_when_its_caller_imposes_none() {
+        assertRefused(MAPPING.replace("\"projectId\": \"prj\"", "\"projectId\": \"prj\", \"userId\": \"alice\""),
+                      "field 'userId' is 'alice' but the mapping is saved with no owner: drop the field");
+    }
+
+    @Test
+    public void test_read_refuses_a_declared_owner_its_caller_does_not_impose() {
+        MalformedExtractionMapping malformed = assertThrows(MalformedExtractionMapping.class,
+                () -> read(MAPPING.replace("\"projectId\": \"prj\"", "\"projectId\": \"prj\", \"userId\": \"alice\""), "prj", "bob"));
+
+        assertThat(malformed.getMessage()).isEqualTo("field 'userId' is 'alice' but the mapping is saved for 'bob': drop the field");
+    }
+
+    @Test
     public void test_read_refuses_a_misspelled_field_instead_of_dropping_it() {
         MalformedExtractionMapping malformed = assertThrows(MalformedExtractionMapping.class,
                 () -> read(MAPPING.replace("\"documentId\": \"docId\"", "\"documentId\": \"docId\", \"rootID\": \"zip\"")));
@@ -136,6 +164,10 @@ public class ExtractionMappingReaderTest {
     }
 
     private static ExtractionMapping read(String json) throws Exception {
-        return ExtractionMappingReader.read(ExtractionMappingReader.parse(json.getBytes()));
+        return read(json, "prj", null);
+    }
+
+    private static ExtractionMapping read(String json, String projectId, String userId) throws Exception {
+        return ExtractionMappingReader.read(ExtractionMappingReader.parse(json.getBytes()), projectId, userId);
     }
 }
