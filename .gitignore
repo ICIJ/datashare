@@ -20,7 +20,6 @@ datashare-web/src/main/resources/secret.properties
 .settings
 .classpath
 doc/
-docs/superpowers/
 work
 *.swp
 
