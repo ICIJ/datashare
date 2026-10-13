@@ -1,5 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
+
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.parser.DigestingParser;
@@ -332,7 +334,7 @@ public class SourceExtractorTest {
 
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer,
-                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(spewerProperties));
+                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(spewerProperties), (String) spewerProperties.get("defaultProject"), DEFAULT_OCR_MIN_CONFIDENCE, null);
         spewer.write(document);
         return document;
     }

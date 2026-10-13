@@ -65,7 +65,7 @@ public class ElasticsearchSpewerTest {
     private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
             documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
                 put("defaultProject", es.getIndexName());
-    }}));
+    }}), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
 
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
 
@@ -260,7 +260,7 @@ public class ElasticsearchSpewerTest {
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
         try (ElasticsearchSpewer zhoSpewer = new ElasticsearchSpewer(indexer,
             documentQueueFactory, text -> Language.CHINESE, new FieldNames(),
-            new PropertiesProvider(Map.of("defaultProject", es.getIndexName())))) {
+            new PropertiesProvider(Map.of("defaultProject", es.getIndexName())), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null)) {
             Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
             Options<String> options = Options.from(Map.of("ocrLanguage", "eng+zho"));
             Extractor extractor = new Extractor(options);
@@ -586,7 +586,7 @@ public class ElasticsearchSpewerTest {
             put("defaultProject", es.getIndexName());
         }};
         ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties));
+                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
         Options<String> from = Options.from(properties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
         Extractor extractor = new Extractor(tikaFactory, from);
@@ -612,7 +612,7 @@ public class ElasticsearchSpewerTest {
             put("defaultProject", es.getIndexName());
         }};
         ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties));
+                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
         Options<String> from = Options.from(properties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
         Extractor extractor = new Extractor(tikaFactory, from);
@@ -661,7 +661,7 @@ public class ElasticsearchSpewerTest {
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
             put("defaultProject", es.getIndexName());
-        }}));
+        }}), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("fake-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content should be truncated".getBytes()));
         document.setReader(reader);
@@ -678,7 +678,7 @@ public class ElasticsearchSpewerTest {
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
             put("defaultProject", es.getIndexName());
-        }}));
+        }}), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("ok-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content is ok".getBytes()));
         document.setReader(reader);

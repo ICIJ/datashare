@@ -1,5 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
+
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -39,7 +41,7 @@ public class DatashareExtractIntegrationTest {
     private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, new MemoryDocumentCollectionFactory<>(), l -> ENGLISH,
             new FieldNames(), new PropertiesProvider(new HashMap<>(){{
                 put("defaultProject", es.getIndexName());
-    }}));
+    }}), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
 
     public DatashareExtractIntegrationTest() throws IOException {}
 

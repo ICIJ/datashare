@@ -1,5 +1,8 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
+
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Language;
@@ -24,7 +27,7 @@ public class ElasticsearchSpewerContentTest {
     private ElasticsearchSpewer spewerWithMaxContentLength(String maxContentLength) {
         return new ElasticsearchSpewer(mock(Indexer.class), new MemoryDocumentCollectionFactory<>(),
                 text -> Language.ENGLISH, new FieldNames(),
-                new PropertiesProvider(Map.of("maxContentLength", maxContentLength)));
+                new PropertiesProvider(Map.of("maxContentLength", maxContentLength)), DEFAULT_DEFAULT_PROJECT, DEFAULT_OCR_MIN_CONFIDENCE, null);
     }
 
     private TikaDocument documentReading(Reader reader) {
