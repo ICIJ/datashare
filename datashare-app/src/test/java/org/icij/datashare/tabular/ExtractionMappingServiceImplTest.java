@@ -1,5 +1,8 @@
 package org.icij.datashare.tabular;
 
+import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.user.User;
 import org.junit.Test;
 import java.io.IOException;
 import java.util.Optional;
@@ -13,6 +16,22 @@ import static org.mockito.Mockito.when;
 public class ExtractionMappingServiceImplTest {
     private final ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
     private final ExtractionMappingService service = new ExtractionMappingServiceImpl(mappings);
+
+    @Test
+    public void test_get_lets_anyone_read_when_roles_are_not_enforced() throws Exception {
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping("companies")));
+
+        assertThat(service.get("prj", "m1", User.localUser("anyone")).isPresent()).isTrue();
+    }
+
+    @Test
+    public void test_get_lets_a_cli_run_read_when_roles_are_enforced() throws Exception {
+        ExtractionMappingService enforced =
+                new ExtractionMappingServiceImpl(mappings, new Authorizer(mock(CasbinRuleAdapter.class)));
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping("companies")));
+
+        assertThat(enforced.get("prj", "m1", User.nullUser()).isPresent()).isTrue();
+    }
 
     @Test
     public void test_save_stores_a_new_mapping() throws Exception {
@@ -67,7 +86,7 @@ public class ExtractionMappingServiceImplTest {
     @Test
     public void test_save_if_identical_refuses_an_id_whose_stored_mapping_no_longer_reads() throws Exception {
         when(mappings.save(mapping("companies"))).thenReturn(false);
-        when(mappings.get("prj", "m1")).thenThrow(new UnreadableExtractionMapping("m1", new IOException("gone")));
+        when(mappings.get("prj", "m1")).thenThrow(new UnreadableExtractionMapping("m1", null, new IOException("gone")));
 
         // a stored definition that no longer reads cannot be the caller's, so it stays a conflict
         DuplicateExtractionMapping duplicate =
