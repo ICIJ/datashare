@@ -38,11 +38,24 @@ public class ScanTask extends PipelineTask<Path> {
     public Long call() throws Exception {
         super.call();
         ScannerVisitor scannerVisitor = scanner.createScannerVisitor(path);
-        Long queued = scannerVisitor.call();
-        // ScannerVisitor ends the walk on interrupt and returns normally, which would record a cancelled scan as DONE
-        if (Thread.interrupted()) {
-            throw new InterruptedException("scan of " + path + " cancelled");
+        try {
+            Long queued = scannerVisitor.call();
+            // ScannerVisitor ends the walk on interrupt and returns normally, which would record a cancelled scan
+            // as DONE. A queue-full stop interrupts the walk too, so only a requested cancel counts.
+            if (Thread.interrupted() && isCancelled()) {
+                throw cancelled();
+            }
+            return queued;
+        } catch (RuntimeException e) {
+            if (isCancelled() && causedByInterrupt(e)) {
+                Thread.interrupted();
+                throw cancelled();
+            }
+            throw e;
         }
-        return queued;
+    }
+
+    private InterruptedException cancelled() {
+        return new InterruptedException("scan of " + path + " cancelled");
     }
 }
