@@ -13,7 +13,8 @@ public interface EntityExporter {
     String mediaType();
 
     /** Writes every entity without closing {@code out}. A failed write throws
-     *  {@link java.io.UncheckedIOException}. */
+     *  {@link java.io.UncheckedIOException}; an entity the model cannot write throws
+     *  {@link IllegalArgumentException}. Both can come after part of the output is written. */
     void export(Stream<ModelEntity> entities, OutputStream out);
 
     static EntityExporter forModel(String model) {
