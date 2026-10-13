@@ -66,6 +66,12 @@ public class ExtractionMappingReader {
         return read(node);
     }
 
+    /** Also imposes the id, for a caller that names the mapping itself, like a REST path. */
+    public static ExtractionMapping read(ObjectNode node, String id, String projectId, String userId) {
+        impose(node, "id", id, "as '%s'".formatted(id));
+        return read(node, projectId, userId);
+    }
+
     private static void impose(ObjectNode node, String field, String value, String destination) {
         JsonNode declared = node.path(field);
         if (!declared.isMissingNode() && !declared.isNull() && !declared.asText().equals(value)) {
