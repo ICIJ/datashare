@@ -79,6 +79,40 @@ public class FtmTargetModelSerializationTest {
         assertThat(entity.properties()).isEqualTo(Map.of());
     }
 
+    @Test
+    public void test_an_unknown_schema_fails_with_a_clear_error() {
+        assertThrowsContaining(() -> model.parse("{\"id\":\"n\",\"schema\":\"FutureSchema\"}"), "FutureSchema", "FtM");
+    }
+
+    @Test
+    public void test_an_empty_schema_fails_with_a_clear_error() {
+        assertThrowsContaining(() -> model.parse("{\"id\":\"a\",\"schema\":\"\"}"), "schema", "FtM");
+    }
+
+    @Test
+    public void test_an_unknown_field_fails_with_a_clear_error() {
+        assertThrowsContaining(
+                () -> model.parse("{\"id\":\"person-1\",\"schema\":\"Person\",\"propertes\":{\"name\":[\"Jane\"]}}"),
+                "FtM");
+    }
+
+    @Test
+    public void test_a_trailing_entity_fails_with_a_clear_error() {
+        assertThrowsContaining(
+                () -> model.parse("{\"id\":\"a\",\"schema\":\"Person\"}\n{\"id\":\"b\",\"schema\":\"Person\"}"),
+                "FtM");
+    }
+
+    @Test
+    public void test_ftm_metadata_fields_are_dropped() {
+        ModelEntity entity = model.parse("{\"id\":\"person-1\",\"schema\":\"Person\",\"properties\":{}," +
+                                         "\"caption\":\"Jane\",\"datasets\":[\"d\"],\"referents\":[\"r\"]," +
+                                         "\"first_seen\":\"2024-01-01\",\"last_seen\":\"2024-02-01\"," +
+                                         "\"last_change\":\"2024-02-01\",\"target\":true}");
+
+        assertThat(entity).isEqualTo(new ModelEntity("ftm", "person-1", "Person", Set.of(), Set.of(), Map.of()));
+    }
+
     private static void assertThrowsContaining(Runnable action, String... messageParts) {
         String message = assertThrows(IllegalArgumentException.class, action::run).getMessage();
         for (String part : messageParts) {

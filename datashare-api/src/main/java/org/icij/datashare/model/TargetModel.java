@@ -23,8 +23,8 @@ public interface TargetModel {
 
     /**
      * Reads an entity back from this model's native JSON form. The projection is lossy: a
-     * multi-type entity collapses to its most specific single type, so statements, not this JSON,
-     * remain the system of record.
+     * multi-type entity collapses to its most specific single type and metadata beyond the id, type
+     * and properties is dropped, so statements, not this JSON, remain the system of record.
      */
     ModelEntity parse(String json);
 

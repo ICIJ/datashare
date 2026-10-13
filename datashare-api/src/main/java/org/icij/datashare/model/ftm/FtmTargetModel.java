@@ -1,7 +1,10 @@
 package org.icij.datashare.model.ftm;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectReader;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.EntityType;
 import org.icij.datashare.model.ModelEntity;
@@ -33,6 +36,9 @@ import java.util.stream.Collectors;
 public class FtmTargetModel implements TargetModel {
     private static final String RESOURCE = "/defaultModel.json";
     private static final String LIBRARY = "/META-INF/maven/tech.followthemoney/followthemoney/pom.properties";
+    private static final ObjectReader READER = JsonObjectMapper.getMapper().readerFor(FtmEntity.class)
+                                                               .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                                                                     DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     private final String version;
     private final Map<String, EntityType> types;
 
@@ -87,7 +93,7 @@ public class FtmTargetModel implements TargetModel {
     public ModelEntity parse(String json) {
         FtmEntity read;
         try {
-            read = JsonObjectMapper.readValue(json, FtmEntity.class);
+            read = READER.readValue(json);
         } catch (IOException e) {
             throw new IllegalArgumentException("cannot read FtM JSON", e);
         }
@@ -99,6 +105,9 @@ public class FtmTargetModel implements TargetModel {
         }
         if (read.schema() == null) {
             throw new IllegalArgumentException("missing 'schema' in FtM JSON");
+        }
+        if (type(read.schema()).isEmpty()) {
+            throw new IllegalArgumentException("unknown schema '" + read.schema() + "' in FtM JSON");
         }
         Map<String, List<String>> properties = read.properties() == null ? Map.of() : read.properties();
         properties.forEach((property, values) -> {
@@ -182,5 +191,6 @@ public class FtmTargetModel implements TargetModel {
         return value;
     }
 
+    @JsonIgnoreProperties({"caption", "datasets", "referents", "first_seen", "last_seen", "last_change", "target"})
     record FtmEntity(String id, String schema, Map<String, List<String>> properties) {}
 }
