@@ -87,18 +87,37 @@ public class ExtractionMappingReaderTest {
 
     @Test
     public void test_parse_refuses_a_repeated_field_instead_of_keeping_the_last() {
-        assertRefused(MAPPING.replace("\"id\": \"m1\"", "\"id\": \"m1\", \"id\": \"m2\""), "Duplicate field 'id'");
+        assertRefused(MAPPING.replace("\"id\": \"m1\"", "\"id\": \"m1\", \"id\": \"m2\""), "the mapping repeats the field 'id'");
     }
 
     @Test
     public void test_parse_refuses_a_repeated_entity_alias_instead_of_dropping_one() {
         String entity = "\"c\": {\"type\": \"Company\", \"keys\": [], \"properties\": {\"name\": {\"literal\": \"x\"}}}";
-        assertRefused(MAPPING.replaceFirst("\"entities\": \\{", "\"entities\": {" + entity + ", "), "Duplicate field 'c'");
+        assertRefused(MAPPING.replaceFirst("\"entities\": \\{", "\"entities\": {" + entity + ", "), "the mapping repeats the field 'c'");
     }
 
     @Test
     public void test_parse_refuses_content_after_the_mapping_instead_of_dropping_it() {
         assertRefused(MAPPING + MAPPING, "the mapping has content after its closing brace");
+    }
+
+    @Test
+    public void test_parse_locates_invalid_json_instead_of_forwarding_the_parser_message() {
+        assertRefused("{\"id\": \"m1\"", "the mapping is not valid JSON, at line 1, column 12");
+    }
+
+    @Test
+    public void test_parse_refuses_invalid_json_with_one_plain_message() {
+        for (String json : new String[] {"{\"id\": NaN}", "{\"id\": \"m1", MAPPING + " // done", MAPPING + " nonsense", MAPPING + "}"}) {
+            MalformedExtractionMapping malformed = assertThrows(MalformedExtractionMapping.class, () -> read(json));
+
+            assertThat(malformed.getMessage()).startsWith("the mapping is not valid JSON, at line ");
+        }
+    }
+
+    @Test
+    public void test_parse_refuses_a_mapping_nested_past_the_parser_limit() {
+        assertRefused("{\"a\": " + "[".repeat(1001), "the mapping is not valid JSON");
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.icij.datashare.tabular;
 
+import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -40,7 +41,15 @@ public class ExtractionMappingReader {
         } catch (MismatchedInputException e) {
             throw new MalformedExtractionMapping("the mapping has content after its closing brace", e);
         } catch (JsonProcessingException e) {
-            throw new MalformedExtractionMapping(e.getOriginalMessage(), e);
+            String reason = e.getOriginalMessage();
+            if (reason.startsWith("Duplicate field")) {
+                throw new MalformedExtractionMapping(reason.replace("Duplicate field", "the mapping repeats the field"),
+                                                     e);
+            }
+            JsonLocation at = e.getLocation();
+            throw new MalformedExtractionMapping(at == null ? "the mapping is not valid JSON" :
+                                                 "the mapping is not valid JSON, at line %d, column %d".formatted(
+                                                         at.getLineNr(), at.getColumnNr()), e);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
