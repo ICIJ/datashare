@@ -82,6 +82,6 @@ public class ExtractionMappingServiceImplTest {
                 {"id": "m1", "projectId": "prj", "userId": null, "name": "%s", "model": "ftm", "documentId": "docId",
                  "entities": {"c": {"type": "Company", "keys": ["id"], "properties": {"name": {"columns": ["name"]}}}}}
                 """.formatted(name);
-        return ExtractionMappingReader.read(ExtractionMappingReader.parse(json.getBytes()));
+        return ExtractionMappingReader.read(ExtractionMappingReader.parse(json.getBytes()), "prj", null);
     }
 }

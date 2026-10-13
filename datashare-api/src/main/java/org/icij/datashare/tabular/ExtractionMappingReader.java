@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -31,8 +32,8 @@ public class ExtractionMappingReader {
 
     private ExtractionMappingReader() {}
 
-    /** Parses the document a caller then completes (with the project, the author) before
-     *  {@link #read(ObjectNode)}: a repeated field fails here, where the tree would keep only the last. */
+    /** Parses the document a caller then completes (with the project, the author) in
+     *  {@link #read(ObjectNode, String, String)}: a repeated field fails here, where the tree would keep only the last. */
     public static ObjectNode parse(byte[] json) {
         try {
             if (TREE_READER.readTree(json) instanceof ObjectNode node) {
@@ -56,7 +57,26 @@ public class ExtractionMappingReader {
         throw new MalformedExtractionMapping("the mapping is not a JSON object");
     }
 
-    public static ExtractionMapping read(ObjectNode node) {
+    /** Stamps the project and the owner its caller imposes. A value the document declares otherwise is
+     *  refused, never overwritten: the mapping would land in a project, or with an owner, its author did
+     *  not mean, under an id that can never change. A null owner means the mapping has none. */
+    public static ExtractionMapping read(ObjectNode node, String projectId, String userId) {
+        impose(node, "projectId", projectId, "in project '%s'".formatted(projectId));
+        impose(node, "userId", userId, userId == null ? "with no owner" : "for '%s'".formatted(userId));
+        return read(node);
+    }
+
+    private static void impose(ObjectNode node, String field, String value, String destination) {
+        JsonNode declared = node.path(field);
+        if (!declared.isMissingNode() && !declared.isNull() && !declared.asText().equals(value)) {
+            throw new MalformedExtractionMapping(
+                    "field '%s' is '%s' but the mapping is saved %s: drop the field".formatted(field, declared.asText(),
+                                                                                               destination));
+        }
+        node.put(field, value);
+    }
+
+    private static ExtractionMapping read(ObjectNode node) {
         try {
             return STRICT_READER.readValue(node);
         } catch (UnrecognizedPropertyException e) {

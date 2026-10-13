@@ -54,7 +54,7 @@ public class CliAppTest {
             new PropertiesProvider(Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "100")),
             new CountDownLatch(1));
     private static final String MAPPING_JSON = """
-            {"id": "m1", "projectId": "prj", "userId": "someone", "name": "companies", "model": "ftm",
+            {"id": "m1", "projectId": "prj", "name": "companies", "model": "ftm",
              "documentId": "docId",
              "entities": {"c": {"type": "Company", "keys": ["id"], "properties": {"name": {"columns": ["name"]}}}}}
             """;
@@ -80,6 +80,15 @@ public class CliAppTest {
         String otherProject = MAPPING_JSON.replace("\"projectId\": \"prj\"", "\"projectId\": \"other\"");
 
         assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(otherProject)))).isEqualTo(CliApp.EXIT_VALIDATION);
+        verify(mappings, never()).saveIfIdentical(any());
+    }
+
+    @Test
+    public void test_save_mapping_file_refuses_a_file_naming_an_owner() throws Exception {
+        ExtractionMappingService mappings = mock(ExtractionMappingService.class);
+        String withOwner = MAPPING_JSON.replace("\"projectId\": \"prj\"", "\"projectId\": \"prj\", \"userId\": \"alice\"");
+
+        assertThat(saveMappingFile(mappings, entitiesProperties(mappingFile(withOwner)))).isEqualTo(CliApp.EXIT_VALIDATION);
         verify(mappings, never()).saveIfIdentical(any());
     }
 
