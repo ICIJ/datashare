@@ -17,6 +17,14 @@ public interface EntityExporter {
      *  {@link IllegalArgumentException}. Both can come after part of the output is written. */
     void export(Stream<ModelEntity> entities, OutputStream out);
 
+    /** Writes every entity a project holds in this exporter's model, as {@link #export(Stream, OutputStream)}. */
+    default void export(StatementRepository statements, String projectId, OutputStream out) {
+        statements.entities(projectId, model(), entities -> {
+            export(entities, out);
+            return null;
+        });
+    }
+
     static EntityExporter forModel(String model) {
         return switch (model) {
             case "ftm" -> new FtmJsonExporter();
