@@ -5,7 +5,9 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.test.LogbackAppenderWrapper;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
 import org.icij.task.Option;
@@ -19,10 +21,16 @@ import org.slf4j.event.Level;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
 import static org.icij.datashare.cli.DatashareCliOptions.PARSE_TIMEOUT_OPT;
 import static org.icij.datashare.user.User.nullUser;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -32,9 +40,8 @@ public class IndexTaskTest {
 
     @Test
     public void test_options_include_ocr() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -43,9 +50,8 @@ public class IndexTaskTest {
 
     @Test
     public void test_options_include_ocr_language() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -54,9 +60,8 @@ public class IndexTaskTest {
 
     @Test
     public void test_options_include_ocr_retry_confidence() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -65,9 +70,8 @@ public class IndexTaskTest {
 
     @Test
     public void test_options_include_ocr_page_seg_mode() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -76,9 +80,8 @@ public class IndexTaskTest {
 
     @Test
     public void test_options_include_progress_heartbeat_interval() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("queueName", "test:queue");
         }}), null);
         Options<String> options = indexTask.options();
@@ -87,9 +90,8 @@ public class IndexTaskTest {
 
     @Test
     public void test_options_include_language() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
             put("language", "FRENCH");
             put("queueName", "test:queue");
         }}), null);
@@ -99,37 +101,9 @@ public class IndexTaskTest {
     }
     
     @Test
-    public void test_configure_called_on_spewer() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), Map.of("charset", "UTF-16")), null);
-
-        ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
-        verify(spewer).configure(captor.capture());
-        Option<String> option  = new Option<>("charset", StringOptionParser::new).update("UTF-16");
-        assertThat(captor.getValue()).contains(option);
-    }
-
-    @Test
-    public void test_configure_project_on_spewer() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), Map.of("defaultProject", "foo", "projectName", "bar")), null);
-
-        ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
-        verify(spewer).configure(captor.capture());
-        Option<String> defaultOpt  = new Option<>("defaultProject", StringOptionParser::new).update("foo");
-        Option<String> nameOpt  = new Option<>("projectName", StringOptionParser::new).update("bar");
-        assertThat(captor.getValue()).contains(defaultOpt, nameOpt);
-    }
-
-    @Test
     public void test_ocr_strategy_reaches_extractor() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
                     put("queueName", "test:queue");
                 }}), null);
@@ -145,9 +119,8 @@ public class IndexTaskTest {
 
     @Test
     public void test_max_embed_depth_reaches_extractor() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
                     put("queueName", "test:queue");
                 }}), null);
@@ -161,26 +134,10 @@ public class IndexTaskTest {
     }
 
     @Test
-    public void test_parse_timeout_value_reaches_extractor_options() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
-                new Task<>(IndexTask.class.getName(), nullUser(),
-                        Map.of(PARSE_TIMEOUT_OPT, "48h", "queueName", "test:queue")), null);
-
-        ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
-        verify(spewer).configure(captor.capture());
-        Option<String> option = new Option<>(PARSE_TIMEOUT_OPT, StringOptionParser::new).update("48h");
-        assertThat(captor.getValue()).contains(option);
-    }
-
-    @Test
     public void test_warns_when_parse_timeout_disabled() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
+        new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), nullUser(),
                         Map.of(PARSE_TIMEOUT_OPT, "0", "queueName", "test:queue")), null);
 
@@ -190,10 +147,9 @@ public class IndexTaskTest {
 
     @Test
     public void test_does_not_warn_when_parse_timeout_enabled() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
+        new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), nullUser(),
                         Map.of(PARSE_TIMEOUT_OPT, "48h", "queueName", "test:queue")), null);
 
@@ -203,11 +159,10 @@ public class IndexTaskTest {
 
     @Test
     public void test_artifacts_without_artifact_dir_does_not_throw_at_construction() throws Exception {
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
         // Must not throw: --artifacts validation is deferred to call() so a bad config is a clean
         // task error, not a reflective-construction NackException that requeues forever.
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
+        new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>() {{
                     put("queueName", "test:queue");
                     put("artifacts", "true");
@@ -215,16 +170,66 @@ public class IndexTaskTest {
     }
 
     @Test
-    public void test_configure_passes_ocr_min_confidence_to_spewer() throws Exception {
+    public void test_the_spewer_is_built_for_the_project_name_over_the_default_project() throws Exception {
+        ElasticsearchSpewerFactory spewerFactory = runIndexTask(Map.of("defaultProject", "foo", "projectName", "bar"));
+
+        verify(spewerFactory).create(eq("bar"), eq(DEFAULT_OCR_MIN_CONFIDENCE), isNull());
+    }
+
+    @Test
+    public void test_the_spewer_is_built_for_the_default_project_without_project_name() throws Exception {
+        ElasticsearchSpewerFactory spewerFactory = runIndexTask(Map.of("defaultProject", "foo"));
+
+        verify(spewerFactory).create(eq("foo"), eq(DEFAULT_OCR_MIN_CONFIDENCE), isNull());
+    }
+
+    @Test
+    public void test_ocr_min_confidence_is_passed_to_the_spewer() throws Exception {
+        ElasticsearchSpewerFactory spewerFactory = runIndexTask(Map.of("ocrMinConfidence", "70"));
+
+        verify(spewerFactory).create(any(), eq(70), isNull());
+    }
+
+    @Test
+    public void test_the_index_is_created_by_the_spewer() throws Exception {
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+        Mockito.when(spewerFactory.create(any(), anyInt(), any())).thenReturn(spewer);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), Map.of("ocrMinConfidence", "70")), null);
+        runIndexTask(spewerFactory, Map.of());
 
-        ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
-        verify(spewer).configure(captor.capture());
-        Option<String> option = new Option<>("ocrMinConfidence", StringOptionParser::new).update("70");
-        assertThat(captor.getValue()).contains(option);
+        verify(spewer).createIndexIfNotExists();
+    }
+
+    @Test
+    public void test_parse_timeout_value_reaches_extractor_options() throws Exception {
+        AtomicReference<Options<String>> extractorOptions = new AtomicReference<>();
+        new IndexTask(mock(ElasticsearchSpewerFactory.class), mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
+                new Task<>(IndexTask.class.getName(), nullUser(),
+                        Map.of(PARSE_TIMEOUT_OPT, "48h", "queueName", "test:queue")), null) {
+            @Override
+            protected Extractor createExtractor(DocumentFactory documentFactory, Options<String> options) {
+                extractorOptions.set(options);
+                return super.createExtractor(documentFactory, options);
+            }
+        };
+
+        Option<String> option = new Option<>(PARSE_TIMEOUT_OPT, StringOptionParser::new).update("48h");
+        assertThat(extractorOptions.get()).contains(option);
+    }
+
+    private ElasticsearchSpewerFactory runIndexTask(Map<String, Object> args) throws Exception {
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        Mockito.when(spewerFactory.create(any(), anyInt(), any())).thenReturn(mock(ElasticsearchSpewer.class));
+        runIndexTask(spewerFactory, args);
+        return spewerFactory;
+    }
+
+    private void runIndexTask(ElasticsearchSpewerFactory spewerFactory, Map<String, Object> args) throws Exception {
+        Map<String, Object> taskArgs = new HashMap<>(args);
+        taskArgs.put("queueName", "test:queue");
+        new IndexTask(spewerFactory, new MemoryDocumentCollectionFactory<>(), new UpstreamGate.Factory(taskRepository),
+                new Task<>(IndexTask.class.getName(), nullUser(), taskArgs), null).call();
     }
 
     @After

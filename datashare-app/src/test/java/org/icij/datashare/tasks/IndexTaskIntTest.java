@@ -14,7 +14,7 @@ import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.datashare.user.User;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
@@ -52,9 +52,9 @@ public class IndexTaskIntTest {
     static final List<Extractor> CREATED_EXTRACTORS = new ArrayList<>();
 
     static class ClosingProbeIndexTask extends IndexTask {
-        ClosingProbeIndexTask(ElasticsearchSpewer spewer, DocumentCollectionFactory<Path> factory,
+        ClosingProbeIndexTask(ElasticsearchSpewerFactory spewerFactory, DocumentCollectionFactory<Path> factory,
                               UpstreamGate.Factory gateFactory, Task<Long> task, Function<Double, Void> cb) throws IOException {
-            super(spewer, factory, gateFactory, task, cb);
+            super(spewerFactory, factory, gateFactory, task, cb);
         }
         @Override
         protected Extractor createExtractor(DocumentFactory documentFactory, Options<String> options) {
@@ -72,7 +72,7 @@ public class IndexTaskIntTest {
         put("queueName", "test:queue");
     }};
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(map);
-    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
+    private final ElasticsearchSpewerFactory spewerFactory = new ElasticsearchSpewerFactory(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
             outputQueueFactory, text -> Language.ENGLISH, new FieldNames(), propertiesProvider);
 
     @Test
@@ -80,7 +80,7 @@ public class IndexTaskIntTest {
         DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        Long nbDocs = new IndexTask(spewerFactory, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         assertThat(nbDocs).isEqualTo(1);
         DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
@@ -96,7 +96,7 @@ public class IndexTaskIntTest {
         queue.add(Paths.get("POISON"));
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        Long nbDocs = new IndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        Long nbDocs = new IndexTask(spewerFactory, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         // the sentinel is not a document: the returned count must be 1, not 2
         assertThat(nbDocs).isEqualTo(1);
@@ -118,7 +118,7 @@ public class IndexTaskIntTest {
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/embedded_doc.eml").getPath()));
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/foo/bar.txt").getPath()));
 
-        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), callback);
+        IndexTask indexTask = new IndexTask(spewerFactory, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), callback);
         indexTask.call();
         assertThat(progressValues.size()).isGreaterThan(1);
         assertThat(progressValues.get(0)).isLessThan(progressValues.get(progressValues.size() - 1));
@@ -147,7 +147,7 @@ public class IndexTaskIntTest {
         inputQueueFactory.queues.put(queueName, queue);
         Map<String, Object> args = new HashMap<>(map);
         args.put(UpstreamGate.UPSTREAM_TASK_ID, upstream.id);
-        IndexTask indexTask = new IndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository),
+        IndexTask indexTask = new IndexTask(spewerFactory, inputQueueFactory, new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), User.local(), args), null);
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -170,7 +170,7 @@ public class IndexTaskIntTest {
         DocumentQueue<Path> inputQueue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         inputQueue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
-        IndexTask indexTask = new ClosingProbeIndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null);
+        IndexTask indexTask = new ClosingProbeIndexTask(spewerFactory, inputQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null);
         indexTask.call();
 
         assertThat(CREATED_EXTRACTORS.size()).isEqualTo(1);
@@ -188,7 +188,7 @@ public class IndexTaskIntTest {
         args.put("artifacts", artifacts);
         args.put("artifactDir", artifactDir.getRoot().getPath());
         args.put("stages", stages);
-        new ClosingProbeIndexTask(spewer, inputQueueFactory, new UpstreamGate.Factory(taskRepository),
+        new ClosingProbeIndexTask(spewerFactory, inputQueueFactory, new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), User.local(), args), null).call();
         return CREATED_EXTRACTORS.get(0).getEmbedOutputPath();
     }

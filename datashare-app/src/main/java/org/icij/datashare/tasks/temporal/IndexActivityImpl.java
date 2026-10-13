@@ -36,30 +36,30 @@ public class IndexActivityImpl implements IndexActivity {
     public void index(IndexOptions indexOptions, ArtifactOptions artifactOptions, List<Path> paths, String index) {
         warnIfParseTimeoutDisabled(indexOptions);
 
-        AbstractElasticSearchSpewer spewer =
-                new SimpleElasticsearchSpewer(new FieldNames(), indexer, languageGuesser, indexOptions);
-        try {
-            spewer.createIndexIfNotExists(index);
-        } catch (IOException e) {
-            logger.error("failed to create index {}", index, e);
-            return;
-        }
-
         DocumentFactory documentFactory = new DocumentFactory().configure(indexOptions.documentFactory().toOptions());
         String taskId = Activity.getExecutionContext().getInfo().getWorkflowId();
         try (Extractor extractor = new Extractor(documentFactory, indexOptions.extractor().toOptions())) {
             // Opt-in artifact generation (--artifacts): the same manifest recording IndexTask does at
             // index time, so raw embeds captured during this parse aren't lost to a separate stage.
-            artifactOptions.artifactProjectRoot().ifPresent(projectRoot -> {
+            ManifestRecorder manifestRecorder = artifactOptions.artifactProjectRoot().map(projectRoot -> {
                 List<Artifact> selected =
                         ArtifactRegistry.withDefaults(indexOptions.extractor()).select(artifactOptions.artifacts());
                 if (artifactOptions.artifacts().contains(ArtifactType.RAW)) {
                     extractor.setEmbedOutputPath(projectRoot);
                 }
-                spewer.setManifestRecorder(
-                        new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected,
-                                             artifactOptions.force(), taskId));
-            });
+                return new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected,
+                                            artifactOptions.force(), taskId);
+            }).orElse(null);
+
+            AbstractElasticSearchSpewer spewer =
+                    new SimpleElasticsearchSpewer(new FieldNames(), indexer, languageGuesser, indexOptions, index,
+                                                  manifestRecorder);
+            try {
+                spewer.createIndexIfNotExists();
+            } catch (IOException e) {
+                logger.error("failed to create index {}", index, e);
+                return;
+            }
 
             for (Path path : paths) {
                 try {

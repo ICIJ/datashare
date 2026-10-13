@@ -1,14 +1,16 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.artifact.ManifestRecorder;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.spewer.FieldNames;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
 
 public class SimpleElasticsearchSpewer extends AbstractElasticSearchSpewer {
     public SimpleElasticsearchSpewer(FieldNames fields, Indexer indexer, LanguageGuesser languageGuesser,
-                                     IndexOptions options) {
-        super(fields, indexer, languageGuesser, options);
+                                     IndexOptions options, String indexName, ManifestRecorder manifestRecorder) {
+        super(fields, indexer, languageGuesser, options, indexName, DEFAULT_OCR_MIN_CONFIDENCE, manifestRecorder);
     }
 
     @Override

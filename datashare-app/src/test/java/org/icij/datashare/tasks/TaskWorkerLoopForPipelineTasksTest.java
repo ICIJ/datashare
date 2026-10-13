@@ -10,7 +10,7 @@ import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,7 +31,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Mock
     DatashareTaskFactory taskFactory;
     @Mock Function<Double, Void> updateCallback;
-    @Mock ElasticsearchSpewer spewer;
+    @Mock ElasticsearchSpewerFactory spewerFactory;
     private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(
             Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "1000")), new CountDownLatch(1));
 
@@ -47,7 +47,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_index_task() throws Exception {
         Task<Long> task = new Task<>(IndexTask.class.getName(), User.local(), new HashMap<>());
-        IndexTask taskRunner = new IndexTask(spewer, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
+        IndexTask taskRunner = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
@@ -101,6 +101,5 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Before
     public void setUp() {
         initMocks(this);
-        when(spewer.configure(any())).thenReturn(spewer);
     }
 }
