@@ -643,7 +643,7 @@ class CliApp {
         }
         try {
             if (output == null) {
-                exportEntities(statements, project, exporter, System.out);
+                exporter.export(statements, project, System.out);
                 if (System.out.checkError()) {
                     return error("cannot write to stdout", "runtime", EXIT_RUNTIME, false);
                 }
@@ -665,20 +665,12 @@ class CliApp {
         Path partial = output.resolveSibling(output.getFileName() + ".part");
         try {
             try (OutputStream file = Files.newOutputStream(partial)) {
-                exportEntities(statements, project, exporter, file);
+                exporter.export(statements, project, file);
             }
             Files.move(partial, output, StandardCopyOption.REPLACE_EXISTING);
         } finally {
             Files.deleteIfExists(partial);
         }
-    }
-
-    private static void exportEntities(StatementRepository statements, String project, EntityExporter exporter,
-                                       OutputStream out) {
-        statements.entities(project, exporter.model(), entities -> {
-            exporter.export(entities, out);
-            return null;
-        });
     }
 
     static int handleProjectDelete(ProjectAdminService service, Properties properties,
