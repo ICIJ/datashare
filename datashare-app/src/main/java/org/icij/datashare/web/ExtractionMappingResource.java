@@ -28,6 +28,7 @@ import org.icij.datashare.web.errors.ForbiddenException;
 import java.io.IOException;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.notFound;
+import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
 @Prefix("/api")
@@ -41,13 +42,15 @@ public class ExtractionMappingResource {
 
     @Operation(description = """
             Saves an extraction mapping. A mapping is immutable: to change one, save it again under a new id.
+            Saving the very mapping stored under its id again is accepted, so a failed call can be retried.
             The project and id come from the path and the author from the session: a body declaring others is refused.
             """, parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
             @Parameter(name = "id", description = "the mapping id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "201", description = "if the mapping was saved")
+    @ApiResponse(responseCode = "200", description = "if the project already holds this very mapping")
     @ApiResponse(responseCode = "400", description = "if the body is not a valid mapping")
     @ApiResponse(responseCode = "403", description = "if the user is not granted the project")
-    @ApiResponse(responseCode = "409", description = "if the project already holds a mapping with this id")
+    @ApiResponse(responseCode = "409", description = "if the project already holds another mapping with this id")
     @Put("/:project/extraction-mappings/:id")
     @Policy(idParam = "project", role = Role.PROJECT_EDITOR)
     public Payload saveMapping(String project, String id, Context context) {
@@ -56,8 +59,7 @@ public class ExtractionMappingResource {
         try {
             ObjectNode node = ExtractionMappingReader.parse(context.request().contentAsBytes());
             ExtractionMapping mapping = ExtractionMappingReader.read(node, id, project, user.id);
-            mappings.save(mapping);
-            return created();
+            return mappings.saveIfIdentical(mapping) ? created() : ok();
         } catch (DuplicateExtractionMapping e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
         } catch (IOException | IllegalArgumentException e) {

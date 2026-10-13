@@ -153,6 +153,14 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_save_accepts_the_stored_mapping_again() {
+        when(mappings.save(any())).thenReturn(false);
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping()));
+
+        put("/api/prj/extraction-mappings/m1", BODY).should().respond(200);
+    }
+
+    @Test
     public void test_save_reads_a_json_body_without_charset_as_utf8() throws Exception {
         when(mappings.save(any())).thenReturn(true);
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port() + "/api/prj/extraction-mappings/m1"))
@@ -170,8 +178,9 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_save_reports_an_existing_id_as_a_conflict() {
         when(mappings.save(any())).thenReturn(false);
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping("local", "another")));
 
-        put("/api/prj/extraction-mappings/m1", BODY).should().respond(409);
+        put("/api/prj/extraction-mappings/m1", BODY).should().respond(409).contain("already exists in project 'prj'");
     }
 
     @Test
@@ -266,7 +275,11 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     }
 
     private static ExtractionMapping mapping() {
-        return new ExtractionMapping("m1", "prj", "local", "companies", "ftm", "docId", null, RowSourceOptions.defaults(),
+        return mapping("local", "companies");
+    }
+
+    private static ExtractionMapping mapping(String userId, String name) {
+        return new ExtractionMapping("m1", "prj", userId, name, "ftm", "docId", null, RowSourceOptions.defaults(),
                 Map.of("c", new ExtractionMapping.EntityMapping("Company", List.of("id"),
                         Map.of("name", new ExtractionMapping.PropertyMapping(List.of("name"), null, null, null, null)))));
     }
