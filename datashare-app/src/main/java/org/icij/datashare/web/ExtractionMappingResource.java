@@ -45,20 +45,20 @@ public class ExtractionMappingResource {
             Saving the very mapping stored under its id again is accepted, so a failed call can be retried.
             The project and id come from the path and the author from the session: a body declaring others is refused.
             """, parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
-            @Parameter(name = "id", description = "the mapping id", in = ParameterIn.PATH)})
+            @Parameter(name = "mappingId", description = "the mapping id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "201", description = "if the mapping was saved")
     @ApiResponse(responseCode = "200", description = "if the project already holds this very mapping")
     @ApiResponse(responseCode = "400", description = "if the body is not a valid mapping")
     @ApiResponse(responseCode = "403", description = "if the user is not granted the project")
     @ApiResponse(responseCode = "409", description = "if the project already holds another mapping with this id")
-    @Put("/:project/extraction-mappings/:id")
+    @Put("/:project/extraction-mappings/:mappingId")
     @Policy(idParam = "project", role = Role.PROJECT_EDITOR)
-    public Payload saveMapping(String project, String id, Context context) {
+    public Payload saveMapping(String project, String mappingId, Context context) {
         ForbiddenException.requireGranted(context, project);
         User user = (User) context.currentUser();
         try {
             ObjectNode node = ExtractionMappingReader.parse(context.request().contentAsBytes());
-            ExtractionMapping mapping = ExtractionMappingReader.read(node, id, project, user.id);
+            ExtractionMapping mapping = ExtractionMappingReader.read(node, mappingId, project, user.id);
             return mappings.saveIfIdentical(mapping) ? created() : ok();
         } catch (DuplicateExtractionMapping e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
