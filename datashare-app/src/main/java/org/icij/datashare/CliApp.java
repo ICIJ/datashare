@@ -50,8 +50,10 @@ import org.icij.datashare.user.admin.UserNotFoundException;
 import org.icij.datashare.user.admin.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -63,6 +65,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Supplier;
@@ -641,9 +644,12 @@ class CliApp {
         if (repository.getProject(project) == null) {
             return error("project '%s' does not exist".formatted(project), "not_found", EXIT_NOT_FOUND, false);
         }
+        if (output != null && Files.isDirectory(Path.of(output))) {
+            return error("is a directory: %s".formatted(output), "runtime", EXIT_RUNTIME, false);
+        }
         try {
             if (output == null) {
-                exporter.export(statements, project, System.out);
+                exporter.export(statements, project, failingOnError(System.out));
                 if (System.out.checkError()) {
                     return error("cannot write to stdout", "runtime", EXIT_RUNTIME, false);
                 }
@@ -656,8 +662,22 @@ class CliApp {
         } catch (AccessDeniedException e) {
             return error("permission denied: %s".formatted(output), "runtime", EXIT_RUNTIME, false);
         } catch (IOException | RuntimeException e) {
-            return error(e.getMessage(), "runtime", EXIT_RUNTIME, false);
+            return error(Objects.requireNonNullElse(e.getMessage(), e.toString()), "runtime", EXIT_RUNTIME, false);
         }
+    }
+
+    /** {@link PrintStream} swallows write errors, so a closed pipe would only be noticed after
+     *  reading the whole project. */
+    private static OutputStream failingOnError(PrintStream stdout) {
+        return new FilterOutputStream(stdout) {
+            @Override
+            public void write(byte[] bytes, int offset, int length) throws IOException {
+                stdout.write(bytes, offset, length);
+                if (stdout.checkError()) {
+                    throw new IOException("cannot write to stdout");
+                }
+            }
+        };
     }
 
     private static void exportEntitiesToFile(StatementRepository statements, String project, EntityExporter exporter,
