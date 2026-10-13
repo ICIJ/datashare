@@ -590,7 +590,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_digest_project_name_is_not_set_with_no_digest_project() throws IOException {
-        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("noDigestProject", "true"));
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("noDigestProject", "true", "digestProjectName", "local-datashare"));
         configure(routes -> routes
                 .add(new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, taskFinder))
                 .filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
