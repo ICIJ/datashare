@@ -445,8 +445,9 @@ public class JooqStatementRepositoryTest {
 
         List<ModelEntity> found = repository.entities("prj", "ftm", Stream::toList);
 
-        assertThat(found.stream().map(ModelEntity::model).toList()).containsOnly("ftm");
-        assertThat(found.stream().map(ModelEntity::id).toList()).containsOnly("shared");
+        assertThat(found.size()).isEqualTo(1);
+        assertThat(found.get(0).model()).isEqualTo("ftm");
+        assertThat(found.get(0).id()).isEqualTo("shared");
     }
 
     @Test
