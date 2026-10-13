@@ -233,7 +233,8 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     public void test_run_reports_an_unknown_mapping() {
         when(mappings.get("prj", "m1")).thenReturn(Optional.empty());
 
-        post("/api/task/structuredEntityExtraction/prj/m1").should().respond(404);
+        post("/api/task/structuredEntityExtraction/prj/m1").should().respond(404)
+                                                            .contain("no mapping 'm1' in project 'prj'");
     }
 
     @Test
