@@ -3,7 +3,8 @@ package org.icij.datashare.tabular;
 public class DuplicateExtractionMapping extends Exception {
     /** Each reason calls for a different fix, so the message has to say which one it is. */
     public enum Reason {
-        ID_TAKEN(""), DIFFERENT_DEFINITION(" with a different definition: save the change under a new id"),
+        ID_TAKEN(": a mapping is immutable, so save this one under a new id"),
+        DIFFERENT_DEFINITION(" with a different definition: save the change under a new id"),
         UNREADABLE_DEFINITION(" but its stored definition no longer reads");
         private final String explanation;
 

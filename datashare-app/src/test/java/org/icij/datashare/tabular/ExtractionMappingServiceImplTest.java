@@ -33,7 +33,8 @@ public class ExtractionMappingServiceImplTest {
         DuplicateExtractionMapping duplicate =
                 assertThrows(DuplicateExtractionMapping.class, () -> service.save(mapping("companies")));
         assertThat(duplicate.reason).isEqualTo(DuplicateExtractionMapping.Reason.ID_TAKEN);
-        assertThat(duplicate.getMessage()).isEqualTo("mapping 'm1' already exists in project 'prj'");
+        assertThat(duplicate.getMessage()).isEqualTo(
+                "mapping 'm1' already exists in project 'prj': a mapping is immutable, so save this one under a new id");
     }
 
     @Test
