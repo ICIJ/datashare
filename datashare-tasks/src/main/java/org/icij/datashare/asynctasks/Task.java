@@ -160,7 +160,7 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     public void setProgress(double rate) {
         synchronized (lock) {
-            if (!getState().canBeReplacedBy(State.RUNNING)) {
+            if (isFinished()) {
                 return;
             }
             this.progress = rate;

@@ -189,14 +189,24 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
-    public void test_cancel_with_requeue_queues_the_task_again() throws Exception {
+    public void test_cancel_with_requeue_queues_a_running_task() {
+        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        task.setProgress(0.5);
+
+        StoreAndQueueTaskManagerImpl.cancelOrQueue(task, true);
+
+        assertThat(task.getState()).isEqualTo(Task.State.QUEUED);
+    }
+
+    @Test
+    public void test_cancel_with_requeue_keeps_a_finished_task_done() throws Exception {
         Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
         taskManager.insert(task, new Group(TaskGroupType.Test));
+        task.setResult(new TaskResult<>(1));
 
         taskManager.canceled(task, true);
 
-        assertThat(taskManager.getTask(task.id).getState()).isNotEqualTo(Task.State.CANCELLED);
-        taskManager.stopTask(task.id);
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.DONE);
     }
 
     @Test

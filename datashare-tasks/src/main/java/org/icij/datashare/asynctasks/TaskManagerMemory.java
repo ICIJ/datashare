@@ -94,17 +94,17 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
 
     @Override
     public void canceled(Task<?> task, boolean requeue) {
-        Task<?> taskView;
+        boolean requeued = requeue;
         try {
-            taskView = getTask(task.id);
-            cancelOrQueue(taskView, requeue);
+            Task<?> taskView = getTask(task.id);
+            requeued = cancelOrQueue(taskView, requeue);
             update(taskView);
         } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for cancel={} call", task.id, requeue);
         } catch (IOException e) {
             logger.error("error while canceling task <{}>", task.getId(), e);
         }
-        if (requeue) {
+        if (requeued) {
             taskQueue.offer(task);
         }
     }

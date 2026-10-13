@@ -62,9 +62,9 @@ abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager 
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("canceled event for {}", e.taskId);
-            cancelOrQueue(taskView, e.requeue);
+            boolean requeued = cancelOrQueue(taskView, e.requeue);
             update(taskView);
-            if (e.requeue) {
+            if (requeued) {
                 try {
                     enqueue(taskView);
                 } catch (IOException ex) {
@@ -78,13 +78,17 @@ abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager 
     }
 
     // A requeued task runs again, so it must not be stored as finished: the repository would then refuse its
-    // progress updates.
-    static void cancelOrQueue(Task<?> taskView, boolean requeue) {
-        if (requeue) {
-            taskView.queue();
-            return;
+    // progress updates. A task that finished before the requeue arrived must not run a second time.
+    static boolean cancelOrQueue(Task<?> taskView, boolean requeue) {
+        if (!requeue) {
+            taskView.cancel();
+            return false;
         }
-        taskView.cancel();
+        if (taskView.isFinished()) {
+            return false;
+        }
+        taskView.queue();
+        return true;
     }
 
     private <V extends Serializable> Task<V> setProgress(ProgressEvent e) throws IOException, UnknownTask {
