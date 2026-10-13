@@ -71,6 +71,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
     private final Integer parallelism;
     private final Integer indexTimeout;
     private final String taskId;
+    private volatile DocumentQueueDrainer<Path> drainer;
+    private volatile DocumentConsumer consumer;
 
     @Inject
     public IndexTask(final ElasticsearchSpewerFactory spewerFactory, final DocumentCollectionFactory<Path> factory,
@@ -90,6 +92,17 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
         allTaskOptions = options().createFrom(Options.from(taskView.args));
         minOcrConfidence = allTaskOptions.valueIfPresent(OCR_MIN_CONFIDENCE_OPT).map(Integer::parseInt)
                                          .orElse(DEFAULT_OCR_MIN_CONFIDENCE);
+    }
+
+    @Override
+    public void cancel(boolean requeue) {
+        super.cancel(requeue);
+        if (drainer != null) {
+            drainer.shutdownNow();
+        }
+        if (consumer != null) {
+            consumer.shutdownNow();
+        }
     }
 
     @Override
@@ -134,8 +147,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
             ElasticsearchSpewer spewer =
                     spewerFactory.create(artifactOptions.projectName(), minOcrConfidence, manifestRecorder);
             spewer.createIndexIfNotExists();
-            DocumentConsumer consumer = new DocumentConsumer(spewer, extractor, parallelism);
-            DocumentQueueDrainer<Path> drainer = createDrainer(consumer);
+            consumer = new DocumentConsumer(spewer, extractor, parallelism);
+            drainer = createDrainer(consumer);
             logger.info("Processing up to {} file(s) in parallel", parallelism);
             totalToProcess = drainer.drain().get() - skipped.get();
             drainer.shutdown();

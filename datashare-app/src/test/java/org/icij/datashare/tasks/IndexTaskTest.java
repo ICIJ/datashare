@@ -4,12 +4,13 @@ import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.test.LogbackAppenderWrapper;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.test.LogbackAppenderWrapper;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
+import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.Option;
 import org.icij.task.Options;
 import org.icij.task.StringOptionParser;
@@ -21,10 +22,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
 import static org.icij.datashare.cli.DatashareCliOptions.PARSE_TIMEOUT_OPT;
@@ -34,6 +40,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.notNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -245,6 +252,41 @@ public class IndexTaskTest {
         taskArgs.put("queueName", "test:queue");
         new IndexTask(spewerFactory, new MemoryDocumentCollectionFactory<>(), new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), nullUser(), taskArgs), null).call();
+    }
+
+    @Test
+    public void test_cancel_stops_draining_the_queue() throws Exception {
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        Mockito.when(spewerFactory.create(any(), anyInt(), any())).thenReturn(mock(ElasticsearchSpewer.class));
+        MemoryDocumentCollectionFactory<Path> factory = new MemoryDocumentCollectionFactory<>();
+        DocumentQueue<Path> queue = factory.createQueue("extract:queue:index", Path.class);
+        Path doc = Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath());
+        for (int i = 0; i < 3; i++) {
+            queue.add(doc);
+        }
+        AtomicReference<IndexTask> indexTask = new AtomicReference<>();
+        AtomicInteger progressCalls = new AtomicInteger();
+        CountDownLatch queueDrained = new CountDownLatch(1);
+        indexTask.set(new IndexTask(spewerFactory, factory, new UpstreamGate.Factory(taskRepository),
+                new Task<>(IndexTask.class.getName(), nullUser(), Map.of("parallelism", "1")), rate -> {
+                    if (progressCalls.incrementAndGet() == 1) {
+                        indexTask.get().cancel(false);
+                    }
+                    if (queue.isEmpty()) {
+                        queueDrained.countDown();
+                    }
+                    return null;
+                }));
+
+        try {
+            indexTask.get().call();
+            fail("expected an InterruptedException");
+        } catch (InterruptedException expected) {
+            assertThat(queueDrained.await(2, SECONDS)).isFalse();
+            assertThat(queue.size()).isGreaterThan(0);
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     @After
