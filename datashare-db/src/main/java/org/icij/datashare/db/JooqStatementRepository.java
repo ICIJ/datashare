@@ -7,6 +7,7 @@ import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.model.TargetModelRegistry;
 import org.icij.datashare.time.DatashareTime;
 import org.jooq.BatchBindStep;
+import org.jooq.Condition;
 import org.jooq.Cursor;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -200,7 +201,14 @@ public class JooqStatementRepository implements StatementRepository {
 
     @Override
     public <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer) {
-        try (Stream<ModelEntity> entities = entities(projectId)) {
+        try (Stream<ModelEntity> entities = entities(STATEMENT.PRJ_ID.eq(projectId))) {
+            return consumer.apply(entities);
+        }
+    }
+
+    @Override
+    public <R> R entities(String projectId, String model, Function<Stream<ModelEntity>, R> consumer) {
+        try (Stream<ModelEntity> entities = entities(STATEMENT.PRJ_ID.eq(projectId).and(STATEMENT.MODEL.eq(model)))) {
             return consumer.apply(entities);
         }
     }
@@ -211,13 +219,13 @@ public class JooqStatementRepository implements StatementRepository {
     // fetchSize and has no server-side cursor, and a read it keeps open holds a shared lock on the
     // whole file until the consumer returns, which makes every concurrent writer fail "database is
     // locked": the embedded database buffers instead.
-    private Stream<ModelEntity> entities(String projectId) {
+    private Stream<ModelEntity> entities(Condition condition) {
         if (dialect != SQLDialect.POSTGRES) {
-            return group(read(create(), projectId).fetch(JooqStatementRepository::toRow).stream());
+            return group(read(create(), condition).fetch(JooqStatementRepository::toRow).stream());
         }
         Connection connection = openStreamingConnection();
         try {
-            Cursor<Record> cursor = read(DSL.using(connection, dialect), projectId).fetchSize(FETCH_SIZE).fetchLazy();
+            Cursor<Record> cursor = read(DSL.using(connection, dialect), condition).fetchSize(FETCH_SIZE).fetchLazy();
             return group(
                     cursor.stream().map(JooqStatementRepository::toRow).onClose(() -> release(connection, cursor)));
         } catch (RuntimeException e) {
@@ -226,8 +234,8 @@ public class JooqStatementRepository implements StatementRepository {
         }
     }
 
-    private static ResultQuery<Record> read(DSLContext create, String projectId) {
-        return create.select(READ_FIELDS).from(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId))
+    private static ResultQuery<Record> read(DSLContext create, Condition condition) {
+        return create.select(READ_FIELDS).from(STATEMENT).where(condition)
                      .orderBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL);
     }
 
