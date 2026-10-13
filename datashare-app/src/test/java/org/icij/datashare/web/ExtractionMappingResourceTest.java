@@ -8,8 +8,12 @@ import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.Domain;
 import org.icij.datashare.policies.MappingPolicy;
 import org.icij.datashare.policies.MappingPolicyAnnotation;
+import org.icij.datashare.policies.Policy;
+import org.icij.datashare.policies.PolicyAnnotation;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
@@ -42,6 +46,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -123,6 +128,27 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     public void test_save_refuses_a_body_naming_another_owner() {
         put("/api/prj/extraction-mappings/m1", BODY.replaceFirst("\\{", "{\"userId\": \"someone\", "))
                 .should().respond(400).contain("field 'userId' is 'someone'");
+        verify(mappings, never()).save(any());
+    }
+
+    @Test
+    public void test_save_forbids_a_user_the_project_is_not_granted_to() {
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+
+        put("/api/prj/extraction-mappings/m1", BODY).should().respond(403);
+        verify(mappings, never()).save(any());
+    }
+
+    @Test
+    public void test_save_requires_the_editor_role_on_the_project() throws Exception {
+        Authorizer authorizer = new Authorizer(mock(CasbinRuleAdapter.class));
+        authorizer.addRoleForUserInProject(localUser("local"), Role.PROJECT_MEMBER, Domain.DEFAULT, project("prj"));
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
+        configure(routes -> routes.registerAroundAnnotation(Policy.class, new PolicyAnnotation(authorizer))
+                                  .add(new ExtractionMappingResource(new ExtractionMappingServiceImpl(mappings, taskManager)))
+                                  .filter(localUserFilter));
+
+        put("/api/prj/extraction-mappings/m1", BODY).should().respond(403);
         verify(mappings, never()).save(any());
     }
 

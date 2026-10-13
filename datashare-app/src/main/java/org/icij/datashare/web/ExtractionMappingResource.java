@@ -46,10 +46,12 @@ public class ExtractionMappingResource {
             @Parameter(name = "id", description = "the mapping id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "201", description = "if the mapping was saved")
     @ApiResponse(responseCode = "400", description = "if the body is not a valid mapping")
+    @ApiResponse(responseCode = "403", description = "if the user is not granted the project")
     @ApiResponse(responseCode = "409", description = "if the project already holds a mapping with this id")
     @Put("/:project/extraction-mappings/:id")
-    @Policy(idParam = "project", role = Role.PROJECT_MEMBER)
+    @Policy(idParam = "project", role = Role.PROJECT_EDITOR)
     public Payload saveMapping(String project, String id, Context context) {
+        ForbiddenException.requireGranted(context, project);
         User user = (User) context.currentUser();
         try {
             ObjectNode node = ExtractionMappingReader.parse(context.request().contentAsBytes());
