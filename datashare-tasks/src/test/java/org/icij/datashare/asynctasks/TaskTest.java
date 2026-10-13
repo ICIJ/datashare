@@ -70,6 +70,18 @@ public class TaskTest {
     }
 
     @Test
+    public void test_progress_after_cancel_keeps_task_cancelled() {
+        Task<String> taskView = new Task<>("name", User.local(), new HashMap<>());
+        taskView.setProgress(0.3);
+        taskView.cancel();
+
+        taskView.setProgress(0.5);
+
+        assertThat(taskView.getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskView.getProgress()).isEqualTo(0.3);
+    }
+
+    @Test
     public void test_json_deserialize() throws Exception {
         String json = "{\"@type\":\"Task\",\"id\":\"d605de70-dc8d-429f-8b22-1cc3e9157756\"," +
                 "\"name\":\"HelloWorld\",\"state\":\"CREATED\"," +
