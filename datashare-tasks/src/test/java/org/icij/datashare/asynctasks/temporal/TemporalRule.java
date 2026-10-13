@@ -41,7 +41,7 @@ public class TemporalRule extends ExternalResource {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } finally {
-            interlocutor.shutdownClient();
+            interlocutor.shutdown();
             redissonClient.shutdown();
         }
     }
