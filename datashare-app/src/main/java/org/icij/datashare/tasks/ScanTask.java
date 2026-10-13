@@ -38,6 +38,11 @@ public class ScanTask extends PipelineTask<Path> {
     public Long call() throws Exception {
         super.call();
         ScannerVisitor scannerVisitor = scanner.createScannerVisitor(path);
-        return scannerVisitor.call();
+        Long queued = scannerVisitor.call();
+        // ScannerVisitor ends the walk on interrupt and returns normally, which would record a cancelled scan as DONE
+        if (Thread.interrupted()) {
+            throw new InterruptedException("scan of " + path + " cancelled");
+        }
+        return queued;
     }
 }

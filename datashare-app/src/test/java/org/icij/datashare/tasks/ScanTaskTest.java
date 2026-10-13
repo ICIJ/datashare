@@ -24,7 +24,21 @@ public class ScanTaskTest extends TestCase {
         assertThat(queue.size()).isEqualTo(3);
     }
 
-    public void test_scan_with_queue_name() throws Exception {
+    public void test_scan_interrupted_is_cancelled_instead_of_done() throws Exception {
+        ScanTask scanTask = new ScanTask(documentCollectionFactory, new Task<>("org.icij.datashare.tasks.ScanTask", User.local(),
+                Map.of(DATA_DIR_OPT, Paths.get(ClassLoader.getSystemResource("docs").getPath()).toString())), null);
+        Thread.currentThread().interrupt();
+        try {
+            scanTask.call();
+            fail("expected an InterruptedException");
+        } catch (InterruptedException expected) {
+            assertThat(Thread.currentThread().isInterrupted()).isFalse();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    public void test_scan_with_queue_name()throws Exception {
         assertThat(new ScanTask(documentCollectionFactory, new Task<>("org.icij.datashare.tasks.ScanTask", User.local(),
                 Map.of(DATA_DIR_OPT, Paths.get(ClassLoader.getSystemResource("docs").getPath()).toString(),
                         QUEUE_NAME_OPT, "foo")), null).call()).isEqualTo(3);
