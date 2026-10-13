@@ -26,6 +26,12 @@ public interface StatementRepository {
      *  has to consume it: returning the stream itself hands back a closed one. */
     <R> R entities(String projectId, Function<Stream<ModelEntity>, R> consumer);
 
+    /** The entities of one data model in a project, with the same streaming contract as
+     *  {@link #entities(String, Function)}. */
+    default <R> R entities(String projectId, String model, Function<Stream<ModelEntity>, R> consumer) {
+        return entities(projectId, all -> consumer.apply(all.filter(entity -> entity.model().equals(model))));
+    }
+
     /** Deletes every statement one sheet of a document contributed to a project, and returns how
      *  many. A null sheet names the empty sheet a single-table format writes, as it does on the way
      *  in. Changing which sheet a mapping reads still strands what it wrote under the old one, since
