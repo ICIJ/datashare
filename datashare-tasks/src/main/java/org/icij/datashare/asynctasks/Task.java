@@ -48,6 +48,14 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
         public boolean isFinal() {
             return FINAL_STATES.contains(this);
         }
+
+        /**
+         * A finished task never goes back to a non-final state: progress and result events can be handled out of
+         * order, and a late progress event would otherwise leave a done task running forever.
+         */
+        public boolean canBeReplacedBy(State next) {
+            return !isFinal() || next.isFinal();
+        }
     }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@type")
@@ -152,6 +160,9 @@ public class Task<V extends Serializable> extends Event implements Entity, Compa
 
     public void setProgress(double rate) {
         synchronized (lock) {
+            if (!getState().canBeReplacedBy(State.RUNNING)) {
+                return;
+            }
             this.progress = rate;
             if (!State.RUNNING.equals(getState())) {
                 setState(State.RUNNING);
