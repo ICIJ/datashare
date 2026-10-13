@@ -52,11 +52,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UncheckedIOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -644,14 +644,32 @@ class CliApp {
         try {
             if (output == null) {
                 exportEntities(statements, project, exporter, System.out);
-            } else {
-                try (OutputStream file = Files.newOutputStream(Path.of(output))) {
-                    exportEntities(statements, project, exporter, file);
+                if (System.out.checkError()) {
+                    return error("cannot write to stdout", "runtime", EXIT_RUNTIME, false);
                 }
+            } else {
+                exportEntitiesToFile(statements, project, exporter, Path.of(output));
             }
             return EXIT_SUCCESS;
-        } catch (IOException | UncheckedIOException | IllegalArgumentException e) {
+        } catch (NoSuchFileException e) {
+            return error("no such file: %s".formatted(output), "runtime", EXIT_RUNTIME, false);
+        } catch (AccessDeniedException e) {
+            return error("permission denied: %s".formatted(output), "runtime", EXIT_RUNTIME, false);
+        } catch (IOException | RuntimeException e) {
             return error(e.getMessage(), "runtime", EXIT_RUNTIME, false);
+        }
+    }
+
+    private static void exportEntitiesToFile(StatementRepository statements, String project, EntityExporter exporter,
+                                             Path output) throws IOException {
+        Path partial = output.resolveSibling(output.getFileName() + ".part");
+        try {
+            try (OutputStream file = Files.newOutputStream(partial)) {
+                exportEntities(statements, project, exporter, file);
+            }
+            Files.move(partial, output, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(partial);
         }
     }
 

@@ -9,6 +9,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -123,7 +125,46 @@ public class CliAppEntitiesExportTest {
         int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", file));
 
         assertThat(exit).isEqualTo(1);
-        assertThat(stderr.toString(UTF_8)).contains("error: ").contains("missing");
+        assertThat(stderr.toString(UTF_8)).contains("error: no such file: " + file);
+    }
+
+    @Test
+    public void test_a_failed_export_keeps_the_previous_output_file() throws Exception {
+        projectHolds(entity("r-1", "Robot"));
+        Path file = folder.getRoot().toPath().resolve("prj.ftm.json");
+        Files.writeString(file, "previous export");
+
+        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", file.toString()));
+
+        assertThat(exit).isEqualTo(1);
+        assertThat(Files.readString(file)).isEqualTo("previous export");
+        assertThat(folder.getRoot().list()).containsOnly("prj.ftm.json");
+    }
+
+    @Test
+    public void test_a_stdout_that_cannot_be_written_exits_1() {
+        projectHolds(entity("p-1", "Person"));
+        System.setOut(new PrintStream(new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                throw new IOException("Broken pipe");
+            }
+        }));
+
+        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+
+        assertThat(exit).isEqualTo(1);
+        assertThat(stderr.toString(UTF_8)).contains("error: ");
+    }
+
+    @Test
+    public void test_a_database_failure_exits_1_with_its_message() {
+        when(statements.entities(eq("prj"), eq("ftm"), any())).thenThrow(new IllegalStateException("db down"));
+
+        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+
+        assertThat(exit).isEqualTo(1);
+        assertThat(stderr.toString(UTF_8)).contains("error: db down");
     }
 
     @Test
