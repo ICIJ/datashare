@@ -4,13 +4,19 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.StatementRepository;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import net.codestory.http.Context;
+import net.codestory.http.payload.StreamingOutput;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,10 +24,13 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -114,4 +123,20 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
                 .not().contain("\"id\":\"p-9999\"");
     }
 
+    @Test
+    public void test_a_failed_write_reaches_fluent_http_as_an_io_exception() {
+        projectHolds(person("p-1", "Ada"));
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(new DatashareUser(User.localUser("cecile", "prj")));
+        StreamingOutput body = (StreamingOutput) new EntityExportResource(statements).export("prj", null, context)
+                .rawContent();
+
+        IOException e = assertThrows(IOException.class, () -> body.write(new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                throw new IOException("Broken pipe");
+            }
+        }));
+        assertThat(e.getMessage()).isEqualTo("Broken pipe");
+    }
 }
