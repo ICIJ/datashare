@@ -6,6 +6,9 @@ import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.model.EntityExporter;
+import org.icij.datashare.model.StatementRepository;
+import org.icij.datashare.model.UnknownTargetModel;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectCreateRequest;
@@ -48,6 +51,8 @@ import org.icij.datashare.user.admin.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -172,6 +177,11 @@ class CliApp {
         if (properties.getProperty(PROJECT_REVOKE_OPT) != null) {
             ProjectAdminService projectAdminService = mode.get(ProjectAdminService.class);
             System.exit(handleProjectRevoke(projectAdminService, properties, Prompter::new));
+        }
+
+        if (properties.getProperty(ENTITIES_EXPORT_OPT) != null) {
+            System.exit(
+                    handleEntitiesExport(mode.get(Repository.class), mode.get(StatementRepository.class), properties));
         }
 
         // the merged properties, like runPipeline below: --stages and --nextStage can both come
@@ -617,6 +627,40 @@ class CliApp {
         }
         String defaultUser = properties.getProperty(DEFAULT_USER_NAME_OPT);
         return defaultUser == null || defaultUser.isBlank() ? null : defaultUser;
+    }
+
+    static int handleEntitiesExport(Repository repository, StatementRepository statements, Properties properties) {
+        String project = properties.getProperty(DEFAULT_PROJECT_OPT);
+        String output = properties.getProperty(ENTITIES_EXPORT_OUTPUT_OPT);
+        EntityExporter exporter;
+        try {
+            exporter = EntityExporter.forModel(properties.getProperty(ENTITIES_EXPORT_OPT));
+        } catch (UnknownTargetModel e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
+        }
+        if (repository.getProject(project) == null) {
+            return error("project '%s' does not exist".formatted(project), "not_found", EXIT_NOT_FOUND, false);
+        }
+        try {
+            if (output == null) {
+                exportEntities(statements, project, exporter, System.out);
+            } else {
+                try (OutputStream file = Files.newOutputStream(Path.of(output))) {
+                    exportEntities(statements, project, exporter, file);
+                }
+            }
+            return EXIT_SUCCESS;
+        } catch (IOException | UncheckedIOException | IllegalArgumentException e) {
+            return error(e.getMessage(), "runtime", EXIT_RUNTIME, false);
+        }
+    }
+
+    private static void exportEntities(StatementRepository statements, String project, EntityExporter exporter,
+                                       OutputStream out) {
+        statements.entities(project, exporter.model(), entities -> {
+            exporter.export(entities, out);
+            return null;
+        });
     }
 
     static int handleProjectDelete(ProjectAdminService service, Properties properties,
