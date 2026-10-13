@@ -61,9 +61,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ElasticsearchSpewerFactory spewerFactory;
     private final DocumentCollectionFactory<Path> collectionFactory;
-    private final Extractor extractor;
     private final Options<String> allTaskOptions;
-    private final String indexName;
     private final int minOcrConfidence;
     private final Function<Double, Void> progressCallback;
     private long totalToProcess;
@@ -90,55 +88,55 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
         warnIfParseTimeoutDisabled();
 
         allTaskOptions = options().createFrom(Options.from(taskView.args));
-        indexName = allTaskOptions.valueIfPresent("projectName")
-                                  .or(() -> allTaskOptions.valueIfPresent(DEFAULT_PROJECT_OPT))
-                                  .orElse(DEFAULT_DEFAULT_PROJECT);
         minOcrConfidence = allTaskOptions.valueIfPresent(OCR_MIN_CONFIDENCE_OPT).map(Integer::parseInt)
                                          .orElse(DEFAULT_OCR_MIN_CONFIDENCE);
-        this.extractor = createExtractor(new DocumentFactory().configure(allTaskOptions), allTaskOptions);
     }
 
     @Override
     public Long call() throws Exception {
         super.call();
-        // Opt-in artifact generation is wired here (not in the constructor) so a bad --artifacts
-        // config surfaces as a clean task error rather than a reflective-construction NackException
-        // that requeues forever. When set, extract-lib writes embed bytes to the same project root the
-        // ManifestRecorder writes manifests to.
-        ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
-        ManifestRecorder manifestRecorder = artifactOptions.artifactProjectRoot().map(projectRoot -> {
-            List<Artifact> selected = ArtifactRegistry.withDefaults(propertiesProvider.toRecord(ExtractorOptions.class))
-                                                      .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
-            boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
-            boolean artifactStageRuns = new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT);
-            // Only raw falls out of the streaming parse (see ManifestRecorder): a selection naming any
-            // other type reads as a promise this stage does not keep, so say so rather than drop it in
-            // silence. Silent when ARTIFACT is coming, since the run does produce them then: a warning
-            // that fires on a correct run is one nobody reads. Once per run, not per document.
-            List<String> notAtIndexTime = selected.stream().map(Artifact::type).filter(type -> type != ArtifactType.RAW)
-                                                  .map(ArtifactType::token).toList();
-            if (!notAtIndexTime.isEmpty() && !artifactStageRuns) {
-                logger.warn("--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in " +
+        try (Extractor extractor = createExtractor(new DocumentFactory().configure(allTaskOptions), allTaskOptions)) {
+            // Opt-in artifact generation is wired here (not in the constructor) so a bad --artifacts
+            // config surfaces as a clean task error rather than a reflective-construction NackException
+            // that requeues forever. When set, extract-lib writes embed bytes to the same project root the
+            // ManifestRecorder writes manifests to.
+            ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
+            ManifestRecorder manifestRecorder = artifactOptions.artifactProjectRoot().map(projectRoot -> {
+                List<Artifact> selected =
+                        ArtifactRegistry.withDefaults(propertiesProvider.toRecord(ExtractorOptions.class))
+                                        .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
+                boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
+                boolean artifactStageRuns = new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT);
+                // Only raw falls out of the streaming parse (see ManifestRecorder): a selection naming any
+                // other type reads as a promise this stage does not keep, so say so rather than drop it in
+                // silence. Silent when ARTIFACT is coming, since the run does produce them then: a warning
+                // that fires on a correct run is one nobody reads. Once per run, not per document.
+                List<String> notAtIndexTime =
+                        selected.stream().map(Artifact::type).filter(type -> type != ArtifactType.RAW)
+                                .map(ArtifactType::token).toList();
+                if (!notAtIndexTime.isEmpty() && !artifactStageRuns) {
+                    logger.warn(
+                            "--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in " +
                             "--stages: {}", notAtIndexTime, rawSelected ? "only the 'raw' entry will be recorded." :
                                                             "this stage records nothing and writes no embedded payload; add 'raw' to --artifacts " +
                                                             "to keep the embedded-download cache.");
-            }
-            // extract-lib spools every embedded document's bytes here during the parse. This payload is
-            // not manifest-only: SourceExtractor.hasCachedEmbeddedSource also reads it straight off disk
-            // to let DocumentVerifier serve an oversized embed past embeddedDocumentDownloadMaxSize. A
-            // selection that skips it here trades that cache away, and a large embed 413s instead.
-            if (rawSelected || artifactStageRuns) {
-                extractor.setEmbedOutputPath(projectRoot);
-            }
-            return new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected,
-                                        artifactOptions.force(), taskId);
-        }).orElse(null);
-        ElasticsearchSpewer spewer = spewerFactory.create(indexName, minOcrConfidence, manifestRecorder);
-        spewer.createIndexIfNotExists();
-        DocumentConsumer consumer = new DocumentConsumer(spewer, extractor, parallelism);
-        DocumentQueueDrainer<Path> drainer = createDrainer(consumer);
-        logger.info("Processing up to {} file(s) in parallel", parallelism);
-        try {
+                }
+                // extract-lib spools every embedded document's bytes here during the parse. This payload is
+                // not manifest-only: SourceExtractor.hasCachedEmbeddedSource also reads it straight off disk
+                // to let DocumentVerifier serve an oversized embed past embeddedDocumentDownloadMaxSize. A
+                // selection that skips it here trades that cache away, and a large embed 413s instead.
+                if (rawSelected || artifactStageRuns) {
+                    extractor.setEmbedOutputPath(projectRoot);
+                }
+                return new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected,
+                                            artifactOptions.force(), taskId);
+            }).orElse(null);
+            ElasticsearchSpewer spewer =
+                    spewerFactory.create(artifactOptions.projectName(), minOcrConfidence, manifestRecorder);
+            spewer.createIndexIfNotExists();
+            DocumentConsumer consumer = new DocumentConsumer(spewer, extractor, parallelism);
+            DocumentQueueDrainer<Path> drainer = createDrainer(consumer);
+            logger.info("Processing up to {} file(s) in parallel", parallelism);
             totalToProcess = drainer.drain().get() - skipped.get();
             drainer.shutdown();
             drainer.awaitTermination(10, SECONDS); // drain is finished
@@ -154,8 +152,6 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
                 consumer.getReporter().close();
             logger.info("exiting");
             return totalToProcess;
-        } finally {
-            extractor.close();
         }
     }
 

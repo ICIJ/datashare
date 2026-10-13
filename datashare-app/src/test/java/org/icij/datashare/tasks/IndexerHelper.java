@@ -1,5 +1,7 @@
 package org.icij.datashare.tasks;
 
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
+
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.apache.commons.io.FilenameUtils;
@@ -64,7 +66,7 @@ public class IndexerHelper {
                 new PropertiesProvider()).withRefresh(Refresh.True), new MemoryDocumentCollectionFactory<>(), l -> ENGLISH,
                 new FieldNames(), new PropertiesProvider(new HashMap<>() {{
             put("defaultProject", spewerProject);
-        }}));
+        }}), spewerProject, DEFAULT_OCR_MIN_CONFIDENCE, null);
         elasticsearchSpewer.write(document);
         return path.toFile();
     }
