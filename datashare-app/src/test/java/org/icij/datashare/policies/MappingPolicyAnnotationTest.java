@@ -1,12 +1,15 @@
 package org.icij.datashare.policies;
 
 import net.codestory.http.Context;
+import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tabular.ExtractionMapping;
-import org.icij.datashare.tabular.ExtractionMappingService;
+import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
 import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
+import org.icij.datashare.web.errors.BadRequestException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,6 +23,7 @@ import java.util.Optional;
 import static junit.framework.TestCase.assertEquals;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -37,7 +41,7 @@ public class MappingPolicyAnnotationTest {
     @Mock
     CasbinRuleAdapter adapter;
     @Mock
-    ExtractionMappingService mappings;
+    ExtractionMappingRepository mappings;
     private AutoCloseable mocks;
     private MappingPolicyAnnotation annotation;
 
@@ -47,7 +51,8 @@ public class MappingPolicyAnnotationTest {
         Authorizer authorizer = new Authorizer(adapter);
         authorizer.addRoleForUserInProject(localUser("cecile"), Role.PROJECT_ADMIN, Domain.DEFAULT, project("prj"));
         authorizer.addRoleForUserInProject(localUser("john"), Role.PROJECT_MEMBER, Domain.DEFAULT, project("prj"));
-        annotation = new MappingPolicyAnnotation(authorizer, mappings);
+        authorizer.addRoleForUserInProject(localUser("vera"), Role.PROJECT_VISITOR, Domain.DEFAULT, project("prj"));
+        annotation = new MappingPolicyAnnotation(new ExtractionMappingServiceImpl(mappings, authorizer));
     }
 
     @After
@@ -63,6 +68,16 @@ public class MappingPolicyAnnotationTest {
     @Test
     public void test_owner_without_role_on_the_project_is_forbidden() {
         assertEquals(403, apply("jane", mappingOwnedBy("jane")));
+    }
+
+    @Test
+    public void test_owner_with_visitor_role_is_forbidden() {
+        assertEquals(403, apply("vera", mappingOwnedBy("vera")));
+    }
+
+    @Test
+    public void test_anonymous_caller_is_unauthorized() {
+        assertThrows(UnauthorizedException.class, () -> applyIn(context(null, "prj")));
     }
 
     @Test
@@ -98,19 +113,38 @@ public class MappingPolicyAnnotationTest {
     }
 
     @Test
-    public void test_unreadable_mapping_is_a_conflict() {
-        when(mappings.get("prj", "m1")).thenThrow(new UnreadableExtractionMapping("m1", new IOException("unknown model")));
+    public void test_member_cannot_tell_an_unknown_mapping_from_someone_else_mapping() {
+        assertEquals(403, apply("john", null));
+    }
 
-        assertEquals(409, applyIn(context("cecile", "prj")));
+    @Test
+    public void test_unreadable_mapping_is_a_conflict_for_an_admin() {
+        assertEquals(409, applyUnreadable("cecile", "someone"));
+    }
+
+    @Test
+    public void test_unreadable_mapping_is_a_conflict_for_its_owner() {
+        assertEquals(409, applyUnreadable("john", "john"));
+    }
+
+    @Test
+    public void test_member_cannot_tell_an_unreadable_mapping_from_someone_else_mapping() {
+        assertEquals(403, applyUnreadable("john", "someone"));
     }
 
     @Test
     public void test_wildcard_project_is_a_bad_request() {
-        assertEquals(400, applyIn(context("cecile", "*")));
+        assertEquals(400, assertThrows(BadRequestException.class, () -> applyIn(context("cecile", "*"))).code());
     }
 
     private int apply(String userId, ExtractionMapping stored) {
         when(mappings.get("prj", "m1")).thenReturn(Optional.ofNullable(stored));
+        return applyIn(context(userId, "prj"));
+    }
+
+    private int applyUnreadable(String userId, String ownerId) {
+        when(mappings.get("prj", "m1")).thenThrow(
+                new UnreadableExtractionMapping("m1", ownerId, new IOException("unknown model")));
         return applyIn(context(userId, "prj"));
     }
 
@@ -121,7 +155,7 @@ public class MappingPolicyAnnotationTest {
 
     private static Context context(String userId, String projectId) {
         Context context = mock(Context.class);
-        when(context.currentUser()).thenReturn(new DatashareUser(userId));
+        when(context.currentUser()).thenReturn(userId == null ? null : new DatashareUser(userId));
         when(context.pathParam("project")).thenReturn(projectId);
         when(context.pathParam("mappingId")).thenReturn("m1");
         return context;

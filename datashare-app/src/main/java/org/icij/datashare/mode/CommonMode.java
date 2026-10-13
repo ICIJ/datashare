@@ -395,6 +395,19 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return authorizer;
     }
 
+    // Local modes grant no project roles (PostLoginEnroller runs on a server login only), so they cannot
+    // enforce them, and a CLI run carries nullUser(), which is trusted anyway. A task worker runs the
+    // server's tasks, so it must enforce them.
+    @Provides
+    @Singleton
+    ExtractionMappingService provideExtractionMappingService(ExtractionMappingRepository mappings,
+                                                             Provider<Authorizer> authorizer) {
+        if (mode.isLocal() || mode == Mode.CLI) {
+            return new ExtractionMappingServiceImpl(mappings);
+        }
+        return new ExtractionMappingServiceImpl(mappings, authorizer.get());
+    }
+
     @Provides
     @Singleton
     Indexer provideIndexer() {
@@ -564,7 +577,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         bind(ExtractionMappingRepository.class).toInstance(repositoryFactory.createExtractionMappingRepository());
         bind(UserAdminService.class).to(UserAdminServiceImpl.class).in(Singleton.class);
         bind(ProjectAdminService.class).to(ProjectAdminServiceImpl.class).in(Singleton.class);
-        bind(ExtractionMappingService.class).to(ExtractionMappingServiceImpl.class).in(Singleton.class);
 
         TaskRepositoryType taskRepositoryType =
                 TaskRepositoryType.valueOf(propertiesProvider.get(TASK_REPOSITORY_OPT).orElse("DATABASE"));

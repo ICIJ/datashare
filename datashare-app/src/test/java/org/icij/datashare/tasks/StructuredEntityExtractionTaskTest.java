@@ -9,8 +9,14 @@ import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.StatementRepository;
+import org.icij.datashare.policies.Authorizer;
+import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
+import org.icij.datashare.tabular.ForbiddenExtractionMapping;
 import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.tabular.StatementBuilder;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -55,6 +61,7 @@ public class StructuredEntityExtractionTaskTest {
             spy(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True));
     private final InMemoryStatementRepository statements = new InMemoryStatementRepository();
     private final ExtractionMappingRepository mappings = mock(ExtractionMappingRepository.class);
+    private final ExtractionMappingServiceImpl service = new ExtractionMappingServiceImpl(mappings);
 
     @Before
     public void setUp() throws IOException {
@@ -114,9 +121,25 @@ public class StructuredEntityExtractionTaskTest {
                 Map.of("defaultProject", "prj", "mappingId", "m1"));
 
         assertThat(assertThrows(IllegalArgumentException.class,
-                                () -> new StructuredEntityExtractionTask(indexer, statements, mappings,
+                                () -> new StructuredEntityExtractionTask(indexer, statements, service,
                                                                          new PropertiesProvider(), taskView, done -> null).call())
                            .getMessage()).contains("is not granted prj");
+    }
+
+    @Test
+    public void test_refuses_a_member_running_someone_else_mapping() throws Exception {
+        Authorizer authorizer = new Authorizer(mock(CasbinRuleAdapter.class));
+        authorizer.addRoleForUserInProject(User.localUser("jane"), Role.PROJECT_MEMBER, Domain.DEFAULT,
+                                           Project.project("prj"));
+        stored(mapping("m1"));
+        Task<StructuredEntityExtractionResult> taskView = new Task<>(
+                StructuredEntityExtractionTask.class.getName(), User.localUser("jane", List.of("prj")),
+                Map.of("defaultProject", "prj", "mappingId", "m1"));
+
+        assertThrows(ForbiddenExtractionMapping.class,
+                     () -> new StructuredEntityExtractionTask(indexer, statements,
+                                                              new ExtractionMappingServiceImpl(mappings, authorizer),
+                                                              new PropertiesProvider(), taskView, done -> null).call());
     }
 
     @Test
@@ -149,7 +172,7 @@ public class StructuredEntityExtractionTaskTest {
                 Map.of("defaultProject", "bad/name", "mappingId", "m1"));
 
         assertThrows(IllegalArgumentException.class,
-                     () -> new StructuredEntityExtractionTask(indexer, statements, mappings, new PropertiesProvider(),
+                     () -> new StructuredEntityExtractionTask(indexer, statements, service, new PropertiesProvider(),
                                                               taskView, done -> null).call());
         assertThat(statements.stored).isEmpty();
     }
@@ -350,7 +373,7 @@ public class StructuredEntityExtractionTaskTest {
         Task<StructuredEntityExtractionResult> taskView = new Task<>(
                 StructuredEntityExtractionTask.class.getName(), User.localUser("jane", List.of("prj")),
                 Map.of("defaultProject", "prj", "mappingId", mappingId));
-        return new StructuredEntityExtractionTask(indexer, store, mappings, new PropertiesProvider(), taskView,
+        return new StructuredEntityExtractionTask(indexer, store, service, new PropertiesProvider(), taskView,
                                                   done -> null);
     }
 }

@@ -13,7 +13,7 @@ import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.model.EntitiesIndexRebuilder;
 import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.tabular.ExtractionMapping;
-import org.icij.datashare.tabular.ExtractionMappingRepository;
+import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.Rows;
 import org.icij.datashare.tabular.StatementBuilder;
 import org.icij.datashare.tabular.TabularRowReader;
@@ -41,7 +41,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final StatementRepository statements;
-    private final ExtractionMappingRepository mappings;
+    private final ExtractionMappingService mappings;
     private final TabularRowReader reader;
     private final DocumentVerifier verifier;
     private final Task<StructuredEntityExtractionResult> taskView;
@@ -54,7 +54,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
 
     @Inject
     public StructuredEntityExtractionTask(Indexer indexer, StatementRepository statements,
-                                          ExtractionMappingRepository mappings, PropertiesProvider propertiesProvider,
+                                          ExtractionMappingService mappings, PropertiesProvider propertiesProvider,
                                           @Assisted Task<StructuredEntityExtractionResult> taskView,
                                           @Assisted Function<Double, Void> updateCallback) {
         this.indexer = indexer;
@@ -81,7 +81,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         User user = taskView.getUser();
         // A CLI run carries nullUser(), which is granted nothing; the HTTP triggers carry a real one.
         require(user.isNull() || user.isGranted(projectId), "user '" + user.id + "' is not granted " + projectId);
-        ExtractionMapping mapping = mappings.get(projectId, mappingId).orElseThrow(
+        ExtractionMapping mapping = mappings.get(projectId, mappingId, user).orElseThrow(
                 () -> new IllegalArgumentException("no mapping '" + mappingId + "' in " + projectId));
         // Ahead of the read rather than in the StatementBuilder: a mapping stored before the
         // ontology moved is valid on the way in and stale on the way out, and the eager readers
