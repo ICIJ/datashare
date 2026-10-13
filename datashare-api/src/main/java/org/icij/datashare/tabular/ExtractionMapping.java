@@ -35,7 +35,11 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         if (entities.isEmpty()) {
             throw new EmptyExtractionMapping(id);
         }
-        entities.forEach((alias, entity) -> Objects.requireNonNull(entity, "entities." + alias));
+        entities.forEach((alias, entity) -> {
+            if (entity == null) {
+                throw new MalformedExtractionMapping("field 'entities.%s' holds a null".formatted(alias));
+            }
+        });
         entities = Map.copyOf(entities);
         TargetModelRegistry.get(Objects.requireNonNull(model, "model"));
     }
