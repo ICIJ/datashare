@@ -589,6 +589,22 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_digest_project_name_is_not_set_with_no_digest_project() throws IOException {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("noDigestProject", "true"));
+        configure(routes -> routes
+                .add(new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, taskFinder))
+                .filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
+        String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
+        String path = Objects.requireNonNull(getClass().getResource("/docs/")).getPath();
+        RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
+        response.should().haveType("application/json");
+        taskManager.waitTasksToBeDone(1, SECONDS);
+
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().args.keySet()).
+                excludes("digestProjectName");
+    }
+
+    @Test
     public void test_scan_queue_is_created_correctly_and_options_ignored() throws IOException {
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\", \"queueName\": \"bar\"}}";
         String path = Objects.requireNonNull(getClass().getResource("/docs/")).getPath();
