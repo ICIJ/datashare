@@ -437,6 +437,28 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
+    public void test_entities_of_a_model_leaves_out_the_other_models() {
+        LocalDateTime now = LocalDateTime.now();
+        insertRawStatement("id-1", "ftm", "shared", "Person", "ftm:name", "Ada", now);
+        insertRawStatement("id-2", "other", "shared", "Thing", "other:name", "Ada", now);
+        insertRawStatement("id-3", "other", "only-other", "Thing", "other:name", "Grace", now);
+
+        List<ModelEntity> found = repository.entities("prj", "ftm", Stream::toList);
+
+        assertThat(found.stream().map(ModelEntity::model).toList()).containsOnly("ftm");
+        assertThat(found.stream().map(ModelEntity::id).toList()).containsOnly("shared");
+    }
+
+    @Test
+    public void test_entities_of_a_model_the_project_does_not_hold_is_empty() {
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+
+        List<ModelEntity> found = repository.entities("prj", "wikidata", Stream::toList);
+
+        assertThat(found).isEmpty();
+    }
+
+    @Test
     public void test_entity_serves_the_first_model_of_an_entity_id_shared_by_two() {
         LocalDateTime now = LocalDateTime.now();
         insertRawStatement("id-1", "ftm", "shared", "Person", "ftm:name", "Ada", now);
