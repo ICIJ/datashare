@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -18,6 +19,7 @@ import org.icij.datashare.model.UnknownTargetModel;
 import org.icij.datashare.utils.PayloadFormatter;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 
+@Singleton
 @Prefix("/api")
 public class EntityExportResource {
     private final StatementRepository statements;
@@ -47,10 +49,7 @@ public class EntityExportResource {
         }
         StreamingOutput body = out -> {
             try {
-                statements.entities(project, exporter.model(), entities -> {
-                    exporter.export(entities, out);
-                    return null;
-                });
+                exporter.export(statements, project, out);
             } catch (UncheckedIOException e) {
                 // fluent-http only recognises a client hanging up when it gets the bare IOException
                 throw e.getCause();
