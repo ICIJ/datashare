@@ -623,7 +623,9 @@ public class TaskResource {
         clone.remove(UpstreamGate.UPSTREAM_TASK_ID);
         clone.setProperty(QUEUE_NAME_OPT, "extract:queue"); // Override any given queue name value
         clone.setProperty(REPORT_NAME_OPT, getReportMapNameFor(properties));
-        clone.setProperty(DIGEST_PROJECT_NAME_OPT, clone.getProperty(DEFAULT_PROJECT_OPT, "local-datashare"));
+        if (!parseBoolean(clone.getProperty(NO_DIGEST_PROJECT_OPT))) {
+            clone.setProperty(DIGEST_PROJECT_NAME_OPT, clone.getProperty(DEFAULT_PROJECT_OPT, "local-datashare"));
+        }
         return new PropertiesProvider(clone).overrideQueueNameWithHash().getProperties();
     }
 
