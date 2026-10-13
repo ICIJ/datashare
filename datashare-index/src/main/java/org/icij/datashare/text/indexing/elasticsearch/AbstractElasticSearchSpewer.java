@@ -26,14 +26,11 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import static java.lang.System.currentTimeMillis;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
-import static org.icij.datashare.cli.DatashareCliOptions.OCR_MIN_CONFIDENCE_OPT;
 import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 import static java.util.Optional.ofNullable;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_ENCODING;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.text.Hasher.shorten;
 
 public abstract class AbstractElasticSearchSpewer extends Spewer {
@@ -56,20 +53,23 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
     private static final String PST_UNKNOWN = "unknown";
     private final Indexer indexer;
     private final LanguageGuesser languageGuesser;
-    protected String indexName;
-    private IndexOptions options;
-    // volatile: set by the task thread before the pipeline starts, read by every consumer thread
-    private volatile ManifestRecorder manifestRecorder;
-    // volatile: set by the task thread in configure, read by every consumer thread
-    private volatile int minOcrConfidence = DEFAULT_OCR_MIN_CONFIDENCE;
+    protected final String indexName;
+    private final IndexOptions options;
+    private final int minOcrConfidence;
+    // Opt-in (--artifacts): records the raw manifest entry of each indexed document. Null when the
+    // run does not generate artifacts, so indexing is unchanged.
+    private final ManifestRecorder manifestRecorder;
 
     public AbstractElasticSearchSpewer(FieldNames fields, Indexer indexer, LanguageGuesser languageGuesser,
-                                       IndexOptions options) {
+                                       IndexOptions options, String indexName, int minOcrConfidence,
+                                       ManifestRecorder manifestRecorder) {
         super(fields);
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
         this.options = options;
-        this.indexName = options.defaultIndexName();
+        this.indexName = indexName;
+        this.minOcrConfidence = minOcrConfidence;
+        this.manifestRecorder = manifestRecorder;
     }
 
     /**
@@ -413,35 +413,14 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
         return algorithm == null ? Entity.DEFAULT_DIGESTER : Hasher.parse(algorithm).orElse(Entity.DEFAULT_DIGESTER);
     }
 
+    /** The spewer is immutable: its index, OCR threshold and manifest recorder are constructor arguments. */
     @Override
     public Spewer configure(Options<String> options) {
-        super.configure(options);
-        setIndex(options.valueIfPresent("projectName").orElse(options.get(DEFAULT_PROJECT_OPT).value().get()));
-        minOcrConfidence = options.valueIfPresent(OCR_MIN_CONFIDENCE_OPT).map(Integer::parseInt)
-                                  .orElse(DEFAULT_OCR_MIN_CONFIDENCE);
-        return this;
+        throw new UnsupportedOperationException("a spewer is configured by its constructor");
     }
 
     public Spewer createIndexIfNotExists() throws IOException {
         indexer.createIndex(indexName);
         return this;
     }
-
-    public Spewer createIndexIfNotExists(String indexName) throws IOException {
-        setIndex(indexName);
-        createIndexIfNotExists();
-        return this;
-    }
-
-    private void setIndex(String indexName) {
-        this.indexName = indexName;
-    }
-
-    /** Opt-in: when set, records the raw manifest entry for each indexed document (INDEX-time
-     *  artifact generation). Null by default, so indexing is unchanged unless --artifacts is set. */
-    public AbstractElasticSearchSpewer setManifestRecorder(ManifestRecorder manifestRecorder) {
-        this.manifestRecorder = manifestRecorder;
-        return this;
-    }
-
 }

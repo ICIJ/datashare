@@ -54,6 +54,7 @@ import static org.fest.assertions.MapAssert.entry;
 import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.utils.JsonUtils.nodeToMap;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -72,7 +73,8 @@ public class ElasticsearchSpewerTest {
     public void test_write_records_raw_manifest_when_recorder_set() throws Exception {
         Path projectRoot = artifactDir.getRoot().toPath().resolve("prj");
         ManifestRepository repository = new FilesystemManifestRepository();
-        spewer.setManifestRecorder(new ManifestRecorder(repository, projectRoot, List.of(new RawArtifact()), false, null));
+        ElasticsearchSpewer spewer = spewerOn(es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE,
+                new ManifestRecorder(repository, projectRoot, List.of(new RawArtifact()), false, null));
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("recorded-file.txt"));
         document.setReader(new ParsingReader(new ByteArrayInputStream("test".getBytes())));
 
@@ -318,7 +320,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_write_low_confidence_ocr_image_has_unknown_language() throws Exception {
-        Map<String, Object> indexed = indexedOcrImage("IMG_0042.png", 0.3, Map.of());
+        Map<String, Object> indexed = indexedOcrImage("IMG_0042.png", 0.3, DEFAULT_OCR_MIN_CONFIDENCE);
         assertThat(indexed.get("language")).isEqualTo("UNKNOWN");
         // the LANGUAGE stage reads the confidence back under this key
         assertThat((Map<String, Object>) indexed.get("metadata")).includes(entry("tika_metadata_ocr_confidence", "0.3"));
@@ -326,17 +328,13 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_write_reads_the_ocr_min_confidence_option() throws Exception {
-        assertThat(indexedOcrImage("IMG_0044.png", 0.3, Map.of("ocrMinConfidence", "20")).get("language"))
+        assertThat(indexedOcrImage("IMG_0044.png", 0.3, 20).get("language"))
                 .isEqualTo("ENGLISH");
     }
 
-    @Test
-    public void test_a_task_without_ocr_min_confidence_goes_back_to_the_default() throws Exception {
-        try (ElasticsearchSpewer ocrSpewer = textOnlySpewer()) {
-            ocrSpewer.configure(Options.from(Map.<String, Object>of("defaultProject", es.getIndexName(), "ocrMinConfidence", "20")));
-            ocrSpewer.configure(Options.from(Map.<String, Object>of("defaultProject", es.getIndexName())));
-            assertThat(writeOcrImage(ocrSpewer, "IMG_0046.png", 0.3).get("language")).isEqualTo("UNKNOWN");
-        }
+    @Test(expected = UnsupportedOperationException.class)
+    public void test_configure_is_not_supported_because_the_spewer_is_immutable() {
+        spewer.configure(Options.from(Map.of()));
     }
 
     @Test
@@ -355,20 +353,23 @@ public class ElasticsearchSpewerTest {
         assertThat((Map<String, Object>) nodeToMap(indexed.source()).get("metadata")).includes(entry("tika_metadata_ocr_model", "HanS"));
     }
 
-    private Map<String, Object> indexedOcrImage(String fileName, double confidence, Map<String, String> options) throws Exception {
-        try (ElasticsearchSpewer ocrSpewer = textOnlySpewer()) {
-            Map<String, Object> taskOptions = new HashMap<>(options);
-            taskOptions.put("defaultProject", es.getIndexName());
-            ocrSpewer.configure(Options.from(taskOptions));
+    private Map<String, Object> indexedOcrImage(String fileName, double confidence, int minOcrConfidence) throws Exception {
+        try (ElasticsearchSpewer ocrSpewer = textOnlySpewer(minOcrConfidence)) {
             return writeOcrImage(ocrSpewer, fileName, confidence);
         }
     }
 
     // ENGLISH for any text, UNKNOWN for none: the language only depends on whether the content was kept.
-    private ElasticsearchSpewer textOnlySpewer() {
+    private ElasticsearchSpewer textOnlySpewer(int minOcrConfidence) {
         return new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
                 documentQueueFactory, text -> text == null || text.isBlank() ? Language.UNKNOWN : Language.ENGLISH,
-                new FieldNames(), new PropertiesProvider(Map.of("defaultProject", es.getIndexName())));
+                new FieldNames(), new PropertiesProvider(), es.getIndexName(), minOcrConfidence, null);
+    }
+
+    private ElasticsearchSpewer spewerOn(String indexName, int minOcrConfidence, ManifestRecorder manifestRecorder) {
+        return new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
+                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(), indexName,
+                minOcrConfidence, manifestRecorder);
     }
 
     private Map<String, Object> writeOcrImage(ElasticsearchSpewer ocrSpewer, String fileName, double confidence) throws Exception {
@@ -689,37 +690,11 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
-    public void test_configure_is_creating_index() throws Exception {
+    public void test_creates_the_index_it_was_built_for() throws Exception {
         Indexer indexer = Mockito.mock(Indexer.class);
-        ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class), new FieldNames(), new PropertiesProvider());
-        spewer.configure(Options.from(new HashMap<>() {{
-            put("defaultProject", "foo");
-        }}));
-        spewer.createIndexIfNotExists();
+        new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class),
+                new FieldNames(), new PropertiesProvider(), "foo", DEFAULT_OCR_MIN_CONFIDENCE, null).createIndexIfNotExists();
         Mockito.verify(indexer).createIndex("foo");
-    }
-
-    @Test
-    public void test_configure_is_creating_index_with_legacy_property() throws Exception {
-        Indexer indexer = Mockito.mock(Indexer.class);
-        ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class), new FieldNames(), new PropertiesProvider());
-        spewer.configure(Options.from(new HashMap<>() {{
-            put("defaultProject", "foo");
-        }}));
-        spewer.createIndexIfNotExists();
-        Mockito.verify(indexer).createIndex("foo");
-    }
-
-    @Test
-    public void test_configure_is_creating_index_with_legacy_and_new_property() throws Exception {
-        Indexer indexer = Mockito.mock(Indexer.class);
-        ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class), new FieldNames(), new PropertiesProvider());
-        spewer.configure(Options.from(new HashMap<>() {{
-            put("projectName", "bar");
-            put("defaultProject", "foo");
-        }}));
-        spewer.createIndexIfNotExists();
-        Mockito.verify(indexer).createIndex("bar");
     }
 
     @Test
