@@ -136,9 +136,10 @@ public class ServerMode extends CommonMode {
         return routes.add(TaskResource.class).add(IndexResource.class).add(UserResource.class)
                      .add(NamedEntityResource.class).add(DocumentResource.class).add(ArtifactResource.class)
                      .add(DocumentUserRecommendationResource.class).add(BatchSearchResource.class)
-                     .add(PathBannerResource.class).add(ExtractionMappingResource.class).add(FtmResource.class)
-                     .add(NerResource.class).add(ApiKeyResource.class).add(ProjectResource.class)
-                     .add(ContentTypeResource.class).add(McpResource.class).filter(ApiKeyFilter.class)
-                     .filter(Filter.class).filter(CsrfFilter.class);
+                     .add(PathBannerResource.class).add(ExtractionMappingResource.class)
+                     .add(EntityExportResource.class).add(FtmResource.class).add(NerResource.class)
+                     .add(ApiKeyResource.class).add(ProjectResource.class).add(ContentTypeResource.class)
+                     .add(McpResource.class).filter(ApiKeyFilter.class).filter(Filter.class)
+                     .filter(CsrfFilter.class);
     }
 }
