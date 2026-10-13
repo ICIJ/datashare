@@ -41,7 +41,7 @@ public class ExtractionMappingResource {
 
     @Operation(description = """
             Saves an extraction mapping. A mapping is immutable: to change one, save it again under a new id.
-            The project and id come from the path and the author from the session, whatever the body says.
+            The project and id come from the path and the author from the session: a body declaring others is refused.
             """, parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
             @Parameter(name = "id", description = "the mapping id", in = ParameterIn.PATH)})
     @ApiResponse(responseCode = "201", description = "if the mapping was saved")
@@ -52,7 +52,8 @@ public class ExtractionMappingResource {
     public Payload saveMapping(String project, String id, Context context) {
         User user = (User) context.currentUser();
         try {
-            ExtractionMapping mapping = read(context.request().contentAsBytes(), project, id, user.id);
+            ObjectNode node = ExtractionMappingReader.parse(context.request().contentAsBytes());
+            ExtractionMapping mapping = ExtractionMappingReader.read(node, id, project, user.id);
             mappings.save(mapping);
             return created();
         } catch (DuplicateExtractionMapping e) {
@@ -84,11 +85,5 @@ public class ExtractionMappingResource {
         } catch (UnreadableExtractionMapping e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.CONFLICT);
         }
-    }
-
-    private static ExtractionMapping read(byte[] body, String project, String id, String userId) throws IOException {
-        ObjectNode node = ExtractionMappingReader.parse(body);
-        node.put("id", id).put("projectId", project).put("userId", userId);
-        return ExtractionMappingReader.read(node, project, userId);
     }
 }

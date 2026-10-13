@@ -95,17 +95,35 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_save_takes_the_owner_from_the_session_not_the_body() {
+    public void test_save_takes_the_owner_from_the_session() {
         when(mappings.save(any())).thenReturn(true);
-        String body = BODY.replaceFirst("\\{", "{\"userId\": \"someone\", \"projectId\": \"other\", \"id\": \"m9\", ");
 
-        put("/api/prj/extraction-mappings/m1", body).should().respond(201);
+        put("/api/prj/extraction-mappings/m1", BODY).should().respond(201);
 
         ArgumentCaptor<ExtractionMapping> saved = ArgumentCaptor.forClass(ExtractionMapping.class);
         verify(mappings).save(saved.capture());
         assertThat(saved.getValue().userId()).isEqualTo("local");
-        assertThat(saved.getValue().projectId()).isEqualTo("prj");
-        assertThat(saved.getValue().id()).isEqualTo("m1");
+    }
+
+    @Test
+    public void test_save_refuses_a_body_naming_another_id() {
+        put("/api/prj/extraction-mappings/m1", BODY.replaceFirst("\\{", "{\"id\": \"m9\", "))
+                .should().respond(400).contain("field 'id' is 'm9'");
+        verify(mappings, never()).save(any());
+    }
+
+    @Test
+    public void test_save_refuses_a_body_naming_another_project() {
+        put("/api/prj/extraction-mappings/m1", BODY.replaceFirst("\\{", "{\"projectId\": \"other\", "))
+                .should().respond(400).contain("field 'projectId' is 'other'");
+        verify(mappings, never()).save(any());
+    }
+
+    @Test
+    public void test_save_refuses_a_body_naming_another_owner() {
+        put("/api/prj/extraction-mappings/m1", BODY.replaceFirst("\\{", "{\"userId\": \"someone\", "))
+                .should().respond(400).contain("field 'userId' is 'someone'");
+        verify(mappings, never()).save(any());
     }
 
     @Test
