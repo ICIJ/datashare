@@ -62,7 +62,7 @@ abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager 
         Task<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("canceled event for {}", e.taskId);
-            taskView.cancel();
+            cancelOrQueue(taskView, e.requeue);
             update(taskView);
             if (e.requeue) {
                 try {
@@ -75,6 +75,16 @@ abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager 
             logger.warn("no task found for canceled event {}", e.taskId);
         }
         return taskView;
+    }
+
+    // A requeued task runs again, so it must not be stored as finished: the repository would then refuse its
+    // progress updates.
+    static void cancelOrQueue(Task<?> taskView, boolean requeue) {
+        if (requeue) {
+            taskView.queue();
+            return;
+        }
+        taskView.cancel();
     }
 
     private <V extends Serializable> Task<V> setProgress(ProgressEvent e) throws IOException, UnknownTask {

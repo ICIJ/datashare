@@ -62,6 +62,17 @@ public class TaskManagerRedisTest {
         assertThat(updated).isEqualTo(update);
     }
 
+    @Test(timeout = 2000)
+    public void test_cancel_with_requeue_queues_the_task_again() throws Exception {
+        String taskId = taskManager.startTask("HelloWorld", User.local(), new HashMap<>());
+        Task<Serializable> task = taskSupplier.get(1, TimeUnit.SECONDS);
+
+        taskSupplier.canceled(task, true);
+        waitForEvent.await();
+
+        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(Task.State.QUEUED);
+    }
+
     @Test
     public void test_start_task() throws IOException {
         assertThat(taskManager.startTask("HelloWorld", User.local(),
