@@ -9,8 +9,6 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
 import org.icij.datashare.policies.Domain;
-import org.icij.datashare.policies.MappingPolicy;
-import org.icij.datashare.policies.MappingPolicyAnnotation;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.PolicyAnnotation;
 import org.icij.datashare.policies.Role;
@@ -263,16 +261,16 @@ public class ExtractionMappingResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_run_is_guarded_by_the_mapping_policy() throws Exception {
-        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping()));
-        MappingPolicyAnnotation policy = new MappingPolicyAnnotation(
-                new ExtractionMappingServiceImpl(mappings, new Authorizer(mock(CasbinRuleAdapter.class)), taskManager));
+    public void test_run_forbids_a_member_someone_else_mapping() throws Exception {
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mapping("someone", "companies")));
+        Authorizer authorizer = new Authorizer(mock(CasbinRuleAdapter.class));
+        authorizer.addRoleForUserInProject(localUser("local"), Role.PROJECT_MEMBER, Domain.DEFAULT, project("prj"));
         LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
-        configure(routes -> routes.registerAroundAnnotation(MappingPolicy.class, policy)
-                                  .add(new ExtractionMappingResource(new ExtractionMappingServiceImpl(mappings, taskManager))).filter(localUserFilter));
+        configure(routes -> routes.add(new ExtractionMappingResource(new ExtractionMappingServiceImpl(mappings, authorizer, taskManager)))
+                                  .filter(localUserFilter));
 
-        // the local user holds no role on the project in this authorizer
         post("/api/task/structuredEntityExtraction/prj/m1").should().respond(403);
+        assertThat(taskManager.getTasks().count()).isEqualTo(0);
     }
 
     private static ExtractionMapping mapping() {

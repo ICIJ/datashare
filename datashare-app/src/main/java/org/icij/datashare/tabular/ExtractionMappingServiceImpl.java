@@ -86,7 +86,7 @@ public class ExtractionMappingServiceImpl implements ExtractionMappingService {
 
     @Override
     public String run(String projectId, String id, User user) throws UnknownExtractionMapping, IOException {
-        if (mappings.get(projectId, id).isEmpty()) {
+        if (get(projectId, id, user).isEmpty()) {
             throw new UnknownExtractionMapping(projectId, id);
         }
         Map<String, Object> args = new HashMap<>(Map.of(DEFAULT_PROJECT_OPT, projectId, MAPPING_ID_OPT, id));

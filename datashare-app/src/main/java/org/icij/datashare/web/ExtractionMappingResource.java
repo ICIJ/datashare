@@ -13,13 +13,13 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.policies.MappingPolicy;
 import org.icij.datashare.policies.Policy;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.tabular.DuplicateExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingReader;
 import org.icij.datashare.tabular.ExtractionMappingService;
+import org.icij.datashare.tabular.ForbiddenExtractionMapping;
 import org.icij.datashare.tabular.UnknownExtractionMapping;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
 import org.icij.datashare.user.User;
@@ -27,6 +27,7 @@ import org.icij.datashare.utils.PayloadFormatter;
 import org.icij.datashare.web.errors.ForbiddenException;
 import java.io.IOException;
 import static net.codestory.http.payload.Payload.created;
+import static net.codestory.http.payload.Payload.forbidden;
 import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
@@ -76,13 +77,14 @@ public class ExtractionMappingResource {
     @ApiResponse(responseCode = "409",
             description = "if the stored mapping no longer reads, e.g. its target model is gone")
     @Post("/task/structuredEntityExtraction/:project/:mappingId")
-    @MappingPolicy
     public Payload runMapping(String project, String mappingId, Context context) throws IOException {
-        // the task refuses a user the project is not granted to, so a 201 would hand out a run bound to fail
+        // ahead of any lookup, so a user outside the project cannot tell a known id from an unknown one
         ForbiddenException.requireGranted(context, project);
         try {
             String taskId = mappings.run(project, mappingId, (User) context.currentUser());
             return new JsonPayload(201, new TaskResource.TaskResponse(taskId));
+        } catch (ForbiddenExtractionMapping e) {
+            return forbidden();
         } catch (UnknownExtractionMapping e) {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (UnreadableExtractionMapping e) {

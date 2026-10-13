@@ -27,7 +27,8 @@ public interface ExtractionMappingService {
     Optional<ExtractionMapping> get(String projectId, String id, User requester);
 
     /**
-     * Starts an extraction of a stored mapping and returns the task id.
+     * Starts an extraction of a stored mapping and returns the task id. Who may run it is decided by {@link #get}.
+     * @throws ForbiddenExtractionMapping when the user may not use the mapping.
      * @throws UnknownExtractionMapping when the project holds no mapping with this id.
      * @throws UnreadableExtractionMapping when the stored definition no longer parses.
      */
