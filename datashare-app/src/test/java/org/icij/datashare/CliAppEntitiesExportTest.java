@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -155,6 +156,48 @@ public class CliAppEntitiesExportTest {
 
         assertThat(exit).isEqualTo(1);
         assertThat(stderr.toString(UTF_8)).contains("error: ");
+    }
+
+    @Test
+    public void test_a_closed_stdout_stops_reading_the_project() {
+        AtomicInteger read = new AtomicInteger();
+        when(statements.entities(eq("prj"), eq("ftm"), any())).thenAnswer(call -> call
+                .<Function<Stream<ModelEntity>, Object>>getArgument(2)
+                .apply(Stream.iterate(0, i -> i + 1).limit(100_000)
+                             .map(i -> entity("p-" + i, "Person")).peek(e -> read.incrementAndGet())));
+        System.setOut(new PrintStream(new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                throw new IOException("Broken pipe");
+            }
+        }));
+
+        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+
+        assertThat(exit).isEqualTo(1);
+        assertThat(read.get()).isLessThan(1_000);
+    }
+
+    @Test
+    public void test_an_output_that_is_a_directory_exits_1_and_keeps_it() throws Exception {
+        projectHolds(entity("p-1", "Person"));
+        Path dir = folder.newFolder("exports").toPath();
+
+        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", dir.toString()));
+
+        assertThat(exit).isEqualTo(1);
+        assertThat(Files.isDirectory(dir)).isTrue();
+        assertThat(stderr.toString(UTF_8)).contains("error: is a directory: " + dir);
+    }
+
+    @Test
+    public void test_a_failure_without_message_names_the_exception() {
+        when(statements.entities(eq("prj"), eq("ftm"), any())).thenThrow(new IllegalStateException());
+
+        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+
+        assertThat(exit).isEqualTo(1);
+        assertThat(stderr.toString(UTF_8)).contains("error: java.lang.IllegalStateException");
     }
 
     @Test
