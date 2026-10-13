@@ -3,13 +3,17 @@ package org.icij.datashare.tabular;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.CasbinRuleAdapter;
+import org.icij.datashare.policies.Domain;
+import org.icij.datashare.policies.Role;
 import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.Project.project;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -118,6 +122,106 @@ public class ExtractionMappingServiceImplTest {
 
         assertThrows(UnknownExtractionMapping.class, () -> service.run("prj", "m1", User.localUser("john")));
         verify(taskManager, never()).startTask(any(Class.class), any(User.class), any(Map.class));
+    }
+
+    @Test
+    public void test_run_forbids_a_member_someone_else_mapping() throws Exception {
+        when(mappings.get("prj", "m1")).thenReturn(Optional.of(mappingOwnedBy("someone")));
+
+        assertThrows(ForbiddenExtractionMapping.class, () -> enforced().run("prj", "m1", User.localUser("john")));
+        verify(taskManager, never()).startTask(any(Class.class), any(User.class), any(Map.class));
+    }
+
+    @Test
+    public void test_get_lets_an_owner_with_the_member_role_through() throws Exception {
+        assertThat(getAs("john", mappingOwnedBy("john")).isPresent()).isTrue();
+    }
+
+    @Test
+    public void test_get_forbids_an_owner_without_role_on_the_project() throws Exception {
+        assertThrows(ForbiddenExtractionMapping.class, () -> getAs("jane", mappingOwnedBy("jane")));
+    }
+
+    @Test
+    public void test_get_forbids_an_owner_with_the_visitor_role() throws Exception {
+        assertThrows(ForbiddenExtractionMapping.class, () -> getAs("vera", mappingOwnedBy("vera")));
+    }
+
+    @Test
+    public void test_get_forbids_a_member_someone_else_mapping() throws Exception {
+        assertThrows(ForbiddenExtractionMapping.class, () -> getAs("john", mappingOwnedBy("someone")));
+    }
+
+    @Test
+    public void test_get_lets_an_admin_read_someone_else_mapping() throws Exception {
+        assertThat(getAs("cecile", mappingOwnedBy("john")).isPresent()).isTrue();
+    }
+
+    @Test
+    public void test_get_lets_an_admin_read_a_cli_mapping() throws Exception {
+        assertThat(getAs("cecile", mappingOwnedBy(null)).isPresent()).isTrue();
+    }
+
+    @Test
+    public void test_get_forbids_a_member_a_cli_mapping() throws Exception {
+        assertThrows(ForbiddenExtractionMapping.class, () -> getAs("john", mappingOwnedBy(null)));
+    }
+
+    @Test
+    public void test_get_tells_an_admin_the_mapping_is_unknown() throws Exception {
+        assertThat(getAs("cecile", null).isPresent()).isFalse();
+    }
+
+    @Test
+    public void test_get_forbids_a_user_without_role_before_looking_the_mapping_up() {
+        // a known id answering otherwise than an unknown one would let anyone list a project's mapping ids
+        assertThrows(ForbiddenExtractionMapping.class, () -> getAs("jane", null));
+        verify(mappings, never()).get(any(), any());
+    }
+
+    @Test
+    public void test_get_forbids_a_member_an_unknown_mapping_like_someone_else_mapping() throws Exception {
+        assertThrows(ForbiddenExtractionMapping.class, () -> getAs("john", null));
+    }
+
+    @Test
+    public void test_get_reports_an_unreadable_mapping_to_an_admin() {
+        assertThrows(UnreadableExtractionMapping.class, () -> getUnreadableAs("cecile", "someone"));
+    }
+
+    @Test
+    public void test_get_reports_an_unreadable_mapping_to_its_owner() {
+        assertThrows(UnreadableExtractionMapping.class, () -> getUnreadableAs("john", "john"));
+    }
+
+    @Test
+    public void test_get_forbids_a_member_someone_else_unreadable_mapping() {
+        assertThrows(ForbiddenExtractionMapping.class, () -> getUnreadableAs("john", "someone"));
+    }
+
+    private Optional<ExtractionMapping> getAs(String userId, ExtractionMapping stored) throws IOException {
+        when(mappings.get("prj", "m1")).thenReturn(Optional.ofNullable(stored));
+        return enforced().get("prj", "m1", User.localUser(userId));
+    }
+
+    private Optional<ExtractionMapping> getUnreadableAs(String userId, String ownerId) throws IOException {
+        when(mappings.get("prj", "m1")).thenThrow(
+                new UnreadableExtractionMapping("m1", ownerId, new IOException("unknown model")));
+        return enforced().get("prj", "m1", User.localUser(userId));
+    }
+
+    private ExtractionMappingService enforced() throws IOException {
+        Authorizer authorizer = new Authorizer(mock(CasbinRuleAdapter.class));
+        authorizer.addRoleForUserInProject(User.localUser("cecile"), Role.PROJECT_ADMIN, Domain.DEFAULT, project("prj"));
+        authorizer.addRoleForUserInProject(User.localUser("john"), Role.PROJECT_MEMBER, Domain.DEFAULT, project("prj"));
+        authorizer.addRoleForUserInProject(User.localUser("vera"), Role.PROJECT_VISITOR, Domain.DEFAULT, project("prj"));
+        return new ExtractionMappingServiceImpl(mappings, authorizer, taskManager);
+    }
+
+    private static ExtractionMapping mappingOwnedBy(String userId) {
+        return new ExtractionMapping("m1", "prj", userId, "companies", "ftm", "docId", null, RowSourceOptions.defaults(),
+                Map.of("c", new ExtractionMapping.EntityMapping("Company", List.of("id"),
+                        Map.of("name", new ExtractionMapping.PropertyMapping(List.of("name"), null, null, null, null)))));
     }
 
     private static ExtractionMapping mapping(String name) throws IOException {
