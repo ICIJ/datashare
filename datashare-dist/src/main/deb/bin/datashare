@@ -58,6 +58,11 @@ for _arg in "$@"; do
   esac
 done
 
+# Subcommands don't receive the launcher's default mode, so only an explicit --mode counts
+if [ "$is_subcommand" = true ]; then
+  datashare_mode=""
+fi
+
 # Parse command line arguments to check for mode override and quick exit flags
 args=("$@")
 skip_es_setup=false
