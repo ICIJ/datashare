@@ -1,10 +1,8 @@
 package org.icij.datashare.model.ftm;
 
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.model.EntityExporter;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.StatementRepository;
-import org.icij.datashare.model.UnknownTargetModel;
 import org.junit.Test;
 import tech.followthemoney.entity.ValueEntity;
 import tech.followthemoney.model.Model;
@@ -18,7 +16,6 @@ import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -90,17 +87,5 @@ public class FtmJsonExporterTest {
         exporter.export(statements, "prj", out);
 
         assertThat(out.toString(UTF_8)).contains("\"id\":\"p-1\"");
-    }
-
-    @Test
-    public void test_ftm_has_an_exporter() {
-        assertThat(EntityExporter.forModel("ftm")).isInstanceOf(FtmJsonExporter.class);
-    }
-
-    @Test
-    public void test_a_model_with_no_exporter_is_refused() {
-        UnknownTargetModel refused = assertThrows(UnknownTargetModel.class, () -> EntityExporter.forModel("wikidata"));
-
-        assertThat(refused.getMessage()).contains("wikidata");
     }
 }

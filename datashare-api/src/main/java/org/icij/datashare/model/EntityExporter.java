@@ -2,7 +2,8 @@ package org.icij.datashare.model;
 
 import org.icij.datashare.model.ftm.FtmJsonExporter;
 import java.io.OutputStream;
-import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /** Frames the entities of one data model into a file. The model's own JSON for one entity is
@@ -26,9 +27,11 @@ public interface EntityExporter {
     }
 
     static EntityExporter forModel(String model) {
-        return switch (model) {
-            case "ftm" -> new FtmJsonExporter();
-            default -> throw new UnknownTargetModel(model, List.of("ftm"));
-        };
+        Map<String, Supplier<EntityExporter>> exporters = Map.of("ftm", FtmJsonExporter::new);
+        Supplier<EntityExporter> exporter = model == null ? null : exporters.get(model);
+        if (exporter == null) {
+            throw new UnknownTargetModel(model, exporters.keySet());
+        }
+        return exporter.get();
     }
 }
