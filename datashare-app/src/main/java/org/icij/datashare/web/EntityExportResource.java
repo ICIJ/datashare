@@ -47,9 +47,10 @@ public class EntityExportResource {
         requireGranted(context, project);
         EntityExporter exporter;
         try {
-            exporter = EntityExporter.forModel(model == null || model.isBlank() ? "ftm" : model);
+            exporter = EntityExporter.forModel(
+                    model == null || model.isBlank() ? EntityExporter.DEFAULT_MODEL : model);
         } catch (UnknownTargetModel e) {
-            return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
         StreamingOutput body = out -> {
             CountingOutputStream sent = new CountingOutputStream(out);
