@@ -5,6 +5,7 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -44,8 +45,8 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         mocks = openMocks(this);
-        when(jooqRepository.getProjects()).thenReturn(List.of(project("prj")));
-        configure(routes -> routes.add(new EntityExportResource(statements))
+        when(jooqRepository.getProjects()).thenReturn(List.of(project("prj"), project("ftm")));
+        configure(routes -> routes.add(new EntityExportResource(statements)).add(new FtmResource(mock(Indexer.class)))
                 .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 
@@ -67,35 +68,45 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
     public void test_export_streams_the_project_entities_as_ftm_ndjson() {
         projectHolds(person("p-1", "Ada"), person("p-2", "Grace"));
 
-        get("/api/prj/entities/export").should().respond(200).haveType("application/x-ndjson")
+        get("/api/entities/prj/export").should().respond(200).haveType("application/x-ndjson")
                 .haveHeader("Content-Disposition", "attachment;filename=\"prj.ftm.json\"")
                 .contain("\"id\":\"p-1\"").contain("\"id\":\"p-2\"");
+    }
+
+    @Test
+    public void test_a_project_named_ftm_is_not_shadowed_by_the_ftm_document_route() {
+        when(statements.entities(eq("ftm"), eq("ftm"), any())).thenAnswer(
+                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2)
+                            .apply(Stream.of(person("p-1", "Ada"))));
+
+        get("/api/entities/ftm/export").should().respond(200).haveType("application/x-ndjson")
+                .contain("\"id\":\"p-1\"");
     }
 
     @Test
     public void test_an_empty_model_parameter_means_ftm() {
         projectHolds(person("p-1", "Ada"));
 
-        get("/api/prj/entities/export?model=").should().respond(200).contain("\"id\":\"p-1\"");
+        get("/api/entities/prj/export?model=").should().respond(200).contain("\"id\":\"p-1\"");
     }
 
     @Test
     public void test_a_project_with_no_entities_gives_an_empty_body() {
         projectHolds();
 
-        get("/api/prj/entities/export").should().respond(200).haveType("application/x-ndjson").not().contain("\"id\"");
+        get("/api/entities/prj/export").should().respond(200).haveType("application/x-ndjson").not().contain("\"id\"");
     }
 
     @Test
     public void test_a_model_with_no_exporter_is_a_bad_request_and_reads_nothing() {
-        get("/api/prj/entities/export?model=wikidata").should().respond(400).contain("unknown data model 'wikidata'");
+        get("/api/entities/prj/export?model=wikidata").should().respond(400).contain("unknown data model 'wikidata'");
 
         verify(statements, never()).entities(anyString(), anyString(), any());
     }
 
     @Test
     public void test_a_project_the_user_is_not_granted_is_forbidden() {
-        get("/api/other/entities/export").should().respond(403);
+        get("/api/entities/other/export").should().respond(403);
 
         verify(statements, never()).entities(anyString(), anyString(), any());
     }
@@ -112,14 +123,14 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
     public void test_a_failure_before_anything_is_sent_is_a_server_error() {
         projectFailsAfter(1);
 
-        get("/api/prj/entities/export").should().respond(500);
+        get("/api/entities/prj/export").should().respond(500);
     }
 
     @Test
     public void test_a_failure_after_part_of_the_export_is_sent_keeps_the_200_and_cuts_the_body() {
         projectFailsAfter(10_000);
 
-        get("/api/prj/entities/export").should().respond(200).contain("\"id\":\"p-0\"")
+        get("/api/entities/prj/export").should().respond(200).contain("\"id\":\"p-0\"")
                 .not().contain("\"id\":\"p-9999\"");
     }
 
