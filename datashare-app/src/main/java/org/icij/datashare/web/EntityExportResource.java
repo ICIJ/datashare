@@ -39,7 +39,11 @@ public class EntityExportResource {
             """, parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
             @Parameter(name = "model", description = "the data model to export, `ftm` by default",
                     in = ParameterIn.QUERY)})
-    @ApiResponse(responseCode = "200", description = "streams the entities, one per line for FtM")
+    @ApiResponse(responseCode = "200",
+            description = """
+                    returns the entities, one per line for FtM. PostgreSQL streams them, the embedded \
+                    database reads them all before the first byte is sent.
+                    """)
     @ApiResponse(responseCode = "400", description = "if no exporter writes this data model")
     @ApiResponse(responseCode = "403", description = "if the user is not granted the project")
     @Get("/entities/:project/export?model=:model")
