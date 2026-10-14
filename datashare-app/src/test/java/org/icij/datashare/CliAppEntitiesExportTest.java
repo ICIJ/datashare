@@ -174,14 +174,14 @@ public class CliAppEntitiesExportTest {
     }
 
     @Test
-    public void test_a_stdout_that_cannot_be_written_exits_1() {
+    public void test_a_stdout_that_cannot_be_written_exits_1_naming_the_pipe() {
         projectHolds(entity("p-1", "Person"));
         System.setOut(brokenStdout());
 
         int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
 
         assertThat(exit).isEqualTo(1);
-        assertThat(stderr.toString(UTF_8)).contains("error: ");
+        assertThat(stderr.toString(UTF_8)).contains("error: runtime: cannot write to stdout");
     }
 
     @Test
@@ -215,7 +215,7 @@ public class CliAppEntitiesExportTest {
         int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
 
         assertThat(exit).isEqualTo(1);
-        assertThat(stderr.toString(UTF_8)).contains("error: java.lang.IllegalStateException");
+        assertThat(stderr.toString(UTF_8)).contains("error: runtime: java.lang.IllegalStateException");
     }
 
     @Test
@@ -225,7 +225,7 @@ public class CliAppEntitiesExportTest {
         int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
 
         assertThat(exit).isEqualTo(1);
-        assertThat(stderr.toString(UTF_8)).contains("error: db down");
+        assertThat(stderr.toString(UTF_8)).contains("error: runtime: db down");
     }
 
     @Test
