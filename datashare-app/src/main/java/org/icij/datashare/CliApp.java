@@ -54,6 +54,7 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -654,7 +655,7 @@ class CliApp {
             if (file == null) {
                 exporter.export(statements, project, failingOnError(System.out));
                 if (System.out.checkError()) {
-                    return error("cannot write to stdout", "runtime", EXIT_RUNTIME, false);
+                    return error("runtime: cannot write to stdout", "runtime", EXIT_RUNTIME, false);
                 }
             } else {
                 exportEntitiesToFile(statements, project, exporter, file);
@@ -664,8 +665,12 @@ class CliApp {
             return error("no such file: %s".formatted(output), "validation", EXIT_VALIDATION, false);
         } catch (AccessDeniedException e) {
             return error("permission denied: %s".formatted(output), "validation", EXIT_VALIDATION, false);
+        } catch (UncheckedIOException e) {
+            return error("runtime: " + e.getCause().getMessage(), "runtime", EXIT_RUNTIME, false);
         } catch (IOException | RuntimeException e) {
-            return error(Objects.requireNonNullElse(e.getMessage(), e.toString()), "runtime", EXIT_RUNTIME, false);
+            logger.error("entity export of project '{}' failed", project, e);
+            return error("runtime: " + Objects.requireNonNullElse(e.getMessage(), e.toString()), "runtime",
+                         EXIT_RUNTIME, false);
         }
     }
 
