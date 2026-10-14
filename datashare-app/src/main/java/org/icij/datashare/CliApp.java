@@ -690,8 +690,8 @@ class CliApp {
 
     private static void exportEntitiesToFile(StatementRepository statements, String project, EntityExporter exporter,
                                              Path output) throws IOException {
-        Path partial = Files.createTempFile(output.toAbsolutePath().getParent(), output.getFileName().toString(),
-                                            ".part");
+        Path partial =
+                Files.createTempFile(output.toAbsolutePath().getParent(), output.getFileName().toString(), ".part");
         try {
             try (OutputStream file = Files.newOutputStream(partial)) {
                 exporter.export(statements, project, file);
