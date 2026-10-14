@@ -120,6 +120,18 @@ public class CsrfFilterTest {
     }
 
     @Test
+    public void test_get_sets_a_single_csrf_cookie_when_the_filter_runs_twice() throws Exception {
+        when(context.method()).thenReturn("GET");
+        when(context.currentUser()).thenReturn(mock(User.class));
+        when(context.cookies()).thenReturn(new SimpleCookies());
+
+        Payload payload = csrfFilter.apply("/api/users", context,
+                                           () -> csrfFilter.apply("/api/users", context, nextFilter));
+
+        assertThat(payload.cookies()).hasSize(1);
+    }
+
+    @Test
     public void test_get_sets_csrf_cookie_when_user_authenticated_without_csrf() throws Exception {
         when(context.method()).thenReturn("GET");
         when(context.currentUser()).thenReturn(mock(User.class));

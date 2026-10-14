@@ -34,7 +34,7 @@ public class CsrfFilter implements Filter {
         String method = context.method();
         if ("GET".equals(method) || "HEAD".equals(method) || "OPTIONS".equals(method)) {
             Payload payload = nextFilter.get();
-            if (payload.isSuccess() && needsCsrfCookie(context)) {
+            if (payload.isSuccess() && needsCsrfCookie(context) && !hasCsrfCookie(payload)) {
                 payload = payload.withCookie(csrfCookie(generateToken()));
             }
             return payload;
@@ -73,6 +73,11 @@ public class CsrfFilter implements Filter {
 
     private boolean needsCsrfCookie(Context context) {
         return context.currentUser() != null && context.cookies().get(CSRF_COOKIE_NAME) == null;
+    }
+
+    // the mode configuration is registered twice, so this filter sees the same request twice
+    private static boolean hasCsrfCookie(Payload payload) {
+        return payload.cookies().stream().anyMatch(cookie -> CSRF_COOKIE_NAME.equals(cookie.name()));
     }
 
     private static String generateToken() {

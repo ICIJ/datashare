@@ -37,6 +37,6 @@ public class LocalMode extends CommonMode {
                      .add(PluginResource.class).add(ExtensionResource.class).add(ProjectResource.class)
                      .add(FtmResource.class).add(PathBannerResource.class).add(ExtractionMappingResource.class)
                      .add(NerResource.class).add(ContentTypeResource.class).add(McpResource.class)
-                     .filter(IndexWaiterFilter.class).filter(CsrfFilter.class).filter(LocalUserFilter.class);
+                     .filter(IndexWaiterFilter.class).filter(LocalUserFilter.class).filter(CsrfFilter.class);
     }
 }
