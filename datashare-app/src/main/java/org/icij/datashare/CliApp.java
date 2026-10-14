@@ -183,8 +183,7 @@ class CliApp {
         }
 
         if (properties.getProperty(ENTITIES_EXPORT_OPT) != null) {
-            System.exit(
-                    handleEntitiesExport(mode.get(Repository.class), mode.get(StatementRepository.class), properties));
+            System.exit(handleEntitiesExport(mode.get(StatementRepository.class), properties));
         }
 
         // the merged properties, like runPipeline below: --stages and --nextStage can both come
@@ -632,7 +631,7 @@ class CliApp {
         return defaultUser == null || defaultUser.isBlank() ? null : defaultUser;
     }
 
-    static int handleEntitiesExport(Repository repository, StatementRepository statements, Properties properties) {
+    static int handleEntitiesExport(StatementRepository statements, Properties properties) {
         String project = properties.getProperty(DEFAULT_PROJECT_OPT);
         String output = properties.getProperty(ENTITIES_EXPORT_OUTPUT_OPT);
         EntityExporter exporter;
@@ -640,9 +639,6 @@ class CliApp {
             exporter = EntityExporter.forModel(properties.getProperty(ENTITIES_EXPORT_OPT));
         } catch (UnknownTargetModel e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
-        }
-        if (repository.getProject(project) == null) {
-            return error("project '%s' does not exist".formatted(project), "not_found", EXIT_NOT_FOUND, false);
         }
         if (output != null && Files.isDirectory(Path.of(output))) {
             return error("is a directory: %s".formatted(output), "runtime", EXIT_RUNTIME, false);

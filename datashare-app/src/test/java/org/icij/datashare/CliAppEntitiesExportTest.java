@@ -27,7 +27,6 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ENTITIES_EXPORT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ENTITIES_EXPORT_OUTPUT_OPT;
-import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -38,7 +37,6 @@ import static org.mockito.Mockito.when;
 
 public class CliAppEntitiesExportTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();
-    private final Repository repository = mock(Repository.class);
     private final StatementRepository statements = mock(StatementRepository.class);
     private final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
     private final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -51,7 +49,6 @@ public class CliAppEntitiesExportTest {
         originalErr = System.err;
         System.setOut(new PrintStream(stdout));
         System.setErr(new PrintStream(stderr));
-        when(repository.getProject("prj")).thenReturn(project("prj"));
     }
 
     @After
@@ -105,7 +102,7 @@ public class CliAppEntitiesExportTest {
     public void test_writes_ndjson_to_stdout() {
         projectHolds(entity("p-1", "Person"));
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
 
         assertThat(exit).isEqualTo(0);
         assertThat(stdout.toString(UTF_8)).contains("\"id\":\"p-1\"").endsWith("\n");
@@ -116,7 +113,7 @@ public class CliAppEntitiesExportTest {
         projectHolds(entity("p-1", "Person"));
         Path file = folder.getRoot().toPath().resolve("prj.ftm.json");
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", file.toString()));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", file.toString()));
 
         assertThat(exit).isEqualTo(0);
         assertThat(Files.readString(file)).contains("\"id\":\"p-1\"");
@@ -125,7 +122,7 @@ public class CliAppEntitiesExportTest {
 
     @Test
     public void test_a_model_with_no_exporter_exits_5_without_reading() {
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "wikidata", null));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "wikidata", null));
 
         assertThat(exit).isEqualTo(5);
         assertThat(stderr.toString(UTF_8)).contains("unknown data model 'wikidata'");
@@ -133,11 +130,14 @@ public class CliAppEntitiesExportTest {
     }
 
     @Test
-    public void test_an_unknown_project_exits_3() {
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("nope", "ftm", null));
+    public void test_a_project_holding_nothing_exports_nothing() {
+        when(statements.entities(eq("nope"), eq("ftm"), any())).thenAnswer(
+                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2).apply(Stream.of()));
 
-        assertThat(exit).isEqualTo(3);
-        assertThat(stderr.toString(UTF_8)).contains("project 'nope' does not exist");
+        int exit = CliApp.handleEntitiesExport(statements, export("nope", "ftm", null));
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stdout.toString(UTF_8)).doesNotContain("\"id\"");
     }
 
     @Test
@@ -145,7 +145,7 @@ public class CliAppEntitiesExportTest {
         projectHolds(entity("p-1", "Person"));
         String file = folder.getRoot().toPath().resolve("missing/prj.ftm.json").toString();
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", file));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", file));
 
         assertThat(exit).isEqualTo(1);
         assertThat(stderr.toString(UTF_8)).contains("error: no such file: " + file);
@@ -157,7 +157,7 @@ public class CliAppEntitiesExportTest {
         Path file = folder.getRoot().toPath().resolve("prj.ftm.json");
         Files.writeString(file, "previous export");
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", file.toString()));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", file.toString()));
 
         assertThat(exit).isEqualTo(1);
         assertThat(Files.readString(file)).isEqualTo("previous export");
@@ -169,7 +169,7 @@ public class CliAppEntitiesExportTest {
         projectHolds(entity("p-1", "Person"));
         System.setOut(brokenStdout());
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
 
         assertThat(exit).isEqualTo(1);
         assertThat(stderr.toString(UTF_8)).contains("error: ");
@@ -181,7 +181,7 @@ public class CliAppEntitiesExportTest {
         projectHolds(countedEntities(read, 100_000));
         System.setOut(brokenStdout());
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
 
         assertThat(exit).isEqualTo(1);
         assertThat(read.get()).isLessThan(1_000);
@@ -192,7 +192,7 @@ public class CliAppEntitiesExportTest {
         projectHolds(entity("p-1", "Person"));
         Path dir = folder.newFolder("exports").toPath();
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", dir.toString()));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", dir.toString()));
 
         assertThat(exit).isEqualTo(1);
         assertThat(Files.isDirectory(dir)).isTrue();
@@ -203,7 +203,7 @@ public class CliAppEntitiesExportTest {
     public void test_a_failure_without_message_names_the_exception() {
         when(statements.entities(eq("prj"), eq("ftm"), any())).thenThrow(new IllegalStateException());
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
 
         assertThat(exit).isEqualTo(1);
         assertThat(stderr.toString(UTF_8)).contains("error: java.lang.IllegalStateException");
@@ -213,7 +213,7 @@ public class CliAppEntitiesExportTest {
     public void test_a_database_failure_exits_1_with_its_message() {
         when(statements.entities(eq("prj"), eq("ftm"), any())).thenThrow(new IllegalStateException("db down"));
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
 
         assertThat(exit).isEqualTo(1);
         assertThat(stderr.toString(UTF_8)).contains("error: db down");
@@ -223,7 +223,7 @@ public class CliAppEntitiesExportTest {
     public void test_an_entity_the_ontology_no_longer_knows_exits_1_naming_its_type() {
         projectHolds(anEntityNoOntologyKnows());
 
-        int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
 
         assertThat(exit).isEqualTo(1);
         assertThat(stderr.toString(UTF_8)).contains("Robot");
