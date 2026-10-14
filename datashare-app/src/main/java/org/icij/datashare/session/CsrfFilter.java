@@ -58,7 +58,7 @@ public class CsrfFilter implements Filter {
     private boolean isLocalMcpCall(String uri, Context context) {
         String contentType = context.header("Content-Type");
         String host = context.header("Host");
-        return localMode && "/api/mcp".equals(uri.split("\\?", 2)[0]) && contentType != null &&
+        return localMode && "/api/mcp".equals(uri) && contentType != null &&
                contentType.toLowerCase().startsWith("application/json") && host != null &&
                LOOPBACK_HOST.matcher(host).matches();
     }

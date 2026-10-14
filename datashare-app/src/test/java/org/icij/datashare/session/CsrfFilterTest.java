@@ -246,7 +246,7 @@ public class CsrfFilterTest {
                 assertThat(postMcp(filterIn(mode), "/api/mcp", "application/json", host)).as(mode + " " + host).isSameAs(next);
             }
         }
-        assertThat(postMcp(filterIn("LOCAL"), "/api/mcp?x=1", "Application/JSON; charset=utf-8", "localhost:8080")).isSameAs(next);
+        assertThat(postMcp(filterIn("LOCAL"), "/api/mcp", "Application/JSON; charset=utf-8", "localhost:8080")).isSameAs(next);
     }
 
     @Test
