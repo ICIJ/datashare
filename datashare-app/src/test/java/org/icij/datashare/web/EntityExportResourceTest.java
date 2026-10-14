@@ -131,7 +131,7 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
         projectFailsAfter(10_000);
 
         get("/api/entities/prj/export").should().respond(200).contain("\"id\":\"p-0\"")
-                .not().contain("\"id\":\"p-9999\"");
+                .not().contain("\"id\":\"p-9999\"").contain("<html");
     }
 
     @Test
