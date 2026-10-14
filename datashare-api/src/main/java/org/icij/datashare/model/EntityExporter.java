@@ -18,7 +18,11 @@ public interface EntityExporter {
      *  {@link IllegalArgumentException}. Both can come after part of the output is written. */
     void export(Stream<ModelEntity> entities, OutputStream out);
 
-    /** Writes every entity a project holds in this exporter's model, as {@link #export(Stream, OutputStream)}. */
+    /** Writes every entity a project holds in this exporter's model, as {@link #export(Stream, OutputStream)}.
+     *  A read that fails part way also surfaces, as the repository's own unchecked exception. The
+     *  write runs inside the consumer {@link StatementRepository#entities} takes, which cannot throw a
+     *  checked exception: that is why a failed write is an {@link java.io.UncheckedIOException}, and a
+     *  caller that needs the {@link java.io.IOException} reads it from the cause. */
     default void export(StatementRepository statements, String projectId, OutputStream out) {
         statements.entities(projectId, model(), entities -> {
             export(entities, out);
