@@ -425,9 +425,8 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_entities_splits_an_entity_id_shared_by_two_models_into_two_entities() {
-        LocalDateTime now = LocalDateTime.now();
-        insertRawStatement("id-1", "ftm", "shared", "Person", "ftm:name", "Ada", now);
-        insertRawStatement("id-2", "other", "shared", "Thing", "other:name", "Ada", now);
+        insertRawStatement("ftm", "shared");
+        insertRawStatement("other", "shared");
 
         List<ModelEntity> entities = repository.entities("prj", Stream::toList);
 
@@ -438,16 +437,14 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_entities_of_a_model_leaves_out_the_other_models() {
-        LocalDateTime now = LocalDateTime.now();
-        insertRawStatement("id-1", "ftm", "shared", "Person", "ftm:name", "Ada", now);
-        insertRawStatement("id-2", "other", "shared", "Thing", "other:name", "Ada", now);
-        insertRawStatement("id-3", "other", "only-other", "Thing", "other:name", "Grace", now);
+        insertRawStatement("ftm", "shared");
+        insertRawStatement("other", "shared");
+        insertRawStatement("other", "only-other");
 
         List<ModelEntity> found = repository.entities("prj", "ftm", Stream::toList);
 
-        assertThat(found.size()).isEqualTo(1);
+        assertThat(found.stream().map(ModelEntity::id).toList()).isEqualTo(List.of("shared"));
         assertThat(found.get(0).model()).isEqualTo("ftm");
-        assertThat(found.get(0).id()).isEqualTo("shared");
     }
 
     @Test
@@ -503,6 +500,11 @@ public class JooqStatementRepositoryTest {
             assertThat(iterator.next().id()).isEqualTo("e-3");
             return null;
         });
+    }
+
+    private void insertRawStatement(String model, String entityId) {
+        insertRawStatement(model + "-" + entityId, model, entityId, "Thing", model + ":name", "a value",
+                           LocalDateTime.now());
     }
 
     private void insertRawStatement(String id, String model, String entityId, String entityType,
