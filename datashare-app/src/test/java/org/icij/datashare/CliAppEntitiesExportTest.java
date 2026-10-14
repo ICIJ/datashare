@@ -71,12 +71,34 @@ public class CliAppEntitiesExportTest {
     }
 
     private void projectHolds(ModelEntity... entities) {
+        projectHolds(Stream.of(entities));
+    }
+
+    private void projectHolds(Stream<ModelEntity> entities) {
         when(statements.entities(eq("prj"), eq("ftm"), any())).thenAnswer(
-                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2).apply(Stream.of(entities)));
+                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2).apply(entities));
     }
 
     private static ModelEntity entity(String id, String type) {
         return new ModelEntity("ftm", id, type, Set.of(), Set.of(), Map.of("name", List.of("Ada")));
+    }
+
+    private static ModelEntity anEntityNoOntologyKnows() {
+        return entity("r-1", "Robot");
+    }
+
+    private static Stream<ModelEntity> countedEntities(AtomicInteger read, int count) {
+        return Stream.iterate(0, i -> i + 1).limit(count).map(i -> entity("p-" + i, "Person"))
+                     .peek(entity -> read.incrementAndGet());
+    }
+
+    private static PrintStream brokenStdout() {
+        return new PrintStream(new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                throw new IOException("Broken pipe");
+            }
+        });
     }
 
     @Test
@@ -131,7 +153,7 @@ public class CliAppEntitiesExportTest {
 
     @Test
     public void test_a_failed_export_keeps_the_previous_output_file() throws Exception {
-        projectHolds(entity("r-1", "Robot"));
+        projectHolds(anEntityNoOntologyKnows());
         Path file = folder.getRoot().toPath().resolve("prj.ftm.json");
         Files.writeString(file, "previous export");
 
@@ -145,12 +167,7 @@ public class CliAppEntitiesExportTest {
     @Test
     public void test_a_stdout_that_cannot_be_written_exits_1() {
         projectHolds(entity("p-1", "Person"));
-        System.setOut(new PrintStream(new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                throw new IOException("Broken pipe");
-            }
-        }));
+        System.setOut(brokenStdout());
 
         int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
 
@@ -161,16 +178,8 @@ public class CliAppEntitiesExportTest {
     @Test
     public void test_a_closed_stdout_stops_reading_the_project() {
         AtomicInteger read = new AtomicInteger();
-        when(statements.entities(eq("prj"), eq("ftm"), any())).thenAnswer(call -> call
-                .<Function<Stream<ModelEntity>, Object>>getArgument(2)
-                .apply(Stream.iterate(0, i -> i + 1).limit(100_000)
-                             .map(i -> entity("p-" + i, "Person")).peek(e -> read.incrementAndGet())));
-        System.setOut(new PrintStream(new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                throw new IOException("Broken pipe");
-            }
-        }));
+        projectHolds(countedEntities(read, 100_000));
+        System.setOut(brokenStdout());
 
         int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
 
@@ -212,7 +221,7 @@ public class CliAppEntitiesExportTest {
 
     @Test
     public void test_an_entity_the_ontology_no_longer_knows_exits_1_naming_its_type() {
-        projectHolds(entity("r-1", "Robot"));
+        projectHolds(anEntityNoOntologyKnows());
 
         int exit = CliApp.handleEntitiesExport(repository, statements, export("prj", "ftm", null));
 
