@@ -176,9 +176,12 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
             switch (taskView.getState()) {
                 case CREATED:
                 case QUEUED:
-                    boolean removed = taskQueue.remove(taskView);
+                    if (!taskQueue.remove(taskView)) {
+                        // a worker may have taken it without marking it RUNNING yet
+                        loops.forEach(l -> l.cancel(taskId, false));
+                    }
                     canceled(taskView, false);
-                    return removed;
+                    return true;
                 case RUNNING:
                     logger.info("sending cancel event for {}", taskId);
                     loops.forEach(l -> l.cancel(taskId, false));

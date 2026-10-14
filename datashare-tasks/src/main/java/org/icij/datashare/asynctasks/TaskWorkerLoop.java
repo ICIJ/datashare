@@ -64,7 +64,6 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 cancelledTasks.remove(cancelledEvent.taskId);
             } else if (event instanceof CancelEvent cancelEvent) {
                 cancel(cancelEvent.taskId, cancelEvent.requeue);
-                cancelledTasks.put(cancelEvent.taskId, cancelEvent.requeue);
             }
         }));
     }
@@ -114,6 +113,10 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                         TaskFactoryHelper.createTaskCallable(factory, currentTask.get().name, currentTask.get(),
                                                              currentTask.get().progress(smoothedProgress));
                 currentTaskReference.set(taskFn);
+                Boolean requeue = cancelledTasks.remove(currentTask.get().id);
+                if (requeue != null) {
+                    throw new CancelException(requeue);
+                }
                 logger.info("running task {}", currentTask.get());
                 taskSupplier.progress(currentTask.get().id, 0);
                 Serializable result = (Serializable) taskFn.call();
@@ -142,6 +145,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
             } catch (Error | Exception ex) {
                 throw new NackException(ex, false);
             } finally {
+                cancelledTasks.remove(task.id);
                 currentTaskReference.set(null);
                 currentTask.set(null);
             }
@@ -172,6 +176,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
         //  some useful behavior will be painful to implement:
         //  - global graceful shutdown (task which are not cancellable will run until complete...)
         //  - graceful restart of a task
+        ofNullable(taskId).ifPresent(id -> cancelledTasks.put(id, requeue));
         ofNullable(currentTaskReference.get()).ifPresent(t -> {
             if (CancellableTask.class.isAssignableFrom(t.getClass()) &&
                 (taskId == null || (currentTask.get() != null && taskId.equals(currentTask.get().id)))) {

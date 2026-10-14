@@ -83,6 +83,26 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
+    public void test_stop_task_taken_by_a_worker_before_it_runs() throws Exception {
+        Task<Integer> t1 = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        Task<Integer> t2 = new Task<>(TestFactory.HelloWorld.class.getName(), User.local(), Map.of("greeted", "world"));
+
+        Group group = new Group(TaskGroupType.Test);
+        taskManager.startTask(t1, group);
+        taskManager.startTask(t2, group);
+        taskInspector.awaitToBeStarted(t1.id, 1000);
+        Task<?> taken = taskManager.get(1, TimeUnit.SECONDS);
+
+        assertThat(taskManager.stopTask(t2.id)).isTrue();
+        taskManager.stopTask(t1.id);
+        taskManager.enqueue(taken);
+
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
+        assertThat(taskManager.getTask(t2.id).getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskManager.numberOfExecutedTasks()).isEqualTo(0);
+    }
+
+    @Test
     public void test_clear_the_only_task() throws Exception {
         Task<Integer> task = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
 

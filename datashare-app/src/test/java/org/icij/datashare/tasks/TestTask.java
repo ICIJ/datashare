@@ -23,7 +23,9 @@ public class TestTask implements CancellableTask, Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         waitForTask.countDown();
-        ofNullable(this.requeue).ifPresent(CancelException::new);
+        if (requeue != null) {
+            throw new CancelException(requeue);
+        }
         return value;
     }
 
