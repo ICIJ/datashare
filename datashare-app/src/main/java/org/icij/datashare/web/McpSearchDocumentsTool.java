@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.UnauthorizedException;
+import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
@@ -44,8 +46,20 @@ public class McpSearchDocumentsTool implements McpTool {
     private JsonNode search(String project, Map<String, Object> body, Context context) throws IOException {
         String path = project + "/_search";
         requireReadable(project, path, context);
-        JsonNode response = MAPPER.readTree(indexer.executeRaw("POST", path, MAPPER.writeValueAsString(body)));
-        return requireAllShards(response);
+        return requireAllShards(MAPPER.readTree(runSearch(path, body)));
+    }
+
+    // Elasticsearch answers a malformed query_string with a 400 whose message carries the cluster address, so a
+    // rejected query is reported as bad input instead. Anything else is a real failure and keeps its own path.
+    private String runSearch(String path, Map<String, Object> body) throws IOException {
+        try {
+            return indexer.executeRaw("POST", path, MAPPER.writeValueAsString(body));
+        } catch (ResponseException e) {
+            if (e.getResponse().getStatusLine().getStatusCode() != HttpStatus.BAD_REQUEST) {
+                throw e;
+            }
+            throw McpToolException.InvalidArgument.invalid("query");
+        }
     }
 
     private static String requireSingleProject(JsonNode arguments) {

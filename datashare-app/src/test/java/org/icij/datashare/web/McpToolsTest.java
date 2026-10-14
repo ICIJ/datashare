@@ -144,6 +144,40 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("search failed on 1 shard(s)");
     }
 
+    private static org.elasticsearch.client.ResponseException elasticsearchError(int status) throws Exception {
+        org.elasticsearch.client.Response response = mock(org.elasticsearch.client.Response.class);
+        when(response.getRequestLine()).thenReturn(
+                new org.apache.http.message.BasicRequestLine("POST", "/foo/_search",
+                                                             org.apache.http.HttpVersion.HTTP_1_1));
+        when(response.getHost()).thenReturn(new org.apache.http.HttpHost("elasticsearch", 9200));
+        when(response.getStatusLine()).thenReturn(
+                new org.apache.http.message.BasicStatusLine(org.apache.http.HttpVersion.HTTP_1_1, status, "error"));
+        return new org.elasticsearch.client.ResponseException(response);
+    }
+
+    @Test
+    public void test_search_with_a_rejected_query_is_an_invalid_argument() throws Exception {
+        serveAs("local", "foo");
+        org.elasticsearch.client.ResponseException rejected = elasticsearchError(400);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenThrow(rejected);
+
+        JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"foo AND\"}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.toString()).excludes("elasticsearch:9200");
+    }
+
+    @Test
+    public void test_search_with_a_cluster_failure_is_a_tool_error() throws Exception {
+        serveAs("local", "foo");
+        org.elasticsearch.client.ResponseException unavailable = elasticsearchError(503);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenThrow(unavailable);
+
+        JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+    }
+
     @Test
     public void test_search_on_ungranted_project_is_forbidden() throws Exception {
         serveAs("local", "foo");
