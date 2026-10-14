@@ -14,6 +14,9 @@ import java.util.Iterator;
 import java.util.stream.Stream;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+/** Writes plain FtM entity JSON, one entity per line, so any FtM tool reads the file. The ontology
+ *  version and the source documents of an entity stay out because FtM's entity JSON has no field for
+ *  them: the statements remain where both are recorded. */
 public class FtmJsonExporter implements EntityExporter {
     private static final String MODEL = "ftm";
 
