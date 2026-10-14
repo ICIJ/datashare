@@ -10,6 +10,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 
 @Command(name = "export", mixinStandardHelpOptions = true, description = {
         "Export the structured entities of the project set with -P, in the native format of their data model.", "",
+        "Only a PostgreSQL data source streams the entities: on an embedded database the whole project is read",
+        "into memory before the first entity is written.", "",
         "Examples:", "  datashare -P my-project entities export > my-project.ftm.json",
         "  datashare -P my-project entities export --output my-project.ftm.json"})
 public class EntitiesExportCommand implements Runnable, DatashareSubcommand {
