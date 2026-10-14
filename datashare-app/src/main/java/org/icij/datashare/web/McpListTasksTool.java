@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.Map;
 
 public class McpListTasksTool implements McpTool {
+    private static final McpArguments.IntArgument SIZE = new McpArguments.IntArgument("size", 20, 1, 100);
+    private static final McpArguments.IntArgument FROM = new McpArguments.IntArgument("from", 0, 0, Integer.MAX_VALUE);
     private final TaskResource taskResource;
 
     @Inject
@@ -27,7 +29,8 @@ public class McpListTasksTool implements McpTool {
 
     @Override
     public Object call(JsonNode arguments, Context context) throws IOException {
-        return taskResource.findVisibleTasks((User) context.currentUser(), taskFilters(arguments)).toList();
+        return taskResource.findVisibleTasks((User) context.currentUser(), taskFilters(arguments))
+                           .skip(FROM.readFrom(arguments)).limit(SIZE.readFrom(arguments)).toList();
     }
 
     private static Map<String, String> taskFilters(JsonNode arguments) {
