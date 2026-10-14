@@ -55,9 +55,14 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
         mocks.close();
     }
 
+    /** The one fact every test here depends on: what the repository hands the exporter. */
+    private void projectStreams(String project, Stream<ModelEntity> entities) {
+        when(statements.entities(eq(project), eq("ftm"), any())).thenAnswer(
+                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2).apply(entities));
+    }
+
     private void projectHolds(ModelEntity... entities) {
-        when(statements.entities(eq("prj"), eq("ftm"), any())).thenAnswer(
-                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2).apply(Stream.of(entities)));
+        projectStreams("prj", Stream.of(entities));
     }
 
     private static ModelEntity person(String id, String name) {
@@ -75,9 +80,7 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_a_project_named_ftm_is_not_shadowed_by_the_ftm_document_route() {
-        when(statements.entities(eq("ftm"), eq("ftm"), any())).thenAnswer(
-                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2)
-                            .apply(Stream.of(person("p-1", "Ada"))));
+        projectStreams("ftm", Stream.of(person("p-1", "Ada")));
 
         get("/api/entities/ftm/export").should().respond(200).haveType("application/x-ndjson")
                 .contain("\"id\":\"p-1\"");
@@ -111,12 +114,12 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
         verify(statements, never()).entities(anyString(), anyString(), any());
     }
 
+    // a failure is only visible as a 500 while every line still sits in FtmJsonExporter's 8 KB
+    // BufferedWriter: once it flushes the response is committed and the status can no longer change
     private void projectFailsAfter(int written) {
-        Stream<ModelEntity> entities = Stream.concat(
+        projectStreams("prj", Stream.concat(
                 IntStream.range(0, written).mapToObj(i -> person("p-" + i, "Ada")),
-                Stream.of(new ModelEntity("ftm", "w-1", "Wizard", Set.of(), Set.of(), Map.of())));
-        when(statements.entities(eq("prj"), eq("ftm"), any())).thenAnswer(
-                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2).apply(entities));
+                Stream.of(new ModelEntity("ftm", "w-1", "Wizard", Set.of(), Set.of(), Map.of()))));
     }
 
     @Test
@@ -135,19 +138,29 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_a_failed_write_reaches_fluent_http_as_an_io_exception() {
+    public void test_a_client_hang_up_reaches_fluent_http_as_the_original_io_exception() {
         projectHolds(person("p-1", "Ada"));
-        Context context = mock(Context.class);
-        when(context.currentUser()).thenReturn(new DatashareUser(User.localUser("cecile", "prj")));
-        StreamingOutput body = (StreamingOutput) new EntityExportResource(statements).export("prj", null, context)
-                .rawContent();
+        IOException hangUp = new IOException("Error sending response", new IOException("Broken pipe"));
+        StreamingOutput body = (StreamingOutput) new EntityExportResource(statements)
+                .export("prj", null, aGrantedContext()).rawContent();
 
-        IOException e = assertThrows(IOException.class, () -> body.write(new OutputStream() {
+        IOException e = assertThrows(IOException.class, () -> body.write(aClientThatHangsUp(hangUp)));
+
+        assertThat(e).isSameAs(hangUp);
+    }
+
+    private static Context aGrantedContext() {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(new DatashareUser(User.localUser("local", "prj")));
+        return context;
+    }
+
+    private static OutputStream aClientThatHangsUp(IOException hangUp) {
+        return new OutputStream() {
             @Override
             public void write(int b) throws IOException {
-                throw new IOException("Broken pipe");
+                throw hangUp;
             }
-        }));
-        assertThat(e.getMessage()).isEqualTo("Broken pipe");
+        };
     }
 }
