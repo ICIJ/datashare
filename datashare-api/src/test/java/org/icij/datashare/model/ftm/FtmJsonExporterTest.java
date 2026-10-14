@@ -3,6 +3,7 @@ package org.icij.datashare.model.ftm;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.EntityExporter;
 import org.icij.datashare.model.ModelEntity;
+import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.model.UnknownTargetModel;
 import org.junit.Test;
 import tech.followthemoney.entity.ValueEntity;
@@ -12,11 +13,16 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class FtmJsonExporterTest {
     private final FtmJsonExporter exporter = new FtmJsonExporter();
@@ -71,6 +77,19 @@ public class FtmJsonExporterTest {
     @Test
     public void test_an_empty_stream_writes_nothing() {
         assertThat(export()).isEmpty();
+    }
+
+    @Test
+    public void test_a_project_export_reads_only_the_ftm_entities_of_the_project() {
+        StatementRepository statements = mock(StatementRepository.class);
+        when(statements.entities(eq("prj"), eq("ftm"), any())).thenAnswer(
+                call -> call.<Function<Stream<ModelEntity>, Object>>getArgument(2)
+                            .apply(Stream.of(entity("ftm", "p-1", "Person", Map.of("name", List.of("Ada"))))));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        exporter.export(statements, "prj", out);
+
+        assertThat(out.toString(UTF_8)).contains("\"id\":\"p-1\"");
     }
 
     @Test
