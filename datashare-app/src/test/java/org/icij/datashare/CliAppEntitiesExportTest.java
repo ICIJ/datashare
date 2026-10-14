@@ -174,6 +174,19 @@ public class CliAppEntitiesExportTest {
     }
 
     @Test
+    public void test_an_export_leaves_a_part_file_it_did_not_create_alone() throws Exception {
+        projectHolds(entity("p-1", "Person"));
+        Path output = folder.getRoot().toPath().resolve("prj.ftm.json");
+        Path part = folder.getRoot().toPath().resolve("prj.ftm.json.part");
+        Files.writeString(part, "somebody else's file");
+
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", output.toString()));
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(Files.readString(part)).isEqualTo("somebody else's file");
+    }
+
+    @Test
     public void test_a_stdout_that_cannot_be_written_exits_1_naming_the_pipe() {
         projectHolds(entity("p-1", "Person"));
         System.setOut(brokenStdout());
