@@ -157,6 +157,16 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
+    public void test_requeued_task_runs_again() throws Exception {
+        Task<String> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        taskManager.insert(task, new Group(TaskGroupType.Test));
+
+        taskManager.canceled(task, true);
+
+        assertThat(taskInspector.awaitToBeStarted(task.id, 2000)).isTrue();
+    }
+
+    @Test
     public void test_progress_on_unknown_task() throws Exception {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
         taskManager.progress("unknownId", 0.5);
