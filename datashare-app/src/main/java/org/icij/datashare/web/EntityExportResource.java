@@ -70,7 +70,8 @@ public class EntityExportResource {
             }
         };
         return new Payload(exporter.mediaType(), body).withHeader("Content-Disposition",
-                                                                  "attachment;filename=\"%s.%s.json\"".formatted(
-                                                                          project, exporter.model()));
+                                                                  "attachment;filename=\"%s.%s.%s\"".formatted(
+                                                                          project, exporter.model(),
+                                                                          exporter.extension()));
     }
 }
