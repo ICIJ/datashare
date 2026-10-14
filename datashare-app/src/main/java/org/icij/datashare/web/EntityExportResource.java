@@ -12,6 +12,9 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.payload.StreamingOutput;
+import org.apache.commons.io.output.CountingOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.UncheckedIOException;
 import org.icij.datashare.model.EntityExporter;
 import org.icij.datashare.model.StatementRepository;
@@ -22,6 +25,7 @@ import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 @Singleton
 @Prefix("/api")
 public class EntityExportResource {
+    private static final Logger logger = LoggerFactory.getLogger(EntityExportResource.class);
     private final StatementRepository statements;
 
     @Inject
@@ -48,11 +52,20 @@ public class EntityExportResource {
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
         StreamingOutput body = out -> {
+            CountingOutputStream sent = new CountingOutputStream(out);
             try {
-                exporter.export(statements, project, out);
+                exporter.export(statements, project, sent);
             } catch (UncheckedIOException e) {
                 // fluent-http only recognises a client hanging up when it gets the bare IOException
                 throw e.getCause();
+            } catch (RuntimeException e) {
+                // once a byte is out the response is committed, and fluent-http would append its
+                // HTML error page to the entities the client already holds: truncate instead
+                if (sent.getByteCount() == 0) {
+                    throw e;
+                }
+                logger.error("entity export of project {} failed after {} bytes, the download is truncated", project,
+                             sent.getByteCount(), e);
             }
         };
         return new Payload(exporter.mediaType(), body).withHeader("Content-Disposition",
