@@ -56,6 +56,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -640,23 +641,29 @@ class CliApp {
         } catch (UnknownTargetModel e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
         }
-        if (output != null && Files.isDirectory(Path.of(output))) {
-            return error("is a directory: %s".formatted(output), "runtime", EXIT_RUNTIME, false);
+        Path file;
+        try {
+            file = output == null ? null : Path.of(output);
+        } catch (InvalidPathException e) {
+            return error("not a valid path: %s".formatted(output), "validation", EXIT_VALIDATION, false);
+        }
+        if (file != null && Files.isDirectory(file)) {
+            return error("is a directory: %s".formatted(output), "validation", EXIT_VALIDATION, false);
         }
         try {
-            if (output == null) {
+            if (file == null) {
                 exporter.export(statements, project, failingOnError(System.out));
                 if (System.out.checkError()) {
                     return error("cannot write to stdout", "runtime", EXIT_RUNTIME, false);
                 }
             } else {
-                exportEntitiesToFile(statements, project, exporter, Path.of(output));
+                exportEntitiesToFile(statements, project, exporter, file);
             }
             return EXIT_SUCCESS;
         } catch (NoSuchFileException e) {
-            return error("no such file: %s".formatted(output), "runtime", EXIT_RUNTIME, false);
+            return error("no such file: %s".formatted(output), "validation", EXIT_VALIDATION, false);
         } catch (AccessDeniedException e) {
-            return error("permission denied: %s".formatted(output), "runtime", EXIT_RUNTIME, false);
+            return error("permission denied: %s".formatted(output), "validation", EXIT_VALIDATION, false);
         } catch (IOException | RuntimeException e) {
             return error(Objects.requireNonNullElse(e.getMessage(), e.toString()), "runtime", EXIT_RUNTIME, false);
         }
