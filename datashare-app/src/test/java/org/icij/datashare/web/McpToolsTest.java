@@ -277,6 +277,30 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_list_tasks_is_limited_and_paginated() throws Exception {
+        serveAs("local", "foo");
+        List<Task<?>> tasks = new java.util.ArrayList<>();
+        for (int i = 0; i < 30; i++) {
+            tasks.add(new Task<>("org.icij.datashare.tasks.ScanTask", localUser("local"),
+                                 Map.of("defaultProject", "foo")));
+        }
+        when(taskManager.getTasks(any(TaskFilters.class))).thenAnswer(invocation -> tasks.stream());
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(List.of());
+
+        assertThat(payload(call("local", "list_tasks", "{}")).size()).isEqualTo(20);
+
+        JsonNode page = payload(call("local", "list_tasks", "{\"from\":25,\"size\":100}"));
+        assertThat(page.size()).isEqualTo(5);
+        assertThat(page.at("/0/id").asText()).isEqualTo(tasks.get(25).id);
+    }
+
+    @Test
+    public void test_list_tasks_size_above_100_is_invalid() throws Exception {
+        serveAs("local", "foo");
+        assertThat(call("local", "list_tasks", "{\"size\":101}").at("/error/code").asInt()).isEqualTo(-32602);
+    }
+
+    @Test
     public void test_list_tasks_serializes_batch_download_arguments() throws Exception {
         serveAs("local", "foo");
         BatchDownload batchDownload = new BatchDownload(List.of(new Project("foo")), localUser("local"), "leak");
