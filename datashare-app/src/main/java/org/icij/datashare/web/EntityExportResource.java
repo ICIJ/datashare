@@ -38,7 +38,7 @@ public class EntityExportResource {
     @ApiResponse(responseCode = "200", description = "streams the entities, one per line for FtM")
     @ApiResponse(responseCode = "400", description = "if no exporter writes this data model")
     @ApiResponse(responseCode = "403", description = "if the user is not granted the project")
-    @Get("/:project/entities/export?model=:model")
+    @Get("/entities/:project/export?model=:model")
     public Payload export(String project, String model, Context context) {
         requireGranted(context, project);
         EntityExporter exporter;
