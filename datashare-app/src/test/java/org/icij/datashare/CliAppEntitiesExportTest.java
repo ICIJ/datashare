@@ -141,13 +141,22 @@ public class CliAppEntitiesExportTest {
     }
 
     @Test
-    public void test_an_output_in_a_missing_directory_exits_1_with_a_message() {
+    public void test_an_output_the_platform_cannot_parse_exits_5_without_reading() {
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", "prj\u0000.ftm.json"));
+
+        assertThat(exit).isEqualTo(5);
+        assertThat(stderr.toString(UTF_8)).contains("error: not a valid path: ");
+        verify(statements, never()).entities(anyString(), anyString(), any());
+    }
+
+    @Test
+    public void test_an_output_in_a_missing_directory_exits_5_with_a_message() {
         projectHolds(entity("p-1", "Person"));
         String file = folder.getRoot().toPath().resolve("missing/prj.ftm.json").toString();
 
         int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", file));
 
-        assertThat(exit).isEqualTo(1);
+        assertThat(exit).isEqualTo(5);
         assertThat(stderr.toString(UTF_8)).contains("error: no such file: " + file);
     }
 
@@ -188,13 +197,13 @@ public class CliAppEntitiesExportTest {
     }
 
     @Test
-    public void test_an_output_that_is_a_directory_exits_1_and_keeps_it() throws Exception {
+    public void test_an_output_that_is_a_directory_exits_5_and_keeps_it() throws Exception {
         projectHolds(entity("p-1", "Person"));
         Path dir = folder.newFolder("exports").toPath();
 
         int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", dir.toString()));
 
-        assertThat(exit).isEqualTo(1);
+        assertThat(exit).isEqualTo(5);
         assertThat(Files.isDirectory(dir)).isTrue();
         assertThat(stderr.toString(UTF_8)).contains("error: is a directory: " + dir);
     }
