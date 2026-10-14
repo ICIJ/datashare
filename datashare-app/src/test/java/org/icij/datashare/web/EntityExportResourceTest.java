@@ -69,7 +69,7 @@ public class EntityExportResourceTest extends AbstractProdWebServerTest {
         projectHolds(person("p-1", "Ada"), person("p-2", "Grace"));
 
         get("/api/entities/prj/export").should().respond(200).haveType("application/x-ndjson")
-                .haveHeader("Content-Disposition", "attachment;filename=\"prj.ftm.json\"")
+                .haveHeader("Content-Disposition", "attachment;filename=\"prj.ftm.ndjson\"")
                 .contain("\"id\":\"p-1\"").contain("\"id\":\"p-2\"");
     }
 

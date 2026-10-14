@@ -31,6 +31,11 @@ public class FtmJsonExporter implements EntityExporter {
     }
 
     @Override
+    public String extension() {
+        return "ndjson";
+    }
+
+    @Override
     public void export(Stream<ModelEntity> entities, OutputStream out) {
         TargetModel ftm = TargetModelRegistry.get(MODEL);
         Writer writer = new BufferedWriter(new OutputStreamWriter(out, UTF_8));
