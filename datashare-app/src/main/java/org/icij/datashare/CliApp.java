@@ -666,7 +666,8 @@ class CliApp {
         } catch (AccessDeniedException e) {
             return error("permission denied: %s".formatted(output), "validation", EXIT_VALIDATION, false);
         } catch (UncheckedIOException e) {
-            return error("runtime: " + e.getCause().getMessage(), "runtime", EXIT_RUNTIME, false);
+            return error("runtime: " + Objects.requireNonNullElse(e.getCause().getMessage(), e.getCause().toString()),
+                         "runtime", EXIT_RUNTIME, false);
         } catch (IOException | RuntimeException e) {
             logger.error("entity export of project '{}' failed", project, e);
             return error("runtime: " + Objects.requireNonNullElse(e.getMessage(), e.toString()), "runtime",

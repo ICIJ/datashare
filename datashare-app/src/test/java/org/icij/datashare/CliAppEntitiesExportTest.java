@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -219,6 +220,16 @@ public class CliAppEntitiesExportTest {
         assertThat(exit).isEqualTo(5);
         assertThat(Files.isDirectory(dir)).isTrue();
         assertThat(stderr.toString(UTF_8)).contains("error: is a directory: " + dir);
+    }
+
+    @Test
+    public void test_an_io_failure_without_message_names_the_exception() {
+        when(statements.entities(eq("prj"), eq("ftm"), any())).thenThrow(new UncheckedIOException(new IOException()));
+
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", null));
+
+        assertThat(exit).isEqualTo(1);
+        assertThat(stderr.toString(UTF_8)).contains("error: runtime: java.io.IOException");
     }
 
     @Test
