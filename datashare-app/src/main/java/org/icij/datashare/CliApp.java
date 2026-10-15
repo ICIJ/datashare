@@ -693,6 +693,7 @@ class CliApp {
                                              Path output) throws IOException {
         Path partial =
                 Files.createTempFile(output.toAbsolutePath().getParent(), output.getFileName().toString(), ".part");
+        partial.toFile().deleteOnExit();
         try {
             try (OutputStream file = Files.newOutputStream(partial)) {
                 exporter.export(statements, project, file);
