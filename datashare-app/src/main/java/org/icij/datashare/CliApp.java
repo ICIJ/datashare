@@ -685,8 +685,9 @@ class CliApp {
         String docCount = stats.indexedDocuments().stream().mapToObj(n -> n + " indexed documents").findFirst()
                                .orElse("(index check skipped)");
         System.err.println("Project '" + name + "' has " + docCount + " and " + stats.memberCount() + " members.");
-        System.err.println("This will permanently delete the project, its index, " +
-                           "document queues, report map, and artifact directory. " + "This cannot be undone.");
+        System.err.println("This will permanently delete the project, its index, tasks, batch searches, " +
+                           "path banners, document queues, report map, and artifact directory. " +
+                           "This cannot be undone.");
         Prompter prompter = prompterFactory.get();
         prompter.promptString("To confirm, type the project name", typedName -> {
             if (!typedName.trim().equals(name)) {

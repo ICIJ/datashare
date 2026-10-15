@@ -178,8 +178,8 @@ public class ProjectResource {
         return new Payload(effectiveProject).withCode(HttpStatus.OK);
     }
 
-    @Operation(description = "Deletes the project from database and elasticsearch index.",
-            parameters = {@Parameter(name = "id", description = "project id")})
+    @Operation(description = "Deletes the project, its elasticsearch index, its tasks, its batch searches and " +
+                             "its path banners.", parameters = {@Parameter(name = "id", description = "project id")})
     @ApiResponse(responseCode = "204", description = "if project is deleted")
     @ApiResponse(responseCode = "401", description = "if project id is not in the current user's projects")
     @ApiResponse(responseCode = "500", description = "if a step of the delete cascade failed")
@@ -196,7 +196,7 @@ public class ProjectResource {
         ProjectDeleted deleted = projectAdminService.deleteIfExists(id, new ProjectDeleteOptions(false));
         LoggerFactory.getLogger(getClass()).info("Deleted project {}: {}", id, deleted);
         if (!deleted.dbDeleted() || !deleted.indexDeleted() || !deleted.casbinDeleted() ||
-            !deleted.inventoryDeleted()) {
+            !deleted.inventoryDeleted() || !deleted.tasksDeleted()) {
             return PayloadFormatter.error("Unable to delete the project", HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return new Payload(204);

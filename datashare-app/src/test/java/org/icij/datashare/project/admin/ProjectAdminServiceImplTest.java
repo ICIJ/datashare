@@ -1,7 +1,7 @@
 package org.icij.datashare.project.admin;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.Repository;
 import net.codestory.http.security.Users;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -65,7 +65,7 @@ public class ProjectAdminServiceImplTest {
         propertiesProvider = mock(PropertiesProvider.class);
         service = new ProjectAdminServiceImpl(
                 repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, users, userStore,
-                usersIdProviderCache, new TaskRepositoryMemory());
+                usersIdProviderCache, mock(TaskManager.class));
         // the #2441 inventory sweep lists every user on each project delete; empty by default
         when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
                 .thenReturn(new WebResponse<>(List.of(), 0, 0, 0));
@@ -364,8 +364,8 @@ public class ProjectAdminServiceImplTest {
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
         InOrder inOrder = Mockito.inOrder(indexer, repository, queue, reportMap);
-        inOrder.verify(indexer).deleteIndex("foo");
         inOrder.verify(repository).deleteAll("foo");
+        inOrder.verify(indexer).deleteIndex("foo");
         // Two queue lookups (legacy prefix + new pattern) both return the same mock,
         // so queue.delete() is called twice.
         inOrder.verify(queue, Mockito.times(2)).delete();
@@ -516,11 +516,14 @@ public class ProjectAdminServiceImplTest {
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
         // Cascade continues past the DB failure: queues and report-map still run.
-        assertThat(deleted.indexDeleted()).isTrue();
         assertThat(deleted.dbDeleted()).isFalse();
         assertThat(deleted.queuesDeleted()).isTrue();
         assertThat(deleted.reportMapDeleted()).isTrue();
         verify(documentCollectionFactory).createMap(any());
+        // but the index stays: the project row survived, and an index dropped under it cannot be
+        // rebuilt by the --if-exists retry the cascade recommends
+        assertThat(deleted.indexDeleted()).isFalse();
+        verify(indexer, never()).deleteIndex(any());
     }
 
     @Test

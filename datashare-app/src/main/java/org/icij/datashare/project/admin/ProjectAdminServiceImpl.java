@@ -7,7 +7,8 @@ import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskFilters;
-import org.icij.datashare.asynctasks.TaskRepository;
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.UserStore;
@@ -27,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -42,6 +42,8 @@ import java.util.OptionalLong;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.text.StringUtils.getValue;
 
 @Singleton
@@ -56,10 +58,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     // Lower ordinal == higher tier in Role enum (INSTANCE_ADMIN=0, ..., NONE=6).
     private static final Comparator<Role> ROLE_BY_TIER = Comparator.comparingInt(Enum::ordinal);
     // Task args keys that carry a project name, as written by the launchers: IndexTask and
-    // ArtifactOptions use "projectName", the pipeline stages read "defaultProject", and a batch
-    // download keeps its projects inside its own payload.
+    // ArtifactOptions use "projectName", the pipeline stages read "defaultProject", and batch
+    // downloads and batch searches keep their projects inside their own payload.
     private static final List<String> PROJECT_ARG_LOCATIONS =
-            List.of("projectName", "defaultProject", "batchDownload.projects");
+            List.of("projectName", DEFAULT_PROJECT_OPT, "batchDownload.projects", "batchRecord.projects");
     private final Repository repository;
     private final Indexer indexer;
     private final Authorizer authorizer;
@@ -68,13 +70,13 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private final UsersIdProviderCache usersIdProviderCache;
     private final DocumentCollectionFactory<Path> documentCollectionFactory;
     private final PropertiesProvider propertiesProvider;
-    private final TaskRepository taskRepository;
+    private final TaskManager taskManager;
 
     @Inject
     public ProjectAdminServiceImpl(Repository repository, Indexer indexer, Authorizer authorizer,
                                    DocumentCollectionFactory<Path> documentCollectionFactory,
                                    PropertiesProvider propertiesProvider, Users users, UserStore userStore,
-                                   UsersIdProviderCache usersIdProviderCache, TaskRepository taskRepository) {
+                                   UsersIdProviderCache usersIdProviderCache, TaskManager taskManager) {
         this.repository = repository;
         this.indexer = indexer;
         this.authorizer = authorizer;
@@ -83,7 +85,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         this.usersIdProviderCache = usersIdProviderCache;
         this.documentCollectionFactory = documentCollectionFactory;
         this.propertiesProvider = propertiesProvider;
-        this.taskRepository = taskRepository;
+        this.taskManager = taskManager;
     }
 
     @Override
@@ -470,17 +472,22 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // intact is a sticky state if the cascade aborts mid-stream.
         String name = project.getName();
 
+        boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
+        // The db row goes first and the index drop is gated on it: dropping the index destroys the
+        // documents, so a project row that survives a failed db step would be left searchable-but-
+        // empty with no way back. Leaving the index in place instead keeps the project intact and
+        // --if-exists converges on retry.
         // two steps rather than one, and combined only once both have run: a failure on either index
         // must neither hide the other nor stop it from being deleted. A project older than the
         // entities index has none, which is nothing to report.
-        boolean documentsDeleted = !options.keepIndex() &&
-                                   runStep("index", name, () -> !indexer.exists(name) || indexer.deleteIndex(name));
+        boolean deleteIndex = dbDeleted && !options.keepIndex();
+        boolean documentsDeleted =
+                deleteIndex && runStep("index", name, () -> !indexer.exists(name) || indexer.deleteIndex(name));
         String entitiesIndex = Project.entitiesIndex(name);
-        boolean entitiesDeleted = !options.keepIndex() && runStep("entities index", name,
-                                                                  () -> !indexer.exists(entitiesIndex) ||
-                                                                        indexer.deleteIndex(entitiesIndex));
+        boolean entitiesDeleted = deleteIndex && runStep("entities index", name, () -> !indexer.exists(entitiesIndex) ||
+                                                                                       indexer.deleteIndex(
+                                                                                               entitiesIndex));
         boolean indexDeleted = documentsDeleted && entitiesDeleted;
-        boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
         // Inventory first, and the Casbin wipe gated on it: a project name left in an inventory with
         // no Casbin row behind it is re-enrolled as PROJECT_MEMBER by PostLoginEnroller on that
         // user's next login, which resurrects the very rows this cascade removes. Leaving the grants
@@ -499,16 +506,36 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                                   reportMapDeleted, artifactsDeleted, tasksDeleted, false);
     }
 
+    /**
+     * Goes through the task manager rather than the repository: a task still running or queued owns
+     * resources of the project being deleted, and only the manager cancels the execution and drops
+     * the queued message before the row goes away.
+     * <p>
+     * A task that vanished between the scan and the delete is the outcome we wanted, not a failure:
+     * aborting there would strip the step of its idempotence, and --if-exists cannot retry it once
+     * the project row is gone.
+     */
     private boolean deleteTasks(String name) throws IOException {
-        for (String taskId : taskIdsOf(name)) {
-            taskRepository.delete(taskId);
+        boolean allDeleted = true;
+        for (Task<?> task : tasksOf(name)) {
+            try {
+                if (NON_FINAL_STATES.contains(task.getState())) {
+                    taskManager.stopTask(task.getId());
+                }
+                taskManager.clearTask(task.getId());
+            } catch (UnknownTask ignored) {
+                LOGGER.info("task {} of project {} is already gone", task.getId(), name);
+            } catch (IOException | RuntimeException e) {
+                LOGGER.error("cannot delete task {} of project {}", task.getId(), name, e);
+                allDeleted = false;
+            }
         }
-        return true;
+        return allDeleted;
     }
 
-    private List<String> taskIdsOf(String name) throws IOException {
-        try (Stream<Task<? extends Serializable>> tasks = taskRepository.getTasks(new TaskFilters())) {
-            return tasks.filter(task -> namesProject(task.args, name)).map(Task::getId).collect(Collectors.toList());
+    private List<Task<?>> tasksOf(String name) throws IOException {
+        try (Stream<Task<?>> tasks = taskManager.getTasks(new TaskFilters())) {
+            return tasks.filter(task -> namesProject(task.args, name)).collect(Collectors.toList());
         }
     }
 
@@ -516,9 +543,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
      * Whether the task args point at the project, looked up in the places a task can carry one. The
      * project is not a column of the task table, so this match on the args json is the only way to
      * reach a project's tasks.
-     * <p>
-     * ponytail: a task carrying its project under some other args key survives the cascade; a
-     * {@code prj_id} column on the task table is the upgrade path.
      */
     private static boolean namesProject(Map<String, Object> args, String name) {
         return PROJECT_ARG_LOCATIONS.stream().map(location -> getValue(args, location))
@@ -528,6 +552,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private static boolean isProjectNamed(Object value, String name) {
         if (value instanceof Collection<?> projects) {
             return projects.stream().anyMatch(project -> isProjectNamed(project, name));
+        }
+        if (value instanceof String projectName) {
+            // the bean fallback below introspects and throws NoSuchFieldException on a String, once
+            // per task of every other project
+            return name.equals(projectName);
         }
         return name.equals(value) || name.equals(getValue(value, "name"));
     }
