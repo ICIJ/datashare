@@ -155,3 +155,6 @@ databaseChangeLog:
   - include:
       file: changes/051-widen-document-id-columns.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/052-batch-search-project-index.yml
+      relativeToChangelogFile: true
