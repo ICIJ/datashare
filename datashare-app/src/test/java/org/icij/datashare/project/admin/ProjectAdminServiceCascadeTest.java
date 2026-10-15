@@ -3,9 +3,13 @@ package org.icij.datashare.project.admin;
 import net.codestory.http.security.Users;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFactory;
 import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+import org.icij.datashare.batch.BatchSearchRecord;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
@@ -26,6 +30,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +58,7 @@ public class ProjectAdminServiceCascadeTest {
     private Repository repository;
     private MemoryDocumentCollectionFactory<Path> documentCollectionFactory;
     private TaskRepositoryMemory taskRepository;
+    private TaskManagerMemory taskManager;
     private ProjectAdminServiceImpl service;
 
     @Before
@@ -64,6 +71,8 @@ public class ProjectAdminServiceCascadeTest {
         UsersIdProviderCache usersIdProviderCache = mock(UsersIdProviderCache.class);
         documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
         taskRepository = new TaskRepositoryMemory();
+        taskManager = new TaskManagerMemory(mock(TaskFactory.class), taskRepository, new PropertiesProvider(),
+                                            new CountDownLatch(1));
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("dataDir", "/vault");
             put("mode", "LOCAL");
@@ -73,7 +82,7 @@ public class ProjectAdminServiceCascadeTest {
                 .thenReturn(new WebResponse<>(List.<User>of(), 0, 0, 0));
         service = new ProjectAdminServiceImpl(repository, indexer, authorizer, documentCollectionFactory,
                                               propertiesProvider, users, userStore, usersIdProviderCache,
-                                              taskRepository);
+                                              taskManager);
     }
 
     @Test
@@ -169,11 +178,38 @@ public class ProjectAdminServiceCascadeTest {
     }
 
     @Test
+    public void test_delete_removes_a_batch_search_task_listing_the_project() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        insertTask("search-foo", Map.of("batchRecord", batchRecordOf("foo")));
+        insertTask("search-bar", Map.of("batchRecord", batchRecordOf("bar")));
+
+        service.delete("foo", new ProjectDeleteOptions(true));
+
+        // the same cascade deletes the batch_search rows these tasks point at, so a surviving task
+        // is a task whose search 404s forever
+        assertThat(taskIds()).containsOnly("search-bar");
+    }
+
+    @Test
+    public void test_delete_removes_a_batch_search_task_whose_record_went_through_json() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        insertTask("search-foo", Map.of("batchRecord", Map.of("projects", List.of("foo"))));
+
+        service.delete("foo", new ProjectDeleteOptions(true));
+
+        assertThat(taskIds()).isEmpty();
+    }
+
+    @Test
     public void test_delete_reports_the_task_step() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         insertTask("index-foo", Map.of("projectName", "foo"));
 
         assertThat(service.delete("foo", new ProjectDeleteOptions(true)).tasksDeleted()).isTrue();
+    }
+
+    private static BatchSearchRecord batchRecordOf(String projectName) {
+        return new BatchSearchRecord(List.of(new ProjectProxy(projectName)), "search", "", 1, new Date(), null);
     }
 
     private void insertTask(String id, Map<String, Object> args) throws Exception {
