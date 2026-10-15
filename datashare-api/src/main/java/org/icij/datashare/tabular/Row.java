@@ -12,8 +12,12 @@ import java.util.Set;
  * One data row. {@code number} is the 1-based ordinal of the emitted row, not the row's position in
  * the file: the header row and the rows a reader skips, an entirely blank one for instance, consume
  * no number.
+ *
+ * <p>A column holds a list rather than a string because a json record's property may be an array. A
+ * tabular cell holds one value and so a one-element list; nothing downstream has to tell the two
+ * apart.
  */
-public record Row(long number, Map<String, String> values) {
+public record Row(long number, Map<String, List<String>> values) {
     /** The whitespace rule headers and cells share: the space a spreadsheet writes as U+00A0 reads
      *  as a space, a zero-width formatting character or stray BOM is removed (it is not whitespace to strip(),
      *  yet it would silently split one key value into two entity ids), and surrounding whitespace
@@ -92,11 +96,11 @@ public record Row(long number, Map<String, String> values) {
      * the last declared column are ignored. Each mapped value goes through {@link #clean}, the rule
      * the header names already follow.
      */
-    public static Map<String, String> values(List<String> headers, List<String> cells) {
-        Map<String, String> values = new LinkedHashMap<>();
+    public static Map<String, List<String>> values(List<String> headers, List<String> cells) {
+        Map<String, List<String>> values = new LinkedHashMap<>();
         for (int column = 0; column < headers.size(); column++) {
             if (headers.get(column) != null) {
-                values.put(headers.get(column), column < cells.size() ? clean(cells.get(column)) : "");
+                values.put(headers.get(column), List.of(column < cells.size() ? clean(cells.get(column)) : ""));
             }
         }
         return Collections.unmodifiableMap(values);
@@ -110,7 +114,7 @@ public record Row(long number, Map<String, String> values) {
      * or previously emptied cell past the last filled column in a workbook produce an empty surplus
      * that carries no data and cannot misalign anything.
      */
-    public static Map<String, String> values(List<String> headers, List<String> cells, long number) {
+    public static Map<String, List<String>> values(List<String> headers, List<String> cells, long number) {
         if (!cells.stream().skip(headers.size()).allMatch(Row::blank)) {
             throw new IllegalArgumentException(
                     "row " + number + " has " + cells.size() + " fields but the header declares " + headers.size());
