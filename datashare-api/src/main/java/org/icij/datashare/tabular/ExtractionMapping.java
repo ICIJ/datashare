@@ -74,7 +74,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             // the only one that does not hash: the value is the id, so two mappings reading the same
             // id column merge their entities deliberately, which is what a dump of globally-named
             // entities needs and the footgun the option carries.
-            keys = Objects.requireNonNull(keys, "keys").stream().map(Row::clean).distinct().toList();
+            keys = (keys == null ? List.<String>of() : keys).stream().map(Row::clean).distinct().toList();
             keyLiteral = keyLiteral == null ? null : Row.clean(keyLiteral);
             idColumn = idColumn == null ? null : Row.clean(idColumn);
             // A filter names a header column and holds a cell's value, so each side gets the cleaning

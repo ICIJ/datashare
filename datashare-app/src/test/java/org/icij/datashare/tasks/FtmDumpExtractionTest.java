@@ -89,13 +89,13 @@ public class FtmDumpExtractionTest {
     private static final String MAPPING = """
             {"id":"dump","name":"FtM dump","model":"ftm","documentId":"%s",
              "entities":{
-               "person":{"type":"Person","keys":[],"idColumn":"id","filters":{"schema":"Person"},
+               "person":{"type":"Person","idColumn":"id","filters":{"schema":"Person"},
                  "properties":{"name":{"columns":["properties.name"]},
                                "firstName":{"columns":["properties.firstName"]}}},
-               "company":{"type":"Company","keys":[],"idColumn":"id","filters":{"schema":"Company"},
+               "company":{"type":"Company","idColumn":"id","filters":{"schema":"Company"},
                  "properties":{"name":{"columns":["properties.name"]},
                                "registrationNumber":{"columns":["properties.registrationNumber"]}}},
-               "ownership":{"type":"Ownership","keys":[],"idColumn":"id","filters":{"schema":"Ownership"},
+               "ownership":{"type":"Ownership","idColumn":"id","filters":{"schema":"Ownership"},
                  "properties":{"owner":{"columns":["properties.owner"]},
                                "asset":{"columns":["properties.asset"]},
                                "percentage":{"columns":["properties.percentage"]}}}}}
@@ -123,6 +123,8 @@ public class FtmDumpExtractionTest {
         assertThat(endpoints.stream().map(Statement::value).allMatch(entityIds::contains)).isTrue();
         assertThat(endpoints.stream().map(Statement::value).anyMatch(id -> id.startsWith("p"))).isTrue();
         assertThat(endpoints.stream().map(Statement::value).anyMatch(id -> id.startsWith("c"))).isTrue();
+        assertThat(indexer.exists(Project.entitiesIndex("prj"), "ftm_p0")).isTrue();
+        assertThat(indexer.exists(Project.entitiesIndex("prj"), "ftm_c0")).isTrue();
     }
 
     @Test

@@ -18,6 +18,15 @@ public class ExtractionMappingReaderTest {
     }
 
     @Test
+    public void test_read_loads_an_id_column_mapping_that_names_no_keys() throws Exception {
+        ExtractionMapping mapping = read(MAPPING.replace("\"keys\": [\"id\"]", "\"idColumn\": \"id\""));
+
+        assertThat(mapping.entities().get("c").idColumn()).isEqualTo("id");
+        assertThat(mapping.entities().get("c").keys()).isEmpty();
+        assertThat(mapping.validate()).isEmpty();
+    }
+
+    @Test
     public void test_read_stamps_the_project_and_owner_its_caller_imposes() throws Exception {
         ExtractionMapping mapping = read(MAPPING.replace("\"projectId\": \"prj\", ", ""), "prj", "alice");
 
