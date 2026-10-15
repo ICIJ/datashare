@@ -1,8 +1,10 @@
 package org.icij.datashare.tabular;
 
 import org.icij.datashare.model.Statement;
+import org.icij.datashare.text.StructuredEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -41,6 +43,7 @@ public class StatementBuilder {
     private final Map<Skip, Long> skipped = new EnumMap<>(Skip.class);
     private final Set<String> absent = new TreeSet<>();
     private final Set<String> seen = new TreeSet<>();
+    private final Set<String> unmatched = new TreeSet<>();
 
     /** {@code sheet} is the section of the document these rows come from, as the reader resolved it:
      *  a workbook's sheet name, the Tika fallback's table index, or empty for a format with one
@@ -61,6 +64,11 @@ public class StatementBuilder {
         this.sheet = sheet == null ? null : Row.clean(sheet);
         mapping.requireValid();
         mapping.entities().forEach(this::declare);
+        mapping.entities().forEach((alias, entity) -> {
+            if (!entity.filters().isEmpty()) {
+                unmatched.add(alias);
+            }
+        });
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
 
@@ -126,8 +134,15 @@ public class StatementBuilder {
      *  retraction rolls back with it, exactly as a failure on row 1 did. */
     public void requireEveryColumnSeen() {
         List<String> never = columns.stream().filter(column -> !seen.contains(column)).toList();
+        List<String> problems = new ArrayList<>();
         if (!never.isEmpty()) {
-            throw new InvalidExtractionMapping(mapping.id(), List.of("the source has no column " + never));
+            problems.add("the source has no column " + never);
+        }
+        if (!unmatched.isEmpty()) {
+            problems.add("no row matched the filters of " + unmatched);
+        }
+        if (!problems.isEmpty()) {
+            throw new InvalidExtractionMapping(mapping.id(), problems);
         }
     }
 
@@ -150,9 +165,13 @@ public class StatementBuilder {
                    .allMatch(filter -> cells.get(filter.getKey()).contains(filter.getValue()))) {
             return null;
         }
+        unmatched.remove(alias);
         if (entity.idColumn() != null) {
             String given = single(cells.get(entity.idColumn()));
-            if (given == null || given.length() > Statement.MAX_ENTITY_ID_LENGTH) {
+            // Elasticsearch caps the _id at bytes, not characters, and the _id is the model-prefixed id.
+            if (given == null || given.length() > Statement.MAX_ENTITY_ID_LENGTH
+                    || StructuredEntity.documentId(mapping.model(), given).getBytes(StandardCharsets.UTF_8).length
+                       > StructuredEntity.MAX_ID_BYTES) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
                 return null;
             }

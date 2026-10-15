@@ -21,6 +21,13 @@ public record StructuredEntity(String entityId, String model, String entityType,
      *  parse error and every client would have to escape the separator to reach a single property. */
     private static final String NAMESPACE_SEPARATOR = "_";
 
+    /** What elasticsearch accepts as a document _id, in bytes, not characters. */
+    public static final int MAX_ID_BYTES = 512;
+
+    public static String documentId(String model, String entityId) {
+        return model + NAMESPACE_SEPARATOR + entityId;
+    }
+
     // ModelEntity's keys are bare ("birthDate"): JooqStatementRepository.toRow strips the model
     // prefix a statement's property is stored under. The namespace goes back on here, at the index
     // boundary, rather than in ModelEntity, which TargetModel.validate consumes on the bare form.
@@ -38,6 +45,6 @@ public record StructuredEntity(String entityId, String model, String entityType,
     @Override
     @JsonIgnore
     public String getId() {
-        return model + NAMESPACE_SEPARATOR + entityId;
+        return documentId(model, entityId);
     }
 }

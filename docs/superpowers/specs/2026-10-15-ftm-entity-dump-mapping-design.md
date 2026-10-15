@@ -109,7 +109,7 @@ with the wording the existing key-column checks use.
 
 At build time the column's single cleaned value becomes the entity id verbatim. The entity is
 refused and counted `ENTITY_UNIDENTIFIED` when that value is blank, when the column holds more than
-one value, when it holds a NUL, or when it is longer than `Statement.MAX_ENTITY_ID_LENGTH` (512).
+one value, when it holds a NUL, when it is longer than `Statement.MAX_ENTITY_ID_LENGTH` (512), or when its model-prefixed `_id` exceeds 512 bytes.
 FtM ids are 40 hex characters.
 
 Provenance is unchanged: the statement still records the document, sheet, row number and column it
@@ -252,8 +252,9 @@ and no change here affects it. Measure it alongside the write so the two costs a
 ## Risks
 
 - **A verbatim id is source-controlled.** It reaches the `(prj_id, entity_id)` index and the
-  entities index. The length bound and the NUL check are what keep it inside what both stores
-  accept.
+  entities index. Postgres bounds the id at 512 characters (`Statement.MAX_ENTITY_ID_LENGTH`),
+  Elasticsearch bounds the `_id`, `model + "_" + entityId`, at 512 bytes (`StructuredEntity.MAX_ID_BYTES`).
+  Both bounds and the NUL check are what keep it inside what both stores accept.
 
 ## Out of scope
 

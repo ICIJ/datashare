@@ -1,6 +1,7 @@
 package org.icij.datashare.tabular;
 
 import org.icij.datashare.model.Statement;
+import org.icij.datashare.text.StructuredEntity;
 import org.junit.Test;
 
 import java.util.LinkedHashMap;
@@ -1075,13 +1076,34 @@ public class StatementBuilderTest {
     }
 
     @Test
-    public void test_an_id_of_exactly_the_maximum_length_is_kept() {
+    public void test_an_id_whose_document_id_is_exactly_the_maximum_bytes_is_kept() {
         StatementBuilder builder = new StatementBuilder(mapping(Map.of(
                 "company", identified("Company", "id", Map.of("name", column("name"))))), "");
-        String longest = "x".repeat(Statement.MAX_ENTITY_ID_LENGTH);
+        String longest = "x".repeat(StructuredEntity.MAX_ID_BYTES - StructuredEntity.documentId("ftm", "").length());
 
         assertThat(builder.statements(row(Map.of("id", longest, "name", "ACME"))).get(0).entityId())
                 .isEqualTo(longest);
+    }
+
+    @Test
+    public void test_an_id_one_byte_over_the_document_id_maximum_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+        String over = "x".repeat(StructuredEntity.MAX_ID_BYTES - StructuredEntity.documentId("ftm", "").length() + 1);
+
+        assertThat(builder.statements(row(Map.of("id", over, "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_an_id_short_in_characters_but_long_in_bytes_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+        String wide = "\u00e9".repeat(StructuredEntity.MAX_ID_BYTES / 2);
+
+        assertThat(wide.length()).isLessThan(Statement.MAX_ENTITY_ID_LENGTH);
+        assertThat(builder.statements(row(Map.of("id", wide, "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
     }
 
     private static ExtractionMapping.EntityMapping filtered(String type, String idColumn, Map<String, String> filters,
@@ -1154,5 +1176,37 @@ public class StatementBuilderTest {
         InvalidExtractionMapping refusal =
                 assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
         assertThat(refusal.getMessage()).contains("shcema");
+    }
+
+    @Test
+    public void test_a_filter_value_matching_no_row_fails_at_end_of_run() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Persn"), Map.of("name", column("name"))))), "");
+
+        builder.statements(row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
+
+        InvalidExtractionMapping refusal =
+                assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
+        assertThat(refusal.getMessage()).contains("person");
+    }
+
+    @Test
+    public void test_an_alias_that_matched_but_was_unidentified_is_not_reported_unmatched() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
+
+        builder.statements(row(Map.of("id", "", "schema", "Person", "name", "Jane")));
+
+        builder.requireEveryColumnSeen();
+    }
+
+    @Test
+    public void test_an_alias_without_filters_is_never_reported_unmatched() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        builder.statements(row(Map.of("id", "", "name", "ACME")));
+
+        builder.requireEveryColumnSeen();
     }
 }

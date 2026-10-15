@@ -15,7 +15,7 @@
 - Java module layout: `Row`, `StatementBuilder`, `ExtractionMapping` live in `datashare-api`; the four readers live in `datashare-app`; `JooqStatementRepository` lives in `datashare-db`.
 - The id hash recipe in `StatementBuilder.id` and `StatementBuilder.rowId` is **not touched**. `StatementTest#test_the_id_digest_is_pinned` must keep passing unchanged.
 - No change to `Statement`, `StatementRepository`, `EntitiesIndexRebuilder`, the ENTITIES stage, or `StructuredEntityExtractionResult` beyond the one stream wiring named in Task 6.
-- A verbatim entity id is bounded by `Statement.MAX_ENTITY_ID_LENGTH` (512, `datashare-api/src/main/java/org/icij/datashare/model/Statement.java:10`).
+- A verbatim entity id is bounded by `Statement.MAX_ENTITY_ID_LENGTH` (512 characters, `datashare-api/src/main/java/org/icij/datashare/model/Statement.java:10`) and by `StructuredEntity.MAX_ID_BYTES` (512 UTF-8 bytes of the model-prefixed `_id`, which is what Elasticsearch caps).
 - Every string reaching a statement is NUL-free; a NUL is refused at `validate()` for mapping strings and dropped-and-counted at read time for cell values.
 - Out of scope, do not build: loading FtM entities without a mapping, a `required` option on a property, negative filters.
 - Build command for `datashare-api` / `datashare-app` tests (no database needed):
