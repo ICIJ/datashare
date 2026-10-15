@@ -410,28 +410,21 @@ public class JooqRepository implements Repository {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
-            int deleteStarResult =
-                    inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
-            int deleteUserRecommendationResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION)
-                                                      .where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId))
-                                                      .execute();
+            inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
+            inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
+            inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId))
+                 .execute();
             List<Integer> deletedUserHistoryProjectIds =
                     inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).returning()
                          .fetch().getValues(USER_HISTORY_PROJECT.USER_HISTORY_ID);
-            int deleteUserHistoryResult =
-                    inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(deletedUserHistoryProjectIds)).execute();
-            int deleteStatementResult = inner.deleteFrom(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId)).execute();
-            int deleteExtractionMappingResult =
-                    inner.deleteFrom(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
-            int deletePathBannerResult =
-                    inner.deleteFrom(PATH_BANNER).where(PATH_BANNER.PROJECT_ID.eq(projectId)).execute();
-            int deleteBatchSearchResult = deleteBatchSearchesOf(inner, projectId);
-            int deleteProject = inner.deleteFrom(PROJECT).where(PROJECT.ID.eq(projectId)).execute();
-            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult +
-                   deletedUserHistoryProjectIds.size() + deleteUserHistoryResult + deleteStatementResult +
-                   deleteExtractionMappingResult + deletePathBannerResult + deleteBatchSearchResult +
-                   deleteProject > 0;
+            inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(deletedUserHistoryProjectIds)).execute();
+            inner.deleteFrom(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId)).execute();
+            inner.deleteFrom(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
+            inner.deleteFrom(PATH_BANNER).where(PATH_BANNER.PROJECT_ID.eq(projectId)).execute();
+            deleteBatchSearchesOf(inner, projectId);
+            // the project row, not the sum of the cascade: callers read this as "the project is
+            // gone", and a cascade that only had dependent rows to drop never deleted a project
+            return inner.deleteFrom(PROJECT).where(PROJECT.ID.eq(projectId)).execute() > 0;
         });
 
     }
@@ -440,12 +433,11 @@ public class JooqRepository implements Repository {
      * A batch search can span several projects, so deleting one only strips that project from the search:
      * the search row itself goes away when the project was the last one it searched.
      */
-    private int deleteBatchSearchesOf(DSLContext inner, String projectId) {
+    private void deleteBatchSearchesOf(DSLContext inner, String projectId) {
         List<String> searchesOfProject = batchSearchUuidsOf(inner, projectId);
         inner.deleteFrom(BATCH_SEARCH_RESULT).where(BATCH_SEARCH_RESULT.PRJ_ID.eq(projectId)).execute();
-        int deletedProjectRows =
-                inner.deleteFrom(BATCH_SEARCH_PROJECT).where(BATCH_SEARCH_PROJECT.PRJ_ID.eq(projectId)).execute();
-        return deletedProjectRows + deleteBatchSearches(inner, leftWithoutProject(inner, searchesOfProject));
+        inner.deleteFrom(BATCH_SEARCH_PROJECT).where(BATCH_SEARCH_PROJECT.PRJ_ID.eq(projectId)).execute();
+        deleteBatchSearches(inner, leftWithoutProject(inner, searchesOfProject));
     }
 
     private List<String> batchSearchUuidsOf(DSLContext inner, String projectId) {
@@ -460,10 +452,10 @@ public class JooqRepository implements Repository {
                     .fetch(BATCH_SEARCH.UUID);
     }
 
-    private int deleteBatchSearches(DSLContext inner, List<String> batchSearchUuids) {
+    private void deleteBatchSearches(DSLContext inner, List<String> batchSearchUuids) {
         inner.deleteFrom(BATCH_SEARCH_QUERY).where(BATCH_SEARCH_QUERY.SEARCH_UUID.in(batchSearchUuids)).execute();
         inner.deleteFrom(BATCH_SEARCH_RESULT).where(BATCH_SEARCH_RESULT.SEARCH_UUID.in(batchSearchUuids)).execute();
-        return inner.deleteFrom(BATCH_SEARCH).where(BATCH_SEARCH.UUID.in(batchSearchUuids)).execute();
+        inner.deleteFrom(BATCH_SEARCH).where(BATCH_SEARCH.UUID.in(batchSearchUuids)).execute();
     }
 
     @Override

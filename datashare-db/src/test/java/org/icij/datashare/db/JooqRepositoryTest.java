@@ -422,6 +422,7 @@ public class JooqRepositoryTest {
     @Test
     public void test_delete_all_project() {
         User user = new User("userid");
+        repository.save(project("prj"));
         repository.star(project("prj"), user, singletonList("doc_id"));
         repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"));
         repository.recommend(project("prj"), user, List.of("doc_id"));
@@ -439,6 +440,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_delete_all_project_purges_its_statements_and_extraction_mappings() {
+        repository.save(project("prj"));
         JooqStatementRepository statements = dbRule.createStatementRepository();
         statements.save("prj", "run-1", Stream.of(Statement.of("ftm", "e-1", "Person", "name", "Ada",
                 new Statement.Provenance("doc-1", "", 12L, "name"))));
@@ -455,6 +457,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_delete_all_project_purges_its_path_banners() {
+        repository.save(project("prj"));
         repository.save(new PathBanner(project("prj"), Path.of("/vault/prj"), "a note"));
         repository.save(new PathBanner(project("other"), Path.of("/vault/other"), "another note"));
 
@@ -466,6 +469,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_delete_all_project_drops_the_batch_searches_it_was_the_only_project_of() {
+        repository.save(project("prj"));
         JooqBatchSearchRepository batchSearches = dbRule.createBatchSearchRepository();
         BatchSearch onlyProject = new BatchSearch(singletonList(proxy("prj")), "name", "description",
                 asSet("q1"), null, User.local());
@@ -484,6 +488,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_delete_all_project_purges_its_batch_search_results() {
+        repository.save(project("prj"));
         JooqBatchSearchRepository batchSearches = dbRule.createBatchSearchRepository();
         BatchSearch sharedWithAnotherProject = new BatchSearch(asList(proxy("prj"), proxy("other")), "name",
                 "description", asSet("q1"), null, User.local());
