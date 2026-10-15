@@ -811,9 +811,61 @@ public class StatementBuilderTest {
     public void test_a_column_the_source_does_not_have_fails_the_run() {
         StatementBuilder builder = person(List.of("passport"), Map.of("name", column("fullname")));
 
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
-                () -> builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))));
+        assertThat(builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe")))).isEmpty();
+
+        IllegalArgumentException thrown =
+                assertThrows(IllegalArgumentException.class, builder::requireEveryColumnSeen);
         assertThat(thrown.getMessage()).contains("fullname");
+    }
+
+    @Test
+    public void test_a_column_absent_from_the_first_row_but_present_later_imports() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"), Map.of("name", column("name"))),
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("legal_name"))))), "");
+
+        assertThat(builder.statements(row(1L, Map.of("id", "1", "name", "Jane")))).hasSize(1);
+        assertThat(builder.statements(row(2L, Map.of("id", "2", "legal_name", "ACME")))).hasSize(1);
+        builder.requireEveryColumnSeen();
+    }
+
+    @Test
+    public void test_a_column_in_no_row_at_all_fails_at_end_of_run() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"),
+                                Map.of("name", column("name"), "country", column("mispelled"))))), "");
+
+        builder.statements(row(1L, Map.of("id", "1", "name", "Jane")));
+
+        InvalidExtractionMapping refusal =
+                assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
+        assertThat(refusal.getMessage()).contains("mispelled");
+    }
+
+    @Test
+    public void test_every_column_in_no_row_is_named_at_once() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"),
+                                Map.of("name", column("one"), "country", column("two"))))), "");
+
+        builder.statements(row(1L, Map.of("id", "1")));
+
+        InvalidExtractionMapping refusal =
+                assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
+        assertThat(refusal.getMessage()).contains("one");
+        assertThat(refusal.getMessage()).contains("two");
+    }
+
+    @Test
+    public void test_a_column_missing_from_a_row_is_counted_once() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"),
+                                Map.of("name", column("name"), "country", column("country"))))), "");
+
+        builder.statements(row(1L, Map.of("id", "1", "name", "Jane")));
+        builder.statements(row(2L, Map.of("id", "2", "name", "John")));
+
+        assertThat(builder.skipped().get(CELL_MISSING)).isEqualTo(1L);
     }
 
     @Test

@@ -40,7 +40,7 @@ public class StatementBuilder {
     private final Set<String> columns = new TreeSet<>();
     private final Map<Skip, Long> skipped = new EnumMap<>(Skip.class);
     private final Set<String> absent = new TreeSet<>();
-    private boolean checked;
+    private final Set<String> seen = new TreeSet<>();
 
     /** {@code sheet} is the section of the document these rows come from, as the reader resolved it:
      *  a workbook's sheet name, the Tika fallback's table index, or empty for a format with one
@@ -106,21 +106,28 @@ public class StatementBuilder {
         });
     }
 
-    // Row.values pads a short row with empty strings, so a column the file does not have reads like a
-    // blank cell: without this, one typo imports every row as nothing and reports it as a success. A
-    // reader whose records carry their own names can legitimately omit a column further down, so only
-    // the first row is worth failing on: after that a missing column is data, and is counted once,
-    // since a field a whole file omits is one fact and not one per row.
+    // Row.values pads a short row with empty strings, so a column the file does not have reads like
+    // a blank cell: without this, one typo imports every row as nothing and reports it as a success.
+    // A reader whose records carry their own names legitimately omits a column on any row, the first
+    // one included, so the check is what the whole run saw rather than what row 1 had. A column
+    // missing from a row is counted once, since a field a file omits is one fact, not one per row.
     private void requireColumns(Row row) {
-        if (row.values().keySet().containsAll(columns)) {
-            checked = true;
-            return;
+        if (seen.size() < columns.size()) {
+            row.values().keySet().stream().filter(columns::contains).forEach(seen::add);
         }
-        List<String> missing = columns.stream().filter(column -> !row.values().containsKey(column)).toList();
-        if (!checked) {
-            throw new InvalidExtractionMapping(mapping.id(), List.of("the source has no column " + missing));
+        columns.stream().filter(column -> !row.values().containsKey(column)).filter(absent::add)
+               .forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
+    }
+
+    /** The mapping typo this guard exists for, reported once the whole source has been read: a
+     *  column no row carried is named here rather than on row 1, because row 1 of a mixed source is
+     *  one record shape among several. The caller runs this inside the write transaction, so the
+     *  retraction rolls back with it, exactly as a failure on row 1 did. */
+    public void requireEveryColumnSeen() {
+        List<String> never = columns.stream().filter(column -> !seen.contains(column)).toList();
+        if (!never.isEmpty()) {
+            throw new InvalidExtractionMapping(mapping.id(), List.of("the source has no column " + never));
         }
-        missing.stream().filter(absent::add).forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
     }
 
     private Map<String, String> entityIds(Map<String, List<String>> cells, long rowNumber) {
