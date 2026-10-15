@@ -712,11 +712,13 @@ class CliApp {
         String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
         String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
         String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
+        String tasksBadge = deleted.tasksDeleted() ? "tasks OK" : "tasks FAILED";
         String grantsBadge = deleted.casbinDeleted() ? "grants OK" : "grants FAILED";
         String inventoryBadge = deleted.inventoryDeleted() ? "inventory OK" : "inventory FAILED";
         System.out.println(
                 "deleted project '" + deleted.name() + "' (" + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", " +
-                reportMapBadge + ", " + artifactsBadge + ", " + grantsBadge + ", " + inventoryBadge + ")");
+                reportMapBadge + ", " + artifactsBadge + ", " + tasksBadge + ", " + grantsBadge + ", " +
+                inventoryBadge + ")");
         warnIfPartialFailure(deleted, options);
     }
 
@@ -736,7 +738,7 @@ class CliApp {
         // silent half of the bug #2441 is about
         boolean accessFailed = !deleted.casbinDeleted() || !deleted.inventoryDeleted();
         if (!deleted.dbDeleted() || indexFailed || accessFailed || !deleted.queuesDeleted() ||
-            !deleted.reportMapDeleted()) {
+            !deleted.reportMapDeleted() || !deleted.tasksDeleted()) {
             // Some load-bearing step failed: keep the cascade exit code 0
             // (the cascade did run to completion) but nudge the operator
             // to retry with --if-exists, which is continuation-friendly.
@@ -772,7 +774,8 @@ class CliApp {
                              Map.entry("inventoryDeleted", deleted.inventoryDeleted()),
                              Map.entry("queuesDeleted", deleted.queuesDeleted()),
                              Map.entry("reportMapDeleted", deleted.reportMapDeleted()),
-                             Map.entry("artifactsDeleted", deleted.artifactsDeleted()));
+                             Map.entry("artifactsDeleted", deleted.artifactsDeleted()),
+                             Map.entry("tasksDeleted", deleted.tasksDeleted()));
     }
 
     private static void emitDeleteAborted(String name, boolean json) {

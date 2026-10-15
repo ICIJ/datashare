@@ -1,6 +1,11 @@
 package org.icij.datashare.project.admin;
 
 import net.codestory.http.security.Users;
+import org.icij.datashare.asynctasks.Group;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFilters;
+import org.icij.datashare.asynctasks.TaskGroupType;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
@@ -23,6 +28,7 @@ import org.junit.rules.TemporaryFolder;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,6 +51,7 @@ public class ProjectAdminServiceCascadeTest {
 
     private Repository repository;
     private MemoryDocumentCollectionFactory<Path> documentCollectionFactory;
+    private TaskRepositoryMemory taskRepository;
     private ProjectAdminServiceImpl service;
 
     @Before
@@ -56,6 +63,7 @@ public class ProjectAdminServiceCascadeTest {
         UserStore userStore = mock(UserStore.class);
         UsersIdProviderCache usersIdProviderCache = mock(UsersIdProviderCache.class);
         documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
+        taskRepository = new TaskRepositoryMemory();
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("dataDir", "/vault");
             put("mode", "LOCAL");
@@ -64,7 +72,8 @@ public class ProjectAdminServiceCascadeTest {
         when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
                 .thenReturn(new WebResponse<>(List.<User>of(), 0, 0, 0));
         service = new ProjectAdminServiceImpl(repository, indexer, authorizer, documentCollectionFactory,
-                                              propertiesProvider, users, userStore, usersIdProviderCache);
+                                              propertiesProvider, users, userStore, usersIdProviderCache,
+                                              taskRepository);
     }
 
     @Test
@@ -124,5 +133,54 @@ public class ProjectAdminServiceCascadeTest {
         service.delete("foo", new ProjectDeleteOptions(true));
 
         assertThat(other.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_delete_removes_the_tasks_naming_the_project_in_their_args() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        insertTask("index-foo", Map.of("projectName", "foo"));
+        insertTask("scan-foo", Map.of("defaultProject", "foo"));
+        insertTask("index-bar", Map.of("projectName", "bar"));
+
+        service.delete("foo", new ProjectDeleteOptions(true));
+
+        assertThat(taskIds()).containsOnly("index-bar");
+    }
+
+    @Test
+    public void test_delete_leaves_the_tasks_of_a_project_whose_name_starts_the_same() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        insertTask("index-foo-2", Map.of("projectName", "foo-2"));
+
+        service.delete("foo", new ProjectDeleteOptions(true));
+
+        assertThat(taskIds()).containsOnly("index-foo-2");
+    }
+
+    @Test
+    public void test_delete_removes_a_batch_download_task_listing_the_project() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        insertTask("download-foo", Map.of("batchDownload", Map.of("projects", List.of(Map.of("name", "foo")))));
+        insertTask("download-bar", Map.of("batchDownload", Map.of("projects", List.of(Map.of("name", "bar")))));
+
+        service.delete("foo", new ProjectDeleteOptions(true));
+
+        assertThat(taskIds()).containsOnly("download-bar");
+    }
+
+    @Test
+    public void test_delete_reports_the_task_step() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        insertTask("index-foo", Map.of("projectName", "foo"));
+
+        assertThat(service.delete("foo", new ProjectDeleteOptions(true)).tasksDeleted()).isTrue();
+    }
+
+    private void insertTask(String id, Map<String, Object> args) throws Exception {
+        taskRepository.insert(new Task<>(id, "IndexTask", User.local(), args), new Group(TaskGroupType.Java));
+    }
+
+    private List<String> taskIds() throws Exception {
+        return taskRepository.getTaskIds(new TaskFilters()).toList();
     }
 }
