@@ -15,6 +15,7 @@ import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -25,6 +26,7 @@ import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assume.assumeTrue;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ENTITIES_EXPORT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ENTITIES_EXPORT_OUTPUT_OPT;
@@ -159,6 +161,20 @@ public class CliAppEntitiesExportTest {
 
         assertThat(exit).isEqualTo(5);
         assertThat(stderr.toString(UTF_8)).contains("error: no such file: " + file);
+    }
+
+    @Test
+    public void test_an_output_in_a_read_only_directory_exits_5_with_a_message() throws Exception {
+        projectHolds(entity("p-1", "Person"));
+        Path readOnly = folder.newFolder("read-only").toPath();
+        Files.setPosixFilePermissions(readOnly, PosixFilePermissions.fromString("r-xr-xr-x"));
+        assumeTrue(!Files.isWritable(readOnly));
+        String file = readOnly.resolve("prj.ftm.json").toString();
+
+        int exit = CliApp.handleEntitiesExport(statements, export("prj", "ftm", file));
+
+        assertThat(exit).isEqualTo(5);
+        assertThat(stderr.toString(UTF_8)).contains("error: permission denied: " + file);
     }
 
     @Test
