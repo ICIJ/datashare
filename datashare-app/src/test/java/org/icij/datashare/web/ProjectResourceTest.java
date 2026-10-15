@@ -600,13 +600,25 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         Project foo = new Project("to-delete");
         when(repository.getProjects(any())).thenReturn(List.of(foo));
         when(projectAdminService.deleteIfExists(eq("to-delete"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("to-delete", true, true, false, true, true, true, true, false));
+                .thenReturn(new ProjectDeleted("to-delete", true, true, false, true, true, true, true, true, false));
+
+        delete("/api/project/to-delete").should().respond(500);
+    }
+
+    @Test
+    public void test_project_delete_reports_a_failed_task_step() throws Exception {
+        // the CLI warns on this one, so answering 204 would make the two surfaces disagree about
+        // what "deleted" means
+        Project foo = new Project("to-delete");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(projectAdminService.deleteIfExists(eq("to-delete"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("to-delete", true, true, true, true, true, true, true, false, false));
 
         delete("/api/project/to-delete").should().respond(500);
     }
 
     private static ProjectDeleted fullyDeleted(String name) {
-        return new ProjectDeleted(name, true, true, true, true, true, true, true, false);
+        return new ProjectDeleted(name, true, true, true, true, true, true, true, true, false);
     }
 
     @Test
@@ -642,7 +654,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         Project bar = new Project("bar");
         when(repository.getProjects(any())).thenReturn(asList(foo, bar));
         when(projectAdminService.deleteIfExists(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, false, true, true, true, true, false));
+                .thenReturn(new ProjectDeleted("foo", true, true, false, true, true, true, true, true, false));
         when(projectAdminService.deleteIfExists(eq("bar"), any(ProjectDeleteOptions.class)))
                 .thenReturn(fullyDeleted("bar"));
 

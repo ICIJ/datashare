@@ -4,6 +4,7 @@ import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.PathBanner;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
+import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.RowSourceOptions;
@@ -27,13 +28,16 @@ import java.util.stream.Stream;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.UserEvent.Type.SEARCH;
 import static org.icij.datashare.db.Tables.CASBIN_RULE;
 import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.ProjectProxy.proxy;
 import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.icij.datashare.user.User.nullUser;
@@ -418,6 +422,7 @@ public class JooqRepositoryTest {
     @Test
     public void test_delete_all_project() {
         User user = new User("userid");
+        repository.save(project("prj"));
         repository.star(project("prj"), user, singletonList("doc_id"));
         repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"));
         repository.recommend(project("prj"), user, List.of("doc_id"));
@@ -435,6 +440,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_delete_all_project_purges_its_statements_and_extraction_mappings() {
+        repository.save(project("prj"));
         JooqStatementRepository statements = dbRule.createStatementRepository();
         statements.save("prj", "run-1", Stream.of(Statement.of("ftm", "e-1", "Person", "name", "Ada",
                 new Statement.Provenance("doc-1", "", 12L, "name"))));
@@ -447,6 +453,52 @@ public class JooqRepositoryTest {
 
         assertThat(statements.entity("prj", "e-1").isPresent()).isFalse();
         assertThat(dbRule.createExtractionMappingRepository().list("prj")).isEmpty();
+    }
+
+    @Test
+    public void test_delete_all_project_purges_its_path_banners() {
+        repository.save(project("prj"));
+        repository.save(new PathBanner(project("prj"), Path.of("/vault/prj"), "a note"));
+        repository.save(new PathBanner(project("other"), Path.of("/vault/other"), "another note"));
+
+        assertThat(repository.deleteAll("prj")).isTrue();
+
+        assertThat(repository.getProjectPathBanners(project("prj"))).isEmpty();
+        assertThat(repository.getProjectPathBanners(project("other"))).hasSize(1);
+    }
+
+    @Test
+    public void test_delete_all_project_drops_the_batch_searches_it_was_the_only_project_of() {
+        repository.save(project("prj"));
+        JooqBatchSearchRepository batchSearches = dbRule.createBatchSearchRepository();
+        BatchSearch onlyProject = new BatchSearch(singletonList(proxy("prj")), "name", "description",
+                asSet("q1"), null, User.local());
+        BatchSearch sharedWithAnotherProject = new BatchSearch(asList(proxy("prj"), proxy("other")), "name",
+                "description", asSet("q2"), null, User.local());
+        batchSearches.save(onlyProject);
+        batchSearches.save(sharedWithAnotherProject);
+
+        assertThat(repository.deleteAll("prj")).isTrue();
+
+        assertThat(batchSearches.get(User.local(), onlyProject.uuid)).isNull();
+        // the shared search is still reachable, minus the deleted project
+        assertThat(batchSearches.get(sharedWithAnotherProject.uuid)).isNotNull();
+        assertThat(batchSearches.get(sharedWithAnotherProject.uuid).projects).containsOnly(proxy("other"));
+    }
+
+    @Test
+    public void test_delete_all_project_purges_its_batch_search_results() {
+        repository.save(project("prj"));
+        JooqBatchSearchRepository batchSearches = dbRule.createBatchSearchRepository();
+        BatchSearch sharedWithAnotherProject = new BatchSearch(asList(proxy("prj"), proxy("other")), "name",
+                "description", asSet("q1"), null, User.local());
+        batchSearches.save(sharedWithAnotherProject);
+        batchSearches.saveResults(sharedWithAnotherProject.uuid, "q1",
+                singletonList(createDoc("doc1").with(project("prj")).build()));
+
+        assertThat(repository.deleteAll("prj")).isTrue();
+
+        assertThat(batchSearches.getResults(User.local(), sharedWithAnotherProject.uuid)).isEmpty();
     }
 
     @Test
