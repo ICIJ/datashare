@@ -130,6 +130,8 @@ public class StatementBuilder {
                 ids.put(alias, rowId(alias, entity.type(), rowNumber));
                 return;
             }
+            // A key column holding more than one value would have its values sorted into the hash,
+            // picking an identity in silence; single() returns null and the entity is refused.
             List<String> values = keys.stream().map(key -> single(cells.get(key))).toList();
             if (values.stream().anyMatch(value -> value == null)) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
@@ -173,13 +175,15 @@ public class StatementBuilder {
                 String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
                 filling.fill(property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
-                filling.fill(property, mapped.columns().stream().map(column -> single(cells.get(column)))
-                                             .filter(value -> value != null)
+                filling.fill(property, mapped.columns().stream().flatMap(column -> cells.get(column).stream())
+                                             .filter(value -> !value.isEmpty())
                                              .collect(joining(mapped.join())), mapped.dateFormat(),
                              provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
-                    filling.fill(property, single(cells.get(column)), mapped.dateFormat(), provenance(row, column));
+                    for (String value : cells.get(column)) {
+                        filling.fill(property, value, mapped.dateFormat(), provenance(row, column));
+                    }
                 }
             }
         }

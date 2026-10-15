@@ -860,4 +860,97 @@ public class StatementBuilderTest {
 
         assertThat(thrown.violations.toString()).contains("'bbbb'");
     }
+
+    private static Row multi(Map<String, List<String>> values) {
+        return new Row(7L, values);
+    }
+
+    @Test
+    public void test_a_multi_valued_column_writes_one_statement_per_value() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "names", List.of("ACME", "Acme SA"))));
+
+        assertThat(statements).hasSize(2);
+        assertThat(statements.stream().map(Statement::value).toList()).isEqualTo(List.of("ACME", "Acme SA"));
+        assertThat(statements.stream().map(Statement::entityId).distinct().toList()).hasSize(1);
+    }
+
+    @Test
+    public void test_two_values_cleaning_to_the_same_string_write_one_statement() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "names", List.of("ACME", "ACME "))));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).value()).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_a_blank_value_inside_a_column_writes_nothing() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "names", List.of("", "ACME"))));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).value()).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_join_runs_across_columns_then_across_each_column_values() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"),
+                                 Map.of("name", joined(List.of("first", "second"), " "))))), "");
+
+        List<Statement> statements = builder.statements(multi(Map.of(
+                "id", List.of("e1"), "first", List.of("a", "b"), "second", List.of("c", ""))));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).value()).isEqualTo("a b c");
+    }
+
+    @Test
+    public void test_a_multi_valued_key_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1", "e2"), "names", List.of("ACME"))));
+
+        assertThat(statements).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_date_format_applies_to_every_value_of_a_column() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"),
+                                Map.of("name", column("id"), "birthDate", formatted("dates", "dd/MM/yyyy"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "dates", List.of("01/01/1970", "02/02/1980"))));
+
+        assertThat(statements.stream().filter(statement -> statement.property().equals("birthDate"))
+                           .map(Statement::value).toList())
+                .isEqualTo(List.of("1970-01-01", "1980-02-02"));
+    }
+
+    @Test
+    public void test_a_nul_in_one_value_drops_that_value_only() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "names", List.of("A\u0000B", "ACME"))));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).value()).isEqualTo("ACME");
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+    }
 }
