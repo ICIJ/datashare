@@ -236,7 +236,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_if_exists_missing_returns_0_noop() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("ghost", false, false, true, true, false, false, false, true, true));
+                .thenReturn(new ProjectDeleted("ghost", false, false, true, true, false, false, false, false, true));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
@@ -254,7 +254,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_if_exists_missing_warns_when_the_access_cleanup_fails() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("ghost", false, false, false, true, false, false, false, true, true));
+                .thenReturn(new ProjectDeleted("ghost", false, false, false, true, false, false, false, false, true));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
