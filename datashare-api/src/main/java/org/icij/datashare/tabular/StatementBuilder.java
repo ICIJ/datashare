@@ -44,6 +44,7 @@ public class StatementBuilder {
     private final Set<String> absent = new TreeSet<>();
     private final Set<String> seen = new TreeSet<>();
     private final Set<String> unmatched = new TreeSet<>();
+    private final List<String> aliases;
 
     /** {@code sheet} is the section of the document these rows come from, as the reader resolved it:
      *  a workbook's sheet name, the Tika fallback's table index, or empty for a format with one
@@ -64,11 +65,7 @@ public class StatementBuilder {
         this.sheet = sheet == null ? null : Row.clean(sheet);
         mapping.requireValid();
         mapping.entities().forEach(this::declare);
-        mapping.entities().forEach((alias, entity) -> {
-            if (!entity.filters().isEmpty()) {
-                unmatched.add(alias);
-            }
-        });
+        this.aliases = List.copyOf(new TreeSet<>(mapping.entities().keySet()));
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
 
@@ -104,6 +101,9 @@ public class StatementBuilder {
     private void declare(String alias, ExtractionMapping.EntityMapping entity) {
         columns.addAll(entity.keys());
         columns.addAll(entity.filters().keySet());
+        if (!entity.filters().isEmpty()) {
+            unmatched.add(alias);
+        }
         if (entity.idColumn() != null) {
             columns.add(entity.idColumn());
         }
@@ -148,7 +148,7 @@ public class StatementBuilder {
 
     private Map<String, String> entityIds(Map<String, List<String>> cells, long rowNumber) {
         Map<String, String> ids = new TreeMap<>();
-        for (String alias : new TreeSet<>(mapping.entities().keySet())) {
+        for (String alias : aliases) {
             String id = idOf(mapping.entities().get(alias), cells, alias, rowNumber);
             if (id != null) {
                 ids.put(alias, id);
@@ -160,18 +160,21 @@ public class StatementBuilder {
     private String idOf(ExtractionMapping.EntityMapping entity, Map<String, List<String>> cells, String alias,
                         long rowNumber) {
         // Not a skip: an alias whose filters do not match was never meant to apply to this row, and
-        // counting it would report every row of one schema as a loss for every other schema.
-        if (!entity.filters().entrySet().stream()
-                   .allMatch(filter -> cells.get(filter.getKey()).contains(filter.getValue()))) {
-            return null;
+        // counting it would report every row of one schema as a loss for every other schema. A cell
+        // holding several values matches on any of them: an ftm record carries its whole type
+        // hierarchy in 'schema', so a Person row reads as ["LegalEntity", "Person"].
+        for (Map.Entry<String, String> filter : entity.filters().entrySet()) {
+            if (!cells.get(filter.getKey()).contains(filter.getValue())) {
+                return null;
+            }
         }
         unmatched.remove(alias);
         if (entity.idColumn() != null) {
             String given = single(cells.get(entity.idColumn()));
             // Elasticsearch caps the _id at bytes, not characters, and the _id is the model-prefixed id.
-            if (given == null || given.length() > Statement.MAX_ENTITY_ID_LENGTH
-                    || StructuredEntity.documentId(mapping.model(), given).getBytes(StandardCharsets.UTF_8).length
-                       > StructuredEntity.MAX_ID_BYTES) {
+            if (given == null ||
+                StructuredEntity.documentId(mapping.model(), given).getBytes(StandardCharsets.UTF_8).length >
+                StructuredEntity.MAX_ID_BYTES) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
                 return null;
             }

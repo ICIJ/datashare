@@ -20,7 +20,6 @@ public record StructuredEntity(String entityId, String model, String entityType,
      *  the field/value delimiter of elasticsearch's query_string, so "properties.ftm:name:Jane" is a
      *  parse error and every client would have to escape the separator to reach a single property. */
     private static final String NAMESPACE_SEPARATOR = "_";
-
     /** What elasticsearch accepts as a document _id, in bytes, not characters. */
     public static final int MAX_ID_BYTES = 512;
 
