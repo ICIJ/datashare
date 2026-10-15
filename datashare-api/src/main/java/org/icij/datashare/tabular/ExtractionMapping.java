@@ -9,8 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 /**
  * @param rootId the container an embedded document was extracted from, or null for a root document:
@@ -45,14 +48,19 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
     }
 
     public record EntityMapping(String type, String keyLiteral, List<String> keys, String idColumn,
-                                Map<String, PropertyMapping> properties) {
+                                Map<String, String> filters, Map<String, PropertyMapping> properties) {
         public EntityMapping(String type, List<String> keys, Map<String, PropertyMapping> properties) {
-            this(type, null, keys, null, properties);
+            this(type, null, keys, null, Map.of(), properties);
         }
 
         public EntityMapping(String type, String keyLiteral, List<String> keys,
                              Map<String, PropertyMapping> properties) {
-            this(type, keyLiteral, keys, null, properties);
+            this(type, keyLiteral, keys, null, Map.of(), properties);
+        }
+
+        public EntityMapping(String type, String keyLiteral, List<String> keys, String idColumn,
+                             Map<String, PropertyMapping> properties) {
+            this(type, keyLiteral, keys, idColumn, Map.of(), properties);
         }
 
         public EntityMapping {
@@ -71,6 +79,11 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             keys = Objects.requireNonNull(keys, "keys").stream().map(Row::clean).distinct().toList();
             keyLiteral = keyLiteral == null ? null : Row.clean(keyLiteral);
             idColumn = idColumn == null ? null : Row.clean(idColumn);
+            // A filter names a header column and holds a cell's value, so each side gets the cleaning
+            // that side gets elsewhere: the comparison then runs on two values cleaned the same way,
+            // which is the rule every other column comparison follows.
+            filters = (filters == null ? Map.<String, String>of() : filters).entrySet().stream().collect(
+                    toUnmodifiableMap(entry -> Row.clean(entry.getKey()), entry -> Row.clean(entry.getValue())));
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
     }
@@ -141,6 +154,17 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             if (entity.idColumn() != null && !entity.keys().isEmpty()) {
                 violations.add("entity '" + alias + "' has both an id column and a key, and an id is read one way only");
             }
+            new TreeMap<>(entity.filters()).forEach((column, value) -> {
+                refuseNul(violations, column, "the filter column name of entity '" + alias + "'");
+                refuseNul(violations, value, "the filter value of entity '" + alias + "'");
+                if (column.isEmpty()) {
+                    violations.add("entity '" + alias + "' has a blank filter column name, which no header can match");
+                }
+                if (value.isEmpty()) {
+                    violations.add("entity '" + alias + "' has a blank filter value on column '" + column +
+                                   "', which no row can match");
+                }
+            });
             for (String property : new TreeSet<>(entity.properties().keySet())) {
                 reference(target, alias, entity, property).ifPresent(violations::add);
                 runtime(alias, entity.properties().get(property), property, formats).forEach(violations::add);

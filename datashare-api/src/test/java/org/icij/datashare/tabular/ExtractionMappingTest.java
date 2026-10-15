@@ -360,4 +360,44 @@ public class ExtractionMappingTest {
     public void test_an_id_column_on_its_own_is_valid() {
         assertThat(mapping("ftm", Map.of("member", identified(null, List.of(), "id"))).validate()).isEmpty();
     }
+
+    private static ExtractionMapping.EntityMapping restricted(Map<String, String> filters) {
+        return new ExtractionMapping.EntityMapping("Person", null, List.of(), "id", filters,
+                Map.of("name", column("full_name")));
+    }
+
+    @Test
+    public void test_a_blank_filter_column_name_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of(" ", "Person")))).validate().toString())
+                .contains("entity 'member' has a blank filter column name, which no header can match");
+    }
+
+    @Test
+    public void test_a_blank_filter_value_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of("schema", " ")))).validate().toString())
+                .contains("entity 'member' has a blank filter value on column 'schema', which no row can match");
+    }
+
+    @Test
+    public void test_a_nul_in_a_filter_column_name_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of("sch\u0000ema", "Person")))).validate().toString())
+                .contains("the filter column name of entity 'member' holds a NUL character");
+    }
+
+    @Test
+    public void test_a_nul_in_a_filter_value_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of("schema", "Per\u0000son")))).validate().toString())
+                .contains("the filter value of entity 'member' holds a NUL character");
+    }
+
+    @Test
+    public void test_a_filter_on_its_own_is_valid() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of("schema", "Person")))).validate()).isEmpty();
+    }
+
+    @Test
+    public void test_a_mapping_with_no_filters_reads_as_an_empty_map() {
+        assertThat(new ExtractionMapping.EntityMapping("Person", List.of("id"), Map.of("name", column("full_name")))
+                           .filters()).isEmpty();
+    }
 }

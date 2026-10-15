@@ -95,6 +95,7 @@ public class StatementBuilder {
     // not run.
     private void declare(String alias, ExtractionMapping.EntityMapping entity) {
         columns.addAll(entity.keys());
+        columns.addAll(entity.filters().keySet());
         if (entity.idColumn() != null) {
             columns.add(entity.idColumn());
         }
@@ -143,6 +144,12 @@ public class StatementBuilder {
 
     private String idOf(ExtractionMapping.EntityMapping entity, Map<String, List<String>> cells, String alias,
                         long rowNumber) {
+        // Not a skip: an alias whose filters do not match was never meant to apply to this row, and
+        // counting it would report every row of one schema as a loss for every other schema.
+        if (!entity.filters().entrySet().stream()
+                   .allMatch(filter -> cells.get(filter.getKey()).contains(filter.getValue()))) {
+            return null;
+        }
         if (entity.idColumn() != null) {
             String given = single(cells.get(entity.idColumn()));
             if (given == null || given.length() > Statement.MAX_ENTITY_ID_LENGTH) {

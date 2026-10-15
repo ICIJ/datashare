@@ -1083,4 +1083,76 @@ public class StatementBuilderTest {
         assertThat(builder.statements(row(Map.of("id", longest, "name", "ACME"))).get(0).entityId())
                 .isEqualTo(longest);
     }
+
+    private static ExtractionMapping.EntityMapping filtered(String type, String idColumn, Map<String, String> filters,
+                                                            Map<String, ExtractionMapping.PropertyMapping> properties) {
+        return new ExtractionMapping.EntityMapping(type, null, List.of(), idColumn, filters, properties);
+    }
+
+    @Test
+    public void test_an_alias_contributes_only_on_rows_its_filter_matches() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))),
+                "company", filtered("Company", "id", Map.of("schema", "Company"), Map.of("name", column("name"))))),
+                "");
+
+        List<Statement> statements = builder.statements(
+                row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).entityType()).isEqualTo("Person");
+    }
+
+    @Test
+    public void test_a_filtered_out_alias_is_not_counted_as_skipped() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))),
+                "company", filtered("Company", "id", Map.of("schema", "Company"), Map.of("name", column("name"))))),
+                "");
+
+        builder.statements(row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
+
+        assertThat(builder.skipped().get(ENTITY_EMPTY)).isEqualTo(0L);
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_a_multi_valued_filter_column_matches_on_any_value() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
+
+        List<Statement> statements = builder.statements(multi(Map.of(
+                "id", List.of("e1"), "schema", List.of("LegalEntity", "Person"), "name", List.of("Jane"))));
+
+        assertThat(statements).hasSize(1);
+    }
+
+    @Test
+    public void test_a_filter_on_a_column_the_row_does_not_carry_matches_nothing() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "e1", "name", "Jane")))).isEmpty();
+    }
+
+    @Test
+    public void test_a_filter_matches_on_the_cleaned_value() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "e1", "schema", " Person ", "name", "Jane"))))
+                .hasSize(1);
+    }
+
+    @Test
+    public void test_a_misspelled_filter_column_fails_at_end_of_run() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("shcema", "Person"), Map.of("name", column("name"))))), "");
+
+        builder.statements(row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
+
+        InvalidExtractionMapping refusal =
+                assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
+        assertThat(refusal.getMessage()).contains("shcema");
+    }
 }
