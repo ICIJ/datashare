@@ -4,6 +4,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.UnknownTargetModel;
 import org.junit.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -399,5 +400,26 @@ public class ExtractionMappingTest {
     public void test_a_mapping_with_no_filters_reads_as_an_empty_map() {
         assertThat(new ExtractionMapping.EntityMapping("Person", List.of("id"), Map.of("name", column("full_name")))
                            .filters()).isEmpty();
+    }
+
+    @Test
+    public void test_a_filter_column_named_twice_with_two_values_is_refused() {
+        MalformedExtractionMapping refusal = assertThrows(MalformedExtractionMapping.class,
+                () -> restricted(new LinkedHashMap<>(Map.of("schema", "Person", "schema\u00a0", "Company"))));
+
+        assertThat(refusal.getMessage()).contains("field 'filters' names one column twice");
+    }
+
+    @Test
+    public void test_a_filter_column_named_twice_with_one_value_counts_once() {
+        assertThat(restricted(new LinkedHashMap<>(Map.of("schema", "Person", "schema\u00a0", "Person"))).filters())
+                .isEqualTo(Map.of("schema", "Person"));
+    }
+
+    @Test
+    public void test_an_entity_with_neither_keys_nor_an_id_column_is_refused() {
+        assertThrows(NullPointerException.class,
+                () -> new ExtractionMapping.EntityMapping("Person", null, null, null, Map.of(),
+                                                          Map.of("name", column("full_name"))));
     }
 }

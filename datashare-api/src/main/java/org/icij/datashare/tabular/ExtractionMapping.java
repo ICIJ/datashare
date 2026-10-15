@@ -74,16 +74,32 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             // the only one that does not hash: the value is the id, so two mappings reading the same
             // id column merge their entities deliberately, which is what a dump of globally-named
             // entities needs and the footgun the option carries.
+            if (idColumn == null) {
+                Objects.requireNonNull(keys, "keys");
+            }
             keys = (keys == null ? List.<String>of() : keys).stream().map(Row::clean).distinct().toList();
             keyLiteral = keyLiteral == null ? null : Row.clean(keyLiteral);
             idColumn = idColumn == null ? null : Row.clean(idColumn);
             // A filter names a header column and holds a cell's value, so each side gets the cleaning
             // that side gets elsewhere: the comparison then runs on two values cleaned the same way,
             // which is the rule every other column comparison follows.
+            // Two names for one column are one column, as they are for keys and for a property's
+            // columns, and two values for it are a mapping no row can honour rather than a Java
+            // collector's business.
             filters = (filters == null ? Map.<String, String>of() : filters).entrySet().stream().collect(
-                    toUnmodifiableMap(entry -> Row.clean(entry.getKey()), entry -> Row.clean(entry.getValue())));
+                    toUnmodifiableMap(entry -> Row.clean(entry.getKey()), entry -> Row.clean(
+                                              Objects.requireNonNull(entry.getValue(), "filters." + entry.getKey())),
+                                      ExtractionMapping::oneValuePerColumn));
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
+    }
+
+    private static String oneValuePerColumn(String first, String second) {
+        if (!first.equals(second)) {
+            throw new MalformedExtractionMapping(
+                    "field 'filters' names one column twice, with '" + first + "' and '" + second + "'");
+        }
+        return first;
     }
 
     public record PropertyMapping(List<String> columns, String join, String literal, String entity, String dateFormat) {
