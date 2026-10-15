@@ -77,7 +77,7 @@ public class StatementBuilder {
 
     public List<Statement> statements(Row row) {
         requireColumns(row);
-        Map<String, String> cells = new HashMap<>();
+        Map<String, List<String>> cells = new HashMap<>();
         columns.forEach(column -> cells.put(column, cell(row, column)));
         Map<String, String> ids = entityIds(cells, row.number());
         Set<String> stored = storing(ids, cells);
@@ -122,7 +122,7 @@ public class StatementBuilder {
         missing.stream().filter(absent::add).forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
     }
 
-    private Map<String, String> entityIds(Map<String, String> cells, long rowNumber) {
+    private Map<String, String> entityIds(Map<String, List<String>> cells, long rowNumber) {
         Map<String, String> ids = new TreeMap<>();
         keyColumns.forEach((alias, keys) -> {
             ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
@@ -130,8 +130,8 @@ public class StatementBuilder {
                 ids.put(alias, rowId(alias, entity.type(), rowNumber));
                 return;
             }
-            List<String> values = keys.stream().map(cells::get).toList();
-            if (values.stream().anyMatch(String::isEmpty)) {
+            List<String> values = keys.stream().map(key -> single(cells.get(key))).toList();
+            if (values.stream().anyMatch(value -> value == null)) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
             } else {
                 ids.put(alias, id(entity.type(), entity.keyLiteral(), values));
@@ -162,7 +162,8 @@ public class StatementBuilder {
                             String.join("\u0000", values.stream().sorted().toList())));
     }
 
-    private List<Statement> statementsOf(String alias, Row row, Map<String, String> cells, Map<String, String> ids) {
+    private List<Statement> statementsOf(String alias, Row row, Map<String, List<String>> cells,
+                                         Map<String, String> ids) {
         ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
         Filling filling = new Filling(ids.get(alias), entity.type());
         for (Map.Entry<String, ExtractionMapping.PropertyMapping> declared : entity.properties().entrySet()) {
@@ -172,12 +173,13 @@ public class StatementBuilder {
                 String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
                 filling.fill(property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
-                filling.fill(property, mapped.columns().stream().map(cells::get).filter(cell -> !cell.isEmpty())
+                filling.fill(property, mapped.columns().stream().map(column -> single(cells.get(column)))
+                                             .filter(value -> value != null)
                                              .collect(joining(mapped.join())), mapped.dateFormat(),
                              provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
-                    filling.fill(property, cells.get(column), mapped.dateFormat(), provenance(row, column));
+                    filling.fill(property, single(cells.get(column)), mapped.dateFormat(), provenance(row, column));
                 }
             }
         }
@@ -189,7 +191,7 @@ public class StatementBuilder {
     // on their strength. An entity that stores nothing sits in no index, so an edge naming its id
     // would record an endpoint that exists nowhere, and dropping that edge can in turn empty the
     // entity carrying it, which is why this settles rather than deciding in one pass.
-    private Set<String> storing(Map<String, String> ids, Map<String, String> cells) {
+    private Set<String> storing(Map<String, String> ids, Map<String, List<String>> cells) {
         Set<String> stored = new HashSet<>();
         for (boolean growing = true; growing; ) {
             growing = false;
@@ -203,10 +205,10 @@ public class StatementBuilder {
         return stored;
     }
 
-    private boolean fills(String alias, Map<String, String> cells, Set<String> stored) {
+    private boolean fills(String alias, Map<String, List<String>> cells, Set<String> stored) {
         return mapping.entities().get(alias).properties().values().stream().anyMatch(
                 mapped -> mapped.literal() != null || stored.contains(mapped.entity()) ||
-                          mapped.columns().stream().anyMatch(column -> !cells.get(column).isEmpty()));
+                          mapped.columns().stream().anyMatch(column -> filled(cells.get(column))));
     }
 
     // The entity id and type every statement of one entity carries, so filling a property passes
@@ -252,17 +254,32 @@ public class StatementBuilder {
     }
 
     // The one place a cell enters, keys and values alike. A NUL would abort the run from inside
-    // Statement's constructor, so it reads as blank, and is counted: unlike a genuinely blank cell,
-    // it held content the run could not keep. Row.clean is normalisation, not formatting: an
-    // interior non-breaking space becomes a plain space with no originalValue recorded, the same way
-    // surrounding whitespace is dropped unrecorded.
-    private String cell(Row row, String column) {
-        String cell = row.values().getOrDefault(column, "");
-        if (cell.indexOf('\u0000') >= 0) {
-            count(Skip.CELL_UNREADABLE, column, row.number());
-            return "";
+    // Statement's constructor, so the value holding it is dropped and counted on its own: a column
+    // whose other values are readable keeps them.
+    private List<String> cell(Row row, String column) {
+        List<String> raw = row.values().get(column);
+        if (raw == null) {
+            return List.of();
         }
-        return Row.clean(cell);
+        List<String> cleaned = new ArrayList<>(raw.size());
+        for (String value : raw) {
+            if (value.indexOf('\u0000') >= 0) {
+                count(Skip.CELL_UNREADABLE, column, row.number());
+            } else {
+                cleaned.add(Row.clean(value));
+            }
+        }
+        return List.copyOf(cleaned);
+    }
+
+    // A column a mapping reads as one value: blank, absent and multi-valued all read as "no value",
+    // and every caller refuses on null rather than picking one.
+    private static String single(List<String> values) {
+        return values.size() == 1 && !values.get(0).isEmpty() ? values.get(0) : null;
+    }
+
+    private static boolean filled(List<String> values) {
+        return values.stream().anyMatch(value -> !value.isEmpty());
     }
 
     private void count(Skip reason, String what, long rowNumber) {

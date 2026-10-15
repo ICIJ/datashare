@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -111,7 +112,7 @@ public class JsonRowSource implements RowSource {
                     throw new IllegalArgumentException(
                             "row " + number + " is not a json object but a " + record.getNodeType());
                 }
-                Map<String, String> values = new LinkedHashMap<>();
+                Map<String, List<String>> values = new LinkedHashMap<>();
                 try {
                     flatten("", record, values);
                 } catch (IllegalArgumentException notTabular) {
@@ -128,7 +129,7 @@ public class JsonRowSource implements RowSource {
     // An array is refused rather than joined or skipped: a joined array is a delimited file inside a
     // cell, whose separator can collide with the data, and a skipped one loses values in silence. If
     // multi-valued properties turn out to matter, the fix is a multi-value seam in Row.
-    private static void flatten(String prefix, JsonNode node, Map<String, String> values) {
+    private static void flatten(String prefix, JsonNode node, Map<String, List<String>> values) {
         node.properties().forEach(field -> {
             String column = prefix.isEmpty() ? field.getKey() : prefix + "." + field.getKey();
             JsonNode value = field.getValue();
@@ -138,7 +139,7 @@ public class JsonRowSource implements RowSource {
                 throw new IllegalArgumentException(
                         "column " + column + " holds an array, which no table cell can carry");
             } else {
-                values.put(column, value.isNull() ? "" : value.asText());
+                values.put(column, List.of(value.isNull() ? "" : value.asText()));
             }
         });
     }

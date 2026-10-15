@@ -20,9 +20,9 @@ import static org.fest.assertions.Assertions.assertThat;
  * what keeps a new reader honest: adding one means adding its fixture here.
  */
 public class RowSourceEquivalenceTest {
-    private static final List<Map<String, String>> EXPECTED = List.of(
-            Map.of("id", "1", "name", "ACME", "country", "FR"),
-            Map.of("id", "2", "name", "Globex", "country", "US"));
+    private static final List<Map<String, List<String>>> EXPECTED = List.of(
+            Map.of("id", List.of("1"), "name", List.of("ACME"), "country", List.of("FR")),
+            Map.of("id", List.of("2"), "name", List.of("Globex"), "country", List.of("US")));
 
     /**
      * The source stream is deliberately not in the try-with-resources list: closing the returned row
@@ -123,9 +123,9 @@ public class RowSourceEquivalenceTest {
      */
     @Test
     public void test_a_short_row_pads_the_missing_column_in_every_reader() throws Exception {
-        List<Map<String, String>> expected = List.of(
-                Map.of("id", "1", "name", "ACME", "country", "FR"),
-                Map.of("id", "2", "name", "Globex", "country", ""));
+        List<Map<String, List<String>>> expected = List.of(
+                Map.of("id", List.of("1"), "name", List.of("ACME"), "country", List.of("FR")),
+                Map.of("id", List.of("2"), "name", List.of("Globex"), "country", List.of("")));
 
         List<List<Row>> reads = List.of(
                 read(new DelimitedRowSource(),

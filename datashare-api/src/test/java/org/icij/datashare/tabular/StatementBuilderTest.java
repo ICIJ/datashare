@@ -3,6 +3,7 @@ package org.icij.datashare.tabular;
 import org.icij.datashare.model.Statement;
 import org.junit.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,7 +57,13 @@ public class StatementBuilderTest {
     }
 
     private static Row row(Map<String, String> values) {
-        return new Row(7L, values);
+        return row(7L, values);
+    }
+
+    private static Row row(long number, Map<String, String> values) {
+        Map<String, List<String>> cells = new LinkedHashMap<>();
+        values.forEach((column, value) -> cells.put(column, List.of(value)));
+        return new Row(number, cells);
     }
 
     private static StatementBuilder person(List<String> keys,
@@ -220,7 +227,7 @@ public class StatementBuilderTest {
         StatementBuilder builder = person(List.of(), Map.of("name", column("full_name")));
 
         String seventh = builder.statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
-        String eighth = builder.statements(new Row(8L, Map.of("full_name", "Jane Doe"))).get(0).entityId();
+        String eighth = builder.statements(row(8L, Map.of("full_name", "Jane Doe"))).get(0).entityId();
 
         assertThat(seventh).isNotEqualTo(eighth);
         assertThat(person(List.of(), Map.of("name", column("full_name")))
@@ -816,7 +823,7 @@ public class StatementBuilderTest {
 
         builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
                 "mail", "jane@example.org")));
-        List<Statement> second = builder.statements(new Row(8L, Map.of("passport", "AB124",
+        List<Statement> second = builder.statements(row(8L, Map.of("passport", "AB124",
                 "full_name", "John Roe")));
 
         assertThat(second).hasSize(1);
@@ -830,8 +837,8 @@ public class StatementBuilderTest {
 
         builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
                 "mail", "jane@example.org")));
-        builder.statements(new Row(8L, Map.of("passport", "AB124", "full_name", "John Roe")));
-        builder.statements(new Row(9L, Map.of("passport", "AB125", "full_name", "Ann Poe")));
+        builder.statements(row(8L, Map.of("passport", "AB124", "full_name", "John Roe")));
+        builder.statements(row(9L, Map.of("passport", "AB125", "full_name", "Ann Poe")));
 
         assertThat(builder.skipped().get(CELL_MISSING)).isEqualTo(1L);
     }

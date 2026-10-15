@@ -60,7 +60,7 @@ public class WorkbookRowSourceTest {
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).number()).isEqualTo(1L);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -70,7 +70,7 @@ public class WorkbookRowSourceTest {
 
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -83,7 +83,7 @@ public class WorkbookRowSourceTest {
 
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("id")).isEqualTo("1");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("1"));
     }
 
     @Test
@@ -97,7 +97,7 @@ public class WorkbookRowSourceTest {
         List<Row> rows = read(bytes(workbook),
                 new RowSourceOptions(null, null, null, null, "second", null));
 
-        assertThat(rows.get(0).values().get("id")).isEqualTo("999");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("999"));
     }
 
     @Test
@@ -111,7 +111,7 @@ public class WorkbookRowSourceTest {
         List<Row> rows = read(bytes(workbook),
                 new RowSourceOptions(null, null, null, null, "2", null));
 
-        assertThat(rows.get(0).values().get("id")).isEqualTo("999");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("999"));
     }
 
     @Test
@@ -127,7 +127,7 @@ public class WorkbookRowSourceTest {
         List<Row> rows = read(bytes(workbook),
                 new RowSourceOptions(null, null, null, null, "2", null));
 
-        assertThat(rows.get(0).values().get("id")).isEqualTo("by name");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("by name"));
     }
 
     @Test
@@ -178,7 +178,7 @@ public class WorkbookRowSourceTest {
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).values()).hasSize(2);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -194,7 +194,7 @@ public class WorkbookRowSourceTest {
 
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("born")).isEqualTo("1984-03-17");
+        assertThat(rows.get(0).values().get("born")).isEqualTo(List.of("1984-03-17"));
     }
 
     @Test
@@ -210,7 +210,7 @@ public class WorkbookRowSourceTest {
 
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("seen")).isEqualTo("1984-03-17T14:30:00");
+        assertThat(rows.get(0).values().get("seen")).isEqualTo(List.of("1984-03-17T14:30:00"));
     }
 
     @Test
@@ -222,7 +222,7 @@ public class WorkbookRowSourceTest {
 
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("total")).isEqualTo("5");
+        assertThat(rows.get(0).values().get("total")).isEqualTo(List.of("5"));
     }
 
     @Test
@@ -237,7 +237,7 @@ public class WorkbookRowSourceTest {
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
         assertThat(rows).hasSize(2);
-        assertThat(rows.get(1).values().get("name")).isEqualTo("Globex");
+        assertThat(rows.get(1).values().get("name")).isEqualTo(List.of("Globex"));
         assertThat(rows.get(1).number()).isEqualTo(2L);
     }
 
@@ -254,7 +254,7 @@ public class WorkbookRowSourceTest {
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
         assertThat(rows).hasSize(2);
-        assertThat(rows.get(1).values().get("name")).isEqualTo("Globex");
+        assertThat(rows.get(1).values().get("name")).isEqualTo(List.of("Globex"));
         assertThat(rows.get(1).number()).isEqualTo(2L);
     }
 
@@ -268,7 +268,7 @@ public class WorkbookRowSourceTest {
 
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of(""));
     }
 
     @Test
@@ -280,7 +280,7 @@ public class WorkbookRowSourceTest {
 
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("siren")).isEqualTo("123456789012");
+        assertThat(rows.get(0).values().get("siren")).isEqualTo(List.of("123456789012"));
     }
 
     @Test
@@ -296,7 +296,7 @@ public class WorkbookRowSourceTest {
 
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("at")).isEqualTo("14:30:00");
+        assertThat(rows.get(0).values().get("at")).isEqualTo(List.of("14:30:00"));
     }
 
     /**
@@ -317,7 +317,7 @@ public class WorkbookRowSourceTest {
         List<Row> rows = read(bytes(workbook), RowSourceOptions.defaults());
 
         assertThat(rows).hasSize(2);
-        assertThat(rows.get(1).values().get("age")).isEqualTo("ok");
+        assertThat(rows.get(1).values().get("age")).isEqualTo(List.of("ok"));
     }
 
     @Test
