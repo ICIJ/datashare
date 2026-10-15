@@ -1,6 +1,7 @@
 package org.icij.datashare.cli.command;
 
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.model.EntityExporter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import java.util.Properties;
@@ -15,7 +16,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
         "  datashare -P my-project entities export > my-project.ftm.json",
         "  datashare -P my-project entities export --output my-project.ftm.json"})
 public class EntitiesExportCommand implements Runnable, DatashareSubcommand {
-    @Option(names = "--model", defaultValue = "ftm", description = "Data model to export (default: ${DEFAULT-VALUE})")
+    @Option(names = "--model", defaultValue = EntityExporter.DEFAULT_MODEL,
+            description = "Data model to export (default: ${DEFAULT-VALUE})")
     String model;
     @Option(names = "--output", description = "File to write instead of stdout")
     String output;
