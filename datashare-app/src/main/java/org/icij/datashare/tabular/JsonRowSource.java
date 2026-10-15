@@ -130,7 +130,9 @@ public class JsonRowSource implements RowSource {
 
     // An array's members are the column's values: that is what the ftm dumps this reader exists for
     // put in every property. A member that is itself an object or an array has no column name to be
-    // mapped under, so it is refused rather than flattened into one the mapping cannot address.
+    // mapped under, so it is refused rather than flattened into one the mapping cannot address. A
+    // null member is no value at all rather than a blank one, so it does not make a column of one
+    // value read as a column of two, which is the difference between an id and no id.
     private static void flatten(String prefix, JsonNode node, Map<String, List<String>> values) {
         node.properties().forEach(field -> {
             String column = prefix.isEmpty() ? field.getKey() : prefix + "." + field.getKey();
@@ -152,7 +154,9 @@ public class JsonRowSource implements RowSource {
                 throw new IllegalArgumentException("column " + column + " holds an array of " + member.getNodeType() +
                                                    ", whose members have no column name to be mapped under");
             }
-            members.add(text(member));
+            if (!member.isNull()) {
+                members.add(member.asText());
+            }
         }
         return List.copyOf(members);
     }

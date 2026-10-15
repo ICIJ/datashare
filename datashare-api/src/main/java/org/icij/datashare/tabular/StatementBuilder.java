@@ -305,8 +305,9 @@ public class StatementBuilder {
     }
 
     // The one place a cell enters, keys and values alike. A NUL would abort the run from inside
-    // Statement's constructor, so the value holding it is dropped and counted on its own: a column
-    // whose other values are readable keeps them.
+    // Statement's constructor, so the value holding it reads as no value and is counted on its own:
+    // a column whose other values are readable keeps them, and a cell of several values keeps its
+    // count, so what is left cannot pass for the one value an id is read from.
     private List<String> cell(Row row, String column) {
         List<String> raw = row.values().get(column);
         if (raw == null) {
@@ -316,6 +317,7 @@ public class StatementBuilder {
         for (String value : raw) {
             if (value.indexOf('\u0000') >= 0) {
                 count(Skip.CELL_UNREADABLE, column, row.number());
+                cleaned.add("");
             } else {
                 cleaned.add(Row.clean(value));
             }

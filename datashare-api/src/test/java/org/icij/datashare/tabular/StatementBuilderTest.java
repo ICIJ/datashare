@@ -1209,4 +1209,15 @@ public class StatementBuilderTest {
 
         builder.requireEveryColumnSeen();
     }
+
+    @Test
+    public void test_a_nul_in_one_value_of_an_id_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(multi(Map.of("id", List.of("ACME\u0000", "ACME Corp"),
+                                                   "name", List.of("x"))))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+    }
 }

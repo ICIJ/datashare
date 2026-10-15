@@ -86,17 +86,17 @@ public class JsonRowSourceTest {
     }
 
     @Test
-    public void test_a_null_inside_an_array_reads_as_a_blank_value() throws Exception {
+    public void test_a_null_inside_an_array_reads_as_no_value_at_all() throws Exception {
         List<Row> rows = read("[{\"id\":1,\"tags\":[null,\"a\"]}]");
 
-        assertThat(rows.get(0).values().get("tags")).isEqualTo(List.of("", "a"));
+        assertThat(rows.get(0).values().get("tags")).isEqualTo(List.of("a"));
     }
 
     @Test
-    public void test_a_null_inside_a_nested_array_reads_as_a_blank_value() throws Exception {
+    public void test_a_null_inside_a_nested_array_reads_as_no_value_at_all() throws Exception {
         List<Row> rows = read("[{\"properties\":{\"name\":[null,\"ACME\"]}}]");
 
-        assertThat(rows.get(0).values().get("properties.name")).isEqualTo(List.of("", "ACME"));
+        assertThat(rows.get(0).values().get("properties.name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
