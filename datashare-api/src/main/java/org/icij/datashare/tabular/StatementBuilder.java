@@ -37,7 +37,6 @@ public class StatementBuilder {
     private final String documentId;
     private final String sheet;
     private final DateFormats formats = new DateFormats();
-    private final Map<String, List<String>> keyColumns = new TreeMap<>();
     private final Set<String> columns = new TreeSet<>();
     private final Map<Skip, Long> skipped = new EnumMap<>(Skip.class);
     private final Set<String> absent = new TreeSet<>();
@@ -95,8 +94,10 @@ public class StatementBuilder {
     // Formats compile without a guard: validate() already refused every pattern this mapping could
     // not run.
     private void declare(String alias, ExtractionMapping.EntityMapping entity) {
-        keyColumns.put(alias, entity.keys());
         columns.addAll(entity.keys());
+        if (entity.idColumn() != null) {
+            columns.add(entity.idColumn());
+        }
         entity.properties().values().forEach(property -> {
             columns.addAll(property.columns());
             if (property.dateFormat() != null) {
@@ -124,22 +125,36 @@ public class StatementBuilder {
 
     private Map<String, String> entityIds(Map<String, List<String>> cells, long rowNumber) {
         Map<String, String> ids = new TreeMap<>();
-        keyColumns.forEach((alias, keys) -> {
-            ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
-            if (keys.isEmpty()) {
-                ids.put(alias, rowId(alias, entity.type(), rowNumber));
-                return;
+        for (String alias : new TreeSet<>(mapping.entities().keySet())) {
+            String id = idOf(mapping.entities().get(alias), cells, alias, rowNumber);
+            if (id != null) {
+                ids.put(alias, id);
             }
-            // A key column holding more than one value would have its values sorted into the hash,
-            // picking an identity in silence; single() returns null and the entity is refused.
-            List<String> values = keys.stream().map(key -> single(cells.get(key))).toList();
-            if (values.stream().anyMatch(value -> value == null)) {
-                count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
-            } else {
-                ids.put(alias, id(entity.type(), entity.keyLiteral(), values));
-            }
-        });
+        }
         return ids;
+    }
+
+    private String idOf(ExtractionMapping.EntityMapping entity, Map<String, List<String>> cells, String alias,
+                        long rowNumber) {
+        if (entity.idColumn() != null) {
+            String given = single(cells.get(entity.idColumn()));
+            if (given == null || given.length() > Statement.MAX_ENTITY_ID_LENGTH) {
+                count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
+                return null;
+            }
+            return given;
+        }
+        if (entity.keys().isEmpty()) {
+            return rowId(alias, entity.type(), rowNumber);
+        }
+        // A key column holding more than one value would have its values sorted into the hash,
+        // picking an identity in silence; single() returns null and the entity is refused.
+        List<String> values = entity.keys().stream().map(key -> single(cells.get(key))).toList();
+        if (values.stream().anyMatch(value -> value == null)) {
+            count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
+            return null;
+        }
+        return id(entity.type(), entity.keyLiteral(), values);
     }
 
     // A keyless entity is row-scoped, each row its own record, so its id carries what locates the

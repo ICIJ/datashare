@@ -44,9 +44,15 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         TargetModelRegistry.get(Objects.requireNonNull(model, "model"));
     }
 
-    public record EntityMapping(String type, String keyLiteral, List<String> keys, Map<String, PropertyMapping> properties) {
+    public record EntityMapping(String type, String keyLiteral, List<String> keys, String idColumn,
+                                Map<String, PropertyMapping> properties) {
         public EntityMapping(String type, List<String> keys, Map<String, PropertyMapping> properties) {
-            this(type, null, keys, properties);
+            this(type, null, keys, null, properties);
+        }
+
+        public EntityMapping(String type, String keyLiteral, List<String> keys,
+                             Map<String, PropertyMapping> properties) {
+            this(type, keyLiteral, keys, null, properties);
         }
 
         public EntityMapping {
@@ -58,9 +64,13 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             // record, identified by where it sits in the file. The key literal is hashed alongside
             // the key values and gets the same cleaning: an invisible character in one of two
             // mappings meant to agree would otherwise split one entity in two, which is the merge
-            // the literal exists to control.
+            // the literal exists to control. An id column is the third way to identify an entity, and
+            // the only one that does not hash: the value is the id, so two mappings reading the same
+            // id column merge their entities deliberately, which is what a dump of globally-named
+            // entities needs and the footgun the option carries.
             keys = Objects.requireNonNull(keys, "keys").stream().map(Row::clean).distinct().toList();
             keyLiteral = keyLiteral == null ? null : Row.clean(keyLiteral);
+            idColumn = idColumn == null ? null : Row.clean(idColumn);
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
     }
@@ -123,6 +133,13 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             if (entity.keyLiteral() != null && entity.keys().isEmpty()) {
                 violations.add(
                         "entity '" + alias + "' has a key literal but no key, and a row-scoped id carries no literal");
+            }
+            refuseNul(violations, entity.idColumn(), "the id column name of entity '" + alias + "'");
+            if (entity.idColumn() != null && entity.idColumn().isEmpty()) {
+                violations.add("entity '" + alias + "' has a blank id column name, which no header can match");
+            }
+            if (entity.idColumn() != null && !entity.keys().isEmpty()) {
+                violations.add("entity '" + alias + "' has both an id column and a key, and an id is read one way only");
             }
             for (String property : new TreeSet<>(entity.properties().keySet())) {
                 reference(target, alias, entity, property).ifPresent(violations::add);

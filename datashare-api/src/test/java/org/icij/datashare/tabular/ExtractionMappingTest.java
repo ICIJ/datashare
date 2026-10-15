@@ -326,4 +326,38 @@ public class ExtractionMappingTest {
         return new ExtractionMapping(id, projectId, null, "members", "ftm", "doc-1", null,
                 RowSourceOptions.defaults(), Map.of("member", person(Map.of("name", column("full_name")))));
     }
+
+    private static ExtractionMapping.EntityMapping identified(String keyLiteral, List<String> keys, String idColumn) {
+        return new ExtractionMapping.EntityMapping("Person", keyLiteral, keys, idColumn,
+                Map.of("name", column("full_name")));
+    }
+
+    @Test
+    public void test_an_id_column_and_keys_together_are_refused() {
+        assertThat(mapping("ftm", Map.of("member", identified(null, List.of("passport"), "id"))).validate().toString())
+                .contains("entity 'member' has both an id column and a key, and an id is read one way only");
+    }
+
+    @Test
+    public void test_an_id_column_and_a_key_literal_together_are_refused() {
+        assertThat(mapping("ftm", Map.of("member", identified("registry", List.of(), "id"))).validate().toString())
+                .contains("entity 'member' has a key literal but no key, and a row-scoped id carries no literal");
+    }
+
+    @Test
+    public void test_a_blank_id_column_name_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", identified(null, List.of(), "  "))).validate().toString())
+                .contains("entity 'member' has a blank id column name, which no header can match");
+    }
+
+    @Test
+    public void test_a_nul_in_an_id_column_name_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", identified(null, List.of(), "i\u0000d"))).validate().toString())
+                .contains("the id column name of entity 'member' holds a NUL character");
+    }
+
+    @Test
+    public void test_an_id_column_on_its_own_is_valid() {
+        assertThat(mapping("ftm", Map.of("member", identified(null, List.of(), "id"))).validate()).isEmpty();
+    }
 }

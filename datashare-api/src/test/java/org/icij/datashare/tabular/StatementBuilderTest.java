@@ -953,4 +953,82 @@ public class StatementBuilderTest {
         assertThat(statements.get(0).value()).isEqualTo("ACME");
         assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
     }
+
+    private static ExtractionMapping.EntityMapping identified(String type, String idColumn,
+                                                              Map<String, ExtractionMapping.PropertyMapping> properties) {
+        return new ExtractionMapping.EntityMapping(type, null, List.of(), idColumn, properties);
+    }
+
+    @Test
+    public void test_an_id_column_becomes_the_entity_id_verbatim() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        List<Statement> statements = builder.statements(row(Map.of("id", "a1b2c3", "name", "ACME")));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).entityId()).isEqualTo("a1b2c3");
+    }
+
+    @Test
+    public void test_an_edge_resolves_to_the_ids_its_columns_hold() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "ownership", identified("Ownership", "id",
+                                        Map.of("owner", column("owner"), "asset", column("asset"))))), "");
+
+        List<Statement> statements = builder.statements(
+                row(Map.of("id", "edge-1", "owner", "person-1", "asset", "company-1")));
+
+        assertThat(statements.stream().map(Statement::value).sorted().toList())
+                .isEqualTo(List.of("company-1", "person-1"));
+        assertThat(statements.stream().map(Statement::entityId).distinct().toList()).isEqualTo(List.of("edge-1"));
+    }
+
+    @Test
+    public void test_a_blank_id_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "", "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_multi_valued_id_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(multi(Map.of("id", List.of("a", "b"), "name", List.of("ACME"))))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_nul_bearing_id_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "a\u0000b", "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_an_id_longer_than_the_column_allows_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "x".repeat(Statement.MAX_ENTITY_ID_LENGTH + 1),
+                                                 "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_an_id_of_exactly_the_maximum_length_is_kept() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+        String longest = "x".repeat(Statement.MAX_ENTITY_ID_LENGTH);
+
+        assertThat(builder.statements(row(Map.of("id", longest, "name", "ACME"))).get(0).entityId())
+                .isEqualTo(longest);
+    }
 }
