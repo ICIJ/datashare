@@ -149,9 +149,8 @@ public class JsonRowSource implements RowSource {
         List<String> members = new ArrayList<>(array.size());
         for (JsonNode member : array) {
             if (member.isContainerNode()) {
-                throw new IllegalArgumentException(
-                        "column " + column + " holds an array of " + member.getNodeType() +
-                        ", whose members have no column name to be mapped under");
+                throw new IllegalArgumentException("column " + column + " holds an array of " + member.getNodeType() +
+                                                   ", whose members have no column name to be mapped under");
             }
             members.add(text(member));
         }

@@ -100,8 +100,7 @@ public record Row(long number, Map<String, List<String>> values) {
         Map<String, List<String>> values = new LinkedHashMap<>();
         for (int column = 0; column < headers.size(); column++) {
             if (headers.get(column) != null) {
-                values.put(headers.get(column),
-                           List.of(column < cells.size() ? clean(cells.get(column)) : ""));
+                values.put(headers.get(column), List.of(column < cells.size() ? clean(cells.get(column)) : ""));
             }
         }
         return Collections.unmodifiableMap(values);

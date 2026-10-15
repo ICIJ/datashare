@@ -109,18 +109,16 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
             // consumes the stream inside its transaction, so a typo rolls the retraction back with
             // everything the run wrote, which a check after replace() returned could not do. A source
             // with no data row has no column to have seen, so it stays a clean empty run.
-            Stream<Statement> written = Stream.concat(
-                    rows.rows().flatMap(row -> {
-                        throwIfCancelled();
-                        read.incrementAndGet();
-                        return builder.statements(row).stream();
-                    }),
-                    Stream.of(builder).flatMap(checked -> {
-                        if (read.get() > 0) {
-                            checked.requireEveryColumnSeen();
-                        }
-                        return Stream.empty();
-                    }));
+            Stream<Statement> written = Stream.concat(rows.rows().flatMap(row -> {
+                throwIfCancelled();
+                read.incrementAndGet();
+                return builder.statements(row).stream();
+            }), Stream.of(builder).flatMap(checked -> {
+                if (read.get() > 0) {
+                    checked.requireEveryColumnSeen();
+                }
+                return Stream.empty();
+            }));
             replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(), written);
         }
         updateCallback.apply(0.5);

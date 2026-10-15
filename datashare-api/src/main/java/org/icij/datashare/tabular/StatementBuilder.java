@@ -205,9 +205,8 @@ public class StatementBuilder {
                 filling.fill(property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
                 filling.fill(property, mapped.columns().stream().flatMap(column -> cells.get(column).stream())
-                                             .filter(value -> !value.isEmpty())
-                                             .collect(joining(mapped.join())), mapped.dateFormat(),
-                             provenance(row, String.join(",", mapped.columns())));
+                                             .filter(value -> !value.isEmpty()).collect(joining(mapped.join())),
+                             mapped.dateFormat(), provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
                     for (String value : cells.get(column)) {

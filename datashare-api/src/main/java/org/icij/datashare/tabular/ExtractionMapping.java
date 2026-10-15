@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-
 import static java.util.stream.Collectors.toUnmodifiableMap;
 
 /**
@@ -47,8 +46,7 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         TargetModelRegistry.get(Objects.requireNonNull(model, "model"));
     }
 
-    public record EntityMapping(String type, String keyLiteral, List<String> keys, String idColumn,
-                                Map<String, String> filters, Map<String, PropertyMapping> properties) {
+    public record EntityMapping(String type, String keyLiteral, List<String> keys, String idColumn, Map<String, String> filters, Map<String, PropertyMapping> properties) {
         public EntityMapping(String type, List<String> keys, Map<String, PropertyMapping> properties) {
             this(type, null, keys, null, Map.of(), properties);
         }
@@ -152,7 +150,8 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
                 violations.add("entity '" + alias + "' has a blank id column name, which no header can match");
             }
             if (entity.idColumn() != null && !entity.keys().isEmpty()) {
-                violations.add("entity '" + alias + "' has both an id column and a key, and an id is read one way only");
+                violations.add(
+                        "entity '" + alias + "' has both an id column and a key, and an id is read one way only");
             }
             new TreeMap<>(entity.filters()).forEach((column, value) -> {
                 refuseNul(violations, column, "the filter column name of entity '" + alias + "'");
