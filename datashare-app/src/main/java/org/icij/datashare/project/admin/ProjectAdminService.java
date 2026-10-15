@@ -30,7 +30,7 @@ public interface ProjectAdminService {
 
     /**
      * Deletes the project and every dependent resource (ES index unless
-     * {@link ProjectDeleteOptions#keepIndex()}, queues, report map, artifact dir).
+     * {@link ProjectDeleteOptions#keepIndex()}, queues, report map, artifact dir, tasks).
      * Throws if the project row is missing.
      */
     ProjectDeleted delete(String name, ProjectDeleteOptions options) throws ProjectNotFoundException, IOException;
