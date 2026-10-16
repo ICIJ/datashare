@@ -38,6 +38,8 @@ import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -361,9 +363,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode result = payload(call("local", "tag_documents",
                                        "{\"project\":\"foo\",\"doc_ids\":[\"doc1\",\"doc2\"],\"tags\":[\"invoice\"]}"));
 
-        org.mockito.Mockito.verify(repository).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")),
-                                                   written.capture());
-        org.mockito.Mockito.verify(indexer).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), any(Tag[].class));
+        verify(repository).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), written.capture());
+        verify(indexer).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), any(Tag[].class));
         assertThat(written.getValue().label).isEqualTo("invoice");
         assertThat(result.get("tagged").asInt()).isEqualTo(2);
     }
@@ -375,7 +376,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
-        org.mockito.Mockito.verify(repository).tag(any(Project.class), eq(List.of("doc1")), written.capture());
+        verify(repository).tag(any(Project.class), eq(List.of("doc1")), written.capture());
         assertThat(written.getValue().user.id).isEqualTo("local");
     }
 
@@ -398,8 +399,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode result = payload(call("local", "untag_documents",
                                        "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}"));
 
-        org.mockito.Mockito.verify(repository).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
-        org.mockito.Mockito.verify(indexer).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        verify(repository).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        verify(indexer).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
         assertThat(result.get("untagged").asInt()).isEqualTo(1);
     }
 
@@ -412,7 +413,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
-        org.mockito.Mockito.verifyNoInteractions(repository, indexer);
+        verifyNoInteractions(repository, indexer);
     }
 
     @Test
@@ -423,7 +424,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"bar\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
-        org.mockito.Mockito.verifyNoInteractions(repository, indexer);
+        verifyNoInteractions(repository, indexer);
     }
 
     /** A JSON array of distinct document ids, so a test about the cap reads as a test about the cap. */
@@ -453,7 +454,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                                            + ",\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
-        org.mockito.Mockito.verifyNoInteractions(repository, indexer);
+        verifyNoInteractions(repository, indexer);
     }
 
     @Test
@@ -470,7 +471,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                            .at("/error/code").asInt()).isEqualTo(-32602);
         assertThat(call("local", "tag_documents", "{\"doc_ids\":[\"doc1\"],\"tags\":[\"a\"]}")
                            .at("/error/code").asInt()).isEqualTo(-32602);
-        org.mockito.Mockito.verifyNoInteractions(repository, indexer);
+        verifyNoInteractions(repository, indexer);
     }
 
     @Test
@@ -484,6 +485,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         JsonNode result = payload(call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}"));
 
+        assertThat(result.get("tags").size()).isEqualTo(2);
         assertThat(result.at("/tags/0").asText()).isEqualTo("invoice");
         assertThat(result.at("/tags/1").asText()).isEqualTo("Reviewed");
     }
@@ -522,10 +524,11 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_list_tags_sends_a_terms_aggregation_and_no_hits() throws Exception {
         serveAs("local", "foo");
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_TAGS_RESPONSE);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(ES_TAGS_RESPONSE);
 
         call("local", "list_tags", "{\"project\":\"foo\",\"size\":5}");
 
+        verify(indexer).executeRaw(eq("POST"), eq("foo/_search"), body.capture());
         JsonNode sent = MAPPER.readTree(body.getValue());
         assertThat(sent.get("size").asInt()).isEqualTo(0);
         assertThat(sent.at("/aggs/tags/terms/field").asText()).isEqualTo("tags");
@@ -546,13 +549,25 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_list_tags_without_an_aggregations_node_is_empty() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
+                .thenReturn("{\"hits\":{\"total\":{\"value\":0},\"hits\":[]}}");
+
+        JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
+
+        assertThat(tags.isArray()).isTrue();
+        assertThat(tags.size()).isEqualTo(0);
+    }
+
+    @Test
     public void test_list_tags_on_ungranted_project_is_forbidden() throws Exception {
         serveAs("local", "foo");
 
         JsonNode response = call("local", "list_tags", "{\"project\":\"bar\"}");
 
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
-        org.mockito.Mockito.verifyNoInteractions(indexer);
+        verifyNoInteractions(indexer);
     }
 
     @Test
@@ -561,7 +576,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(call("local", "list_tags", "{\"project\":\"foo\",\"size\":501}").at("/error/code").asInt())
                 .isEqualTo(-32602);
-        org.mockito.Mockito.verifyNoInteractions(indexer);
+        verifyNoInteractions(indexer);
     }
 
     @Test
@@ -570,6 +585,6 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(call("local", "list_tags", "{\"project\":\"foo,bar\"}").at("/error/code").asInt())
                 .isEqualTo(-32602);
-        org.mockito.Mockito.verifyNoInteractions(indexer);
+        verifyNoInteractions(indexer);
     }
 }
