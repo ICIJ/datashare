@@ -39,6 +39,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -207,7 +208,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
-        org.mockito.Mockito.verifyNoInteractions(indexer);
+        verifyNoInteractions(indexer);
     }
 
     @Test
@@ -219,7 +220,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         post("/api/mcp?q=x", body).withPreemptiveAuthentication("local", "").response();
 
-        org.mockito.Mockito.verify(indexer).executeRaw(eq("POST"), eq("foo/_search?preference=local"), any());
+        verify(indexer).executeRaw(eq("POST"), eq("foo/_search?preference=local"), any());
     }
 
     @Test
@@ -232,7 +233,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                            .at("/error/code").asInt()).isEqualTo(-32602);
         assertThat(call("local", "search_documents", "{\"project\":\"foo/_doc/1\",\"query\":\"x\"}")
                            .at("/error/code").asInt()).isEqualTo(-32602);
-        org.mockito.Mockito.verifyNoInteractions(indexer);
+        verifyNoInteractions(indexer);
     }
 
     @Test
@@ -386,7 +387,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode response = call("local", "get_document", "{\"project\":\"bar\",\"id\":\"doc1\"}");
 
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
-        org.mockito.Mockito.verifyNoInteractions(indexer);
+        verifyNoInteractions(indexer);
     }
 
     @Test
@@ -421,7 +422,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}");
 
-        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).getDocument(any());
+        verify(repository, never()).getDocument(any());
     }
 
     @Test
