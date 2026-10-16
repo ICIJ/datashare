@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "project": {"type": "string", "description": "project id"},
+    "size": {
+      "type": "integer",
+      "description": "how many distinct tags to return, most used first",
+      "minimum": 1,
+      "maximum": 500,
+      "default": 50
+    }
+  },
+  "required": ["project"]
+}

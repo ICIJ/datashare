@@ -72,6 +72,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.web.McpGetDocumentTool;
 import org.icij.datashare.web.McpListProjectsTool;
+import org.icij.datashare.web.McpListTagsTool;
 import org.icij.datashare.web.McpListTasksTool;
 import org.icij.datashare.web.McpSearchDocumentsTool;
 import org.icij.datashare.web.McpStopTaskTool;
@@ -585,6 +586,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         tools.addBinding().to(McpStopTaskTool.class);
         tools.addBinding().to(McpTagDocumentsTool.class);
         tools.addBinding().to(McpUntagDocumentsTool.class);
+        tools.addBinding().to(McpListTagsTool.class);
     }
 
     void configurePersistence() {
