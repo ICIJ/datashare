@@ -1,21 +1,34 @@
 {
   "type": "object",
   "properties": {
-    "project": {"type": "string", "description": "project id"},
+    "project": {
+      "type": "string",
+      "description": "project id"
+    },
     "doc_ids": {
       "type": "array",
       "description": "document ids to tag",
-      "items": {"type": "string"},
+      "items": {
+        "type": "string",
+        "maxLength": 96
+      },
       "minItems": 1,
       "maxItems": 100
     },
     "tags": {
       "type": "array",
       "description": "tag labels to add",
-      "items": {"type": "string"},
+      "items": {
+        "type": "string",
+        "maxLength": 64
+      },
       "minItems": 1,
       "maxItems": 100
     }
   },
-  "required": ["project", "doc_ids", "tags"]
+  "required": [
+    "project",
+    "doc_ids",
+    "tags"
+  ]
 }
