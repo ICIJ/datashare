@@ -347,6 +347,7 @@ public class DocumentResource {
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags,
                                final Context context) throws IOException {
         requireGranted(context, projectId);
+        requireWithinColumnWidths(List.of(docId), tags);
         // Index before database, here and in the three other tag routes: a tag the index refused then commits
         // nothing, instead of sitting in PostgreSQL for a document that never got it.
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
@@ -376,6 +377,7 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         requireGranted(context, projectId);
+        requireWithinColumnWidths(query.docIds, query.tagsAsArray((User) context.currentUser()));
         indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         repository.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         return Payload.ok();
@@ -393,6 +395,7 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         requireGranted(context, projectId);
+        requireWithinColumnWidths(query.docIds, query.tagsAsArray((User) context.currentUser()));
         indexer.untag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         repository.untag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         return Payload.ok();
@@ -525,6 +528,23 @@ public class DocumentResource {
         }
         // targetLanguage not found
         throw new IllegalArgumentException("Target language not found");
+    }
+
+    // The widths of document_tag.label and document_tag.doc_id in 002-tag-document.yml. Checked before the write
+    // so an over-long value is a 400, not a Postgres error whose message carries the whole INSERT statement.
+    static final int MAX_TAG_LENGTH = 64;
+    static final int MAX_DOC_ID_LENGTH = 96;
+
+    private static void requireWithinColumnWidths(List<String> docIds, Tag[] tags) {
+        requireNoneLongerThan(docIds, MAX_DOC_ID_LENGTH, "document id");
+        requireNoneLongerThan(stream(tags).map(tag -> tag.label).collect(Collectors.toList()), MAX_TAG_LENGTH, "tag");
+    }
+
+    private static void requireNoneLongerThan(List<String> values, int maxLength, String what) {
+        if (values.stream().anyMatch(value -> value.length() > maxLength)) {
+            throw new org.icij.datashare.web.errors.BadRequestException(
+                    "%s longer than %d characters".formatted(what, maxLength), null);
+        }
     }
 
     // Package-private: the MCP tagging tools build one of these to reuse this resource's grant check and the

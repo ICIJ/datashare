@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
+import org.icij.datashare.web.errors.BadRequestException;
 import org.icij.datashare.web.errors.ForbiddenException;
 import java.io.IOException;
 import java.util.Map;
@@ -35,6 +36,8 @@ public class McpUntagDocumentsTool implements McpTool {
             documentResource.groupUntagDocument(batch.project(), batch.query(), context);
         } catch (ForbiddenException e) {
             throw new McpToolException.Forbidden(batch.project(), e);
+        } catch (BadRequestException e) {
+            throw McpToolException.InvalidArgument.because(e.getMessage());
         }
         return Map.of("project", batch.project(), "untagged", batch.docIds().size(), "tags", batch.tags());
     }
