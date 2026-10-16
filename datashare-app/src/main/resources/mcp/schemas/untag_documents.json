@@ -9,8 +9,7 @@
       "type": "array",
       "description": "document ids to untag",
       "items": {
-        "type": "string",
-        "maxLength": 96
+        "type": "string"
       },
       "minItems": 1,
       "maxItems": 100
@@ -19,8 +18,7 @@
       "type": "array",
       "description": "tag labels to remove",
       "items": {
-        "type": "string",
-        "maxLength": 64
+        "type": "string"
       },
       "minItems": 1,
       "maxItems": 100

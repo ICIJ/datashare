@@ -45,7 +45,9 @@ public class McpTagDocumentsTool implements McpTool {
         } catch (IOException | ElasticsearchException e) {
             // The database write runs first and fails as a DataAccessException, so neither of these can come from
             // it: reaching here means the tags are saved and the index is behind. ElasticsearchException is a
-            // RuntimeException, which is how index_not_found and a failing script arrive.
+            // RuntimeException, which is how index_not_found and a failing script arrive. This covers the failures
+            // the indexer throws: an update_by_query answering 200 with a non-empty failures array is reported by
+            // a false return value that DocumentResource discards, and stays invisible here.
             throw new McpToolException(
                     "the tags were saved but the search index was not updated, so they will not match a search "
                     + "until these documents are reindexed", e);
