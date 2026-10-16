@@ -25,8 +25,8 @@ public class McpListTagsTool implements McpTool {
     @Override
     public String description() {
         return "Lists the tags in use in one project, most used first. The index lowercases tags, so a tag saved as "
-               + "\"Invoice\" is listed as \"invoice\". Use it to reuse the project's vocabulary instead of coining "
-               + "a new spelling of an existing tag.";
+               + "\"Invoice\" is listed as \"invoice\". These lowercased labels are for discovery only: to pass a "
+               + "tag back to tag_documents or untag_documents, read its stored casing from get_document first.";
     }
 
     @Override
