@@ -3,18 +3,17 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
-import java.io.IOException;
-import java.util.ArrayList;
+import org.icij.datashare.Repository.Aggregate;
+import org.icij.datashare.web.errors.ForbiddenException;
 import java.util.List;
-import java.util.Map;
 
 public class McpListTagsTool implements McpTool {
     private static final McpArguments.IntArgument SIZE = new McpArguments.IntArgument("size", 50, 1, 500);
-    private final McpIndexSearch index;
+    private final DocumentResource documentResource;
 
     @Inject
-    public McpListTagsTool(McpIndexSearch index) {
-        this.index = index;
+    public McpListTagsTool(DocumentResource documentResource) {
+        this.documentResource = documentResource;
     }
 
     @Override
@@ -24,31 +23,24 @@ public class McpListTagsTool implements McpTool {
 
     @Override
     public String description() {
-        return "Lists the tags in use in one project, most used first. The index lowercases tags, so a tag saved as "
-               + "\"Invoice\" is listed as \"invoice\". These lowercased labels are for discovery only: to pass a "
-               + "tag back to tag_documents or untag_documents, read its stored casing from get_document first. "
-               + "This list is built from the search index, which lags a write by about a second, so a tag just "
-               + "added by tag_documents may be missing from it; get_document reports a document's tags at once.";
+        return "Lists the tags in use in one project, most used first, with their stored casing.";
     }
 
     @Override
-    public Object call(JsonNode arguments, Context context) throws IOException {
-        String project = McpIndexSearch.requireSingleProject(arguments);
-        JsonNode response = index.search(project, aggregationBody(SIZE.readFrom(arguments)), context);
-        return TagCount.from(response.at("/aggregations/tags/buckets"));
-    }
-
-    private static Map<String, Object> aggregationBody(int size) {
-        return Map.of("size", 0, "aggs", Map.of("tags", Map.of("terms", Map.of("field", "tags", "size", size))));
+    public Object call(JsonNode arguments, Context context) {
+        String project = McpArguments.requireText(arguments, "project");
+        try {
+            return TagCount.from(
+                    documentResource.getProjectTagCounts(project, String.valueOf(SIZE.readFrom(arguments)),
+                                                         context));
+        } catch (ForbiddenException e) {
+            throw new McpToolException.Forbidden(project, e);
+        }
     }
 
     record TagCount(String tag, long count) {
-        // A missing aggregations node iterates zero times, which is the right answer for a project with no tags.
-        static List<TagCount> from(JsonNode buckets) {
-            List<TagCount> tags = new ArrayList<>();
-            buckets.forEach(bucket -> tags.add(
-                    new TagCount(bucket.path("key").asText(), bucket.path("doc_count").asLong())));
-            return tags;
+        static List<TagCount> from(List<Aggregate<String>> counts) {
+            return counts.stream().map(a -> new TagCount(a.item, a.count)).toList();
         }
     }
 }
