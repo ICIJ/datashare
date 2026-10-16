@@ -48,6 +48,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.never;
@@ -417,6 +418,34 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_get_tag_counts_with_a_non_numeric_size_is_a_bad_request() {
         get("/api/local-datashare/documents/tags?size=abc").should().respond(400);
         verify(jooqRepository, never()).getTagCounts(any(), anyInt());
+    }
+
+    @Test
+    public void test_group_tag_with_an_over_long_tag_is_a_bad_request() {
+        String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + "x".repeat(65) + "\"]}";
+
+        post("/api/local-datashare/documents/batchUpdate/tag", body).should().respond(400);
+
+        verify(jooqRepository, never()).tag(any(), anyList(), any());
+    }
+
+    @Test
+    public void test_group_untag_with_an_over_long_tag_is_a_bad_request() {
+        String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + "x".repeat(65) + "\"]}";
+
+        post("/api/local-datashare/documents/batchUpdate/untag", body).should().respond(400);
+    }
+
+    @Test
+    public void test_group_tag_with_an_over_long_doc_id_is_a_bad_request() {
+        String body = "{\"docIds\":[\"" + "x".repeat(97) + "\"],\"tags\":[\"invoice\"]}";
+
+        post("/api/local-datashare/documents/batchUpdate/tag", body).should().respond(400);
+    }
+
+    @Test
+    public void test_tag_single_document_with_an_over_long_tag_is_a_bad_request() {
+        put("/api/local-datashare/documents/tags/docId", "[\"" + "x".repeat(65) + "\"]").should().respond(400);
     }
 
     @Test

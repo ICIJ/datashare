@@ -21,11 +21,9 @@ final class McpArguments {
     }
 
     /**
-     * A non-empty list of non-blank strings, capped at {@code max} items and {@code maxLength} characters each: the
-     * rail on the batch write tools. The length is not cosmetic. A value longer than its database column makes
-     * Postgres reject the insert, and the failure the client is handed carries the whole INSERT statement.
+     * A non-empty list of non-blank strings, capped at {@code max} items: the rail on the batch write tools.
      */
-    static List<String> requireTexts(JsonNode arguments, String name, int max, int maxLength) {
+    static List<String> requireTexts(JsonNode arguments, String name, int max) {
         JsonNode node = arguments.path(name);
         if (node.isMissingNode() || node.isNull()) {
             throw McpToolException.InvalidArgument.missing(name);
@@ -34,12 +32,12 @@ final class McpArguments {
             throw McpToolException.InvalidArgument.invalid(name);
         }
         List<String> values = new ArrayList<>();
-        node.forEach(item -> values.add(requireItemText(name, item, maxLength)));
+        node.forEach(item -> values.add(requireItemText(name, item)));
         return values;
     }
 
-    private static String requireItemText(String name, JsonNode item, int maxLength) {
-        if (!item.isTextual() || item.asText().isBlank() || item.asText().length() > maxLength) {
+    private static String requireItemText(String name, JsonNode item) {
+        if (!item.isTextual() || item.asText().isBlank()) {
             throw McpToolException.InvalidArgument.invalid(name);
         }
         return item.asText();

@@ -28,6 +28,11 @@ public class McpToolException extends RuntimeException {
         public static InvalidArgument invalid(String argument) {
             return new InvalidArgument("invalid", argument);
         }
+
+        /** A rejection whose wording comes from the layer that owns the constraint, such as a column width. */
+        public static InvalidArgument because(String problem) {
+            return new InvalidArgument("rejected", problem);
+        }
     }
 
     public static class Forbidden extends McpToolException {
