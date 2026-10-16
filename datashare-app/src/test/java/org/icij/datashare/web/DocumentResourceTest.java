@@ -358,6 +358,14 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_tag_counts_clamps_a_huge_size() {
+        when(jooqRepository.getTagCounts(eq(project("local-datashare")), eq(500)))
+                .thenReturn(asList(new Repository.Aggregate<>("Invoice", 3)));
+
+        get("/api/local-datashare/documents/tags?size=2147483647").should().respond(200).contain("Invoice");
+    }
+
+    @Test
     public void test_get_tag_counts_forbidden_for_non_member_project() {
         get("/api/foo_index/documents/tags?size=5").should().respond(403);
     }

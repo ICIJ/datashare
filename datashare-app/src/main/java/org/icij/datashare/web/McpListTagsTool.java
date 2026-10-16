@@ -8,7 +8,7 @@ import org.icij.datashare.web.errors.ForbiddenException;
 import java.util.List;
 
 public class McpListTagsTool implements McpTool {
-    private static final McpArguments.IntArgument SIZE = new McpArguments.IntArgument("size", DocumentResource.DEFAULT_TAG_COUNT_SIZE, 1, 500);
+    private static final McpArguments.IntArgument SIZE = new McpArguments.IntArgument("size", DocumentResource.DEFAULT_TAG_COUNT_SIZE, 1, DocumentResource.MAX_TAG_COUNT_SIZE);
     private final DocumentResource documentResource;
 
     @Inject

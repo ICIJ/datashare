@@ -320,7 +320,7 @@ public class DocumentResource {
         }
         try {
             int parsed = Integer.parseInt(size);
-            return parsed <= 0 ? DEFAULT_TAG_COUNT_SIZE : parsed;
+            return parsed <= 0 ? DEFAULT_TAG_COUNT_SIZE : Math.min(parsed, MAX_TAG_COUNT_SIZE);
         } catch (NumberFormatException e) {
             throw new BadRequestException();
         }
@@ -533,6 +533,7 @@ public class DocumentResource {
     static final int MAX_TAG_LENGTH = 64;
     /** Shared with McpListTagsTool so the two entry points cannot drift apart. */
     static final int DEFAULT_TAG_COUNT_SIZE = 50;
+    static final int MAX_TAG_COUNT_SIZE = 500;
 
     private static void requireTagsWithinColumnWidth(Tag[] tags) {
         if (stream(tags).anyMatch(tag -> tag.label.length() > MAX_TAG_LENGTH)) {
