@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
@@ -23,10 +24,10 @@ public class McpUntagDocumentsTool implements McpTool {
 
     @Override
     public String description() {
-        return "Removes up to 100 tags from up to 100 documents at once. A tag the document does not carry "
-               + "is ignored. Tag matching is case-sensitive against the stored label, so \"invoice\" will not "
-               + "remove a tag stored as \"Invoice\". The returned count is just the number of requested document "
-               + "ids (duplicates and non-existent ids included), not a count of documents actually changed.";
+        return "Removes up to 100 tags from up to 100 documents at once. A tag the document does not carry is "
+               + "ignored. Tag matching is case-sensitive against the stored label, so \"invoice\" will not remove "
+               + "a tag stored as \"Invoice\". The returned count is the number of requested document ids, "
+               + "duplicates and unknown ids included, not of documents actually changed.";
     }
 
     @Override
@@ -38,7 +39,7 @@ public class McpUntagDocumentsTool implements McpTool {
             throw new McpToolException.Forbidden(batch.project(), e);
         } catch (BadRequestException e) {
             throw McpToolException.InvalidArgument.because(e.getMessage());
-        } catch (IOException e) {
+        } catch (IOException | ElasticsearchException e) {
             // Same asymmetry as in McpTagDocumentsTool: the database delete has happened, the index has not.
             throw new McpToolException(
                     "the tags were removed but the search index was not updated, so they will still match a "

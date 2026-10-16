@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
@@ -27,10 +28,9 @@ public class McpTagDocumentsTool implements McpTool {
     @Override
     public String description() {
         return "Adds up to 100 tags to up to 100 documents at once, so one call writes up to 10000 document-tag "
-               + "pairs. The tags are attributed to the calling "
-               + "user. Tag matching is case-sensitive against the stored label, so \"invoice\" and \"Invoice\" are "
-               + "different tags. The returned count is just the number of requested document ids (duplicates and "
-               + "non-existent ids included), not a count of documents actually changed.";
+               + "pairs, attributed to the calling user. Tag matching is case-sensitive against the stored label, "
+               + "so \"invoice\" and \"Invoice\" are different tags. The returned count is the number of requested "
+               + "document ids, duplicates and unknown ids included, not of documents actually changed.";
     }
 
     @Override
@@ -42,9 +42,10 @@ public class McpTagDocumentsTool implements McpTool {
             throw new McpToolException.Forbidden(batch.project, e);
         } catch (BadRequestException e) {
             throw McpToolException.InvalidArgument.because(e.getMessage());
-        } catch (IOException e) {
-            // The database write runs first and only the indexer declares IOException, so reaching this means the
-            // tags are saved and the index is behind. The cause carries the backend address and stays in the log.
+        } catch (IOException | ElasticsearchException e) {
+            // The database write runs first and fails as a DataAccessException, so neither of these can come from
+            // it: reaching here means the tags are saved and the index is behind. ElasticsearchException is a
+            // RuntimeException, which is how index_not_found and a failing script arrive.
             throw new McpToolException(
                     "the tags were saved but the search index was not updated, so they will not match a search "
                     + "until these documents are reindexed", e);
