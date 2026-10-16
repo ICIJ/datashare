@@ -20,6 +20,7 @@ import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.Repository.Aggregate;
 import org.icij.datashare.Repository.AggregateList;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.session.DatashareUser;
@@ -296,6 +297,22 @@ public class DocumentResource {
         requireGranted(context, projectId);
         return repository.getDocuments(project(projectId),
                                        stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
+    }
+
+    @Operation(description = "Retrieves the tags in use in a project, most used first.",
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "size", description = "maximum number of tags to return, defaults to 50",
+                            in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @Get("/:project/documents/tags?size=:size")
+    public List<Aggregate<String>> getProjectTagCounts(final String projectId, final String size,
+                                                        final Context context) {
+        requireGranted(context, projectId);
+        return repository.getTagCounts(project(projectId), sizeOrDefault(size));
+    }
+
+    private static int sizeOrDefault(String size) {
+        return size == null || size.isEmpty() ? 50 : Integer.parseInt(size);
     }
 
     @Operation(description = "Preflight request for document tagging",

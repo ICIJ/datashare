@@ -74,7 +74,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                                                      TaskPolicyChecker.ALLOW_ALL),
                                                  new McpTagDocumentsTool(documentResource),
                                                  new McpUntagDocumentsTool(documentResource),
-                                                 new McpListTagsTool(new McpIndexSearch(indexer))));
+                                                 new McpListTagsTool(documentResource)));
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }
@@ -503,14 +503,11 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(result.get("tags").size()).isEqualTo(0);
     }
 
-    private static final String ES_TAGS_RESPONSE = """
-            {"hits":{"total":{"value":0},"hits":[]},
-             "aggregations":{"tags":{"buckets":[{"key":"invoice","doc_count":12},{"key":"contract","doc_count":3}]}}}""";
-
     @Test
     public void test_list_tags_returns_the_buckets_in_order() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(ES_TAGS_RESPONSE);
+        when(repository.getTagCounts(eq(Project.project("foo")), eq(50))).thenReturn(
+                List.of(new Repository.Aggregate<>("invoice", 12), new Repository.Aggregate<>("contract", 3)));
 
         JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
 
@@ -521,38 +518,30 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_tags_sends_a_terms_aggregation_and_no_hits() throws Exception {
+    public void test_list_tags_passes_the_size_through() throws Exception {
         serveAs("local", "foo");
-        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(ES_TAGS_RESPONSE);
+        when(repository.getTagCounts(eq(Project.project("foo")), eq(5))).thenReturn(List.of());
 
         call("local", "list_tags", "{\"project\":\"foo\",\"size\":5}");
 
-        verify(indexer).executeRaw(eq("POST"), eq("foo/_search"), body.capture());
-        JsonNode sent = MAPPER.readTree(body.getValue());
-        assertThat(sent.get("size").asInt()).isEqualTo(0);
-        assertThat(sent.at("/aggs/tags/terms/field").asText()).isEqualTo("tags");
-        assertThat(sent.at("/aggs/tags/terms/size").asInt()).isEqualTo(5);
+        verify(repository).getTagCounts(eq(Project.project("foo")), eq(5));
+    }
+
+    @Test
+    public void test_list_tags_returns_the_stored_casing_verbatim() throws Exception {
+        serveAs("local", "foo");
+        when(repository.getTagCounts(eq(Project.project("foo")), eq(50))).thenReturn(
+                List.of(new Repository.Aggregate<>("Invoice", 1)));
+
+        JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
+
+        assertThat(tags.at("/0/tag").asText()).isEqualTo("Invoice");
     }
 
     @Test
     public void test_list_tags_on_a_project_without_tags_is_empty() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
-                .thenReturn("{\"hits\":{\"total\":{\"value\":0},\"hits\":[]},"
-                            + "\"aggregations\":{\"tags\":{\"buckets\":[]}}}");
-
-        JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
-
-        assertThat(tags.isArray()).isTrue();
-        assertThat(tags.size()).isEqualTo(0);
-    }
-
-    @Test
-    public void test_list_tags_without_an_aggregations_node_is_empty() throws Exception {
-        serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
-                .thenReturn("{\"hits\":{\"total\":{\"value\":0},\"hits\":[]}}");
+        when(repository.getTagCounts(eq(Project.project("foo")), eq(50))).thenReturn(List.of());
 
         JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
 
@@ -567,7 +556,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode response = call("local", "list_tags", "{\"project\":\"bar\"}");
 
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
-        verifyNoInteractions(indexer);
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -576,15 +565,15 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(call("local", "list_tags", "{\"project\":\"foo\",\"size\":501}").at("/error/code").asInt())
                 .isEqualTo(-32602);
-        verifyNoInteractions(indexer);
+        verifyNoInteractions(repository);
     }
 
     @Test
-    public void test_list_tags_rejects_project_with_a_path() throws Exception {
+    public void test_list_tags_rejects_project_with_a_comma_as_forbidden() throws Exception {
         serveAs("local", "foo");
 
-        assertThat(call("local", "list_tags", "{\"project\":\"foo,bar\"}").at("/error/code").asInt())
-                .isEqualTo(-32602);
-        verifyNoInteractions(indexer);
+        JsonNode response = call("local", "list_tags", "{\"project\":\"foo,bar\"}");
+
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: foo,bar");
     }
 }

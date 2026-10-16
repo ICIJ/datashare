@@ -339,6 +339,27 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_tag_counts_with_project() {
+        when(jooqRepository.getTagCounts(eq(project("local-datashare")), eq(5)))
+                .thenReturn(asList(new Repository.Aggregate<>("Invoice", 3), new Repository.Aggregate<>("contract", 1)));
+
+        get("/api/local-datashare/documents/tags?size=5").should().respond(200).contain("Invoice").contain("contract");
+    }
+
+    @Test
+    public void test_get_tag_counts_defaults_size_when_absent() {
+        when(jooqRepository.getTagCounts(eq(project("local-datashare")), eq(50)))
+                .thenReturn(asList(new Repository.Aggregate<>("Invoice", 3)));
+
+        get("/api/local-datashare/documents/tags").should().respond(200).contain("Invoice");
+    }
+
+    @Test
+    public void test_get_tag_counts_forbidden_for_non_member_project() {
+        get("/api/foo_index/documents/tags?size=5").should().respond(403);
+    }
+
+    @Test
     public void test_tag_document_with_project_with_routing() throws Exception {
         when(jooqRepository.tag(eq(project("local-datashare")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.tag(eq(project("local-datashare")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);

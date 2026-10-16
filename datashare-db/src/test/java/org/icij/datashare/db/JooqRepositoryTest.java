@@ -396,6 +396,34 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_get_tag_counts() {
+        repository.tag(project("prj"), "doc1", tag("Invoice"));
+        repository.tag(project("prj"), "doc2", tag("Invoice"));
+        repository.tag(project("prj"), "doc3", tag("Invoice"));
+        repository.tag(project("prj"), "doc1", tag("contract"));
+        repository.tag(project("prj"), "doc2", tag("contract"));
+        repository.tag(project("prj"), "doc1", tag("draft"));
+        repository.tag(project("prj2"), "doc4", tag("Invoice"));
+
+        List<Repository.Aggregate<String>> counts = repository.getTagCounts(project("prj"), 10);
+
+        assertThat(counts).hasSize(3);
+        assertThat(counts.get(0).item).isEqualTo("Invoice");
+        assertThat(counts.get(0).count).isEqualTo(3);
+        assertThat(counts.get(1).item).isEqualTo("contract");
+        assertThat(counts.get(1).count).isEqualTo(2);
+        assertThat(counts.get(2).item).isEqualTo("draft");
+        assertThat(counts.get(2).count).isEqualTo(1);
+    }
+
+    @Test
+    public void test_get_tag_counts_is_limited() {
+        repository.tag(project("prj"), "doc1", tag("a"), tag("b"), tag("c"));
+
+        assertThat(repository.getTagCounts(project("prj"), 2)).hasSize(2);
+    }
+
+    @Test
     public void test_get_group_tag_of_document() {
         Date creationDate = new Date();
         repository.tag(project("prj"), asList("doc1", "doc2"), new Tag("tag", new User("foo"), creationDate));
