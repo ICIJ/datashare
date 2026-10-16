@@ -75,6 +75,8 @@ public interface Repository {
 
     List<Tag> getTags(Project project, String documentId);
 
+    List<Aggregate<String>> getTagCounts(Project project, int limit);
+
     boolean deleteAll(String projectId);
 
     Project getProject(String projectId);
