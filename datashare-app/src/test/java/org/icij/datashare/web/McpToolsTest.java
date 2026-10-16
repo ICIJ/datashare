@@ -593,4 +593,32 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                            .at("/error/code").asInt()).isEqualTo(-32602);
         org.mockito.Mockito.verifyNoInteractions(repository, indexer);
     }
+
+    @Test
+    public void test_get_document_lists_its_tags() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get("foo", "doc1", "doc1")).thenReturn(doc("hello world"));
+        when(indexer.getExtractedText("foo", "doc1", null, 0, 11, null))
+                .thenReturn(new ExtractedText("hello world", 0, 11, 11));
+        when(repository.getTags(new Project("foo"), "doc1"))
+                .thenReturn(List.of(new Tag("invoice"), new Tag("Reviewed")));
+
+        JsonNode result = payload(call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}"));
+
+        assertThat(result.at("/tags/0").asText()).isEqualTo("invoice");
+        assertThat(result.at("/tags/1").asText()).isEqualTo("Reviewed");
+    }
+
+    @Test
+    public void test_get_document_without_tags_returns_an_empty_list() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get("foo", "doc1", "doc1")).thenReturn(doc("hello world"));
+        when(indexer.getExtractedText("foo", "doc1", null, 0, 11, null))
+                .thenReturn(new ExtractedText("hello world", 0, 11, 11));
+
+        JsonNode result = payload(call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}"));
+
+        assertThat(result.get("tags").isArray()).isTrue();
+        assertThat(result.get("tags").size()).isEqualTo(0);
+    }
 }
