@@ -36,6 +36,7 @@ import java.util.Set;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -195,6 +196,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.toString()).excludes("elasticsearch:9200");
     }
 
     @Test
@@ -524,6 +526,23 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         verify(repository).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
         verify(indexer).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
         assertThat(result.get("untagged").asInt()).isEqualTo(1);
+    }
+
+    // The message of a repository failure carries the statement that failed. Only the exceptions this package
+    // authors are meant to reach the client.
+    @Test
+    public void test_a_repository_failure_does_not_hand_the_client_the_sql() throws Exception {
+        serveAs("local", "foo");
+        when(repository.tag(any(Project.class), anyList(), any(Tag[].class))).thenThrow(new RuntimeException(
+                "SQL [insert into \"document_tag\" (\"doc_id\", \"label\", \"prj_id\") values (?, ?, ?) "
+                + "on conflict do nothing]; ERROR: value too long for type character varying(64)"));
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.toString()).excludes("document_tag").excludes("insert into").excludes("conflict");
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("RuntimeException");
     }
 
     @Test

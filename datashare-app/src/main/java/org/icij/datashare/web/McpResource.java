@@ -112,8 +112,12 @@ public class McpResource {
         return Map.of("name", tool.name(), "description", tool.description(), "inputSchema", tool.inputSchema());
     }
 
+    // Only the exceptions this package authors have wording meant for a client. Anything else is an internal
+    // failure whose message tends to carry the statement that failed or the address of a backend, so the client
+    // is told the type and the server log keeps the detail.
     private static String describeFailure(Exception exception) {
-        return exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName();
+        boolean ours = exception instanceof McpToolException && exception.getMessage() != null;
+        return ours ? exception.getMessage() : exception.getClass().getSimpleName();
     }
 
     private static String version() throws IOException {
