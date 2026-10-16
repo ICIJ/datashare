@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "project": {"type": "string", "description": "project id"},
+    "doc_ids": {
+      "type": "array",
+      "description": "document ids to untag",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "tags": {
+      "type": "array",
+      "description": "tag labels to remove",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "maxItems": 100
+    }
+  },
+  "required": ["project", "doc_ids", "tags"]
+}

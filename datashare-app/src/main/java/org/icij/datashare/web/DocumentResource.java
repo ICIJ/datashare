@@ -499,12 +499,14 @@ public class DocumentResource {
         throw new IllegalArgumentException("Target language not found");
     }
 
-    private static class BatchTagQuery {
+    // Package-private: the MCP tagging tools build one of these to reuse this resource's grant check and the
+    // user attribution in tagsAsArray.
+    static class BatchTagQuery {
         final List<String> tags;
         final List<String> docIds;
 
         @JsonCreator
-        private BatchTagQuery(@JsonProperty("tags") List<String> tags, @JsonProperty("docIds") List<String> docIds) {
+        BatchTagQuery(@JsonProperty("tags") List<String> tags, @JsonProperty("docIds") List<String> docIds) {
             this.tags = tags;
             this.docIds = docIds;
         }

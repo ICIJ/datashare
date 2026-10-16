@@ -1,0 +1,39 @@
+package org.icij.datashare.web;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.inject.Inject;
+import net.codestory.http.Context;
+import org.icij.datashare.web.errors.ForbiddenException;
+import java.io.IOException;
+import java.util.Map;
+
+public class McpUntagDocumentsTool implements McpTool {
+    private final DocumentResource documentResource;
+
+    @Inject
+    public McpUntagDocumentsTool(DocumentResource documentResource) {
+        this.documentResource = documentResource;
+    }
+
+    @Override
+    public String name() {
+        return "untag_documents";
+    }
+
+    @Override
+    public String description() {
+        return "Removes tags from up to 100 documents at once, by document id. A tag the document does not carry "
+               + "is ignored.";
+    }
+
+    @Override
+    public Object call(JsonNode arguments, Context context) throws IOException {
+        McpTagDocumentsTool.BatchTag batch = McpTagDocumentsTool.BatchTag.from(arguments);
+        try {
+            documentResource.groupUntagDocument(batch.project(), batch.query(), context);
+        } catch (ForbiddenException e) {
+            throw new McpToolException.Forbidden(batch.project(), e);
+        }
+        return Map.of("project", batch.project(), "untagged", batch.docIds().size(), "tags", batch.tags());
+    }
+}
