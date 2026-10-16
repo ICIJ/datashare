@@ -579,6 +579,43 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         verifyNoInteractions(repository, indexer);
     }
 
+    // The columns these land in are document_tag.label varchar(64) and document_tag.doc_id varchar(96)
+    // (002-tag-document.yml). Without this rail Postgres rejects the insert and its message, which carries the
+    // whole INSERT statement, is what the MCP client gets back.
+    @Test
+    public void test_tag_documents_rejects_an_over_long_tag() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\""
+                                                           + "x".repeat(65) + "\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.toString()).excludes("document_tag");
+        verifyNoInteractions(repository, indexer);
+    }
+
+    @Test
+    public void test_tag_documents_rejects_an_over_long_doc_id() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"" + "x".repeat(97)
+                                                           + "\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        verifyNoInteractions(repository, indexer);
+    }
+
+    @Test
+    public void test_untag_documents_rejects_an_over_long_tag() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "untag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\""
+                                                             + "x".repeat(65) + "\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        verifyNoInteractions(repository, indexer);
+    }
+
     @Test
     public void test_tag_documents_rejects_bad_lists() throws Exception {
         serveAs("local", "foo");
