@@ -22,9 +22,11 @@ import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskFinder;
+import org.icij.datashare.text.Tag;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.util.List;
@@ -67,7 +69,9 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                                  new McpGetDocumentTool(documentResource),
                                                  new McpListTasksTool(taskResource),
                                                  new McpStopTaskTool(taskResource, taskManager,
-                                                                     TaskPolicyChecker.ALLOW_ALL)));
+                                                                     TaskPolicyChecker.ALLOW_ALL),
+                                                 new McpTagDocumentsTool(documentResource),
+                                                 new McpUntagDocumentsTool(documentResource)));
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }
@@ -467,5 +471,126 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode tasks = payload(call("local", "list_tasks", "{}"));
 
         assertThat(tasks.at("/0/id").asText()).isEqualTo(task.id);
+    }
+
+    @Test
+    public void test_tag_documents_writes_to_the_repository_and_the_index() throws Exception {
+        serveAs("local", "foo");
+        // Mockito 5 captures a varargs parameter one element at a time, so the captor takes the element type.
+        ArgumentCaptor<Tag> written = ArgumentCaptor.forClass(Tag.class);
+
+        JsonNode result = payload(call("local", "tag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"doc1\",\"doc2\"],\"tags\":[\"invoice\"]}"));
+
+        org.mockito.Mockito.verify(repository).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")),
+                                                   written.capture());
+        org.mockito.Mockito.verify(indexer).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), any(Tag[].class));
+        assertThat(written.getValue().label).isEqualTo("invoice");
+        assertThat(result.get("tagged").asInt()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_tag_documents_attributes_the_tags_to_the_caller() throws Exception {
+        serveAs("local", "foo");
+        ArgumentCaptor<Tag> written = ArgumentCaptor.forClass(Tag.class);
+
+        call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        org.mockito.Mockito.verify(repository).tag(any(Project.class), eq(List.of("doc1")), written.capture());
+        assertThat(written.getValue().user.id).isEqualTo("local");
+    }
+
+    // repository.tag writes the row whether or not the id exists, exactly like the REST route. The count is a count
+    // of requested ids, not a proof the documents are there.
+    @Test
+    public void test_tag_documents_counts_unknown_ids_too() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"nope\"],\"tags\":[\"invoice\"]}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_untag_documents_removes_the_tags() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "untag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}"));
+
+        org.mockito.Mockito.verify(repository).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        org.mockito.Mockito.verify(indexer).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        assertThat(result.get("untagged").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_tag_documents_on_ungranted_project_is_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"bar\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
+        org.mockito.Mockito.verifyNoInteractions(repository, indexer);
+    }
+
+    @Test
+    public void test_untag_documents_on_ungranted_project_is_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "untag_documents",
+                                 "{\"project\":\"bar\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
+        org.mockito.Mockito.verifyNoInteractions(repository, indexer);
+    }
+
+    /** A JSON array of distinct document ids, so a test about the cap reads as a test about the cap. */
+    private String manyDocIds(int count) {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            ids.add("\"doc" + i + "\"");
+        }
+        return "[" + String.join(",", ids) + "]";
+    }
+
+    @Test
+    public void test_tag_documents_accepts_100_ids() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":"
+                                                                 + manyDocIds(100) + ",\"tags\":[\"invoice\"]}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(100);
+    }
+
+    @Test
+    public void test_tag_documents_above_100_ids_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":" + manyDocIds(101)
+                                                           + ",\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        org.mockito.Mockito.verifyNoInteractions(repository, indexer);
+    }
+
+    @Test
+    public void test_tag_documents_rejects_bad_lists() throws Exception {
+        serveAs("local", "foo");
+
+        assertThat(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[],\"tags\":[\"a\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[1],\"tags\":[\"a\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "tag_documents", "{\"doc_ids\":[\"doc1\"],\"tags\":[\"a\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        org.mockito.Mockito.verifyNoInteractions(repository, indexer);
     }
 }
