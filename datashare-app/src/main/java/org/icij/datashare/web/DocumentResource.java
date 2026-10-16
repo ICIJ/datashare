@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
+import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 import net.codestory.http.payload.Payload;
@@ -308,11 +309,21 @@ public class DocumentResource {
     public List<Aggregate<String>> getProjectTagCounts(final String projectId, final String size,
                                                         final Context context) {
         requireGranted(context, projectId);
-        return repository.getTagCounts(project(projectId), sizeOrDefault(size));
+        return repository.getTagCounts(project(projectId), tagCountSize(size));
     }
 
-    private static int sizeOrDefault(String size) {
-        return size == null || size.isEmpty() ? 50 : Integer.parseInt(size);
+    // A String query parameter, not an Integer one: fluent-http converts a mistyped Integer parameter to a 500
+    // before this method ever runs, so only parsing it here lets a non-numeric size come back as the 400 it is.
+    private static int tagCountSize(String size) {
+        if (size == null || size.isEmpty()) {
+            return 50;
+        }
+        try {
+            int parsed = Integer.parseInt(size);
+            return parsed <= 0 ? 50 : parsed;
+        } catch (NumberFormatException e) {
+            throw new BadRequestException();
+        }
     }
 
     @Operation(description = "Preflight request for document tagging",

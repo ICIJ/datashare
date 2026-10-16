@@ -30,9 +30,8 @@ public class McpListTagsTool implements McpTool {
     public Object call(JsonNode arguments, Context context) {
         String project = McpArguments.requireText(arguments, "project");
         try {
-            return TagCount.from(
-                    documentResource.getProjectTagCounts(project, String.valueOf(SIZE.readFrom(arguments)),
-                                                         context));
+            return TagCount.from(documentResource.getProjectTagCounts(project, String.valueOf(SIZE.readFrom(arguments)),
+                                                                      context));
         } catch (ForbiddenException e) {
             throw new McpToolException.Forbidden(project, e);
         }

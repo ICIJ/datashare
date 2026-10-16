@@ -47,6 +47,7 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.never;
@@ -402,6 +403,20 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_tag_counts_forbidden_for_non_member_project() {
         get("/api/foo_index/documents/tags?size=5").should().respond(403);
+    }
+
+    @Test
+    public void test_get_tag_counts_clamps_a_negative_size_to_the_default() {
+        when(jooqRepository.getTagCounts(eq(project("local-datashare")), eq(50)))
+                .thenReturn(asList(new Repository.Aggregate<>("Invoice", 3)));
+
+        get("/api/local-datashare/documents/tags?size=-1").should().respond(200).contain("Invoice");
+    }
+
+    @Test
+    public void test_get_tag_counts_with_a_non_numeric_size_is_a_bad_request() {
+        get("/api/local-datashare/documents/tags?size=abc").should().respond(400);
+        verify(jooqRepository, never()).getTagCounts(any(), anyInt());
     }
 
     @Test
