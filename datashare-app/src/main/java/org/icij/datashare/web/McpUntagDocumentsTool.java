@@ -23,7 +23,7 @@ public class McpUntagDocumentsTool implements McpTool {
 
     @Override
     public String description() {
-        return "Removes tags from up to 100 documents at once, by document id. A tag the document does not carry "
+        return "Removes up to 100 tags from up to 100 documents at once. A tag the document does not carry "
                + "is ignored. Tag matching is case-sensitive against the stored label, so \"invoice\" will not "
                + "remove a tag stored as \"Invoice\". The returned count is just the number of requested document "
                + "ids (duplicates and non-existent ids included), not a count of documents actually changed.";
