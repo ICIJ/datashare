@@ -67,7 +67,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         TaskResource taskResource = new TaskResource(mock(DatashareTaskFactory.class), taskManager, propertiesProvider,
                                                      batchSearchRepository, taskFinder);
         McpResource mcp = new McpResource(Set.of(new McpListProjectsTool(projectResource),
-                                                 new McpSearchDocumentsTool(new McpIndexSearch(indexer)),
+                                                 new McpSearchDocumentsTool(indexer),
                                                  new McpGetDocumentTool(documentResource),
                                                  new McpListTasksTool(taskResource),
                                                  new McpStopTaskTool(taskResource, taskManager,
