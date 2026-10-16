@@ -9,8 +9,7 @@
       "type": "array",
       "description": "document ids to tag",
       "items": {
-        "type": "string",
-        "maxLength": 96
+        "type": "string"
       },
       "minItems": 1,
       "maxItems": 100
