@@ -26,7 +26,8 @@ public class McpTagDocumentsTool implements McpTool {
 
     @Override
     public String description() {
-        return "Adds tags to up to 100 documents at once, by document id. The tags are attributed to the calling "
+        return "Adds up to 100 tags to up to 100 documents at once, so one call writes up to 10000 document-tag "
+               + "pairs. The tags are attributed to the calling "
                + "user. Tag matching is case-sensitive against the stored label, so \"invoice\" and \"Invoice\" are "
                + "different tags. The returned count is just the number of requested document ids (duplicates and "
                + "non-existent ids included), not a count of documents actually changed.";
