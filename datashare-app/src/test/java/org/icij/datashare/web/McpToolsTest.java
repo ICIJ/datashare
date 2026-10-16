@@ -423,6 +423,37 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("RuntimeException");
     }
 
+    // The database write runs first and only the indexer declares IOException, so this failure means the tags are
+    // in the database and absent from the index. Saying so stops an agent retrying a write that already landed.
+    @Test
+    public void test_tag_documents_says_so_when_only_the_index_write_failed() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.tag(any(Project.class), anyList(), any(Tag[].class)))
+                .thenThrow(new java.io.IOException("connection refused to elasticsearch:9200"));
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).contains("saved").contains("index");
+        assertThat(response.toString()).excludes("elasticsearch:9200");
+        verify(repository).tag(any(Project.class), anyList(), any(Tag[].class));
+    }
+
+    @Test
+    public void test_untag_documents_says_so_when_only_the_index_write_failed() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.untag(any(Project.class), anyList(), any(Tag[].class)))
+                .thenThrow(new java.io.IOException("connection refused to elasticsearch:9200"));
+
+        JsonNode response = call("local", "untag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).contains("removed").contains("index");
+        assertThat(response.toString()).excludes("elasticsearch:9200");
+    }
+
     @Test
     public void test_tag_documents_on_ungranted_project_is_forbidden() throws Exception {
         serveAs("local", "foo");
