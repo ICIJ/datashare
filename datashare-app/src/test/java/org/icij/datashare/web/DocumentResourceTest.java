@@ -385,23 +385,18 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         verify(jooqRepository, never()).tag(any(), anyList(), any());
     }
 
-    @Test
-    public void test_group_untag_with_an_over_long_tag_is_a_bad_request() {
-        String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + "x".repeat(65) + "\"]}";
 
-        post("/api/local-datashare/documents/batchUpdate/untag", body).should().respond(400);
-    }
-
-    @Test
-    public void test_group_tag_with_an_over_long_doc_id_is_a_bad_request() {
-        String body = "{\"docIds\":[\"" + "x".repeat(97) + "\"],\"tags\":[\"invoice\"]}";
-
-        post("/api/local-datashare/documents/batchUpdate/tag", body).should().respond(400);
-    }
 
     @Test
     public void test_tag_single_document_with_an_over_long_tag_is_a_bad_request() {
         put("/api/local-datashare/documents/tags/docId", "[\"" + "x".repeat(65) + "\"]").should().respond(400);
+    }
+
+    @Test
+    public void test_group_untag_accepts_an_over_long_tag() {
+        String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + "x".repeat(65) + "\"]}";
+
+        post("/api/local-datashare/documents/batchUpdate/untag", body).should().respond(200);
     }
 
     @Test

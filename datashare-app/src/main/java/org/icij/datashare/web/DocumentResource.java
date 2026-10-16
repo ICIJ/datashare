@@ -316,11 +316,11 @@ public class DocumentResource {
     // before this method ever runs, so only parsing it here lets a non-numeric size come back as the 400 it is.
     private static int tagCountSize(String size) {
         if (size == null || size.isEmpty()) {
-            return 50;
+            return DEFAULT_TAG_COUNT_SIZE;
         }
         try {
             int parsed = Integer.parseInt(size);
-            return parsed <= 0 ? 50 : parsed;
+            return parsed <= 0 ? DEFAULT_TAG_COUNT_SIZE : parsed;
         } catch (NumberFormatException e) {
             throw new BadRequestException();
         }
@@ -347,7 +347,7 @@ public class DocumentResource {
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags,
                                final Context context) throws IOException {
         requireGranted(context, projectId);
-        requireWithinColumnWidths(List.of(docId), tags);
+        requireTagsWithinColumnWidth(tags);
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
         return tagSaved ? Payload.created() : Payload.ok();
@@ -375,7 +375,7 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         requireGranted(context, projectId);
-        requireWithinColumnWidths(query.docIds, query.tagsAsArray((User) context.currentUser()));
+        requireTagsWithinColumnWidth(query.tagsAsArray((User) context.currentUser()));
         repository.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         return Payload.ok();
@@ -393,7 +393,6 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         requireGranted(context, projectId);
-        requireWithinColumnWidths(query.docIds, query.tagsAsArray((User) context.currentUser()));
         repository.untag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         indexer.untag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         return Payload.ok();
@@ -528,20 +527,19 @@ public class DocumentResource {
         throw new IllegalArgumentException("Target language not found");
     }
 
-    // The widths of document_tag.label and document_tag.doc_id in 002-tag-document.yml. Checked before the write
-    // so an over-long value is a 400, not a Postgres error whose message carries the whole INSERT statement.
+    // The width of document_tag.label in 002-tag-document.yml. Checked before the write so an over-long label is a
+    // 400, not a Postgres error whose message carries the whole INSERT statement. Document ids are deliberately not
+    // checked: they are generated hashes, and Hasher.SHA_512 produces 128 characters, wider than their own column.
     static final int MAX_TAG_LENGTH = 64;
-    static final int MAX_DOC_ID_LENGTH = 96;
+    /** Shared with McpListTagsTool so the two entry points cannot drift apart. */
+    static final int DEFAULT_TAG_COUNT_SIZE = 50;
 
-    private static void requireWithinColumnWidths(List<String> docIds, Tag[] tags) {
-        requireNoneLongerThan(docIds, MAX_DOC_ID_LENGTH, "document id");
-        requireNoneLongerThan(stream(tags).map(tag -> tag.label).collect(Collectors.toList()), MAX_TAG_LENGTH, "tag");
-    }
-
-    private static void requireNoneLongerThan(List<String> values, int maxLength, String what) {
-        if (values.stream().anyMatch(value -> value.length() > maxLength)) {
+    private static void requireTagsWithinColumnWidth(Tag[] tags) {
+        if (stream(tags).anyMatch(tag -> tag.label.length() > MAX_TAG_LENGTH)) {
+            // Fully qualified on purpose: this file also imports net.codestory.http.errors.BadRequestException,
+            // which carries no message, and the message is what the MCP tools turn into an invalid argument.
             throw new org.icij.datashare.web.errors.BadRequestException(
-                    "%s longer than %d characters".formatted(what, maxLength), null);
+                    "tag longer than %d characters".formatted(MAX_TAG_LENGTH), null);
         }
     }
 

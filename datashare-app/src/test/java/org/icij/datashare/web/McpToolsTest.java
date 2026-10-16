@@ -455,6 +455,39 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(response.toString()).excludes("elasticsearch:9200");
     }
 
+    // The Elasticsearch client throws ElasticsearchException, a RuntimeException, for index_not_found and for a
+    // failing script. Those are the likely index failures, so they must reach the same explanation.
+    @Test
+    public void test_tag_documents_says_so_when_the_index_rejects_the_write() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.tag(any(Project.class), anyList(), any(Tag[].class))).thenThrow(indexMissing());
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).contains("saved").contains("index");
+    }
+
+    @Test
+    public void test_untag_documents_says_so_when_the_index_rejects_the_write() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.untag(any(Project.class), anyList(), any(Tag[].class))).thenThrow(indexMissing());
+
+        JsonNode response = call("local", "untag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).contains("removed").contains("index");
+    }
+
+    private static co.elastic.clients.elasticsearch._types.ElasticsearchException indexMissing() {
+        return new co.elastic.clients.elasticsearch._types.ElasticsearchException("es/update_by_query",
+                co.elastic.clients.elasticsearch._types.ErrorResponse.of(r -> r.status(404).error(
+                        co.elastic.clients.elasticsearch._types.ErrorCause.of(
+                                c -> c.type("index_not_found_exception").reason("no such index [foo]")))));
+    }
+
     @Test
     public void test_tag_documents_on_ungranted_project_is_forbidden() throws Exception {
         serveAs("local", "foo");
@@ -523,26 +556,31 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         verifyNoInteractions(repository, indexer);
     }
 
+    // Hasher.SHA_512 produces 128 character ids, wider than document_tag.doc_id, and SQLite stores them anyway.
+    // Rejecting on the column width here would break every tag call on such an instance.
     @Test
-    public void test_tag_documents_rejects_an_over_long_doc_id() throws Exception {
+    public void test_tag_documents_accepts_a_sha512_length_doc_id() throws Exception {
         serveAs("local", "foo");
+        String sha512Id = "a".repeat(128);
 
-        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"" + "x".repeat(97)
-                                                           + "\"],\"tags\":[\"invoice\"]}");
+        JsonNode result = payload(call("local", "tag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"" + sha512Id + "\"],\"tags\":[\"invoice\"]}"));
 
-        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
-        verifyNoInteractions(repository, indexer);
+        assertThat(result.get("tagged").asInt()).isEqualTo(1);
+        verify(repository).tag(any(Project.class), eq(List.of(sha512Id)), any(Tag[].class));
     }
 
+    // A delete cannot overflow a column, and a label that is already stored and too long must stay removable.
     @Test
-    public void test_untag_documents_rejects_an_over_long_tag() throws Exception {
+    public void test_untag_documents_accepts_an_over_long_tag() throws Exception {
         serveAs("local", "foo");
+        String stored = "x".repeat(65);
 
-        JsonNode response = call("local", "untag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\""
-                                                             + "x".repeat(65) + "\"]}");
+        JsonNode result = payload(call("local", "untag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"" + stored + "\"]}"));
 
-        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
-        verifyNoInteractions(repository, indexer);
+        assertThat(result.get("untagged").asInt()).isEqualTo(1);
+        verify(repository).untag(any(Project.class), anyList(), any(Tag[].class));
     }
 
     @Test
