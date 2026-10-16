@@ -59,9 +59,9 @@
       "id": "datashare-plugin-asr",
       "name": "ASR",
       "description": "A Datashare plugin for audio and video transcription using speech recognition",
-      "url": "https://github.com/ICIJ/datashare-extension-asr/releases/download/1.0.0/datashare-plugin-asr-1.0.0.tgz",
+      "url": "https://github.com/ICIJ/datashare-extension-asr/releases/download/1.0.1/datashare-plugin-asr-1.0.1.tgz",
       "homepage": "https://github.com/ICIJ/datashare-extension-asr",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "extensions": ["datashare-extension-asr"],
       "type": "PLUGIN"
     }
