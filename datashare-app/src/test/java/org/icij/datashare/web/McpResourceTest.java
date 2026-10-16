@@ -148,12 +148,23 @@ public class McpResourceTest extends AbstractProdWebServerTest {
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: doc1");
     }
 
+    // An exception from outside this package is reported by type, not by message: its message tends to carry the
+    // statement that failed or the address of a backend. The stack stays in the server log.
     @Test
-    public void test_call_other_exception_is_a_tool_error_with_its_message() throws Exception {
-        serve(List.of(tool("t", "", (args, context) -> { throw new IllegalStateException("boom"); })));
+    public void test_call_other_exception_is_a_tool_error_with_its_type() throws Exception {
+        serve(List.of(tool("t", "", (args, context) -> { throw new IllegalStateException("boom at jdbc:postgresql://db"); })));
         JsonNode response = call("t", "{}");
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
-        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("boom");
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("IllegalStateException");
+        assertThat(response.toString()).excludes("jdbc:postgresql");
+    }
+
+    @Test
+    public void test_call_mcp_tool_exception_keeps_its_message() throws Exception {
+        serve(List.of(tool("t", "", (args, context) -> { throw new McpToolException("search failed on 1 shard(s)"); })));
+        JsonNode response = call("t", "{}");
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("search failed on 1 shard(s)");
     }
 
     @Test
