@@ -38,6 +38,11 @@ public class McpUntagDocumentsTool implements McpTool {
             throw new McpToolException.Forbidden(batch.project(), e);
         } catch (BadRequestException e) {
             throw McpToolException.InvalidArgument.because(e.getMessage());
+        } catch (IOException e) {
+            // Same asymmetry as in McpTagDocumentsTool: the database delete has happened, the index has not.
+            throw new McpToolException(
+                    "the tags were removed but the search index was not updated, so they will still match a "
+                    + "search until these documents are reindexed", e);
         }
         return Map.of("project", batch.project(), "untagged", batch.docIds().size(), "tags", batch.tags());
     }
