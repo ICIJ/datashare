@@ -42,6 +42,12 @@ public class McpTagDocumentsTool implements McpTool {
             throw new McpToolException.Forbidden(batch.project, e);
         } catch (BadRequestException e) {
             throw McpToolException.InvalidArgument.because(e.getMessage());
+        } catch (IOException e) {
+            // The database write runs first and only the indexer declares IOException, so reaching this means the
+            // tags are saved and the index is behind. The cause carries the backend address and stays in the log.
+            throw new McpToolException(
+                    "the tags were saved but the search index was not updated, so they will not match a search "
+                    + "until these documents are reindexed", e);
         }
         return Map.of("project", batch.project, "tagged", batch.docIds.size(), "tags", batch.tags);
     }
