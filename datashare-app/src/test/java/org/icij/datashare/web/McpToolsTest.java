@@ -71,7 +71,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                                  new McpStopTaskTool(taskResource, taskManager,
                                                                      TaskPolicyChecker.ALLOW_ALL),
                                                  new McpTagDocumentsTool(documentResource),
-                                                 new McpUntagDocumentsTool(documentResource)));
+                                                 new McpUntagDocumentsTool(documentResource),
+                                                 new McpListTagsTool(new McpIndexSearch(indexer))));
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }
@@ -620,5 +621,77 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(result.get("tags").isArray()).isTrue();
         assertThat(result.get("tags").size()).isEqualTo(0);
+    }
+
+    private static final String ES_TAGS_RESPONSE = """
+            {"hits":{"total":{"value":0},"hits":[]},
+             "aggregations":{"tags":{"buckets":[{"key":"invoice","doc_count":12},{"key":"contract","doc_count":3}]}}}""";
+
+    @Test
+    public void test_list_tags_returns_the_buckets_in_order() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(ES_TAGS_RESPONSE);
+
+        JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
+
+        assertThat(tags.size()).isEqualTo(2);
+        assertThat(tags.at("/0/tag").asText()).isEqualTo("invoice");
+        assertThat(tags.at("/0/count").asLong()).isEqualTo(12);
+        assertThat(tags.at("/1/tag").asText()).isEqualTo("contract");
+    }
+
+    @Test
+    public void test_list_tags_sends_a_terms_aggregation_and_no_hits() throws Exception {
+        serveAs("local", "foo");
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_TAGS_RESPONSE);
+
+        call("local", "list_tags", "{\"project\":\"foo\",\"size\":5}");
+
+        JsonNode sent = MAPPER.readTree(body.getValue());
+        assertThat(sent.get("size").asInt()).isEqualTo(0);
+        assertThat(sent.at("/aggs/tags/terms/field").asText()).isEqualTo("tags");
+        assertThat(sent.at("/aggs/tags/terms/size").asInt()).isEqualTo(5);
+    }
+
+    @Test
+    public void test_list_tags_on_a_project_without_tags_is_empty() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
+                .thenReturn("{\"hits\":{\"total\":{\"value\":0},\"hits\":[]},"
+                            + "\"aggregations\":{\"tags\":{\"buckets\":[]}}}");
+
+        JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
+
+        assertThat(tags.isArray()).isTrue();
+        assertThat(tags.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_list_tags_on_ungranted_project_is_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "list_tags", "{\"project\":\"bar\"}");
+
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
+        org.mockito.Mockito.verifyNoInteractions(indexer);
+    }
+
+    @Test
+    public void test_list_tags_size_above_500_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        assertThat(call("local", "list_tags", "{\"project\":\"foo\",\"size\":501}").at("/error/code").asInt())
+                .isEqualTo(-32602);
+        org.mockito.Mockito.verifyNoInteractions(indexer);
+    }
+
+    @Test
+    public void test_list_tags_rejects_project_with_a_path() throws Exception {
+        serveAs("local", "foo");
+
+        assertThat(call("local", "list_tags", "{\"project\":\"foo,bar\"}").at("/error/code").asInt())
+                .isEqualTo(-32602);
+        org.mockito.Mockito.verifyNoInteractions(indexer);
     }
 }
