@@ -629,7 +629,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             WorkflowRegistry registry = new WorkflowRegistry();
             registry.discoverWorkflows("org.icij.datashare.tasks",
                                        activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
-                                               activityClass, taskFactory, temporal, taskRepository, 1d).getThrows(),
+                                                                                activityClass, taskFactory, temporal, taskRepository, 1d, this::get)
+                                                                        .getThrows(),
                                        Utils.getRoutingStrategy(propertiesProvider), new Group(TaskGroupType.Java));
             // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
             addCloseable(new TemporalWorkers(temporal).start(registry, registry.registeredQueues(),
