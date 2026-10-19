@@ -422,6 +422,23 @@ public class ElasticsearchIndexerTest {
         assertThat(indexer.tag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("tag"))).isTrue();
     }
 
+    // Mirror of the tag case above: a document indexed before the tags field existed has no tags in its source,
+    // and the untag script must not blow up on it.
+    @Test
+    public void test_untag_document_without_tags_field_for_backward_compatibility() throws IOException {
+        Document doc = createDoc("untagged_without_tags_field").build();
+        indexer.add(es.getIndexName(), doc);
+        // Refreshed: the untag below is a noop, so nothing after it would make this write visible to the
+        // delete_by_query that cleans the index between tests, and that cleanup would hit a version conflict.
+        UpdateRequest<Object, Object> removeTagsRequest = UpdateRequest.of(r -> r.index(es.getIndexName()).
+                id(doc.getId()).
+                refresh(co.elastic.clients.elasticsearch._types.Refresh.True).
+                script(Script.of(s -> s.lang("painless").source("ctx._source.remove(\"tags\")").params(new HashMap<>()))));
+        es.client.update(removeTagsRequest, Document.class);
+
+        assertThat(indexer.untag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("tag"))).isFalse();
+    }
+
     @Test(expected = ElasticsearchException.class)
     public void test_tag_unknown_document() throws IOException {
         indexer.tag(project(es.getIndexName()), "unknown", "routing", tag("foo"), tag("bar"));
