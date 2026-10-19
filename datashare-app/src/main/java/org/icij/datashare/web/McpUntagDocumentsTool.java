@@ -23,10 +23,10 @@ public class McpUntagDocumentsTool implements McpTool {
 
     @Override
     public String description() {
-        return "Removes up to 100 tags from up to 100 documents at once. A tag the document does not carry is "
-               + "ignored. Tag matching is case-sensitive against the stored label, so \"invoice\" will not remove "
-               + "a tag stored as \"Invoice\". The returned count is the number of requested document ids, "
-               + "duplicates and unknown ids included, not of documents actually changed.";
+        return "Removes up to 100 tags from up to 100 documents at once. A tag the document does not carry is " +
+               "ignored. Tag matching is case-sensitive against the stored label, so \"invoice\" will not remove " +
+               "a tag stored as \"Invoice\". The returned count is the number of requested document ids, " +
+               "duplicates and unknown ids included, not of documents actually changed.";
     }
 
     @Override
@@ -39,8 +39,8 @@ public class McpUntagDocumentsTool implements McpTool {
         } catch (IOException | ElasticsearchException e) {
             // Same asymmetry as in McpTagDocumentsTool: the database delete has happened, the index has not.
             throw new McpToolException(
-                    "the tags were removed but the search index was not updated, so they will still match a "
-                    + "search until these documents are reindexed", e);
+                    "the tags were removed but the search index was not updated, so they will still match a " +
+                    "search until these documents are reindexed", e);
         }
         return Map.of("project", batch.project(), "untagged", batch.docIds().size(), "tags", batch.tags());
     }

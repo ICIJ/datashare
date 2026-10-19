@@ -62,8 +62,8 @@ public class McpGetDocumentTool implements McpTool {
 
     // Tags come from the database, not from the index: it is the database that keeps their original casing.
     private List<String> readTags(DocumentAddress address, Context context) {
-        return documentResource.getDocumentTags(address.project, address.id, context).stream()
-                               .map(tag -> tag.label).toList();
+        return documentResource.getDocumentTags(address.project, address.id, context).stream().map(tag -> tag.label)
+                               .toList();
     }
 
     record DocumentAddress(String project, String id, String routing) {
@@ -83,8 +83,7 @@ public class McpGetDocumentTool implements McpTool {
         }
     }
 
-    record DocumentSlice(String id, String path, String contentType, int offset, int maxOffset, List<String> tags,
-                         String text) {
+    record DocumentSlice(String id, String path, String contentType, int offset, int maxOffset, List<String> tags, String text) {
         static DocumentSlice of(Document document, ExtractedText slice, List<String> tags) {
             return new DocumentSlice(document.getId(), String.valueOf(document.getPath()), document.getContentType(),
                                      slice.offset, slice.maxOffset, tags, slice.content);

@@ -27,10 +27,10 @@ public class McpTagDocumentsTool implements McpTool {
 
     @Override
     public String description() {
-        return "Adds up to 100 tags to up to 100 documents at once, so one call writes up to 10000 document-tag "
-               + "pairs, attributed to the calling user. Tag matching is case-sensitive against the stored label, "
-               + "so \"invoice\" and \"Invoice\" are different tags. The returned count is the number of requested "
-               + "document ids, duplicates and unknown ids included, not of documents actually changed.";
+        return "Adds up to 100 tags to up to 100 documents at once, so one call writes up to 10000 document-tag " +
+               "pairs, attributed to the calling user. Tag matching is case-sensitive against the stored label, " +
+               "so \"invoice\" and \"Invoice\" are different tags. The returned count is the number of requested " +
+               "document ids, duplicates and unknown ids included, not of documents actually changed.";
     }
 
     @Override
@@ -49,8 +49,8 @@ public class McpTagDocumentsTool implements McpTool {
             // the indexer throws: an update_by_query answering 200 with a non-empty failures array is reported by
             // a false return value that DocumentResource discards, and stays invisible here.
             throw new McpToolException(
-                    "the tags were saved but the search index was not updated, so they will not match a search "
-                    + "until these documents are reindexed", e);
+                    "the tags were saved but the search index was not updated, so they will not match a search " +
+                    "until these documents are reindexed", e);
         }
         return Map.of("project", batch.project, "tagged", batch.docIds.size(), "tags", batch.tags);
     }

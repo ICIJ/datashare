@@ -396,10 +396,9 @@ public class JooqRepository implements Repository {
     @Override
     public List<Aggregate<String>> getTagCounts(Project project, int limit) {
         DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.select(DOCUMENT_TAG.LABEL, count()).from(DOCUMENT_TAG)
-                  .where(DOCUMENT_TAG.PRJ_ID.eq(project.getId())).groupBy(DOCUMENT_TAG.LABEL)
-                  .orderBy(count().desc(), DOCUMENT_TAG.LABEL.asc()).limit(limit).fetch().stream()
-                  .map(r -> new Aggregate<>(r.get(DOCUMENT_TAG.LABEL), r.get(1, int.class))).collect(toList());
+        return ctx.select(DOCUMENT_TAG.LABEL, count()).from(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(project.getId()))
+                  .groupBy(DOCUMENT_TAG.LABEL).orderBy(count().desc(), DOCUMENT_TAG.LABEL.asc()).limit(limit).fetch()
+                  .stream().map(r -> new Aggregate<>(r.get(DOCUMENT_TAG.LABEL), r.get(1, int.class))).collect(toList());
 
     }
 
