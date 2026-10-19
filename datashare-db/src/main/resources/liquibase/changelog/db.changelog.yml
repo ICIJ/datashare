@@ -152,3 +152,6 @@ databaseChangeLog:
   - include:
       file: changes/050-statement-written-at.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/051-batch-search-project-index.yml
+      relativeToChangelogFile: true

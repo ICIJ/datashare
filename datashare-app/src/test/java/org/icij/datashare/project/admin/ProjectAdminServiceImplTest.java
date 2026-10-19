@@ -1,6 +1,7 @@
 package org.icij.datashare.project.admin;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.Repository;
 import net.codestory.http.security.Users;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -64,7 +65,7 @@ public class ProjectAdminServiceImplTest {
         propertiesProvider = mock(PropertiesProvider.class);
         service = new ProjectAdminServiceImpl(
                 repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, users, userStore,
-                usersIdProviderCache);
+                usersIdProviderCache, mock(TaskManager.class));
         // the #2441 inventory sweep lists every user on each project delete; empty by default
         when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
                 .thenReturn(new WebResponse<>(List.of(), 0, 0, 0));
@@ -348,9 +349,9 @@ public class ProjectAdminServiceImplTest {
         when(repository.getProject("foo")).thenReturn(project);
         when(repository.deleteAll("foo")).thenReturn(true);
         when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.deleteIndex("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(true);
-        when(indexer.deleteAll("foo.entities")).thenReturn(true);
+        when(indexer.deleteIndex("foo.entities")).thenReturn(true);
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
         when(queue.delete()).thenReturn(true);
         when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
@@ -363,8 +364,8 @@ public class ProjectAdminServiceImplTest {
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
         InOrder inOrder = Mockito.inOrder(indexer, repository, queue, reportMap);
-        inOrder.verify(indexer).deleteAll("foo");
         inOrder.verify(repository).deleteAll("foo");
+        inOrder.verify(indexer).deleteIndex("foo");
         // Two queue lookups (legacy prefix + new pattern) both return the same mock,
         // so queue.delete() is called twice.
         inOrder.verify(queue, Mockito.times(2)).delete();
@@ -380,14 +381,14 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
-    public void test_delete_empties_the_entities_index_too() throws Exception {
+    public void test_delete_drops_the_entities_index_too() throws Exception {
         Project project = new Project("foo");
         when(repository.getProject("foo")).thenReturn(project);
         when(repository.deleteAll("foo")).thenReturn(true);
         when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.deleteIndex("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(true);
-        when(indexer.deleteAll("foo.entities")).thenReturn(true);
+        when(indexer.deleteIndex("foo.entities")).thenReturn(true);
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
         when(queue.delete()).thenReturn(true);
         when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
@@ -399,8 +400,8 @@ public class ProjectAdminServiceImplTest {
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
-        verify(indexer).deleteAll("foo");
-        verify(indexer).deleteAll("foo.entities");
+        verify(indexer).deleteIndex("foo");
+        verify(indexer).deleteIndex("foo.entities");
         assertThat(deleted.indexDeleted()).isTrue();
     }
 
@@ -410,9 +411,9 @@ public class ProjectAdminServiceImplTest {
         when(repository.getProject("foo")).thenReturn(project);
         when(repository.deleteAll("foo")).thenReturn(true);
         when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.deleteIndex("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(true);
-        when(indexer.deleteAll("foo.entities")).thenThrow(new IOException("ES down"));
+        when(indexer.deleteIndex("foo.entities")).thenThrow(new IOException("ES down"));
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
         when(queue.delete()).thenReturn(true);
         when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
@@ -424,7 +425,7 @@ public class ProjectAdminServiceImplTest {
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
-        verify(indexer).deleteAll("foo.entities");
+        verify(indexer).deleteIndex("foo.entities");
         assertThat(deleted.indexDeleted()).isFalse();
         assertThat(deleted.dbDeleted()).isTrue();
         assertThat(deleted.queuesDeleted()).isTrue();
@@ -435,7 +436,7 @@ public class ProjectAdminServiceImplTest {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         when(repository.deleteAll("foo")).thenReturn(true);
         when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.deleteIndex("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(false);
         when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
         ReportMap reportMap = mock(ReportMap.class);
@@ -446,7 +447,7 @@ public class ProjectAdminServiceImplTest {
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
-        verify(indexer, never()).deleteAll("foo.entities");
+        verify(indexer, never()).deleteIndex("foo.entities");
         assertThat(deleted.indexDeleted()).isTrue();
     }
 
@@ -463,7 +464,7 @@ public class ProjectAdminServiceImplTest {
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
 
-        verify(indexer, never()).deleteAll(any());
+        verify(indexer, never()).deleteIndex(any());
         assertThat(deleted.indexDeleted()).isFalse();
         assertThat(deleted.dbDeleted()).isTrue();
     }
@@ -477,7 +478,7 @@ public class ProjectAdminServiceImplTest {
         } catch (ProjectNotFoundException e) {
             assertThat(e.getMessage()).contains("ghost");
         }
-        verify(indexer, never()).deleteAll(any());
+        verify(indexer, never()).deleteIndex(any());
         verify(repository, never()).deleteAll(any());
     }
 
@@ -490,7 +491,7 @@ public class ProjectAdminServiceImplTest {
         assertThat(deleted.noop()).isTrue();
         assertThat(deleted.dbDeleted()).isFalse();
         assertThat(deleted.indexDeleted()).isFalse();
-        verify(indexer, never()).deleteAll(any());
+        verify(indexer, never()).deleteIndex(any());
         verify(repository, never()).deleteAll(any());
     }
 
@@ -498,9 +499,9 @@ public class ProjectAdminServiceImplTest {
     public void test_delete_continues_cascade_when_db_delete_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteAll("foo")).thenReturn(true);
+        when(indexer.deleteIndex("foo")).thenReturn(true);
         when(indexer.exists("foo.entities")).thenReturn(true);
-        when(indexer.deleteAll("foo.entities")).thenReturn(true);
+        when(indexer.deleteIndex("foo.entities")).thenReturn(true);
         when(repository.deleteAll("foo")).thenThrow(new RuntimeException("DB down"));
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
         when(queue.delete()).thenReturn(true);
@@ -515,18 +516,21 @@ public class ProjectAdminServiceImplTest {
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
         // Cascade continues past the DB failure: queues and report-map still run.
-        assertThat(deleted.indexDeleted()).isTrue();
         assertThat(deleted.dbDeleted()).isFalse();
         assertThat(deleted.queuesDeleted()).isTrue();
         assertThat(deleted.reportMapDeleted()).isTrue();
         verify(documentCollectionFactory).createMap(any());
+        // but the index stays: the project row survived, and an index dropped under it cannot be
+        // rebuilt by the --if-exists retry the cascade recommends
+        assertThat(deleted.indexDeleted()).isFalse();
+        verify(indexer, never()).deleteIndex(any());
     }
 
     @Test
     public void test_delete_continues_cascade_when_index_delete_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteAll("foo")).thenThrow(new IOException("ES down"));
+        when(indexer.deleteIndex("foo")).thenThrow(new IOException("ES down"));
         when(repository.deleteAll("foo")).thenReturn(true);
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
         when(queue.delete()).thenReturn(true);
@@ -1432,10 +1436,10 @@ public class ProjectAdminServiceImplTest {
 
         ProjectDeleted deleted = service.delete("proj", new ProjectDeleteOptions(false));
 
-        // deleteAll answers false on a missing index, which would otherwise make the API answer 500
+        // a missing index is not a failure, which would otherwise make the API answer 500
         // on exactly the retry the cascade tells operators to run
         assertThat(deleted.indexDeleted()).isTrue();
-        verify(indexer, never()).deleteAll("proj");
+        verify(indexer, never()).deleteIndex("proj");
     }
 
     private static User userWithProjects(String id, List<String> projects) {

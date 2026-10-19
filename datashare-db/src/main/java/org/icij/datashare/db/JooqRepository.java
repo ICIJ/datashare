@@ -37,6 +37,10 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.UserEvent.Type.fromId;
+import static org.icij.datashare.db.Tables.BATCH_SEARCH;
+import static org.icij.datashare.db.Tables.BATCH_SEARCH_PROJECT;
+import static org.icij.datashare.db.Tables.BATCH_SEARCH_QUERY;
+import static org.icij.datashare.db.Tables.BATCH_SEARCH_RESULT;
 import static org.icij.datashare.db.Tables.CASBIN_RULE;
 import static org.icij.datashare.db.Tables.EXTRACTION_MAPPING;
 import static org.icij.datashare.db.Tables.PATH_BANNER;
@@ -406,26 +410,52 @@ public class JooqRepository implements Repository {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
-            int deleteStarResult =
-                    inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
-            int deleteUserRecommendationResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION)
-                                                      .where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId))
-                                                      .execute();
+            inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
+            inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
+            inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId))
+                 .execute();
             List<Integer> deletedUserHistoryProjectIds =
                     inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).returning()
                          .fetch().getValues(USER_HISTORY_PROJECT.USER_HISTORY_ID);
-            int deleteUserHistoryResult =
-                    inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(deletedUserHistoryProjectIds)).execute();
-            int deleteStatementResult = inner.deleteFrom(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId)).execute();
-            int deleteExtractionMappingResult =
-                    inner.deleteFrom(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
-            int deleteProject = inner.deleteFrom(PROJECT).where(PROJECT.ID.eq(projectId)).execute();
-            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult +
-                   deletedUserHistoryProjectIds.size() + deleteUserHistoryResult + deleteStatementResult +
-                   deleteExtractionMappingResult + deleteProject > 0;
+            inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(deletedUserHistoryProjectIds)).execute();
+            inner.deleteFrom(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId)).execute();
+            inner.deleteFrom(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
+            inner.deleteFrom(PATH_BANNER).where(PATH_BANNER.PROJECT_ID.eq(projectId)).execute();
+            deleteBatchSearchesOf(inner, projectId);
+            // the project row, not the sum of the cascade: callers read this as "the project is
+            // gone", and a cascade that only had dependent rows to drop never deleted a project
+            return inner.deleteFrom(PROJECT).where(PROJECT.ID.eq(projectId)).execute() > 0;
         });
 
+    }
+
+    /**
+     * A batch search can span several projects, so deleting one only strips that project from the search:
+     * the search row itself goes away when the project was the last one it searched.
+     */
+    private void deleteBatchSearchesOf(DSLContext inner, String projectId) {
+        List<String> searchesOfProject = batchSearchUuidsOf(inner, projectId);
+        inner.deleteFrom(BATCH_SEARCH_RESULT).where(BATCH_SEARCH_RESULT.PRJ_ID.eq(projectId)).execute();
+        inner.deleteFrom(BATCH_SEARCH_PROJECT).where(BATCH_SEARCH_PROJECT.PRJ_ID.eq(projectId)).execute();
+        deleteBatchSearches(inner, leftWithoutProject(inner, searchesOfProject));
+    }
+
+    private List<String> batchSearchUuidsOf(DSLContext inner, String projectId) {
+        return inner.select(BATCH_SEARCH_PROJECT.SEARCH_UUID).from(BATCH_SEARCH_PROJECT)
+                    .where(BATCH_SEARCH_PROJECT.PRJ_ID.eq(projectId)).fetch(BATCH_SEARCH_PROJECT.SEARCH_UUID);
+    }
+
+    private List<String> leftWithoutProject(DSLContext inner, List<String> batchSearchUuids) {
+        return inner.select(BATCH_SEARCH.UUID).from(BATCH_SEARCH).where(BATCH_SEARCH.UUID.in(batchSearchUuids))
+                    .andNotExists(inner.selectOne().from(BATCH_SEARCH_PROJECT)
+                                       .where(BATCH_SEARCH_PROJECT.SEARCH_UUID.eq(BATCH_SEARCH.UUID)))
+                    .fetch(BATCH_SEARCH.UUID);
+    }
+
+    private void deleteBatchSearches(DSLContext inner, List<String> batchSearchUuids) {
+        inner.deleteFrom(BATCH_SEARCH_QUERY).where(BATCH_SEARCH_QUERY.SEARCH_UUID.in(batchSearchUuids)).execute();
+        inner.deleteFrom(BATCH_SEARCH_RESULT).where(BATCH_SEARCH_RESULT.SEARCH_UUID.in(batchSearchUuids)).execute();
+        inner.deleteFrom(BATCH_SEARCH).where(BATCH_SEARCH.UUID.in(batchSearchUuids)).execute();
     }
 
     @Override

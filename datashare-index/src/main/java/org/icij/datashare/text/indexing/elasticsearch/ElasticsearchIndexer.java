@@ -578,7 +578,7 @@ public class ElasticsearchIndexer implements Indexer {
     public boolean deleteAll(String indexName) throws IOException {
         if (!exists(indexName))
             return false;
-        Request post = new Request("POST", indexName + "/_delete_by_query?refresh");
+        Request post = new Request("POST", "/" + indexName + "/_delete_by_query?refresh");
         post.setEntity(new NStringEntity("{\"query\":{\"match_all\": {}}}", ContentType.APPLICATION_JSON));
         RestClient restClient = ((RestClientTransport) client._transport()).restClient();
         Response response = restClient.performRequest(post);

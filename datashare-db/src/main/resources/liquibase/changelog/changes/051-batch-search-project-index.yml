@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 88
+      author: pirhoo
+      comment: >
+        Deleting a project reads and deletes batch_search_project by prj_id, which the unique index
+        on (search_uuid, prj_id) cannot serve because prj_id is not its leading column.
+      changes:
+        sql:
+          CREATE INDEX IF NOT EXISTS batch_search_project_prj_id ON batch_search_project(prj_id)
