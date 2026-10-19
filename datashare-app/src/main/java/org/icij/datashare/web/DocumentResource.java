@@ -536,7 +536,9 @@ public class DocumentResource {
     static final int MAX_TAG_COUNT_SIZE = 500;
 
     private static void requireTagsWithinColumnWidth(Tag[] tags) {
-        if (stream(tags).anyMatch(tag -> tag.label.length() > MAX_TAG_LENGTH)) {
+        // codePointCount, not length(): Postgres counts characters where Java counts UTF-16 units, so a label
+        // of 40 emoji is 80 units long and would be rejected while the column takes it.
+        if (stream(tags).anyMatch(tag -> tag.label.codePointCount(0, tag.label.length()) > MAX_TAG_LENGTH)) {
             // Fully qualified on purpose: this file also imports net.codestory.http.errors.BadRequestException,
             // which carries no message, and the message is what the MCP tools turn into an invalid argument.
             throw new org.icij.datashare.web.errors.BadRequestException(

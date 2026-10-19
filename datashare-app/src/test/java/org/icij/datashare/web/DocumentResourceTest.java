@@ -401,6 +401,14 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_group_tag_counts_characters_not_utf16_units() {
+        String fortyEmoji = "\uD83D\uDCC4".repeat(40);
+        String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + fortyEmoji + "\"]}";
+
+        post("/api/local-datashare/documents/batchUpdate/tag", body).should().respond(200);
+    }
+
+    @Test
     public void test_group_untag_accepts_an_over_long_tag() {
         String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + "x".repeat(65) + "\"]}";
 
