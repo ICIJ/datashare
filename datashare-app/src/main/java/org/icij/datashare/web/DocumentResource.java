@@ -307,7 +307,7 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:project/documents/tags?size=:size")
     public List<Aggregate<String>> getProjectTagCounts(final String projectId, final String size,
-                                                        final Context context) {
+                                                       final Context context) {
         requireGranted(context, projectId);
         return repository.getTagCounts(project(projectId), tagCountSize(size));
     }
@@ -329,8 +329,8 @@ public class DocumentResource {
         } catch (NumberFormatException e) {
             // From the caller's side this is the same mistake as a size out of range, so it gets the same answer.
         }
-        throw new BadRequestException(
-                "size must be a whole number between 1 and %d".formatted(MAX_TAG_COUNT_SIZE), null);
+        throw new BadRequestException("size must be a whole number between 1 and %d".formatted(MAX_TAG_COUNT_SIZE),
+                                      null);
     }
 
     @Operation(description = "Preflight request for document tagging",
@@ -546,8 +546,7 @@ public class DocumentResource {
         // codePointCount, not length(): Postgres counts characters where Java counts UTF-16 units, so a label
         // of 40 emoji is 80 units long and would be rejected while the column takes it.
         if (stream(tags).anyMatch(tag -> tag.label.codePointCount(0, tag.label.length()) > MAX_TAG_LENGTH)) {
-            throw new BadRequestException(
-                    "tag longer than %d characters".formatted(MAX_TAG_LENGTH), null);
+            throw new BadRequestException("tag longer than %d characters".formatted(MAX_TAG_LENGTH), null);
         }
     }
 
