@@ -9,8 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 /**
  * @param rootId the container an embedded document was extracted from, or null for a root document:
@@ -44,9 +46,19 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
         TargetModelRegistry.get(Objects.requireNonNull(model, "model"));
     }
 
-    public record EntityMapping(String type, String keyLiteral, List<String> keys, Map<String, PropertyMapping> properties) {
+    public record EntityMapping(String type, String keyLiteral, List<String> keys, String idColumn, Map<String, String> filters, Map<String, PropertyMapping> properties) {
         public EntityMapping(String type, List<String> keys, Map<String, PropertyMapping> properties) {
-            this(type, null, keys, properties);
+            this(type, null, keys, null, Map.of(), properties);
+        }
+
+        public EntityMapping(String type, String keyLiteral, List<String> keys,
+                             Map<String, PropertyMapping> properties) {
+            this(type, keyLiteral, keys, null, Map.of(), properties);
+        }
+
+        public EntityMapping(String type, String keyLiteral, List<String> keys, String idColumn,
+                             Map<String, PropertyMapping> properties) {
+            this(type, keyLiteral, keys, idColumn, Map.of(), properties);
         }
 
         public EntityMapping {
@@ -58,11 +70,36 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             // record, identified by where it sits in the file. The key literal is hashed alongside
             // the key values and gets the same cleaning: an invisible character in one of two
             // mappings meant to agree would otherwise split one entity in two, which is the merge
-            // the literal exists to control.
-            keys = Objects.requireNonNull(keys, "keys").stream().map(Row::clean).distinct().toList();
+            // the literal exists to control. An id column is the third way to identify an entity, and
+            // the only one that does not hash: the value is the id, so two mappings reading the same
+            // id column merge their entities deliberately, which is what a dump of globally-named
+            // entities needs and the footgun the option carries.
+            if (idColumn == null) {
+                Objects.requireNonNull(keys, "keys");
+            }
+            keys = (keys == null ? List.<String>of() : keys).stream().map(Row::clean).distinct().toList();
             keyLiteral = keyLiteral == null ? null : Row.clean(keyLiteral);
+            idColumn = idColumn == null ? null : Row.clean(idColumn);
+            // A filter names a header column and holds a cell's value, so each side gets the cleaning
+            // that side gets elsewhere: the comparison then runs on two values cleaned the same way,
+            // which is the rule every other column comparison follows.
+            // Two names for one column are one column, as they are for keys and for a property's
+            // columns, and two values for it are a mapping no row can honour rather than a Java
+            // collector's business.
+            filters = (filters == null ? Map.<String, String>of() : filters).entrySet().stream().collect(
+                    toUnmodifiableMap(entry -> Row.clean(entry.getKey()), entry -> Row.clean(
+                                              Objects.requireNonNull(entry.getValue(), "filters." + entry.getKey())),
+                                      ExtractionMapping::oneValuePerColumn));
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
+    }
+
+    private static String oneValuePerColumn(String first, String second) {
+        if (!first.equals(second)) {
+            throw new MalformedExtractionMapping(
+                    "field 'filters' names one column twice, with '" + first + "' and '" + second + "'");
+        }
+        return first;
     }
 
     public record PropertyMapping(List<String> columns, String join, String literal, String entity, String dateFormat) {
@@ -124,6 +161,25 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
                 violations.add(
                         "entity '" + alias + "' has a key literal but no key, and a row-scoped id carries no literal");
             }
+            refuseNul(violations, entity.idColumn(), "the id column name of entity '" + alias + "'");
+            if (entity.idColumn() != null && entity.idColumn().isEmpty()) {
+                violations.add("entity '" + alias + "' has a blank id column name, which no header can match");
+            }
+            if (entity.idColumn() != null && !entity.keys().isEmpty()) {
+                violations.add(
+                        "entity '" + alias + "' has both an id column and a key, and an id is read one way only");
+            }
+            new TreeMap<>(entity.filters()).forEach((column, value) -> {
+                refuseNul(violations, column, "the filter column name of entity '" + alias + "'");
+                refuseNul(violations, value, "the filter value of entity '" + alias + "'");
+                if (column.isEmpty()) {
+                    violations.add("entity '" + alias + "' has a blank filter column name, which no header can match");
+                }
+                if (value.isEmpty()) {
+                    violations.add("entity '" + alias + "' has a blank filter value on column '" + column +
+                                   "', which no row can match");
+                }
+            });
             for (String property : new TreeSet<>(entity.properties().keySet())) {
                 reference(target, alias, entity, property).ifPresent(violations::add);
                 runtime(alias, entity.properties().get(property), property, formats).forEach(violations::add);

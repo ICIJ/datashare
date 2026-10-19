@@ -17,6 +17,8 @@ import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
 import org.icij.datashare.tabular.ForbiddenExtractionMapping;
+import org.icij.datashare.tabular.InvalidExtractionMapping;
+import org.icij.datashare.tabular.JsonRowSource;
 import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.tabular.StatementBuilder;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -355,10 +357,40 @@ public class StructuredEntityExtractionTaskTest {
         return document;
     }
 
+    @Test
+    public void test_a_mapping_naming_a_column_no_row_has_fails_and_writes_nothing() throws Exception {
+        source("companies.jsonl", JsonRowSource.NDJSON_CONTENT_TYPE,
+               "{\"id\":\"1\",\"name\":\"ACME\"}\n{\"id\":\"2\",\"name\":\"Globex\"}\n");
+        stored(mappingWithColumn("m1", "mispelled"));
+
+        assertThrows(InvalidExtractionMapping.class, () -> task("m1").call());
+
+        assertThat(statements.stored).isEmpty();
+    }
+
+    @Test
+    public void test_a_failing_run_leaves_the_previous_run_in_place() throws Exception {
+        source("companies.jsonl", JsonRowSource.NDJSON_CONTENT_TYPE, "{\"id\":\"1\",\"name\":\"ACME\"}\n");
+        stored(mappingWithColumn("m1", "name"));
+        task("m1").call();
+        int before = statements.stored.size();
+
+        stored(mappingWithColumn("m1", "mispelled"));
+        assertThrows(InvalidExtractionMapping.class, () -> task("m1").call());
+
+        assertThat(statements.stored).hasSize(before);
+    }
+
     private ExtractionMapping mapping(String id) {
         return new ExtractionMapping(id, "prj", null, "companies", "ftm", "docId", null, RowSourceOptions.defaults(),
                 Map.of("c", new ExtractionMapping.EntityMapping("Company", List.of("id"),
                         Map.of("name", new ExtractionMapping.PropertyMapping(List.of("name"), null, null, null, null)))));
+    }
+
+    private ExtractionMapping mappingWithColumn(String id, String column) {
+        return new ExtractionMapping(id, "prj", null, "companies", "ftm", "docId", null, RowSourceOptions.defaults(),
+                Map.of("c", new ExtractionMapping.EntityMapping("Company", List.of("id"),
+                        Map.of("name", new ExtractionMapping.PropertyMapping(List.of(column), null, null, null, null)))));
     }
 
     private void stored(ExtractionMapping mapping) {

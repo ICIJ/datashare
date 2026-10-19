@@ -1,8 +1,10 @@
 package org.icij.datashare.tabular;
 
 import org.icij.datashare.model.Statement;
+import org.icij.datashare.text.StructuredEntity;
 import org.junit.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,7 +58,13 @@ public class StatementBuilderTest {
     }
 
     private static Row row(Map<String, String> values) {
-        return new Row(7L, values);
+        return row(7L, values);
+    }
+
+    private static Row row(long number, Map<String, String> values) {
+        Map<String, List<String>> cells = new LinkedHashMap<>();
+        values.forEach((column, value) -> cells.put(column, List.of(value)));
+        return new Row(number, cells);
     }
 
     private static StatementBuilder person(List<String> keys,
@@ -220,7 +228,7 @@ public class StatementBuilderTest {
         StatementBuilder builder = person(List.of(), Map.of("name", column("full_name")));
 
         String seventh = builder.statements(row(Map.of("full_name", "Jane Doe"))).get(0).entityId();
-        String eighth = builder.statements(new Row(8L, Map.of("full_name", "Jane Doe"))).get(0).entityId();
+        String eighth = builder.statements(row(8L, Map.of("full_name", "Jane Doe"))).get(0).entityId();
 
         assertThat(seventh).isNotEqualTo(eighth);
         assertThat(person(List.of(), Map.of("name", column("full_name")))
@@ -804,9 +812,61 @@ public class StatementBuilderTest {
     public void test_a_column_the_source_does_not_have_fails_the_run() {
         StatementBuilder builder = person(List.of("passport"), Map.of("name", column("fullname")));
 
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
-                () -> builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe"))));
+        assertThat(builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe")))).isEmpty();
+
+        IllegalArgumentException thrown =
+                assertThrows(IllegalArgumentException.class, builder::requireEveryColumnSeen);
         assertThat(thrown.getMessage()).contains("fullname");
+    }
+
+    @Test
+    public void test_a_column_absent_from_the_first_row_but_present_later_imports() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"), Map.of("name", column("name"))),
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("legal_name"))))), "");
+
+        assertThat(builder.statements(row(1L, Map.of("id", "1", "name", "Jane")))).hasSize(1);
+        assertThat(builder.statements(row(2L, Map.of("id", "2", "legal_name", "ACME")))).hasSize(1);
+        builder.requireEveryColumnSeen();
+    }
+
+    @Test
+    public void test_a_column_in_no_row_at_all_fails_at_end_of_run() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"),
+                                Map.of("name", column("name"), "country", column("mispelled"))))), "");
+
+        builder.statements(row(1L, Map.of("id", "1", "name", "Jane")));
+
+        InvalidExtractionMapping refusal =
+                assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
+        assertThat(refusal.getMessage()).contains("mispelled");
+    }
+
+    @Test
+    public void test_every_column_in_no_row_is_named_at_once() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"),
+                                Map.of("name", column("one"), "country", column("two"))))), "");
+
+        builder.statements(row(1L, Map.of("id", "1")));
+
+        InvalidExtractionMapping refusal =
+                assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
+        assertThat(refusal.getMessage()).contains("one");
+        assertThat(refusal.getMessage()).contains("two");
+    }
+
+    @Test
+    public void test_a_column_missing_from_a_row_is_counted_once() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"),
+                                Map.of("name", column("name"), "country", column("country"))))), "");
+
+        builder.statements(row(1L, Map.of("id", "1", "name", "Jane")));
+        builder.statements(row(2L, Map.of("id", "2", "name", "John")));
+
+        assertThat(builder.skipped().get(CELL_MISSING)).isEqualTo(1L);
     }
 
     @Test
@@ -816,7 +876,7 @@ public class StatementBuilderTest {
 
         builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
                 "mail", "jane@example.org")));
-        List<Statement> second = builder.statements(new Row(8L, Map.of("passport", "AB124",
+        List<Statement> second = builder.statements(row(8L, Map.of("passport", "AB124",
                 "full_name", "John Roe")));
 
         assertThat(second).hasSize(1);
@@ -830,8 +890,8 @@ public class StatementBuilderTest {
 
         builder.statements(row(Map.of("passport", "AB123", "full_name", "Jane Doe",
                 "mail", "jane@example.org")));
-        builder.statements(new Row(8L, Map.of("passport", "AB124", "full_name", "John Roe")));
-        builder.statements(new Row(9L, Map.of("passport", "AB125", "full_name", "Ann Poe")));
+        builder.statements(row(8L, Map.of("passport", "AB124", "full_name", "John Roe")));
+        builder.statements(row(9L, Map.of("passport", "AB125", "full_name", "Ann Poe")));
 
         assertThat(builder.skipped().get(CELL_MISSING)).isEqualTo(1L);
     }
@@ -852,5 +912,312 @@ public class StatementBuilderTest {
                         Map.of("name", column("full_name"), "birthDate", formatted("born", "bbbb"))));
 
         assertThat(thrown.violations.toString()).contains("'bbbb'");
+    }
+
+    private static Row multi(Map<String, List<String>> values) {
+        return new Row(7L, values);
+    }
+
+    @Test
+    public void test_a_multi_valued_column_writes_one_statement_per_value() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "names", List.of("ACME", "Acme SA"))));
+
+        assertThat(statements).hasSize(2);
+        assertThat(statements.stream().map(Statement::value).toList()).isEqualTo(List.of("ACME", "Acme SA"));
+        assertThat(statements.stream().map(Statement::entityId).distinct().toList()).hasSize(1);
+    }
+
+    @Test
+    public void test_two_values_cleaning_to_the_same_string_write_one_statement() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "names", List.of("ACME", "ACME "))));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).value()).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_a_blank_value_inside_a_column_writes_nothing() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "names", List.of("", "ACME"))));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).value()).isEqualTo("ACME");
+    }
+
+    @Test
+    public void test_join_runs_across_columns_then_across_each_column_values() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"),
+                                 Map.of("name", joined(List.of("first", "second"), " "))))), "");
+
+        List<Statement> statements = builder.statements(multi(Map.of(
+                "id", List.of("e1"), "first", List.of("a", "b"), "second", List.of("c", ""))));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).value()).isEqualTo("a b c");
+    }
+
+    @Test
+    public void test_a_multi_valued_key_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1", "e2"), "names", List.of("ACME"))));
+
+        assertThat(statements).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_date_format_applies_to_every_value_of_a_column() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", keyed("Person", null, List.of("id"),
+                                Map.of("name", column("id"), "birthDate", formatted("dates", "dd/MM/yyyy"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "dates", List.of("01/01/1970", "02/02/1980"))));
+
+        assertThat(statements.stream().filter(statement -> statement.property().equals("birthDate"))
+                           .map(Statement::value).toList())
+                .isEqualTo(List.of("1970-01-01", "1980-02-02"));
+    }
+
+    @Test
+    public void test_a_nul_in_one_value_drops_that_value_only() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", keyed("Company", null, List.of("id"), Map.of("name", column("names"))))), "");
+
+        List<Statement> statements = builder.statements(
+                multi(Map.of("id", List.of("e1"), "names", List.of("A\u0000B", "ACME"))));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).value()).isEqualTo("ACME");
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+    }
+
+    private static ExtractionMapping.EntityMapping identified(String type, String idColumn,
+                                                              Map<String, ExtractionMapping.PropertyMapping> properties) {
+        return new ExtractionMapping.EntityMapping(type, null, List.of(), idColumn, properties);
+    }
+
+    @Test
+    public void test_an_id_column_becomes_the_entity_id_verbatim() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        List<Statement> statements = builder.statements(row(Map.of("id", "a1b2c3", "name", "ACME")));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).entityId()).isEqualTo("a1b2c3");
+    }
+
+    @Test
+    public void test_an_edge_resolves_to_the_ids_its_columns_hold() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "ownership", identified("Ownership", "id",
+                                        Map.of("owner", column("owner"), "asset", column("asset"))))), "");
+
+        List<Statement> statements = builder.statements(
+                row(Map.of("id", "edge-1", "owner", "person-1", "asset", "company-1")));
+
+        assertThat(statements.stream().map(Statement::value).sorted().toList())
+                .isEqualTo(List.of("company-1", "person-1"));
+        assertThat(statements.stream().map(Statement::entityId).distinct().toList()).isEqualTo(List.of("edge-1"));
+    }
+
+    @Test
+    public void test_a_blank_id_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "", "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_multi_valued_id_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(multi(Map.of("id", List.of("a", "b"), "name", List.of("ACME"))))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_nul_bearing_id_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "a\u0000b", "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_an_id_longer_than_the_column_allows_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "x".repeat(Statement.MAX_ENTITY_ID_LENGTH + 1),
+                                                 "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_an_id_whose_document_id_is_exactly_the_maximum_bytes_is_kept() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+        String longest = "x".repeat(StructuredEntity.MAX_ID_BYTES - StructuredEntity.documentId("ftm", "").length());
+
+        assertThat(builder.statements(row(Map.of("id", longest, "name", "ACME"))).get(0).entityId())
+                .isEqualTo(longest);
+    }
+
+    @Test
+    public void test_an_id_one_byte_over_the_document_id_maximum_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+        String over = "x".repeat(StructuredEntity.MAX_ID_BYTES - StructuredEntity.documentId("ftm", "").length() + 1);
+
+        assertThat(builder.statements(row(Map.of("id", over, "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_an_id_short_in_characters_but_long_in_bytes_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+        String wide = "\u00e9".repeat(StructuredEntity.MAX_ID_BYTES / 2);
+
+        assertThat(wide.length()).isLessThan(Statement.MAX_ENTITY_ID_LENGTH);
+        assertThat(builder.statements(row(Map.of("id", wide, "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    private static ExtractionMapping.EntityMapping filtered(String type, String idColumn, Map<String, String> filters,
+                                                            Map<String, ExtractionMapping.PropertyMapping> properties) {
+        return new ExtractionMapping.EntityMapping(type, null, List.of(), idColumn, filters, properties);
+    }
+
+    @Test
+    public void test_an_alias_contributes_only_on_rows_its_filter_matches() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))),
+                "company", filtered("Company", "id", Map.of("schema", "Company"), Map.of("name", column("name"))))),
+                "");
+
+        List<Statement> statements = builder.statements(
+                row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
+
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0).entityType()).isEqualTo("Person");
+    }
+
+    @Test
+    public void test_a_filtered_out_alias_is_not_counted_as_skipped() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))),
+                "company", filtered("Company", "id", Map.of("schema", "Company"), Map.of("name", column("name"))))),
+                "");
+
+        builder.statements(row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
+
+        assertThat(builder.skipped().get(ENTITY_EMPTY)).isEqualTo(0L);
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_a_multi_valued_filter_column_matches_on_any_value() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
+
+        List<Statement> statements = builder.statements(multi(Map.of(
+                "id", List.of("e1"), "schema", List.of("LegalEntity", "Person"), "name", List.of("Jane"))));
+
+        assertThat(statements).hasSize(1);
+    }
+
+    @Test
+    public void test_a_filter_on_a_column_the_row_does_not_carry_matches_nothing() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "e1", "name", "Jane")))).isEmpty();
+    }
+
+    @Test
+    public void test_a_filter_matches_on_the_cleaned_value() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "e1", "schema", " Person ", "name", "Jane"))))
+                .hasSize(1);
+    }
+
+    @Test
+    public void test_a_misspelled_filter_column_fails_at_end_of_run() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("shcema", "Person"), Map.of("name", column("name"))))), "");
+
+        builder.statements(row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
+
+        InvalidExtractionMapping refusal =
+                assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
+        assertThat(refusal.getMessage()).contains("shcema");
+    }
+
+    @Test
+    public void test_a_filter_value_matching_no_row_fails_at_end_of_run() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Persn"), Map.of("name", column("name"))))), "");
+
+        builder.statements(row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
+
+        InvalidExtractionMapping refusal =
+                assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
+        assertThat(refusal.getMessage()).contains("person");
+    }
+
+    @Test
+    public void test_an_alias_that_matched_but_was_unidentified_is_not_reported_unmatched() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
+
+        builder.statements(row(Map.of("id", "", "schema", "Person", "name", "Jane")));
+
+        builder.requireEveryColumnSeen();
+    }
+
+    @Test
+    public void test_an_alias_without_filters_is_never_reported_unmatched() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        builder.statements(row(Map.of("id", "", "name", "ACME")));
+
+        builder.requireEveryColumnSeen();
+    }
+
+    @Test
+    public void test_a_nul_in_one_value_of_an_id_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(multi(Map.of("id", List.of("ACME\u0000", "ACME Corp"),
+                                                   "name", List.of("x"))))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+        assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
     }
 }

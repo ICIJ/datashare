@@ -162,7 +162,7 @@ public class JooqStatementRepositoryTest {
                 "ftm", "doc-1", null, RowSourceOptions.defaults(), Map.of("member",
                 new ExtractionMapping.EntityMapping("Person", List.of("passport"), Map.of("name",
                         new ExtractionMapping.PropertyMapping(List.of("full_name"), null, null, null, null)))));
-        Map<String, String> cells = Map.of("passport", "AB123", "full_name", "Jane Doe");
+        Map<String, List<String>> cells = Map.of("passport", List.of("AB123"), "full_name", List.of("Jane Doe"));
         List<Statement> first = new StatementBuilder(mapping, "").statements(new Row(1L, cells));
         List<Statement> second = new StatementBuilder(mapping, "").statements(new Row(1L, cells));
 
