@@ -86,7 +86,10 @@ public class McpResource {
             return toolOutput(id, MAPPER.writeValueAsString(tool.call(arguments, context)));
         } catch (McpToolException.InvalidArgument e) {
             return error(id, -32602, e.getMessage());
-        } catch (McpToolException.Forbidden | McpToolException.NotFound e) {
+        } catch (McpToolException e) {
+            // Expected outcomes of a tool call rather than server faults: a refusal, a missing subject, a backend
+            // that would not take the write. Worth a line, not a stack trace: the message already says what happened.
+            logger.warn("MCP tool {} failed: {}", tool.name(), e.getMessage());
             return toolError(id, e.getMessage());
         } catch (Exception e) {
             logger.error("MCP tool {} failed", tool.name(), e);
@@ -112,8 +115,11 @@ public class McpResource {
         return Map.of("name", tool.name(), "description", tool.description(), "inputSchema", tool.inputSchema());
     }
 
+    // Everything reaching here is an internal failure: the exceptions this package authors, the only ones whose
+    // wording is meant for a client, are caught above. An internal message tends to carry the statement that
+    // failed or the address of a backend, so the client is told the type and the server log keeps the detail.
     private static String describeFailure(Exception exception) {
-        return exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName();
+        return exception.getClass().getSimpleName();
     }
 
     private static String version() throws IOException {

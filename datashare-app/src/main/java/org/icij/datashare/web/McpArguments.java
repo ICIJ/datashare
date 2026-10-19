@@ -1,6 +1,8 @@
 package org.icij.datashare.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.ArrayList;
+import java.util.List;
 
 final class McpArguments {
     private McpArguments() {}
@@ -15,6 +17,29 @@ final class McpArguments {
 
     static String optionalText(JsonNode arguments, String name) {
         return arguments.path(name).asText(null);
+    }
+
+    /**
+     * A non-empty list of non-blank strings, capped at {@code max} items: the rail on the batch write tools.
+     */
+    static List<String> requireTexts(JsonNode arguments, String name, int max) {
+        JsonNode node = arguments.path(name);
+        if (node.isMissingNode() || node.isNull()) {
+            throw McpToolException.InvalidArgument.missing(name);
+        }
+        if (!node.isArray() || node.isEmpty() || node.size() > max) {
+            throw McpToolException.InvalidArgument.invalid(name);
+        }
+        List<String> values = new ArrayList<>();
+        node.forEach(item -> values.add(requireItemText(name, item)));
+        return values;
+    }
+
+    private static String requireItemText(String name, JsonNode item) {
+        if (!item.isTextual() || item.asText().isBlank()) {
+            throw McpToolException.InvalidArgument.invalid(name);
+        }
+        return item.asText();
     }
 
     record IntArgument(String name, int defaultValue, int min, int max) {

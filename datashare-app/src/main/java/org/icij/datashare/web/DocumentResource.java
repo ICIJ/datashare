@@ -15,11 +15,13 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
+import org.icij.datashare.web.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.Repository.Aggregate;
 import org.icij.datashare.Repository.AggregateList;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.session.DatashareUser;
@@ -298,6 +300,39 @@ public class DocumentResource {
                                        stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
     }
 
+    @Operation(description = "Retrieves the tags in use in a project, most used first.",
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "size", description = "maximum number of tags to return, defaults to 50",
+                            in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @Get("/:project/documents/tags?size=:size")
+    public List<Aggregate<String>> getProjectTagCounts(final String projectId, final String size,
+                                                       final Context context) {
+        requireGranted(context, projectId);
+        return repository.getTagCounts(project(projectId), tagCountSize(size));
+    }
+
+    // A String query parameter, not an Integer one: fluent-http converts a mistyped Integer parameter to a 500
+    // before this method ever runs, so only parsing it here lets a non-numeric size come back as the 400 it is.
+    // Same rule as the list_tags tool, which rejects a size outside 1..500 rather than massaging it: a client that
+    // asks for 0 results has a bug, and answering it with 50 hides that. Parsed as a long so that a value above
+    // Integer.MAX_VALUE is rejected for being out of range rather than for overflowing the parse.
+    private static int tagCountSize(String size) {
+        if (size == null || size.isEmpty()) {
+            return DEFAULT_TAG_COUNT_SIZE;
+        }
+        try {
+            long parsed = Long.parseLong(size);
+            if (parsed >= 1 && parsed <= MAX_TAG_COUNT_SIZE) {
+                return (int) parsed;
+            }
+        } catch (NumberFormatException e) {
+            // From the caller's side this is the same mistake as a size out of range, so it gets the same answer.
+        }
+        throw new BadRequestException("size must be a whole number between 1 and %d".formatted(MAX_TAG_COUNT_SIZE),
+                                      null);
+    }
+
     @Operation(description = "Preflight request for document tagging",
             parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)})
@@ -319,6 +354,7 @@ public class DocumentResource {
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags,
                                final Context context) throws IOException {
         requireGranted(context, projectId);
+        requireTagsWithinColumnWidth(tags);
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
         return tagSaved ? Payload.created() : Payload.ok();
@@ -346,6 +382,7 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         requireGranted(context, projectId);
+        requireTagsWithinColumnWidth(query.tagsAsArray((User) context.currentUser()));
         repository.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         return Payload.ok();
@@ -497,12 +534,30 @@ public class DocumentResource {
         throw new IllegalArgumentException("Target language not found");
     }
 
-    private static class BatchTagQuery {
+    // The width of document_tag.label in 002-tag-document.yml. Checked before the write so an over-long label is a
+    // 400, not a Postgres error whose message carries the whole INSERT statement. Document ids are deliberately not
+    // checked: they are generated hashes, and Hasher.SHA_512 produces 128 characters, wider than their own column.
+    static final int MAX_TAG_LENGTH = 64;
+    /** Shared with McpListTagsTool so the two entry points cannot drift apart. */
+    static final int DEFAULT_TAG_COUNT_SIZE = 50;
+    static final int MAX_TAG_COUNT_SIZE = 500;
+
+    private static void requireTagsWithinColumnWidth(Tag[] tags) {
+        // codePointCount, not length(): Postgres counts characters where Java counts UTF-16 units, so a label
+        // of 40 emoji is 80 units long and would be rejected while the column takes it.
+        if (stream(tags).anyMatch(tag -> tag.label.codePointCount(0, tag.label.length()) > MAX_TAG_LENGTH)) {
+            throw new BadRequestException("tag longer than %d characters".formatted(MAX_TAG_LENGTH), null);
+        }
+    }
+
+    // Package-private: the MCP tagging tools build one of these to reuse this resource's grant check and the
+    // user attribution in tagsAsArray.
+    static class BatchTagQuery {
         final List<String> tags;
         final List<String> docIds;
 
         @JsonCreator
-        private BatchTagQuery(@JsonProperty("tags") List<String> tags, @JsonProperty("docIds") List<String> docIds) {
+        BatchTagQuery(@JsonProperty("tags") List<String> tags, @JsonProperty("docIds") List<String> docIds) {
             this.tags = tags;
             this.docIds = docIds;
         }

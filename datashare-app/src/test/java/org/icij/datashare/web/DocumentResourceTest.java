@@ -47,8 +47,11 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -336,6 +339,78 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_tags_for_document() {
         when(jooqRepository.getTags(eq(project("local-datashare")), eq("docId"))).thenReturn(asList(tag("tag1"), tag("tag2")));
         get("/api/local-datashare/documents/tags/docId").should().respond(200).contain("tag1").contain("tag2");
+    }
+
+    @Test
+    public void test_get_tag_counts_with_project() {
+        when(jooqRepository.getTagCounts(eq(project("local-datashare")), eq(5)))
+                .thenReturn(asList(new Repository.Aggregate<>("Invoice", 3), new Repository.Aggregate<>("contract", 1)));
+
+        get("/api/local-datashare/documents/tags?size=5").should().respond(200).contain("Invoice").contain("contract");
+    }
+
+    @Test
+    public void test_get_tag_counts_defaults_size_when_absent() {
+        when(jooqRepository.getTagCounts(eq(project("local-datashare")), eq(50)))
+                .thenReturn(asList(new Repository.Aggregate<>("Invoice", 3)));
+
+        get("/api/local-datashare/documents/tags").should().respond(200).contain("Invoice");
+    }
+
+
+    // Same rule as the list_tags tool: out of range is refused, not massaged into something else.
+    @Test
+    public void test_get_tag_counts_refuses_a_size_outside_the_range() {
+        get("/api/local-datashare/documents/tags?size=0").should().respond(400);
+        get("/api/local-datashare/documents/tags?size=-1").should().respond(400);
+        get("/api/local-datashare/documents/tags?size=501").should().respond(400);
+        get("/api/local-datashare/documents/tags?size=2147483647").should().respond(400);
+        get("/api/local-datashare/documents/tags?size=2147483648").should().respond(400);
+
+        verify(jooqRepository, never()).getTagCounts(any(), anyInt());
+    }
+
+    @Test
+    public void test_get_tag_counts_forbidden_for_non_member_project() {
+        get("/api/foo_index/documents/tags?size=5").should().respond(403);
+    }
+
+
+    @Test
+    public void test_get_tag_counts_with_a_non_numeric_size_is_a_bad_request() {
+        get("/api/local-datashare/documents/tags?size=abc").should().respond(400);
+        verify(jooqRepository, never()).getTagCounts(any(), anyInt());
+    }
+
+    @Test
+    public void test_group_tag_with_an_over_long_tag_is_a_bad_request() {
+        String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + "x".repeat(65) + "\"]}";
+
+        post("/api/local-datashare/documents/batchUpdate/tag", body).should().respond(400);
+
+        verify(jooqRepository, never()).tag(any(), anyList(), any());
+    }
+
+
+
+    @Test
+    public void test_tag_single_document_with_an_over_long_tag_is_a_bad_request() {
+        put("/api/local-datashare/documents/tags/docId", "[\"" + "x".repeat(65) + "\"]").should().respond(400);
+    }
+
+    @Test
+    public void test_group_tag_counts_characters_not_utf16_units() {
+        String fortyEmoji = "\uD83D\uDCC4".repeat(40);
+        String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + fortyEmoji + "\"]}";
+
+        post("/api/local-datashare/documents/batchUpdate/tag", body).should().respond(200);
+    }
+
+    @Test
+    public void test_group_untag_accepts_an_over_long_tag() {
+        String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + "x".repeat(65) + "\"]}";
+
+        post("/api/local-datashare/documents/batchUpdate/untag", body).should().respond(200);
     }
 
     @Test

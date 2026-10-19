@@ -9,6 +9,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.web.errors.ForbiddenException;
 import java.io.IOException;
+import java.util.List;
 
 public class McpGetDocumentTool implements McpTool {
     private static final McpArguments.IntArgument OFFSET =
@@ -29,7 +30,7 @@ public class McpGetDocumentTool implements McpTool {
 
     @Override
     public String description() {
-        return "Reads a document's metadata and a slice of its extracted text.";
+        return "Reads a document's metadata, its tags and a slice of its extracted text.";
     }
 
     @Override
@@ -37,7 +38,7 @@ public class McpGetDocumentTool implements McpTool {
         DocumentAddress address = DocumentAddress.from(arguments);
         Document document = readDocument(address, context);
         ExtractedText slice = readText(address, TextWindow.within(document, arguments), context);
-        return DocumentSlice.of(document, slice);
+        return DocumentSlice.of(document, slice, readTags(address, context));
     }
 
     private Document readDocument(DocumentAddress address, Context context) {
@@ -59,6 +60,12 @@ public class McpGetDocumentTool implements McpTool {
         return (ExtractedText) text.rawContent();
     }
 
+    // Tags come from the database, not from the index: it is the database that keeps their original casing.
+    private List<String> readTags(DocumentAddress address, Context context) {
+        return documentResource.getDocumentTags(address.project, address.id, context).stream().map(tag -> tag.label)
+                               .toList();
+    }
+
     record DocumentAddress(String project, String id, String routing) {
         static DocumentAddress from(JsonNode arguments) {
             return new DocumentAddress(McpArguments.requireText(arguments, "project"),
@@ -76,10 +83,10 @@ public class McpGetDocumentTool implements McpTool {
         }
     }
 
-    record DocumentSlice(String id, String path, String contentType, int offset, int maxOffset, String text) {
-        static DocumentSlice of(Document document, ExtractedText slice) {
+    record DocumentSlice(String id, String path, String contentType, int offset, int maxOffset, List<String> tags, String text) {
+        static DocumentSlice of(Document document, ExtractedText slice, List<String> tags) {
             return new DocumentSlice(document.getId(), String.valueOf(document.getPath()), document.getContentType(),
-                                     slice.offset, slice.maxOffset, slice.content);
+                                     slice.offset, slice.maxOffset, tags, slice.content);
         }
     }
 }

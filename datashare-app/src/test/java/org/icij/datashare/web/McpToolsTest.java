@@ -22,9 +22,11 @@ import org.icij.datashare.utils.DocumentSourceAccess;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskFinder;
+import org.icij.datashare.text.Tag;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.util.List;
@@ -34,8 +36,12 @@ import java.util.Set;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -67,7 +73,10 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                                  new McpGetDocumentTool(documentResource),
                                                  new McpListTasksTool(taskResource),
                                                  new McpStopTaskTool(taskResource, taskManager,
-                                                                     TaskPolicyChecker.ALLOW_ALL)));
+                                                                     TaskPolicyChecker.ALLOW_ALL),
+                                                 new McpTagDocumentsTool(documentResource),
+                                                 new McpUntagDocumentsTool(documentResource),
+                                                 new McpListTagsTool(documentResource)));
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
     }
@@ -176,6 +185,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.toString()).excludes("elasticsearch:9200");
     }
 
     @Test
@@ -186,7 +196,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
-        org.mockito.Mockito.verifyNoInteractions(indexer);
+        verifyNoInteractions(indexer);
     }
 
     @Test
@@ -198,7 +208,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         post("/api/mcp?q=x", body).withPreemptiveAuthentication("local", "").response();
 
-        org.mockito.Mockito.verify(indexer).executeRaw(eq("POST"), eq("foo/_search"), any());
+        verify(indexer).executeRaw(eq("POST"), eq("foo/_search"), any());
     }
 
     @Test
@@ -211,7 +221,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                            .at("/error/code").asInt()).isEqualTo(-32602);
         assertThat(call("local", "search_documents", "{\"project\":\"foo/_doc/1\",\"query\":\"x\"}")
                            .at("/error/code").asInt()).isEqualTo(-32602);
-        org.mockito.Mockito.verifyNoInteractions(indexer);
+        verifyNoInteractions(indexer);
     }
 
     @Test
@@ -255,7 +265,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode response = call("local", "get_document", "{\"project\":\"bar\",\"id\":\"doc1\"}");
 
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
-        org.mockito.Mockito.verifyNoInteractions(indexer);
+        verifyNoInteractions(indexer);
     }
 
     @Test
@@ -290,7 +300,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}");
 
-        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).getDocument(any());
+        verify(repository, never()).getDocument(any());
     }
 
     @Test
@@ -345,5 +355,398 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode tasks = payload(call("local", "list_tasks", "{}"));
 
         assertThat(tasks.at("/0/id").asText()).isEqualTo(task.id);
+    }
+
+    @Test
+    public void test_tag_documents_writes_to_the_repository_and_the_index() throws Exception {
+        serveAs("local", "foo");
+        // Mockito 5 captures a varargs parameter one element at a time, so the captor takes the element type.
+        ArgumentCaptor<Tag> written = ArgumentCaptor.forClass(Tag.class);
+
+        JsonNode result = payload(call("local", "tag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"doc1\",\"doc2\"],\"tags\":[\"invoice\"]}"));
+
+        verify(repository).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), written.capture());
+        verify(indexer).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), any(Tag[].class));
+        assertThat(written.getValue().label).isEqualTo("invoice");
+        assertThat(result.get("tagged").asInt()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_tag_documents_attributes_the_tags_to_the_caller() throws Exception {
+        serveAs("local", "foo");
+        ArgumentCaptor<Tag> written = ArgumentCaptor.forClass(Tag.class);
+
+        call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        verify(repository).tag(any(Project.class), eq(List.of("doc1")), written.capture());
+        assertThat(written.getValue().user.id).isEqualTo("local");
+    }
+
+    // repository.tag writes the row whether or not the id exists, exactly like the REST route. The count is a count
+    // of requested ids, not a proof the documents are there.
+    @Test
+    public void test_tag_documents_counts_unknown_ids_too() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"nope\"],\"tags\":[\"invoice\"]}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_untag_documents_removes_the_tags() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "untag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}"));
+
+        verify(repository).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        verify(indexer).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        assertThat(result.get("untagged").asInt()).isEqualTo(1);
+    }
+
+    // The message of a repository failure carries the statement that failed. Only the exceptions this package
+    // authors are meant to reach the client.
+    @Test
+    public void test_a_repository_failure_does_not_hand_the_client_the_sql() throws Exception {
+        serveAs("local", "foo");
+        when(repository.tag(any(Project.class), anyList(), any(Tag[].class))).thenThrow(new RuntimeException(
+                "SQL [insert into \"document_tag\" (\"doc_id\", \"label\", \"prj_id\") values (?, ?, ?) "
+                + "on conflict do nothing]; ERROR: value too long for type character varying(64)"));
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.toString()).excludes("document_tag").excludes("insert into").excludes("conflict");
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("RuntimeException");
+    }
+
+    // The database write runs first and only the indexer declares IOException, so this failure means the tags are
+    // in the database and absent from the index. Saying so stops an agent retrying a write that already landed.
+    @Test
+    public void test_tag_documents_says_so_when_only_the_index_write_failed() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.tag(any(Project.class), anyList(), any(Tag[].class)))
+                .thenThrow(new java.io.IOException("connection refused to elasticsearch:9200"));
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).contains("saved").contains("index");
+        assertThat(response.toString()).excludes("elasticsearch:9200");
+        verify(repository).tag(any(Project.class), anyList(), any(Tag[].class));
+    }
+
+    @Test
+    public void test_untag_documents_says_so_when_only_the_index_write_failed() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.untag(any(Project.class), anyList(), any(Tag[].class)))
+                .thenThrow(new java.io.IOException("connection refused to elasticsearch:9200"));
+
+        JsonNode response = call("local", "untag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).contains("removed").contains("index");
+        assertThat(response.toString()).excludes("elasticsearch:9200");
+    }
+
+    // The Elasticsearch client throws ElasticsearchException, a RuntimeException, for index_not_found and for a
+    // failing script. Those are the likely index failures, so they must reach the same explanation.
+    @Test
+    public void test_tag_documents_says_so_when_the_index_rejects_the_write() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.tag(any(Project.class), anyList(), any(Tag[].class))).thenThrow(indexMissing());
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).contains("saved").contains("index");
+    }
+
+    @Test
+    public void test_untag_documents_says_so_when_the_index_rejects_the_write() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.untag(any(Project.class), anyList(), any(Tag[].class))).thenThrow(indexMissing());
+
+        JsonNode response = call("local", "untag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).contains("removed").contains("index");
+    }
+
+    private static co.elastic.clients.elasticsearch._types.ElasticsearchException indexMissing() {
+        return new co.elastic.clients.elasticsearch._types.ElasticsearchException("es/update_by_query",
+                co.elastic.clients.elasticsearch._types.ErrorResponse.of(r -> r.status(404).error(
+                        co.elastic.clients.elasticsearch._types.ErrorCause.of(
+                                c -> c.type("index_not_found_exception").reason("no such index [foo]")))));
+    }
+
+    @Test
+    public void test_tag_documents_on_ungranted_project_is_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"bar\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
+        verifyNoInteractions(repository, indexer);
+    }
+
+    @Test
+    public void test_untag_documents_on_ungranted_project_is_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "untag_documents",
+                                 "{\"project\":\"bar\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
+        verifyNoInteractions(repository, indexer);
+    }
+
+    private String manyTags(int count) {
+        List<String> tags = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            tags.add("\"tag" + i + "\"");
+        }
+        return "[" + String.join(",", tags) + "]";
+    }
+
+    /** A JSON array of distinct document ids, so a test about the cap reads as a test about the cap. */
+    private String manyDocIds(int count) {
+        List<String> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            ids.add("\"doc" + i + "\"");
+        }
+        return "[" + String.join(",", ids) + "]";
+    }
+
+
+
+    // The columns these land in are document_tag.label varchar(64) and document_tag.doc_id varchar(96)
+    // (002-tag-document.yml). Without this rail Postgres rejects the insert and its message, which carries the
+    // whole INSERT statement, is what the MCP client gets back.
+    @Test
+    public void test_tag_documents_rejects_an_over_long_tag() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\""
+                                                           + "x".repeat(65) + "\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.toString()).excludes("document_tag");
+        verifyNoInteractions(repository, indexer);
+    }
+
+    // Hasher.SHA_512 produces 128 character ids, wider than document_tag.doc_id, and SQLite stores them anyway.
+    // Rejecting on the column width here would break every tag call on such an instance.
+    @Test
+    public void test_tag_documents_accepts_a_sha512_length_doc_id() throws Exception {
+        serveAs("local", "foo");
+        String sha512Id = "a".repeat(128);
+
+        JsonNode result = payload(call("local", "tag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"" + sha512Id + "\"],\"tags\":[\"invoice\"]}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(1);
+        verify(repository).tag(any(Project.class), eq(List.of(sha512Id)), any(Tag[].class));
+    }
+
+    // A delete cannot overflow a column, and a label that is already stored and too long must stay removable.
+    @Test
+    public void test_untag_documents_accepts_an_over_long_tag() throws Exception {
+        serveAs("local", "foo");
+        String stored = "x".repeat(65);
+
+        JsonNode result = payload(call("local", "untag_documents",
+                                       "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"" + stored + "\"]}"));
+
+        assertThat(result.get("untagged").asInt()).isEqualTo(1);
+        verify(repository).untag(any(Project.class), anyList(), any(Tag[].class));
+    }
+
+    @Test
+    public void test_tag_documents_accepts_the_largest_allowed_call() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":"
+                                                                 + manyDocIds(10000) + ",\"tags\":[\"invoice\"]}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(10000);
+    }
+
+    @Test
+    public void test_tag_documents_above_10000_ids_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":" + manyDocIds(10001)
+                                                           + ",\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        verifyNoInteractions(repository, indexer);
+    }
+
+    // The product is what bounds the work: one row per pair. 10000 x 100 is a million rows and took 29 seconds
+    // against PostgreSQL, long enough for a client to give up while the transaction is still open.
+    @Test
+    public void test_tag_documents_beyond_the_write_budget_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":" + manyDocIds(10000)
+                                                           + ",\"tags\":" + manyTags(100) + "}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("1000000");
+        verifyNoInteractions(repository, indexer);
+    }
+
+    @Test
+    public void test_tag_documents_at_the_write_budget_is_accepted() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":"
+                                                                 + manyDocIds(10000) + ",\"tags\":"
+                                                                 + manyTags(10) + "}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(10000);
+    }
+
+    // Untagging deletes with two IN lists, so the product does not multiply the work and is not capped.
+    @Test
+    public void test_untag_documents_is_not_capped_by_the_write_budget() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "untag_documents", "{\"project\":\"foo\",\"doc_ids\":"
+                                                                   + manyDocIds(10000) + ",\"tags\":"
+                                                                   + manyTags(100) + "}"));
+
+        assertThat(result.get("untagged").asInt()).isEqualTo(10000);
+    }
+
+    @Test
+    public void test_tag_documents_rejects_bad_lists() throws Exception {
+        serveAs("local", "foo");
+
+        assertThat(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[],\"tags\":[\"a\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[1],\"tags\":[\"a\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "tag_documents", "{\"doc_ids\":[\"doc1\"],\"tags\":[\"a\"]}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        verifyNoInteractions(repository, indexer);
+    }
+
+    @Test
+    public void test_get_document_lists_its_tags() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get("foo", "doc1", "doc1")).thenReturn(doc("hello world"));
+        when(indexer.getExtractedText("foo", "doc1", null, 0, 11, null))
+                .thenReturn(new ExtractedText("hello world", 0, 11, 11));
+        when(repository.getTags(new Project("foo"), "doc1"))
+                .thenReturn(List.of(new Tag("invoice"), new Tag("Reviewed")));
+
+        JsonNode result = payload(call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}"));
+
+        assertThat(result.get("tags").size()).isEqualTo(2);
+        assertThat(result.at("/tags/0").asText()).isEqualTo("invoice");
+        assertThat(result.at("/tags/1").asText()).isEqualTo("Reviewed");
+    }
+
+    @Test
+    public void test_get_document_without_tags_returns_an_empty_list() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get("foo", "doc1", "doc1")).thenReturn(doc("hello world"));
+        when(indexer.getExtractedText("foo", "doc1", null, 0, 11, null))
+                .thenReturn(new ExtractedText("hello world", 0, 11, 11));
+
+        JsonNode result = payload(call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}"));
+
+        assertThat(result.get("tags").isArray()).isTrue();
+        assertThat(result.get("tags").size()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_list_tags_returns_the_buckets_in_order() throws Exception {
+        serveAs("local", "foo");
+        when(repository.getTagCounts(eq(Project.project("foo")), eq(50))).thenReturn(
+                List.of(new Repository.Aggregate<>("invoice", 12), new Repository.Aggregate<>("contract", 3)));
+
+        JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
+
+        assertThat(tags.size()).isEqualTo(2);
+        assertThat(tags.at("/0/tag").asText()).isEqualTo("invoice");
+        assertThat(tags.at("/0/count").asLong()).isEqualTo(12);
+        assertThat(tags.at("/1/tag").asText()).isEqualTo("contract");
+    }
+
+    @Test
+    public void test_list_tags_passes_the_size_through() throws Exception {
+        serveAs("local", "foo");
+        when(repository.getTagCounts(eq(Project.project("foo")), eq(5))).thenReturn(List.of());
+
+        call("local", "list_tags", "{\"project\":\"foo\",\"size\":5}");
+
+        verify(repository).getTagCounts(eq(Project.project("foo")), eq(5));
+    }
+
+    @Test
+    public void test_list_tags_returns_the_stored_casing_verbatim() throws Exception {
+        serveAs("local", "foo");
+        when(repository.getTagCounts(eq(Project.project("foo")), eq(50))).thenReturn(
+                List.of(new Repository.Aggregate<>("Invoice", 1)));
+
+        JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
+
+        assertThat(tags.at("/0/tag").asText()).isEqualTo("Invoice");
+    }
+
+    @Test
+    public void test_list_tags_on_a_project_without_tags_is_empty() throws Exception {
+        serveAs("local", "foo");
+        when(repository.getTagCounts(eq(Project.project("foo")), eq(50))).thenReturn(List.of());
+
+        JsonNode tags = payload(call("local", "list_tags", "{\"project\":\"foo\"}"));
+
+        assertThat(tags.isArray()).isTrue();
+        assertThat(tags.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_list_tags_on_ungranted_project_is_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "list_tags", "{\"project\":\"bar\"}");
+
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    public void test_list_tags_size_above_500_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        assertThat(call("local", "list_tags", "{\"project\":\"foo\",\"size\":501}").at("/error/code").asInt())
+                .isEqualTo(-32602);
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    public void test_list_tags_rejects_project_with_a_comma_as_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "list_tags", "{\"project\":\"foo,bar\"}");
+
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: foo,bar");
     }
 }

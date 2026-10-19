@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "project id"
+    },
+    "doc_ids": {
+      "type": "array",
+      "description": "document ids to tag",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "maxItems": 10000
+    },
+    "tags": {
+      "type": "array",
+      "description": "tag labels to add",
+      "items": {
+        "type": "string",
+        "maxLength": 64
+      },
+      "minItems": 1,
+      "maxItems": 100
+    }
+  },
+  "required": [
+    "project",
+    "doc_ids",
+    "tags"
+  ]
+}
