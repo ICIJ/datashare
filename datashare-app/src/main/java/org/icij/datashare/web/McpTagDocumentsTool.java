@@ -11,8 +11,15 @@ import java.util.List;
 import java.util.Map;
 
 public class McpTagDocumentsTool implements McpTool {
-    /** The safety rail on a write with no undo beyond the agent calling untag_documents itself. */
-    static final int MAX_ITEMS = 100;
+    // The rails on a write with no undo beyond the agent calling untag_documents itself. Elasticsearch rejects a
+    // terms query above index.max_terms_count, 65536 by default, and groupTagUntag selects the documents with one,
+    // so the id cap stays well under it.
+    static final int MAX_DOC_IDS = 10_000;
+    static final int MAX_TAGS = 100;
+    // What bounds the work is the product, since the insert writes one row per pair. Measured against PostgreSQL:
+    // 100000 rows take under 4 seconds, 1000000 take 29, long enough for a client to give up while the
+    // transaction is still open.
+    static final int MAX_TAG_WRITES = 100_000;
     private final DocumentResource documentResource;
 
     @Inject
@@ -27,15 +34,15 @@ public class McpTagDocumentsTool implements McpTool {
 
     @Override
     public String description() {
-        return "Adds up to 100 tags to up to 100 documents at once, so one call writes up to 10000 document-tag " +
-               "pairs, attributed to the calling user. Tag matching is case-sensitive against the stored label, " +
+        return "Adds up to 100 tags to up to 10000 documents at once, for at most 100000 document-tag pairs per " +
+               "call, attributed to the calling user. Tag matching is case-sensitive against the stored label, " +
                "so \"invoice\" and \"Invoice\" are different tags. The returned count is the number of requested " +
                "document ids, duplicates and unknown ids included, not of documents actually changed.";
     }
 
     @Override
     public Object call(JsonNode arguments, Context context) throws IOException {
-        BatchTag batch = BatchTag.from(arguments);
+        BatchTag batch = BatchTag.from(arguments).requireWithinWriteBudget();
         try {
             documentResource.groupTagDocument(batch.project, batch.query(), context);
         } catch (ForbiddenException e) {
@@ -57,8 +64,19 @@ public class McpTagDocumentsTool implements McpTool {
     record BatchTag(String project, List<String> docIds, List<String> tags) {
         static BatchTag from(JsonNode arguments) {
             return new BatchTag(McpArguments.requireText(arguments, "project"),
-                                McpArguments.requireTexts(arguments, "doc_ids", MAX_ITEMS),
-                                McpArguments.requireTexts(arguments, "tags", MAX_ITEMS));
+                                McpArguments.requireTexts(arguments, "doc_ids", MAX_DOC_IDS),
+                                McpArguments.requireTexts(arguments, "tags", MAX_TAGS));
+        }
+
+        /** Only tagging writes a row per pair; untagging deletes with two IN lists and does not multiply. */
+        BatchTag requireWithinWriteBudget() {
+            long writes = (long) docIds.size() * tags.size();
+            if (writes > MAX_TAG_WRITES) {
+                throw McpToolException.InvalidArgument.because(
+                        "tagging %d documents with %d tags writes %d rows, more than the %d allowed in one call".formatted(
+                                docIds.size(), tags.size(), writes, MAX_TAG_WRITES));
+            }
+            return this;
         }
 
         DocumentResource.BatchTagQuery query() {

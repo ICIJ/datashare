@@ -12,7 +12,7 @@
         "type": "string"
       },
       "minItems": 1,
-      "maxItems": 100
+      "maxItems": 10000
     },
     "tags": {
       "type": "array",

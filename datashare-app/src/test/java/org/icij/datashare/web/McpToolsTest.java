@@ -511,6 +511,14 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         verifyNoInteractions(repository, indexer);
     }
 
+    private String manyTags(int count) {
+        List<String> tags = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            tags.add("\"tag" + i + "\"");
+        }
+        return "[" + String.join(",", tags) + "]";
+    }
+
     /** A JSON array of distinct document ids, so a test about the cap reads as a test about the cap. */
     private String manyDocIds(int count) {
         List<String> ids = new java.util.ArrayList<>();
@@ -520,26 +528,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         return "[" + String.join(",", ids) + "]";
     }
 
-    @Test
-    public void test_tag_documents_accepts_100_ids() throws Exception {
-        serveAs("local", "foo");
 
-        JsonNode result = payload(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":"
-                                                                 + manyDocIds(100) + ",\"tags\":[\"invoice\"]}"));
-
-        assertThat(result.get("tagged").asInt()).isEqualTo(100);
-    }
-
-    @Test
-    public void test_tag_documents_above_100_ids_is_invalid() throws Exception {
-        serveAs("local", "foo");
-
-        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":" + manyDocIds(101)
-                                                           + ",\"tags\":[\"invoice\"]}");
-
-        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
-        verifyNoInteractions(repository, indexer);
-    }
 
     // The columns these land in are document_tag.label varchar(64) and document_tag.doc_id varchar(96)
     // (002-tag-document.yml). Without this rail Postgres rejects the insert and its message, which carries the
@@ -581,6 +570,64 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(result.get("untagged").asInt()).isEqualTo(1);
         verify(repository).untag(any(Project.class), anyList(), any(Tag[].class));
+    }
+
+    @Test
+    public void test_tag_documents_accepts_the_largest_allowed_call() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":"
+                                                                 + manyDocIds(10000) + ",\"tags\":[\"invoice\"]}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(10000);
+    }
+
+    @Test
+    public void test_tag_documents_above_10000_ids_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":" + manyDocIds(10001)
+                                                           + ",\"tags\":[\"invoice\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        verifyNoInteractions(repository, indexer);
+    }
+
+    // The product is what bounds the work: one row per pair. 10000 x 100 is a million rows and took 29 seconds
+    // against PostgreSQL, long enough for a client to give up while the transaction is still open.
+    @Test
+    public void test_tag_documents_beyond_the_write_budget_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":" + manyDocIds(10000)
+                                                           + ",\"tags\":" + manyTags(100) + "}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("1000000");
+        verifyNoInteractions(repository, indexer);
+    }
+
+    @Test
+    public void test_tag_documents_at_the_write_budget_is_accepted() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "tag_documents", "{\"project\":\"foo\",\"doc_ids\":"
+                                                                 + manyDocIds(10000) + ",\"tags\":"
+                                                                 + manyTags(10) + "}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(10000);
+    }
+
+    // Untagging deletes with two IN lists, so the product does not multiply the work and is not capped.
+    @Test
+    public void test_untag_documents_is_not_capped_by_the_write_budget() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode result = payload(call("local", "untag_documents", "{\"project\":\"foo\",\"doc_ids\":"
+                                                                   + manyDocIds(10000) + ",\"tags\":"
+                                                                   + manyTags(100) + "}"));
+
+        assertThat(result.get("untagged").asInt()).isEqualTo(10000);
     }
 
     @Test
