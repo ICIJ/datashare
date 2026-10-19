@@ -508,8 +508,11 @@ public class ElasticsearchIndexer implements Indexer {
             return;
         }
         BulkIndexByScrollFailure first = failures.get(0);
-        throw new IOException("update_by_query failed on %d document(s), first was %s: %s".formatted(
-                failures.size(), first.id(), first.cause() == null ? "unknown cause" : first.cause().type()));
+        throw new IOException(
+                "update_by_query failed on %d document(s), first was %s: %s".formatted(failures.size(), first.id(),
+                                                                                       first.cause() == null ?
+                                                                                       "unknown cause" :
+                                                                                       first.cause().type()));
     }
 
     private Script createTagScript(Tag[] tags) {
