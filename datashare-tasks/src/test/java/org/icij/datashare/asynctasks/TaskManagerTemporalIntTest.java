@@ -363,7 +363,7 @@ public class TaskManagerTemporalIntTest {
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.discoverWorkflows("org.icij.datashare.asynctasks.routingfixtures",
             activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
-                activityClass, factory, temporal.interlocutor(), taskRepository, 1d).getThrows(),
+                activityClass, factory, temporal.interlocutor(), taskRepository, 1d, type -> new GreetingTask()).getThrows(),
             strategy, group);
         // this process serves everything it discovered, exactly like CommonMode does
         return new TemporalWorkers(temporal.interlocutor()).start(registry, registry.registeredQueues(),
