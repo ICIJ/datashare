@@ -15,7 +15,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
-import net.codestory.http.errors.BadRequestException;
+import org.icij.datashare.web.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 import net.codestory.http.payload.Payload;
@@ -314,16 +314,23 @@ public class DocumentResource {
 
     // A String query parameter, not an Integer one: fluent-http converts a mistyped Integer parameter to a 500
     // before this method ever runs, so only parsing it here lets a non-numeric size come back as the 400 it is.
+    // Same rule as the list_tags tool, which rejects a size outside 1..500 rather than massaging it: a client that
+    // asks for 0 results has a bug, and answering it with 50 hides that. Parsed as a long so that a value above
+    // Integer.MAX_VALUE is rejected for being out of range rather than for overflowing the parse.
     private static int tagCountSize(String size) {
         if (size == null || size.isEmpty()) {
             return DEFAULT_TAG_COUNT_SIZE;
         }
         try {
-            int parsed = Integer.parseInt(size);
-            return parsed <= 0 ? DEFAULT_TAG_COUNT_SIZE : Math.min(parsed, MAX_TAG_COUNT_SIZE);
+            long parsed = Long.parseLong(size);
+            if (parsed >= 1 && parsed <= MAX_TAG_COUNT_SIZE) {
+                return (int) parsed;
+            }
         } catch (NumberFormatException e) {
-            throw new BadRequestException();
+            // From the caller's side this is the same mistake as a size out of range, so it gets the same answer.
         }
+        throw new BadRequestException(
+                "size must be a whole number between 1 and %d".formatted(MAX_TAG_COUNT_SIZE), null);
     }
 
     @Operation(description = "Preflight request for document tagging",
@@ -539,9 +546,7 @@ public class DocumentResource {
         // codePointCount, not length(): Postgres counts characters where Java counts UTF-16 units, so a label
         // of 40 emoji is 80 units long and would be rejected while the column takes it.
         if (stream(tags).anyMatch(tag -> tag.label.codePointCount(0, tag.label.length()) > MAX_TAG_LENGTH)) {
-            // Fully qualified on purpose: this file also imports net.codestory.http.errors.BadRequestException,
-            // which carries no message, and the message is what the MCP tools turn into an invalid argument.
-            throw new org.icij.datashare.web.errors.BadRequestException(
+            throw new BadRequestException(
                     "tag longer than %d characters".formatted(MAX_TAG_LENGTH), null);
         }
     }

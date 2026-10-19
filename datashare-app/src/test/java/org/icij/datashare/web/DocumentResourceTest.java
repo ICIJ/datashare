@@ -357,12 +357,17 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         get("/api/local-datashare/documents/tags").should().respond(200).contain("Invoice");
     }
 
-    @Test
-    public void test_get_tag_counts_clamps_a_huge_size() {
-        when(jooqRepository.getTagCounts(eq(project("local-datashare")), eq(500)))
-                .thenReturn(asList(new Repository.Aggregate<>("Invoice", 3)));
 
-        get("/api/local-datashare/documents/tags?size=2147483647").should().respond(200).contain("Invoice");
+    // Same rule as the list_tags tool: out of range is refused, not massaged into something else.
+    @Test
+    public void test_get_tag_counts_refuses_a_size_outside_the_range() {
+        get("/api/local-datashare/documents/tags?size=0").should().respond(400);
+        get("/api/local-datashare/documents/tags?size=-1").should().respond(400);
+        get("/api/local-datashare/documents/tags?size=501").should().respond(400);
+        get("/api/local-datashare/documents/tags?size=2147483647").should().respond(400);
+        get("/api/local-datashare/documents/tags?size=2147483648").should().respond(400);
+
+        verify(jooqRepository, never()).getTagCounts(any(), anyInt());
     }
 
     @Test
@@ -370,13 +375,6 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         get("/api/foo_index/documents/tags?size=5").should().respond(403);
     }
 
-    @Test
-    public void test_get_tag_counts_clamps_a_negative_size_to_the_default() {
-        when(jooqRepository.getTagCounts(eq(project("local-datashare")), eq(50)))
-                .thenReturn(asList(new Repository.Aggregate<>("Invoice", 3)));
-
-        get("/api/local-datashare/documents/tags?size=-1").should().respond(200).contain("Invoice");
-    }
 
     @Test
     public void test_get_tag_counts_with_a_non_numeric_size_is_a_bad_request() {
