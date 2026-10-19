@@ -367,6 +367,28 @@ public class JooqRepositoryTest {
         assertThat(actual.name).isEqualTo(expected.name);
     }
 
+    // A SHA-512 digest is 128 characters where SHA-384, the default, is 96. The columns were sized for the
+    // default, so this used to fail on PostgreSQL with "value too long for type character varying(96)". It has to
+    // run on PostgreSQL to mean anything: SQLite never enforced the declared width and passed either way.
+    @Test
+    public void test_tag_a_document_whose_id_is_a_sha512_digest() {
+        String sha512Id = "a".repeat(Hasher.SHA_512.digestLength);
+
+        assertThat(repository.tag(project("prj"), sha512Id, tag("tag1"))).isTrue();
+
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).containsExactly(sha512Id);
+    }
+
+    @Test
+    public void test_star_a_document_whose_id_is_a_sha512_digest() {
+        String sha512Id = "b".repeat(Hasher.SHA_512.digestLength);
+        User user = new User("userid");
+
+        assertThat(repository.star(project("prj"), user, singletonList(sha512Id))).isEqualTo(1);
+
+        assertThat(repository.getStarredDocuments(project("prj"), user)).containsExactly(sha512Id);
+    }
+
     @Test
     public void test_group_tag_untag_documents() {
         assertThat(repository.tag(project("prj"), asList("doc_id1", "doc_id2"), tag("tag1"), tag("tag2"))).isTrue();

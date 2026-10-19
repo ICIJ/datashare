@@ -1,0 +1,68 @@
+databaseChangeLog:
+  - changeSet:
+      id: 88
+      author: cdesprat
+      dbms: "!sqlite"
+      comment: >
+        Every column holding a document id was varchar(96), the width of SHA-384, which is the
+        default digest. Hasher also offers SHA_512 and --digestAlgorithm accepts it, so an instance
+        configured that way produces 128 character ids that PostgreSQL refuses: tagging, starring
+        or marking a document as read fails with "value too long for type character varying(96)".
+        SQLite never enforced the width, which is why this went unnoticed.
+
+        Widened to 128, the widest id Hasher can produce. On PostgreSQL this is a catalogue-only
+        change since 9.2, so there is no table rewrite and the indexes are untouched. Skipped on
+        SQLite, where the declared width has no effect and modifyDataType would rebuild the table
+        for nothing.
+
+        The eleven columns below are every varchar(96) in the schema that holds a document id, read
+        from information_schema rather than from the create statements in this changelog, which name
+        tables that have since been renamed. Not widened: api_key.id, named_entity.id, statement.id
+        and extraction_mapping.id, whose digests are pinned to SHA-384 in the code
+        (Entity.DEFAULT_DIGESTER and Statement.DIGESTER) rather than following the configured one,
+        and the columns holding names rather than digests (prj_id, project_id, user_id, run_id).
+      changes:
+        - modifyDataType:
+            tableName: document
+            columnName: id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: document
+            columnName: parent_id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: document
+            columnName: root_id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: named_entity
+            columnName: doc_id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: named_entity
+            columnName: root_id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: document_user_star
+            columnName: doc_id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: document_tag
+            columnName: doc_id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: document_user_recommendation
+            columnName: doc_id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: batch_search_result
+            columnName: doc_id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: batch_search_result
+            columnName: root_id
+            newDataType: varchar(128)
+        - modifyDataType:
+            tableName: statement
+            columnName: doc_id
+            newDataType: varchar(128)
