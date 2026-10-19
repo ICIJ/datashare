@@ -510,7 +510,8 @@ public class ElasticsearchIndexer implements Indexer {
 
     private Script createUntagScript(Tag[] tags) {
         return new Script.Builder().lang("painless")
-                                   .source("int updates = 0;" + "for (int i = 0; i < params.tags.length; i++) {" +
+                                   .source("int updates = 0;" + "if (ctx._source.tags == null) ctx._source.tags = [];" +
+                                           "for (int i = 0; i < params.tags.length; i++) {" +
                                            "  if (ctx._source.tags.contains(params.tags[i])) {" +
                                            "    ctx._source.tags.remove(ctx._source.tags.indexOf(params.tags[i]));" +
                                            "    updates++;" + "  }" + "}" + "if (updates == 0) ctx.op = 'noop';")
