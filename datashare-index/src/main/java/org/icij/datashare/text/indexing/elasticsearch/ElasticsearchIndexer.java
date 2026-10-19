@@ -1,6 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.BulkIndexByScrollFailure;
 import co.elastic.clients.elasticsearch._types.Conflicts;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.Script;
@@ -492,8 +493,26 @@ public class ElasticsearchIndexer implements Indexer {
         updateByQuery.script(untagScript);
         updateByQuery.refresh(esCfg.refreshPolicy.equals(Refresh.True));
         UpdateByQueryResponse updateResponse = client.updateByQuery(updateByQuery.build());
+        requireNoFailure(updateResponse);
         int updated = updateResponse.updated() != null ? updateResponse.updated().intValue() : 0;
-        return updateResponse.failures().isEmpty() && updated > 0;
+        return updated > 0;
+    }
+
+    // An update_by_query can answer 200 and still have failed on some documents. Folding that into the returned
+    // boolean made it indistinguishable from "nothing needed updating", which is the ordinary answer when a
+    // document already carries the tag, so every caller discarded it and the failure went unnoticed. The boolean
+    // now means what its callers read it as, and a real failure travels as the IOException they already declare.
+    private static void requireNoFailure(UpdateByQueryResponse response) throws IOException {
+        List<BulkIndexByScrollFailure> failures = response.failures();
+        if (failures.isEmpty()) {
+            return;
+        }
+        BulkIndexByScrollFailure first = failures.get(0);
+        throw new IOException(
+                "update_by_query failed on %d document(s), first was %s: %s".formatted(failures.size(), first.id(),
+                                                                                       first.cause() == null ?
+                                                                                       "unknown cause" :
+                                                                                       first.cause().type()));
     }
 
     private Script createTagScript(Tag[] tags) {
