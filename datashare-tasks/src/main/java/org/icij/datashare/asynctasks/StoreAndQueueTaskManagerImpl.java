@@ -63,6 +63,9 @@ abstract class StoreAndQueueTaskManagerImpl implements StoreAndQueueTaskManager 
         if (taskView != null) {
             logger.info("canceled event for {}", e.taskId);
             taskView.cancel();
+            if (e.requeue) {
+                taskView.queue();
+            }
             update(taskView);
             if (e.requeue) {
                 try {
