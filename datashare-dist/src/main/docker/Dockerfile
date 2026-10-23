@@ -50,6 +50,12 @@ RUN ln -s $DATASHARE_LEGACY_HOME/es  $DATASHARE_HOME/es
 RUN ln -s $DATASHARE_LEGACY_HOME/extensions $DATASHARE_HOME/extensions
 RUN ln -s $DATASHARE_LEGACY_HOME/plugins $DATASHARE_HOME/plugins
 
+# EMBEDDED mode starts Elasticsearch from $DATASHARE_HOME/elasticsearch/current
+COPY datashare-elasticsearch-setup.sh /tmp/datashare-elasticsearch-setup.sh
+RUN bash /tmp/datashare-elasticsearch-setup.sh install && \
+    test -x $DATASHARE_HOME/elasticsearch/current/bin/elasticsearch && \
+    rm /tmp/datashare-elasticsearch-setup.sh
+
 COPY lib /home/datashare/lib
 RUN chown -R datashare:datashare /home/datashare/
 
