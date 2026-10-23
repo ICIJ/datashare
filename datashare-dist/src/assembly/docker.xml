@@ -13,6 +13,13 @@
             </includes>
         </fileSet>
         <fileSet>
+            <directory>${project.basedir}/src/main/deb/bin</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>datashare-elasticsearch-setup.sh</include>
+            </includes>
+        </fileSet>
+        <fileSet>
             <directory>${project.build.directory}</directory>
             <outputDirectory>lib</outputDirectory>
             <includes>
