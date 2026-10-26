@@ -72,6 +72,10 @@ import static org.icij.datashare.utils.JsonUtils.mapObjectTomapJsonData;
 public class ElasticsearchIndexer implements Indexer {
     public final ElasticsearchClient client;
     private final ElasticsearchConfiguration esCfg;
+    // Conflicts.Proceed keeps a document modified between the search and the update out of failures: it is only
+    // counted in versionConflicts and silently left untagged. Both tag scripts are idempotent, so re-running the
+    // whole request is a no-op for the documents already updated and only re-applies what the conflict skipped.
+    private static final int CONFLICT_ATTEMPTS = 3;
     static private final Map<String, String> memoizeScript = new HashMap<>();
 
     public static Map<String, String> getMemoizeScript() {
@@ -486,16 +490,34 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private boolean groupTagUntag(Project prj, List<String> documentIds, Script untagScript) throws IOException {
+        int updated = 0;
+        for (int attempt = 1; ; attempt++) {
+            UpdateByQueryResponse updateResponse = updateByQuery(prj, documentIds, untagScript);
+            requireNoFailure(updateResponse);
+            updated += updateResponse.updated() != null ? updateResponse.updated().intValue() : 0;
+            long conflicts = updateResponse.versionConflicts() != null ? updateResponse.versionConflicts() : 0;
+            if (conflicts == 0) {
+                return updated > 0;
+            }
+            if (attempt == CONFLICT_ATTEMPTS) {
+                throw new IOException(
+                        "update_by_query on %s left %d document(s) in version conflict after %d attempt(s): they were modified during the batch and are not updated".formatted(
+                                prj.getId(), conflicts, attempt));
+            }
+            LOGGER.info("update_by_query on {} hit {} version conflict(s), retrying ({}/{})", prj.getId(), conflicts,
+                        attempt, CONFLICT_ATTEMPTS);
+        }
+    }
+
+    private UpdateByQueryResponse updateByQuery(Project prj, List<String> documentIds, Script script) throws
+            IOException {
         UpdateByQueryRequest.Builder updateByQuery = new UpdateByQueryRequest.Builder().index(prj.getId());
         updateByQuery.query(q -> q.terms(qt -> qt.field("_id").terms(tq -> tq.value(
                 stream(documentIds.toArray(new String[0])).map(FieldValue::of).collect(toList())))));
         updateByQuery.conflicts(Conflicts.Proceed);
-        updateByQuery.script(untagScript);
+        updateByQuery.script(script);
         updateByQuery.refresh(esCfg.refreshPolicy.equals(Refresh.True));
-        UpdateByQueryResponse updateResponse = client.updateByQuery(updateByQuery.build());
-        requireNoFailure(updateResponse);
-        int updated = updateResponse.updated() != null ? updateResponse.updated().intValue() : 0;
-        return updated > 0;
+        return client.updateByQuery(updateByQuery.build());
     }
 
     // Elasticsearch answers 4xx when some documents failed and the client still decodes the body: throw on them.
