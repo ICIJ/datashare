@@ -25,6 +25,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -32,6 +33,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
+ * The indexers here keep the default refresh policy, Refresh.False, the one production runs: a retry that cannot
+ * see the writes of the attempt before it conflicts on the documents it just updated and never converges.
+ *
  * A document modified between the search and the update of an update_by_query is counted in version_conflicts and
  * left out of failures. Elasticsearch will not produce one on demand and racing a writer against the batch would
  * only buy a flaky test, so the conflict is simulated here. The simulation stays faithful to Conflicts.Proceed:
@@ -43,7 +47,8 @@ public class ElasticsearchIndexerVersionConflictTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
     @Rule
     public ExpectedException expected = ExpectedException.none();
-    private final ElasticsearchClient client = mock(ElasticsearchClient.class);
+    // deep stubs: a conflict makes the indexer call client.indices().refresh(), which a plain mock answers null
+    private final ElasticsearchClient client = mock(ElasticsearchClient.class, RETURNS_DEEP_STUBS);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(client, new PropertiesProvider());
 
     @Before
@@ -59,8 +64,7 @@ public class ElasticsearchIndexerVersionConflictTest {
     @Test
     public void test_the_document_left_behind_by_a_conflict_is_tagged_by_the_retry() throws Exception {
         ElasticsearchClient conflicting = clientConflictingOnceOn("doc2");
-        ElasticsearchIndexer realIndexer =
-                new ElasticsearchIndexer(conflicting, new PropertiesProvider()).withRefresh(Refresh.True);
+        ElasticsearchIndexer realIndexer = new ElasticsearchIndexer(conflicting, new PropertiesProvider());
 
         assertThat(realIndexer.tag(project(es.getIndexName()), List.of("doc1", "doc2"), tag("urgent"))).isTrue();
 
@@ -73,8 +77,7 @@ public class ElasticsearchIndexerVersionConflictTest {
     @Test
     public void test_an_untag_conflict_is_cleared_by_the_retry_too() throws Exception {
         ElasticsearchClient conflicting = clientConflictingOnceOn("doc2");
-        ElasticsearchIndexer realIndexer =
-                new ElasticsearchIndexer(conflicting, new PropertiesProvider()).withRefresh(Refresh.True);
+        ElasticsearchIndexer realIndexer = new ElasticsearchIndexer(conflicting, new PropertiesProvider());
 
         assertThat(realIndexer.untag(project(es.getIndexName()), List.of("doc1", "doc2"), tag("invoice"))).isTrue();
 
@@ -119,7 +122,7 @@ public class ElasticsearchIndexerVersionConflictTest {
             }
             UpdateByQueryRequest batch = invocation.getArgument(0);
             UpdateByQueryResponse applied = es.client.updateByQuery(
-                    r -> r.index(batch.index()).script(batch.script()).refresh(true)
+                    r -> r.index(batch.index()).script(batch.script()).refresh(Boolean.TRUE.equals(batch.refresh()))
                           .query(q -> q.bool(b -> b.must(batch.query()).mustNot(
                                   mn -> mn.ids(ids -> ids.values(conflictingId))))));
             return new UpdateByQueryResponse.Builder().total(applied.total() + 1).updated(applied.updated())

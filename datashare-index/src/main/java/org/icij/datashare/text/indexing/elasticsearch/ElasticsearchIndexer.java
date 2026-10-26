@@ -504,8 +504,11 @@ public class ElasticsearchIndexer implements Indexer {
                         "update_by_query on %s left %d document(s) in version conflict after %d attempt(s): they were modified during the batch and are not updated".formatted(
                                 prj.getId(), conflicts, attempt));
             }
-            LOGGER.info("update_by_query on {} hit {} version conflict(s), retrying ({}/{})", prj.getId(), conflicts,
-                        attempt, CONFLICT_ATTEMPTS);
+            LOGGER.info("update_by_query on {} hit {} version conflict(s), refreshing and retrying ({}/{})",
+                        prj.getId(), conflicts, attempt, CONFLICT_ATTEMPTS);
+            // The next attempt searches the last refreshed searcher: without this, the documents this attempt
+            // updated come back with a stale _seq_no and conflict again, and the retry can never converge.
+            client.indices().refresh(r -> r.index(prj.getId()));
         }
     }
 
