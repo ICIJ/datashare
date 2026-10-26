@@ -319,8 +319,11 @@ public class DocumentResource {
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags,
                                final Context context) throws IOException {
         requireGranted(context, projectId);
-        boolean tagSaved = repository.tag(project(projectId), docId, tags);
+        // The index is written before the database here and in the three other tag routes: a tag the index
+        // rejected then commits nothing, instead of sitting in PostgreSQL for a document that never got it.
+        // Both writes are idempotent, so the user retrying a failed request converges.
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
+        boolean tagSaved = repository.tag(project(projectId), docId, tags);
         return tagSaved ? Payload.created() : Payload.ok();
     }
 
@@ -346,8 +349,8 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         requireGranted(context, projectId);
-        repository.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
+        repository.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         return Payload.ok();
     }
 
@@ -363,8 +366,8 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         requireGranted(context, projectId);
-        repository.untag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         indexer.untag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
+        repository.untag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
         return Payload.ok();
     }
 
@@ -389,8 +392,8 @@ public class DocumentResource {
     public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags,
                                  final Context context) throws IOException {
         requireGranted(context, projectId);
-        boolean untagSaved = repository.untag(project(projectId), docId, tags);
         indexer.untag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
+        boolean untagSaved = repository.untag(project(projectId), docId, tags);
         return untagSaved ? Payload.created() : Payload.ok();
     }
 
