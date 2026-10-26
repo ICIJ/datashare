@@ -414,10 +414,7 @@ public class ElasticsearchIndexerTest {
     public void test_tag_document_without_tags_field_for_backward_compatibility() throws IOException {
         Document doc = createDoc("id").build();
         indexer.add(es.getIndexName(), doc);
-        UpdateRequest<Object, Object> removeTagsRequest = UpdateRequest.of(r -> r.index(es.getIndexName()).
-                id(doc.getId()).
-                script(Script.of(s -> s.lang("painless").source("ctx._source.remove(\"tags\")").params(new HashMap<>()))));
-        es.client.update(removeTagsRequest, Document.class);
+        removeTagsField(doc.getId());
 
         assertThat(indexer.tag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("tag"))).isTrue();
     }
@@ -428,15 +425,25 @@ public class ElasticsearchIndexerTest {
     public void test_untag_document_without_tags_field_for_backward_compatibility() throws IOException {
         Document doc = createDoc("untagged_without_tags_field").build();
         indexer.add(es.getIndexName(), doc);
-        // Refreshed: the untag below is a noop, so nothing after it would make this write visible to the
-        // delete_by_query that cleans the index between tests, and that cleanup would hit a version conflict.
-        UpdateRequest<Object, Object> removeTagsRequest = UpdateRequest.of(r -> r.index(es.getIndexName()).
-                id(doc.getId()).
-                refresh(co.elastic.clients.elasticsearch._types.Refresh.True).
-                script(Script.of(s -> s.lang("painless").source("ctx._source.remove(\"tags\")").params(new HashMap<>()))));
-        es.client.update(removeTagsRequest, Document.class);
+        removeTagsField(doc.getId());
 
         assertThat(indexer.untag(project(es.getIndexName()), doc.getId(), doc.getId(), tag("tag"))).isFalse();
+    }
+
+    @Test
+    public void test_group_untag_documents_without_tags_field_for_backward_compatibility() throws IOException {
+        indexer.add(es.getIndexName(), createDoc("legacy").build());
+        indexer.add(es.getIndexName(), createDoc("tagged").build());
+        removeTagsField("legacy");
+        indexer.tag(project(es.getIndexName()), "tagged", "tagged", tag("foo"));
+
+        assertThat(indexer.untag(project(es.getIndexName()), asList("legacy", "tagged"), tag("foo"))).isTrue();
+        assertThat(((Document) indexer.get(es.getIndexName(), "tagged")).getTags()).isEmpty();
+    }
+
+    private void removeTagsField(String id) throws IOException {
+        es.client.update(UpdateRequest.of(r -> r.index(es.getIndexName()).id(id).refresh(Refresh.True).
+                script(Script.of(s -> s.lang("painless").source("ctx._source.remove(\"tags\")")))), Document.class);
     }
 
     @Test(expected = ElasticsearchException.class)
