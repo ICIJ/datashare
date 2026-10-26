@@ -498,10 +498,8 @@ public class ElasticsearchIndexer implements Indexer {
         return updated > 0;
     }
 
-    // An update_by_query can answer 200 and still have failed on some documents. Folding that into the returned
-    // boolean made it indistinguishable from "nothing needed updating", which is the ordinary answer when a
-    // document already carries the tag, so every caller discarded it and the failure went unnoticed. The boolean
-    // now means what its callers read it as, and a real failure travels as the IOException they already declare.
+    // Elasticsearch answers 4xx when some documents failed and the client still decodes the body: throw on them.
+    // The boolean only says whether something changed.
     private static void requireNoFailure(UpdateByQueryResponse response) throws IOException {
         List<BulkIndexByScrollFailure> failures = response.failures();
         if (failures.isEmpty()) {
@@ -509,10 +507,9 @@ public class ElasticsearchIndexer implements Indexer {
         }
         BulkIndexByScrollFailure first = failures.get(0);
         throw new IOException(
-                "update_by_query failed on %d document(s), first was %s: %s".formatted(failures.size(), first.id(),
-                                                                                       first.cause() == null ?
-                                                                                       "unknown cause" :
-                                                                                       first.cause().type()));
+                "update_by_query on %s updated %d of %d document(s) and failed on %d, first %s (%d %s: %s)".formatted(
+                        first.index(), response.updated(), response.total(), failures.size(), first.id(),
+                        first.status(), first.cause().type(), first.cause().reason()));
     }
 
     private Script createTagScript(Tag[] tags) {
