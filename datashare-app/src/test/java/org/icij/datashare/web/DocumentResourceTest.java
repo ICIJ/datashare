@@ -49,6 +49,8 @@ import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -318,6 +320,50 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         when(indexer.untag(eq(project("local-datashare")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
         post("/api/local-datashare/documents/batchUpdate/untag", "{\"tags\": [\"tag1\", \"tag2\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(200);
+    }
+
+    // The index is written first so a failure there commits nothing to the database: a tag in PostgreSQL that
+    // never reached the index drifts silently, while a failed request the user can retry does not.
+    @Test
+    public void test_a_failing_index_leaves_the_database_untouched_when_tagging() throws Exception {
+        when(indexer.tag(eq(project("local-datashare")), anyString(), anyString(), eq(tag("tag1")))).thenThrow(
+                new IOException("conflict"));
+
+        put("/api/local-datashare/documents/tags/doc_id", "[\"tag1\"]").should().respond(500);
+
+        verify(jooqRepository, never()).tag(any(), anyString(), any());
+    }
+
+    @Test
+    public void test_a_failing_index_leaves_the_database_untouched_when_untagging() throws Exception {
+        when(indexer.untag(eq(project("local-datashare")), anyString(), anyString(), eq(tag("tag1")))).thenThrow(
+                new IOException("conflict"));
+
+        put("/api/local-datashare/documents/untag/doc_id", "[\"tag1\"]").should().respond(500);
+
+        verify(jooqRepository, never()).untag(any(), anyString(), any());
+    }
+
+    @Test
+    public void test_a_failing_index_leaves_the_database_untouched_when_tagging_a_batch() throws Exception {
+        when(indexer.tag(eq(project("local-datashare")), eq(asList("doc1", "doc2")), eq(tag("tag1")))).thenThrow(
+                new IOException("conflict"));
+
+        post("/api/local-datashare/documents/batchUpdate/tag",
+             "{\"tags\": [\"tag1\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(500);
+
+        verify(jooqRepository, never()).tag(any(), anyList(), any());
+    }
+
+    @Test
+    public void test_a_failing_index_leaves_the_database_untouched_when_untagging_a_batch() throws Exception {
+        when(indexer.untag(eq(project("local-datashare")), eq(asList("doc1", "doc2")), eq(tag("tag1")))).thenThrow(
+                new IOException("conflict"));
+
+        post("/api/local-datashare/documents/batchUpdate/untag",
+             "{\"tags\": [\"tag1\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(500);
+
+        verify(jooqRepository, never()).untag(any(), anyList(), any());
     }
 
     @Test
