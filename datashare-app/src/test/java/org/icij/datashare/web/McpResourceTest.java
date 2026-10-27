@@ -6,7 +6,10 @@ import net.codestory.http.Context;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
+import org.junit.Rule;
 import org.junit.Test;
+import org.icij.datashare.test.LogbackCapturingRule;
+import org.slf4j.event.Level;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -16,6 +19,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.localUser;
 
 public class McpResourceTest extends AbstractProdWebServerTest {
+    @Rule public LogbackCapturingRule logback = new LogbackCapturingRule();
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final JsonNode NO_ARGUMENTS = MAPPER.createObjectNode().put("type", "object");
@@ -165,6 +169,26 @@ public class McpResourceTest extends AbstractProdWebServerTest {
         JsonNode response = call("t", "{}");
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("search failed on 1 shard(s)");
+    }
+
+    // A refusal is an expected outcome of a tool call, not a server fault, so it must not reach the error log.
+    @Test
+    public void test_a_refused_tool_call_is_logged_as_a_warning() throws Exception {
+        serve(List.of(tool("t", "", (args, context) -> { throw new McpToolException.Forbidden("bar"); })));
+
+        call("t", "{}");
+
+        assertThat(logback.logs(Level.WARN)).contains("MCP tool t failed: forbidden: bar");
+        assertThat(logback.logs(Level.ERROR)).isEmpty();
+    }
+
+    @Test
+    public void test_an_unexpected_failure_is_logged_as_an_error() throws Exception {
+        serve(List.of(tool("t", "", (args, context) -> { throw new IllegalStateException("boom"); })));
+
+        call("t", "{}");
+
+        assertThat(logback.logs(Level.ERROR)).isNotEmpty();
     }
 
     @Test
