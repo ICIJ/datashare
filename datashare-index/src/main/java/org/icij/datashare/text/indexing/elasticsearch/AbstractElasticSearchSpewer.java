@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import static java.lang.System.currentTimeMillis;
 import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 import static java.util.Optional.ofNullable;
@@ -59,6 +60,7 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
     // Opt-in (--artifacts): records the raw manifest entry of each indexed document. Null when the
     // run does not generate artifacts, so indexing is unchanged.
     private final ManifestRecorder manifestRecorder;
+    private volatile Consumer<Document> onIndexed = document -> {};
 
     public AbstractElasticSearchSpewer(FieldNames fields, Indexer indexer, LanguageGuesser languageGuesser,
                                        IndexOptions options, String indexName, int minOcrConfidence,
@@ -73,11 +75,12 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
     }
 
     /**
-     * Method called after indexing a document
-     * @param document
-     * @param index
+     * Sets what happens to each document once it is indexed: the pipeline hands it to the next stage there. By
+     * default nothing, the document is in the index and that is all.
      */
-    protected abstract void postIndexation(Document document, String index);
+    public void onIndexed(Consumer<Document> listener) {
+        this.onIndexed = listener;
+    }
 
     private static Document.RecoveryStatus parseChildRecoveryStatus(TikaDocument document) {
         String raw = document.getMetadata().get(PST_ATTACHMENT_RECOVERY);
@@ -160,7 +163,7 @@ public abstract class AbstractElasticSearchSpewer extends Spewer {
                     logger.error("failed to record artifact manifest for {}", document.getId(), e);
                 }
             }
-            postIndexation(document, indexName);
+            onIndexed.accept(document);
         }
 
         logger.info("{} {} added to elasticsearch in {}ms: {}", docType, shorten(doc.getId(), 4),
