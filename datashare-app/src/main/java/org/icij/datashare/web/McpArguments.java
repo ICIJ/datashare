@@ -27,8 +27,15 @@ final class McpArguments {
         if (node.isMissingNode() || node.isNull()) {
             throw McpToolException.InvalidArgument.missing(name);
         }
-        if (!node.isArray() || node.isEmpty() || node.size() > max) {
-            throw McpToolException.InvalidArgument.invalid(name);
+        if (!node.isArray()) {
+            throw McpToolException.InvalidArgument.because("%s must be a list of strings".formatted(name));
+        }
+        if (node.isEmpty()) {
+            throw McpToolException.InvalidArgument.because("%s must not be empty".formatted(name));
+        }
+        if (node.size() > max) {
+            throw McpToolException.InvalidArgument.because(
+                    "%s has %d items, more than the %d allowed".formatted(name, node.size(), max));
         }
         List<String> values = new ArrayList<>();
         node.forEach(item -> values.add(requireItemText(name, item)));
@@ -37,7 +44,7 @@ final class McpArguments {
 
     private static String requireItemText(String name, JsonNode item) {
         if (!item.isTextual() || item.asText().isBlank()) {
-            throw McpToolException.InvalidArgument.invalid(name);
+            throw McpToolException.InvalidArgument.because("%s must contain only non-empty strings".formatted(name));
         }
         return item.asText();
     }
