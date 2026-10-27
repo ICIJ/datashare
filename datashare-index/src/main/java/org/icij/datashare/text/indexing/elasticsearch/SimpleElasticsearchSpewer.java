@@ -8,7 +8,8 @@ import org.icij.spewer.FieldNames;
 public class SimpleElasticsearchSpewer extends AbstractElasticSearchSpewer {
     public SimpleElasticsearchSpewer(FieldNames fields, Indexer indexer, LanguageGuesser languageGuesser,
                                      IndexOptions options, String indexName, ManifestRecorder manifestRecorder) {
-        super(fields, indexer, languageGuesser, options, indexName, options.languageDetection().ocrMinConfidence(), manifestRecorder);
+        super(fields, indexer, languageGuesser, options, indexName, options.languageDetection().ocrMinConfidence(),
+              manifestRecorder);
     }
 
     @Override
