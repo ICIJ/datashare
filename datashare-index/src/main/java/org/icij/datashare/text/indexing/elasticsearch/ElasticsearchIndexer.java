@@ -519,12 +519,12 @@ public class ElasticsearchIndexer implements Indexer {
     private String unappliedIds(Project prj, List<String> documentIds, Query unapplied) throws IOException {
         client.indices().refresh(r -> r.index(prj.getId()));
         SearchResponse<ObjectNode> response = client.search(
-                s -> s.index(prj.getId()).size(min(documentIds.size(), UNAPPLIED_IDS_SHOWN))
+                s -> s.index(prj.getId()).size(min(documentIds.size(), UNAPPLIED_IDS_SHOWN + 1))
                       .source(src -> src.fetch(false))
                       .query(q -> q.bool(b -> b.must(idsQuery(documentIds)).must(unapplied))), ObjectNode.class);
         List<String> ids = response.hits().hits().stream().map(Hit::id).collect(toList());
-        return documentIds.size() > ids.size() || ids.size() < UNAPPLIED_IDS_SHOWN ? ids.toString() :
-               "%s and more, %d shown".formatted(ids, UNAPPLIED_IDS_SHOWN);
+        return ids.size() <= UNAPPLIED_IDS_SHOWN ? ids.toString() :
+               "%s and more, %d shown".formatted(ids.subList(0, UNAPPLIED_IDS_SHOWN), UNAPPLIED_IDS_SHOWN);
     }
 
     private static Query idsQuery(List<String> documentIds) {
