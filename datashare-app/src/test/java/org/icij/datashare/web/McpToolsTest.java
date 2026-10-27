@@ -546,8 +546,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("RuntimeException");
     }
 
-    // The database write runs first and only the indexer declares IOException, so this failure means the tags are
-    // in the database and absent from the index. Saying so stops an agent retrying a write that already landed.
+    // DocumentResource writes the index first, so an index failure commits nothing: the tags are neither in the
+    // database nor in the index. Saying so tells an agent the call is safe to retry.
     @Test
     public void test_tag_documents_says_so_when_only_the_index_write_failed() throws Exception {
         serveAs("local", "foo");
@@ -558,9 +558,9 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
-        assertThat(response.at("/result/content/0/text").asText()).contains("saved").contains("index");
+        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was saved").contains("retried");
         assertThat(response.toString()).excludes("elasticsearch:9200");
-        verify(repository).tag(any(Project.class), anyList(), any(Tag[].class));
+        verifyNoInteractions(repository);
     }
 
     @Test
@@ -573,8 +573,9 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
-        assertThat(response.at("/result/content/0/text").asText()).contains("removed").contains("index");
+        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was removed").contains("retried");
         assertThat(response.toString()).excludes("elasticsearch:9200");
+        verifyNoInteractions(repository);
     }
 
     // The Elasticsearch client throws ElasticsearchException, a RuntimeException, for index_not_found and for a
@@ -588,7 +589,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
-        assertThat(response.at("/result/content/0/text").asText()).contains("saved").contains("index");
+        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was saved");
     }
 
     @Test
@@ -600,7 +601,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
-        assertThat(response.at("/result/content/0/text").asText()).contains("removed").contains("index");
+        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was removed");
     }
 
     private static co.elastic.clients.elasticsearch._types.ElasticsearchException indexMissing() {

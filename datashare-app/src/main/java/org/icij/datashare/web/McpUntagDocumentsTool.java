@@ -37,10 +37,10 @@ public class McpUntagDocumentsTool implements McpTool {
         } catch (ForbiddenException e) {
             throw new McpToolException.Forbidden(batch.project(), e);
         } catch (IOException | ElasticsearchException e) {
-            // Same asymmetry as in McpTagDocumentsTool: the database delete has happened, the index has not.
+            // Same as in McpTagDocumentsTool: the index is written first, so its failure commits nothing.
             throw new McpToolException(
-                    "the tags were removed but the search index was not updated, so they will still match a " +
-                    "search until these documents are reindexed", e);
+                    "the search index refused the write, so nothing was removed and no document was changed; the " +
+                    "call can be retried", e);
         }
         return Map.of("project", batch.project(), "untagged", batch.docIds().size(), "tags", batch.tags());
     }

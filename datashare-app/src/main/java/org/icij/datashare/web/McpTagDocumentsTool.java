@@ -50,12 +50,12 @@ public class McpTagDocumentsTool implements McpTool {
         } catch (BadRequestException e) {
             throw McpToolException.InvalidArgument.because(e.getMessage());
         } catch (IOException | ElasticsearchException e) {
-            // The database write runs first and fails as a DataAccessException, so neither of these can come from
-            // it: reaching here means the tags are saved and the index is behind. ElasticsearchException is a
-            // RuntimeException, which is how index_not_found and a failing script arrive.
+            // DocumentResource writes the index before the database, so an index failure commits nothing at all.
+            // Only the indexer raises these two, the database raising a DataAccessException instead, so reaching
+            // here means nothing was written and the call can simply be tried again.
             throw new McpToolException(
-                    "the tags were saved but the search index was not updated, so they will not match a search " +
-                    "until these documents are reindexed", e);
+                    "the search index refused the write, so nothing was saved and no document was changed; the " +
+                    "call can be retried", e);
         }
         return Map.of("project", batch.project, "tagged", batch.docIds.size(), "tags", batch.tags);
     }
