@@ -56,6 +56,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import static co.elastic.clients.elasticsearch.core.UpdateRequest.Builder;
+import static java.lang.Integer.min;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -76,6 +77,8 @@ public class ElasticsearchIndexer implements Indexer {
     // counted in versionConflicts and silently left untagged. Both tag scripts are idempotent, so re-running the
     // whole request is a no-op for the documents already updated and only re-applies what the conflict skipped.
     private static final int CONFLICT_ATTEMPTS = 3;
+    // a batch can hold thousands of ids: name enough of them to act on, not the whole list
+    private static final int UNAPPLIED_IDS_SHOWN = 20;
     static private final Map<String, String> memoizeScript = new HashMap<>();
 
     public static Map<String, String> getMemoizeScript() {
@@ -481,15 +484,16 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public boolean tag(Project prj, List<String> documentIds, Tag... tags) throws IOException {
-        return groupTagUntag(prj, documentIds, createTagScript(tags));
+        return groupTagUntag(prj, documentIds, createTagScript(tags), missingOneOfTheTags(tags));
     }
 
     @Override
     public boolean untag(Project prj, List<String> documentIds, Tag... tags) throws IOException {
-        return groupTagUntag(prj, documentIds, createUntagScript(tags));
+        return groupTagUntag(prj, documentIds, createUntagScript(tags), stillCarryingOneOfTheTags(tags));
     }
 
-    private boolean groupTagUntag(Project prj, List<String> documentIds, Script untagScript) throws IOException {
+    private boolean groupTagUntag(Project prj, List<String> documentIds, Script untagScript, Query unapplied) throws
+            IOException {
         int updated = 0;
         for (int attempt = 1; ; attempt++) {
             UpdateByQueryResponse updateResponse = updateByQuery(prj, documentIds, untagScript);
@@ -501,8 +505,8 @@ public class ElasticsearchIndexer implements Indexer {
             }
             if (attempt == CONFLICT_ATTEMPTS) {
                 throw new IOException(
-                        "update_by_query on %s left %d document(s) in version conflict after %d attempt(s): they were modified during the batch and are not updated".formatted(
-                                prj.getId(), conflicts, attempt));
+                        "update_by_query on %s left %d document(s) in version conflict after %d attempt(s): they were modified during the batch and are not updated, %s".formatted(
+                                prj.getId(), conflicts, attempt, unappliedIds(prj, documentIds, unapplied)));
             }
             LOGGER.info("update_by_query on {} hit {} version conflict(s), refreshing and retrying ({}/{})",
                         prj.getId(), conflicts, attempt, CONFLICT_ATTEMPTS);
@@ -512,11 +516,43 @@ public class ElasticsearchIndexer implements Indexer {
         }
     }
 
+    // Elasticsearch counts the conflicts without naming them, so ask the index which documents are still not in
+    // the wanted state: the caller gets ids to re-tag instead of a number it cannot act on.
+    private String unappliedIds(Project prj, List<String> documentIds, Query unapplied) throws IOException {
+        client.indices().refresh(r -> r.index(prj.getId()));
+        SearchResponse<ObjectNode> response = client.search(
+                s -> s.index(prj.getId()).size(min(documentIds.size(), UNAPPLIED_IDS_SHOWN))
+                      .source(src -> src.fetch(false)).query(
+                              q -> q.bool(b -> b.must(idsQuery(documentIds)).must(unapplied))), ObjectNode.class);
+        List<String> ids = response.hits().hits().stream().map(Hit::id).collect(toList());
+        return documentIds.size() > ids.size() || ids.size() < UNAPPLIED_IDS_SHOWN ? ids.toString() :
+               "%s and more, %d shown".formatted(ids, UNAPPLIED_IDS_SHOWN);
+    }
+
+    private static Query idsQuery(List<String> documentIds) {
+        return Query.of(q -> q.terms(qt -> qt.field("_id").terms(
+                tq -> tq.value(documentIds.stream().map(FieldValue::of).collect(toList())))));
+    }
+
+    private static Query missingOneOfTheTags(Tag[] tags) {
+        return Query.of(q -> q.bool(b -> {
+            stream(tags).forEach(t -> b.should(sh -> sh.bool(
+                    nb -> nb.mustNot(mn -> mn.term(tq -> tq.field("tags").value(t.label))))));
+            return b.minimumShouldMatch("1");
+        }));
+    }
+
+    private static Query stillCarryingOneOfTheTags(Tag[] tags) {
+        return Query.of(q -> q.bool(b -> {
+            stream(tags).forEach(t -> b.should(sh -> sh.term(tq -> tq.field("tags").value(t.label))));
+            return b.minimumShouldMatch("1");
+        }));
+    }
+
     private UpdateByQueryResponse updateByQuery(Project prj, List<String> documentIds, Script script) throws
             IOException {
         UpdateByQueryRequest.Builder updateByQuery = new UpdateByQueryRequest.Builder().index(prj.getId());
-        updateByQuery.query(q -> q.terms(qt -> qt.field("_id").terms(tq -> tq.value(
-                stream(documentIds.toArray(new String[0])).map(FieldValue::of).collect(toList())))));
+        updateByQuery.query(idsQuery(documentIds));
         updateByQuery.conflicts(Conflicts.Proceed);
         updateByQuery.script(script);
         updateByQuery.refresh(esCfg.refreshPolicy.equals(Refresh.True));
