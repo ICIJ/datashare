@@ -56,7 +56,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import static co.elastic.clients.elasticsearch.core.UpdateRequest.Builder;
-import static java.lang.Integer.min;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -490,8 +489,8 @@ public class ElasticsearchIndexer implements Indexer {
         return groupTagUntag(prj, documentIds, createUntagScript(tags), stillCarryingOneOfTheTags(tags));
     }
 
-    private boolean groupTagUntag(Project prj, List<String> documentIds, Script untagScript, Query unapplied) throws
-            IOException {
+    private boolean groupTagUntag(Project prj, List<String> documentIds, Script untagScript,
+                                  Predicate<List<String>> unapplied) throws IOException {
         int updated = 0;
         for (int attempt = 1; ; attempt++) {
             UpdateByQueryResponse updateResponse = updateByQuery(prj, documentIds, untagScript);
@@ -516,15 +515,24 @@ public class ElasticsearchIndexer implements Indexer {
 
     // Elasticsearch counts the conflicts without naming them, so ask the index which documents are still not in
     // the wanted state: the caller gets ids to re-tag instead of a number it cannot act on.
-    private String unappliedIds(Project prj, List<String> documentIds, Query unapplied) throws IOException {
+    private String unappliedIds(Project prj, List<String> documentIds, Predicate<List<String>> unapplied) throws
+            IOException {
         client.indices().refresh(r -> r.index(prj.getId()));
         SearchResponse<ObjectNode> response = client.search(
-                s -> s.index(prj.getId()).size(min(documentIds.size(), UNAPPLIED_IDS_SHOWN + 1))
-                      .source(src -> src.fetch(false))
-                      .query(q -> q.bool(b -> b.must(idsQuery(documentIds)).must(unapplied))), ObjectNode.class);
-        List<String> ids = response.hits().hits().stream().map(Hit::id).collect(toList());
+                s -> s.index(prj.getId()).size(documentIds.size()).source(src -> src.filter(f -> f.includes("tags")))
+                      .query(idsQuery(documentIds)), ObjectNode.class);
+        List<String> ids =
+                response.hits().hits().stream().filter(hit -> unapplied.test(tagsOf(hit.source()))).map(Hit::id)
+                        .collect(toList());
         return ids.size() <= UNAPPLIED_IDS_SHOWN ? ids.toString() :
                "%s and more, %d shown".formatted(ids.subList(0, UNAPPLIED_IDS_SHOWN), UNAPPLIED_IDS_SHOWN);
+    }
+
+    private static List<String> tagsOf(ObjectNode source) {
+        List<String> documentTags = new ArrayList<>();
+        ofNullable(source).map(json -> json.get("tags"))
+                          .ifPresent(tags -> tags.forEach(label -> documentTags.add(label.asText())));
+        return documentTags;
     }
 
     private static Query idsQuery(List<String> documentIds) {
@@ -532,19 +540,18 @@ public class ElasticsearchIndexer implements Indexer {
                 documentIds.stream().map(FieldValue::of).collect(toList())))));
     }
 
-    private static Query missingOneOfTheTags(Tag[] tags) {
-        return Query.of(q -> q.bool(b -> {
-            stream(tags).forEach(t -> b.should(
-                    sh -> sh.bool(nb -> nb.mustNot(mn -> mn.term(tq -> tq.field("tags").value(t.label))))));
-            return b.minimumShouldMatch("1");
-        }));
+    private static Predicate<List<String>> missingOneOfTheTags(Tag[] tags) {
+        List<String> labels = labels(tags);
+        return documentTags -> !documentTags.containsAll(labels);
     }
 
-    private static Query stillCarryingOneOfTheTags(Tag[] tags) {
-        return Query.of(q -> q.bool(b -> {
-            stream(tags).forEach(t -> b.should(sh -> sh.term(tq -> tq.field("tags").value(t.label))));
-            return b.minimumShouldMatch("1");
-        }));
+    private static Predicate<List<String>> stillCarryingOneOfTheTags(Tag[] tags) {
+        List<String> labels = labels(tags);
+        return documentTags -> documentTags.stream().anyMatch(labels::contains);
+    }
+
+    private static List<String> labels(Tag[] tags) {
+        return stream(tags).map(t -> t.label).collect(toList());
     }
 
     private UpdateByQueryResponse updateByQuery(Project prj, List<String> documentIds, Script script) throws
@@ -579,7 +586,7 @@ public class ElasticsearchIndexer implements Indexer {
                                            "   ctx._source.tags.add(params.tags[i]);" + "   updates++;" + "  }" + "}" +
                                            "if (updates == 0) ctx.op = 'noop';")
                                    .params(mapObjectTomapJsonData(new HashMap<>() {{
-                                       put("tags", stream(tags).map(t -> t.label).collect(toList()));
+                                       put("tags", labels(tags));
                                    }})).build();
     }
 
@@ -591,7 +598,7 @@ public class ElasticsearchIndexer implements Indexer {
                                            "    ctx._source.tags.remove(ctx._source.tags.indexOf(params.tags[i]));" +
                                            "    updates++;" + "  }" + "}" + "if (updates == 0) ctx.op = 'noop';")
                                    .params(mapObjectTomapJsonData(new HashMap<>() {{
-                                       put("tags", stream(tags).map(t -> t.label).collect(toList()));
+                                       put("tags", labels(tags));
                                    }})).build();
     }
 
