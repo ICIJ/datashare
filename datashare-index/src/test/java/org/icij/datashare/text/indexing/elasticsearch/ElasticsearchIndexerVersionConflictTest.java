@@ -2,6 +2,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.UpdateByQueryRequest;
 import co.elastic.clients.elasticsearch.core.UpdateByQueryResponse;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,7 +28,9 @@ import static org.fest.assertions.Fail.fail;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -94,6 +97,19 @@ public class ElasticsearchIndexerVersionConflictTest {
         expected.expectMessage("[doc2]");
 
         indexerWith(clientAlwaysConflictingOn("doc2")).untag(index(), List.of("doc1", "doc2"), tag("invoice"));
+    }
+
+    @Test
+    public void test_a_listing_that_fails_keeps_the_conflict_as_the_cause() throws Exception {
+        ElasticsearchClient conflicting = clientAlwaysConflictingOn("doc2");
+        doThrow(new IOException("cluster unreachable")).when(conflicting)
+                                                       .search(any(SearchRequest.class), eq(ObjectNode.class));
+
+        expected.expect(IOException.class);
+        expected.expectMessage("1 document(s) in version conflict");
+        expected.expectMessage("could not list them: cluster unreachable");
+
+        indexerWith(conflicting).tag(index(), List.of("doc1", "doc2"), tag("urgent"));
     }
 
     // The tags field is lowercased by its normalizer while the scripts compare labels as they are: the documents
