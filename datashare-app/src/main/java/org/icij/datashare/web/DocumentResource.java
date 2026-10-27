@@ -319,9 +319,8 @@ public class DocumentResource {
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags,
                                final Context context) throws IOException {
         requireGranted(context, projectId);
-        // The index is written before the database here and in the three other tag routes: a tag the index
-        // rejected then commits nothing, instead of sitting in PostgreSQL for a document that never got it.
-        // Both writes are idempotent, so the user retrying a failed request converges.
+        // Index before database, here and in the three other tag routes: a tag the index refused then commits
+        // nothing, instead of sitting in PostgreSQL for a document that never got it.
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
         return tagSaved ? Payload.created() : Payload.ok();
