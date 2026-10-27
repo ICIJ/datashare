@@ -88,8 +88,9 @@ public class McpResource {
             return error(id, -32602, e.getMessage());
         } catch (McpToolException e) {
             // Expected outcomes of a tool call rather than server faults: a refusal, a missing subject, a backend
-            // that would not take the write. Worth a line, not a stack trace: the message already says what happened.
-            logger.warn("MCP tool {} failed: {}", tool.name(), e.getMessage());
+            // that would not take the write. The cause is passed as SLF4J's trailing throwable, so a wrapped index
+            // failure keeps its stack while a plain refusal, which has no cause, logs the one line and nothing more.
+            logger.warn("MCP tool {} failed: {}", tool.name(), e.getMessage(), e.getCause());
             return toolError(id, e.getMessage());
         } catch (Exception e) {
             logger.error("MCP tool {} failed", tool.name(), e);
