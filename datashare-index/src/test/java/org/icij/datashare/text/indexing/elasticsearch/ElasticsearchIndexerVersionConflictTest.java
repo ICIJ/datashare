@@ -96,6 +96,27 @@ public class ElasticsearchIndexerVersionConflictTest {
         indexerWith(clientAlwaysConflictingOn("doc2")).untag(index(), List.of("doc1", "doc2"), tag("invoice"));
     }
 
+    // The tags field is lowercased by its normalizer while the scripts compare labels as they are: the documents
+    // named have to be the ones the script would still change, not the ones a case insensitive match returns.
+    @Test
+    public void test_a_label_that_differs_only_by_case_names_the_documents_the_tag_is_missing_from()
+            throws Exception {
+        expected.expect(IOException.class);
+        expected.expectMessage("[doc2]");
+
+        indexerWith(clientAlwaysConflictingOn("doc2")).tag(index(), List.of("doc1", "doc2"), tag("INVOICE"));
+    }
+
+    @Test
+    public void test_an_untag_of_a_label_that_differs_only_by_case_names_no_document() throws Exception {
+        try {
+            indexerWith(clientAlwaysConflictingOn("doc2")).untag(index(), List.of("doc1", "doc2"), tag("INVOICE"));
+            fail("the batch never converged, it should have thrown");
+        } catch (IOException e) {
+            assertThat(e.getMessage()).contains("[]");
+        }
+    }
+
     @Test
     public void test_more_documents_left_behind_than_the_message_shows_says_so() throws Exception {
         List<String> documentIds = indexDocuments(21);
