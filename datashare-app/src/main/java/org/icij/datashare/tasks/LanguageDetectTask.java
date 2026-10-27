@@ -4,32 +4,24 @@ import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageContext;
+import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.text.DocReference;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
-import org.icij.spewer.FieldNames;
+import org.icij.datashare.text.indexing.elasticsearch.LanguageOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
-import static org.icij.datashare.cli.DatashareCliOptions.OCR_MIN_CONFIDENCE_OPT;
-import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 
 /**
  * Re-detects the language of every document referenced in the LANGUAGE queue and rewrites the
@@ -40,13 +32,9 @@ import static org.icij.extract.ocr.ParserWithConfidence.OCR_CONFIDENCE;
 @TemporalSingleActivityWorkflow(name = "language", activityOptions = @ActivityOpts(timeout = "P1D"))
 @TaskGroup(TaskGroupType.Java)
 public class LanguageDetectTask extends PipelineTask<String> {
-    private static final List<String> SOURCE_EXCLUDES = List.of("content_translated");
-    private static final String OCR_CONFIDENCE_KEY = new FieldNames().forMetadata(OCR_CONFIDENCE.getName());
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final Indexer indexer;
-    private final LanguageGuesser languageGuesser;
+    private final LanguageStage stage;
     private final Project project;
-    private final int minOcrConfidence;
 
     @Inject
     public LanguageDetectTask(DocumentCollectionFactory<String> factory, Indexer indexer,
@@ -54,11 +42,9 @@ public class LanguageDetectTask extends PipelineTask<String> {
                               @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.LANGUAGE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class,
               gateFactory.forTask(taskView));
-        this.indexer = indexer;
-        this.languageGuesser = languageGuesser;
-        project = Project.project((String) taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT));
-        minOcrConfidence = propertiesProvider.get(OCR_MIN_CONFIDENCE_OPT).map(Integer::parseInt)
-                                             .orElse(DEFAULT_OCR_MIN_CONFIDENCE);
+        LanguageOptions options = propertiesProvider.toRecord(LanguageOptions.class);
+        project = Project.project(options.defaultProject());
+        stage = new LanguageStage(indexer, languageGuesser, options);
     }
 
     @Override
@@ -66,76 +52,34 @@ public class LanguageDetectTask extends PipelineTask<String> {
         super.call();
         logger.info("re-detecting document languages for project {} from queue {} with {} worker(s)", project.name,
                     inputQueue.getName(), nbWorkers);
-        DetectionCounters counters = new DetectionCounters();
-        runWorkers(() -> drainQueue(PipelineTask::causedByInterrupt, entry -> detectLanguage(entry, counters)));
-        logSummary(counters);
-        return counters.nbProcessed();
+        AtomicReference<StageResult> total = new AtomicReference<>(StageResult.EMPTY);
+        StageContext<Void> ctx = new StageContext<>() {
+            public Project project() { return project; }
+            public Map<String, Object> options() { return Map.of(); }
+            public boolean isCancelled() { return Thread.currentThread().isInterrupted(); }
+            public void emit(List<Void> out) { /* LANGUAGE is a terminal stage: nothing flows downstream */ }
+        };
+        runWorkers(() -> drainQueue(PipelineTask::causedByInterrupt, entry -> total.accumulateAndGet(
+                stage.process(List.of(entry), ctx), StageResult::plus)));
+        StageResult result = total.get();
+        logSummary(result);
+        return result.updated() + result.unchanged();
     }
 
-    private void detectLanguage(String queueEntry, DetectionCounters counters) {
-        try {
-            DocReference ref = DocReference.parse(queueEntry);
-            Document document = getDocument(indexer, project.name, ref, SOURCE_EXCLUDES);
-            if (document == null) {
-                counters.skipped().incrementAndGet();
-                return;
-            }
-            updateLanguage(document, ref, counters);
-        } catch (IOException | RuntimeException e) {
-            recordFailure(queueEntry, counters, e);
-        }
-    }
-
-    /** A cancelled worker ends its drain; anything else is one document going wrong, counted and re-runnable. */
-    private void recordFailure(String queueEntry, DetectionCounters counters, Throwable failure) {
-        if (causedByInterrupt(failure)) {
-            Thread.currentThread().interrupt();
-            return;
-        }
-        logger.error("language detection failed for queue entry <{}>", queueEntry, failure);
-        counters.failed().incrementAndGet();
-    }
-
-    private void updateLanguage(Document document, DocReference ref, DetectionCounters counters) throws IOException {
-        Object ocrConfidence =
-                ofNullable(document.getMetadata()).map(metadata -> metadata.get(OCR_CONFIDENCE_KEY)).orElse(null);
-        Language guess =
-                languageGuesser.guess(document.getContent(), document.getPath(), ocrConfidence, minOcrConfidence);
-        if (guess == document.getLanguage()) {
-            counters.unchanged().incrementAndGet();
-            return;
-        }
-        indexer.update(project.name, document.getId(), Map.of("language", guess.name()), ref.routing());
-        counters.updated().incrementAndGet();
-    }
-
-    private void logSummary(DetectionCounters counters) {
+    private void logSummary(StageResult result) {
         logger.info("language re-detection done: {} updated, {} unchanged, {} skipped, {} failed",
-                    counters.updated().get(), counters.unchanged().get(), counters.skipped().get(),
-                    counters.failed().get());
-        logRerunNeeded(counters.skipped().get(), "could not be retrieved from the index and kept their language");
+                    result.updated(), result.unchanged(), result.skipped(), result.failed());
+        logRerunNeeded(result.skipped(), "could not be retrieved from the index and kept their language");
         // A failed document keeps the language it had, since nothing was written for it, so a plain re-run
         // redoes exactly those. Deliberate: one unreadable document does not fail a corpus-wide run, only a
         // dead worker does (see WorkersFailed).
-        logRerunNeeded(counters.failed().get(), "failed language detection");
+        logRerunNeeded(result.failed(), "failed language detection");
     }
 
     private void logRerunNeeded(long nbDocuments, String reason) {
         if (nbDocuments > 0) {
             logger.error("{} document(s) {} in project {}, re-run the LANGUAGE stage for them", nbDocuments, reason,
                          project.name);
-        }
-    }
-
-    /** The four tallies of a run: they are written by every worker and read together, so they travel as one. */
-    private record DetectionCounters(AtomicLong updated, AtomicLong unchanged, AtomicLong skipped, AtomicLong failed) {
-        DetectionCounters() {
-            this(new AtomicLong(), new AtomicLong(), new AtomicLong(), new AtomicLong());
-        }
-
-        /** Documents whose language this run settled, the two outcomes an operator counts as done. */
-        long nbProcessed() {
-            return updated.get() + unchanged.get();
         }
     }
 }

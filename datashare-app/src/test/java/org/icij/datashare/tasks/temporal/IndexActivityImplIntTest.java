@@ -52,7 +52,7 @@ public class IndexActivityImplIntTest {
                                                  WorkflowOptions.newBuilder().setTaskQueue(WORKFLOWS_DEFAULT)
                                                                 .setWorkflowId(es.getIndexName()).build())
                     .run(ScanOptions.defaultValues(), tmp.getRoot().toPath(), es.getIndexName(),
-                         IndexOptions.fromPropertiesProvider(propertiesProvider),
+                         IndexOptions.of(propertiesProvider),
                          propertiesProvider.toRecord(ArtifactOptions.class));
         }
 

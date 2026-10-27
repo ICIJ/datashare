@@ -15,14 +15,9 @@ import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
-import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
-import org.icij.extract.extractor.ExtractorOptions;
-import org.icij.datashare.text.artifact.ArtifactType;
-import org.icij.datashare.text.artifact.FilesystemManifestRepository;
-import org.icij.datashare.text.artifact.ManifestRecorder;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
+import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
@@ -40,7 +35,6 @@ import java.time.Duration;
 import java.util.List;
 import org.icij.time.HumanDuration;
 import static java.lang.Math.max;
-import static java.lang.String.valueOf;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
@@ -62,14 +56,12 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
     private final ElasticsearchSpewerFactory spewerFactory;
     private final DocumentCollectionFactory<Path> collectionFactory;
     private final Options<String> allTaskOptions;
-    private final int minOcrConfidence;
+    private final IndexOptions indexOptions;
     private final Function<Double, Void> progressCallback;
     private long totalToProcess;
     private final AtomicInteger processed = new AtomicInteger(0);
     // entries the drainer counted as consumed but that were not documents (legacy sentinel)
     private final AtomicInteger skipped = new AtomicInteger(0);
-    private final Integer parallelism;
-    private final Integer indexTimeout;
     private final String taskId;
 
     @Inject
@@ -82,61 +74,29 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
         this.collectionFactory = factory;
         this.progressCallback = progressCallback;
         taskId = taskView.id;
-        parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt)
-                                        .orElse(Runtime.getRuntime().availableProcessors());
-        indexTimeout = getIndexTimeout();
+        indexOptions = IndexOptions.of(propertiesProvider);
         warnIfParseTimeoutDisabled();
 
         allTaskOptions = options().createFrom(Options.from(taskView.args));
-        minOcrConfidence = allTaskOptions.valueIfPresent(OCR_MIN_CONFIDENCE_OPT).map(Integer::parseInt)
-                                         .orElse(DEFAULT_OCR_MIN_CONFIDENCE);
     }
 
     @Override
     public Long call() throws Exception {
         super.call();
-        try (Extractor extractor = createExtractor(new DocumentFactory().configure(allTaskOptions), allTaskOptions)) {
-            // Opt-in artifact generation is wired here (not in the constructor) so a bad --artifacts
-            // config surfaces as a clean task error rather than a reflective-construction NackException
-            // that requeues forever. When set, extract-lib writes embed bytes to the same project root the
-            // ManifestRecorder writes manifests to.
-            ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
-            ManifestRecorder manifestRecorder = artifactOptions.artifactProjectRoot().map(projectRoot -> {
-                List<Artifact> selected =
-                        ArtifactRegistry.withDefaults(propertiesProvider.toRecord(ExtractorOptions.class))
-                                        .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
-                boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
-                boolean artifactStageRuns = new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT);
-                // Only raw falls out of the streaming parse (see ManifestRecorder): a selection naming any
-                // other type reads as a promise this stage does not keep, so say so rather than drop it in
-                // silence. Silent when ARTIFACT is coming, since the run does produce them then: a warning
-                // that fires on a correct run is one nobody reads. Once per run, not per document.
-                List<String> notAtIndexTime =
-                        selected.stream().map(Artifact::type).filter(type -> type != ArtifactType.RAW)
-                                .map(ArtifactType::token).toList();
-                if (!notAtIndexTime.isEmpty() && !artifactStageRuns) {
-                    logger.warn(
-                            "--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in " +
-                            "--stages: {}", notAtIndexTime, rawSelected ? "only the 'raw' entry will be recorded." :
-                                                            "this stage records nothing and writes no embedded payload; add 'raw' to --artifacts " +
-                                                            "to keep the embedded-download cache.");
-                }
-                // extract-lib spools every embedded document's bytes here during the parse. This payload is
-                // not manifest-only: SourceExtractor.hasCachedEmbeddedSource also reads it straight off disk
-                // to let DocumentVerifier serve an oversized embed past embeddedDocumentDownloadMaxSize. A
-                // selection that skips it here trades that cache away, and a large embed 413s instead.
-                if (rawSelected || artifactStageRuns) {
-                    extractor.setEmbedOutputPath(projectRoot);
-                }
-                return new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected,
-                                            artifactOptions.force(), taskId);
-            }).orElse(null);
-            ElasticsearchSpewer spewer =
-                    spewerFactory.create(artifactOptions.projectName(), minOcrConfidence, manifestRecorder);
-            spewer.createIndexIfNotExists();
-            DocumentConsumer consumer = new DocumentConsumer(spewer, extractor, parallelism);
+        // Opt-in artifact generation is wired in the stage's constructor, called from here (not in this task's
+        // constructor) so a bad --artifacts config surfaces as a clean task error rather than a
+        // reflective-construction NackException that requeues forever.
+        ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
+        try (IndexStage stage = new IndexStage(
+                indexOptions, artifactOptions,
+                () -> ArtifactRegistry.withDefaults(indexOptions.extractor())
+                                      .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null)),
+                new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT), taskId, this::createExtractor,
+                recorder -> spewerFactory.create(artifactOptions.projectName(),
+                                                 indexOptions.languageDetection().ocrMinConfidence(), recorder))) {
+            DocumentConsumer consumer = new DocumentConsumer(stage.spewer(), stage.extractor(), indexOptions.parallelism());
             DocumentQueueDrainer<Path> drainer = createDrainer(consumer);
-            logger.info("Processing up to {} file(s) in parallel", parallelism);
+            logger.info("Processing up to {} file(s) in parallel", indexOptions.parallelism());
             totalToProcess = drainer.drain().get() - skipped.get();
             drainer.shutdown();
             drainer.awaitTermination(10, SECONDS); // drain is finished
@@ -144,7 +104,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
 
             consumer.shutdown();
             // documents could be currently processed
-            while (!consumer.awaitTermination(indexTimeout, MINUTES)) {
+            while (!consumer.awaitTermination(indexOptions.indexTimeout(), MINUTES)) {
                 logger.info("Consumer has not terminated yet.");
             }
 
@@ -190,15 +150,6 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
 
     protected Extractor createExtractor(DocumentFactory documentFactory, Options<String> options) {
         return new Extractor(documentFactory, options);
-    }
-
-    /**
-     * Retrieves the index timeout option in minutes based on app properties.
-     *
-     * @return The number of minutes.
-     */
-    private int getIndexTimeout() {
-        return Integer.parseInt(propertiesProvider.get(INDEX_TIMEOUT_OPT).orElse(valueOf(DEFAULT_INDEX_TIMEOUT)));
     }
 
     private void warnIfParseTimeoutDisabled() {
