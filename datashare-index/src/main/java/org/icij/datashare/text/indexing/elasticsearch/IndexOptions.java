@@ -21,9 +21,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_INDEX_TIMEOUT;
  * @param documentFactory options of the DocumentFactory
  * @param extractor options of the Extractor
  */
-public record IndexOptions(int parallelism, int indexTimeout, int maxContentLength, String defaultProject,
-                           LanguageOptions languageDetection, DocumentFactoryOptions documentFactory,
-                           ExtractorOptions extractor) {
+public record IndexOptions(int parallelism, int indexTimeout, int maxContentLength, String defaultProject, LanguageOptions languageDetection, DocumentFactoryOptions documentFactory, ExtractorOptions extractor) {
     public IndexOptions {
         parallelism = parallelism == 0 ? Runtime.getRuntime().availableProcessors() : parallelism;
         indexTimeout = indexTimeout == 0 ? DEFAULT_INDEX_TIMEOUT : indexTimeout;

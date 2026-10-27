@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -217,7 +218,8 @@ public class LanguageDetectTaskTest {
     }
 
     private Long runTask(DocumentCollectionFactory<String> queueFactory, Map<String, Object> args) throws Exception {
-        return new LanguageDetectTask(queueFactory, mockEs, guesser, new UpstreamGate.Factory(taskRepository),
+        return new LanguageDetectTask(queueFactory, new StageRegistry().register(new LanguageStage(mockEs, guesser)),
+                new UpstreamGate.Factory(taskRepository),
                 new Task<>(LanguageDetectTask.class.getName(), User.local(), args), null).call();
     }
 }

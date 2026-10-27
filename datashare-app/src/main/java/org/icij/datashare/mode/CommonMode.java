@@ -26,10 +26,6 @@ import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkerOptions;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkers;
 import org.icij.datashare.asynctasks.temporal.WorkflowRegistry;
-import org.icij.datashare.tasks.temporal.IndexActivityImpl;
-import org.icij.datashare.tasks.temporal.IndexationWorkflow;
-import org.icij.datashare.tasks.temporal.IndexationWorkflowImpl;
-import org.icij.datashare.tasks.temporal.ScanActivityImpl;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -66,8 +62,16 @@ import org.icij.datashare.session.UsersIdProviderRedisCache;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
+import org.icij.datashare.asynctasks.PipelineExecutor;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.RoutingStrategy;
+import org.icij.datashare.tasks.IndexStageProcessor;
+import org.icij.datashare.tasks.LanguageStage;
+import org.icij.datashare.tasks.QueuePipelineExecutor;
+import org.icij.datashare.tasks.TemporalPipelineExecutor;
+import org.icij.datashare.tasks.temporal.StageActivityImpl;
+import org.icij.datashare.tasks.ScanStage;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.Utils;
 import org.icij.datashare.text.indexing.Indexer;
@@ -259,6 +263,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 bind(TaskModifier.class).to(TaskManagerMemory.class);
                 bind(TaskSupplier.class).to(TaskManagerMemory.class);
         }
+        bind(PipelineExecutor.class).to(
+                batchQueueType == TEMPORAL ? TemporalPipelineExecutor.class : QueuePipelineExecutor.class);
     }
 
     @Provides
@@ -532,6 +538,14 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides
     @Singleton
+    StageRegistry provideStageRegistry(Indexer indexer, LanguageGuesser languageGuesser) {
+        return new StageRegistry().register(new LanguageStage(indexer, languageGuesser))
+                                  .register(new IndexStageProcessor(indexer, languageGuesser))
+                                  .register(new ScanStage());
+    }
+
+    @Provides
+    @Singleton
     LanguageGuesser provideLanguageGuesser() {
         return new LinguaLanguageGuesser();
     }
@@ -678,13 +692,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                                        activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
                                                activityClass, taskFactory, temporal, taskRepository, 1d).getThrows(),
                                        routingStrategy, group);
-            String indexationQueue =
-                    resolveWfTaskQueue(routingStrategy, WorkflowRegistry.buildWorkflowKeyFrom(IndexationWorkflow.class),
-                                       group);
-            registry.registerWorkflow(IndexationWorkflowImpl.class, indexationQueue);
-            registry.registerActivity(new ScanActivityImpl(temporal, propertiesProvider), indexationQueue);
-            registry.registerActivity(new IndexActivityImpl(get(Indexer.class), get(LanguageGuesser.class)),
-                                      indexationQueue);
+            String pipelineQueue = TemporalPipelineExecutor.taskQueue(propertiesProvider);
+            registry.registerWorkflow(PipelineWorkflowImpl.class, pipelineQueue);
+            registry.registerActivity(new StageActivityImpl(get(StageRegistry.class), temporal), pipelineQueue);
             // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
             addCloseable(new TemporalWorkers(temporal).start(registry, registry.registeredQueues(),
                                                              TemporalWorkerOptions.defaultValues().withShutdownTimeout(

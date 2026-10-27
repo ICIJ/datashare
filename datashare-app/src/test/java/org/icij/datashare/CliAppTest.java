@@ -13,6 +13,7 @@ import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.UpstreamGate;
+import org.icij.datashare.tasks.QueuePipelineExecutor;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.user.User;
 import org.jooq.exception.DataAccessException;
@@ -32,6 +33,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.NEXT_STAGE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.TASK_MANAGER_POLLING_INTERVAL_OPT;
 import static org.mockito.ArgumentMatchers.any;
@@ -235,7 +237,7 @@ public class CliAppTest {
         Properties properties = new Properties();
         properties.setProperty("stages", "INDEX,SCAN");
 
-        assertThat(CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties)).isTrue();
+        assertThat(new QueuePipelineExecutor(mockedManager).run(new PipelineHelper(new PropertiesProvider(properties)).stages, propertiesToMap(properties))).isTrue();
 
         // stages overlap now: awaiting each one before starting the next would let a bounded queue
         // deadlock a large corpus, the upstream-task gate is what makes termination correct
@@ -256,7 +258,7 @@ public class CliAppTest {
         Properties properties = new Properties();
         properties.setProperty("stages", "SCAN,INDEX");
 
-        CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties);
+        new QueuePipelineExecutor(mockedManager).run(new PipelineHelper(new PropertiesProvider(properties)).stages, propertiesToMap(properties));
 
         // this id is how IndexTask knows to keep polling while the scan is still enqueuing
         ArgumentCaptor<Map<String, Object>> args = ArgumentCaptor.forClass(Map.class);
@@ -281,7 +283,7 @@ public class CliAppTest {
         properties.setProperty("stages", "SCAN,INDEX");
 
         // false is what makes the launcher exit non-zero instead of looking like a success
-        assertThat(CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties)).isFalse();
+        assertThat(new QueuePipelineExecutor(mockedManager).run(new PipelineHelper(new PropertiesProvider(properties)).stages, propertiesToMap(properties))).isFalse();
     }
 
     @Test
@@ -294,7 +296,7 @@ public class CliAppTest {
         Properties properties = new Properties();
         properties.setProperty("stages", "SCAN,SCAN,INDEX");
 
-        assertThat(CliApp.runPipeline(mockedManager, new PipelineHelper(new PropertiesProvider(properties)), properties)).isTrue();
+        assertThat(new QueuePipelineExecutor(mockedManager).run(new PipelineHelper(new PropertiesProvider(properties)).stages, propertiesToMap(properties))).isTrue();
 
         // twice would walk and enqueue the whole data dir a second time
         verify(mockedManager).startTask(eq(ScanTask.class), any(), any());
@@ -303,7 +305,7 @@ public class CliAppTest {
     @Test
     public void test_task_classes_maps_every_stage_to_its_task_class() {
         // asserted against the enum, so a stage added without a task class fails here
-        assertThat(EnumSet.copyOf(CliApp.TASK_CLASSES.keySet())).isEqualTo(EnumSet.complementOf(EnumSet.of(Stage.BATCHNLP)));
+        assertThat(EnumSet.copyOf(QueuePipelineExecutor.TASK_CLASSES.keySet())).isEqualTo(EnumSet.complementOf(EnumSet.of(Stage.BATCHNLP)));
     }
 
     @Test
