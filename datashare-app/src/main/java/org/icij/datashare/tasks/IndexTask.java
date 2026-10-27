@@ -87,14 +87,18 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
         // constructor) so a bad --artifacts config surfaces as a clean task error rather than a
         // reflective-construction NackException that requeues forever.
         ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
-        try (IndexStage stage = new IndexStage(
-                indexOptions, artifactOptions,
-                () -> ArtifactRegistry.withDefaults(indexOptions.extractor())
-                                      .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null)),
-                new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT), taskId, this::createExtractor,
-                recorder -> spewerFactory.create(artifactOptions.projectName(),
-                                                 indexOptions.languageDetection().ocrMinConfidence(), recorder))) {
-            DocumentConsumer consumer = new DocumentConsumer(stage.spewer(), stage.extractor(), indexOptions.parallelism());
+        try (IndexStage stage = new IndexStage(indexOptions, artifactOptions,
+                                               () -> ArtifactRegistry.withDefaults(indexOptions.extractor())
+                                                                     .select(propertiesProvider.get(ARTIFACTS_OPT)
+                                                                                               .orElse(null)),
+                                               new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT),
+                                               taskId, this::createExtractor,
+                                               recorder -> spewerFactory.create(artifactOptions.projectName(),
+                                                                                indexOptions.languageDetection()
+                                                                                            .ocrMinConfidence(),
+                                                                                recorder))) {
+            DocumentConsumer consumer =
+                    new DocumentConsumer(stage.spewer(), stage.extractor(), indexOptions.parallelism());
             DocumentQueueDrainer<Path> drainer = createDrainer(consumer);
             logger.info("Processing up to {} file(s) in parallel", indexOptions.parallelism());
             totalToProcess = drainer.drain().get() - skipped.get();

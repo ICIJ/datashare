@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.StageContext;
 import org.icij.datashare.asynctasks.StageProcessor;
@@ -31,12 +32,10 @@ public class LanguageStage implements StageProcessor<String, Void> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final LanguageGuesser languageGuesser;
-    private final int minOcrConfidence;
 
-    public LanguageStage(Indexer indexer, LanguageGuesser languageGuesser, LanguageOptions options) {
+    public LanguageStage(Indexer indexer, LanguageGuesser languageGuesser) {
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
-        this.minOcrConfidence = options.ocrMinConfidence();
     }
 
     @Override
@@ -45,18 +44,24 @@ public class LanguageStage implements StageProcessor<String, Void> {
     }
 
     @Override
+    public Class<String> itemType() {
+        return String.class;
+    }
+
+    @Override
     public StageResult process(List<String> batch, StageContext<Void> ctx) {
+        int minOcrConfidence = new PropertiesProvider(ctx.options()).toRecord(LanguageOptions.class).ocrMinConfidence();
         StageResult result = StageResult.EMPTY;
         for (String queueEntry : batch) {
             if (ctx.isCancelled()) {
                 break;
             }
-            result = result.plus(detect(queueEntry, ctx.project().name));
+            result = result.plus(detect(queueEntry, ctx.project().name, minOcrConfidence));
         }
         return result;
     }
 
-    private StageResult detect(String queueEntry, String project) {
+    private StageResult detect(String queueEntry, String project, int minOcrConfidence) {
         try {
             DocReference ref = DocReference.parse(queueEntry);
             Document document = indexer.get(project, ref.id(), ref.routing(), SOURCE_EXCLUDES);
@@ -66,7 +71,7 @@ public class LanguageStage implements StageProcessor<String, Void> {
                             "error), skipping", ref.id(), project);
                 return new StageResult(0, 0, 1, 0);
             }
-            return updateLanguage(project, document, ref);
+            return updateLanguage(project, document, ref, minOcrConfidence);
         } catch (IOException | RuntimeException e) {
             if (PipelineTask.causedByInterrupt(e)) {
                 // a cancelled worker ends its drain: the flag is set back, ctx.isCancelled() reads it
@@ -79,7 +84,8 @@ public class LanguageStage implements StageProcessor<String, Void> {
         }
     }
 
-    private StageResult updateLanguage(String project, Document document, DocReference ref) throws IOException {
+    private StageResult updateLanguage(String project, Document document, DocReference ref, int minOcrConfidence) throws
+            IOException {
         Object ocrConfidence =
                 ofNullable(document.getMetadata()).map(metadata -> metadata.get(OCR_CONFIDENCE_KEY)).orElse(null);
         Language guess =

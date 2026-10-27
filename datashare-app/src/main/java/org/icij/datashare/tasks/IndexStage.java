@@ -1,8 +1,6 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.StageContext;
-import org.icij.datashare.asynctasks.StageProcessor;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.artifact.Artifact;
@@ -32,7 +30,7 @@ import java.util.function.Supplier;
  * activity, the whole run for IndexTask, which feeds {@link #extractor()} and {@link #spewer()} to its own parallel
  * consumer. Idempotent: a re-run overwrites the document.
  */
-public class IndexStage implements StageProcessor<Path, String>, AutoCloseable {
+public class IndexStage implements AutoCloseable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ArtifactOptions artifactOptions;
     private final Supplier<List<Artifact>> selectedArtifacts;
@@ -69,11 +67,6 @@ public class IndexStage implements StageProcessor<Path, String>, AutoCloseable {
         }
     }
 
-    @Override
-    public Stage stage() {
-        return Stage.INDEX;
-    }
-
     public Extractor extractor() {
         return extractor;
     }
@@ -82,7 +75,6 @@ public class IndexStage implements StageProcessor<Path, String>, AutoCloseable {
         return spewer;
     }
 
-    @Override
     public StageResult process(List<Path> batch, StageContext<String> ctx) {
         spewer.onIndexed(document -> ctx.emit(List.of(DocReference.fromDocument(document).toQueueEntry())));
         StageResult result = StageResult.EMPTY;
@@ -120,10 +112,9 @@ public class IndexStage implements StageProcessor<Path, String>, AutoCloseable {
                                                   .map(ArtifactType::token).toList();
             if (!notAtIndexTime.isEmpty() && !artifactStageRuns) {
                 logger.warn("--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in " +
-                            "--stages: {}", notAtIndexTime,
-                            rawSelected ? "only the 'raw' entry will be recorded." :
-                                    "this stage records nothing and writes no embedded payload; add 'raw' to " +
-                                    "--artifacts to keep the embedded-download cache.");
+                            "--stages: {}", notAtIndexTime, rawSelected ? "only the 'raw' entry will be recorded." :
+                                                            "this stage records nothing and writes no embedded payload; add 'raw' to " +
+                                                            "--artifacts to keep the embedded-download cache.");
             }
             // extract-lib spools every embedded document's bytes here during the parse. This payload is
             // not manifest-only: SourceExtractor.hasCachedEmbeddedSource also reads it straight off disk

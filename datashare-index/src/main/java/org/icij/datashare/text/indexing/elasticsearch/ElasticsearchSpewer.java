@@ -23,8 +23,8 @@ public class ElasticsearchSpewer extends AbstractElasticSearchSpewer implements 
                                LanguageGuesser languageGuesser, final FieldNames fields,
                                final PropertiesProvider propertiesProvider, String indexName, int minOcrConfidence,
                                ManifestRecorder manifestRecorder) {
-        super(fields, indexer, languageGuesser, IndexOptions.of(propertiesProvider), indexName,
-              minOcrConfidence, manifestRecorder);
+        super(fields, indexer, languageGuesser, IndexOptions.of(propertiesProvider), indexName, minOcrConfidence,
+              manifestRecorder);
         this.outputQueue = outputQueueFactory.createQueue(
                 new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
         onIndexed(this::offerToNextStage);

@@ -6,7 +6,10 @@ import org.icij.datashare.text.Project;
 
 public interface StageContext<O> {
     Project project();
+
     Map<String, Object> options();
+
     boolean isCancelled();
+
     void emit(List<O> out);
 }
