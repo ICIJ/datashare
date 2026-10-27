@@ -546,8 +546,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("RuntimeException");
     }
 
-    // DocumentResource writes the index first, so an index failure commits nothing: the tags are neither in the
-    // database nor in the index. Saying so tells an agent the call is safe to retry.
+    // DocumentResource writes the index first, so an index failure leaves the database untouched. The index may
+    // hold part of the batch, because groupTagUntag accumulates across its retries before giving up.
     @Test
     public void test_tag_documents_says_so_when_only_the_index_write_failed() throws Exception {
         serveAs("local", "foo");
@@ -558,7 +558,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
-        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was saved").contains("retried");
+        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was saved in the database").contains("retry");
         assertThat(response.toString()).excludes("elasticsearch:9200");
         verifyNoInteractions(repository);
     }
@@ -573,7 +573,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
-        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was removed").contains("retried");
+        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was removed from the database").contains("retry");
         assertThat(response.toString()).excludes("elasticsearch:9200");
         verifyNoInteractions(repository);
     }
@@ -589,7 +589,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
-        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was saved");
+        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was saved in the database");
     }
 
     @Test
@@ -601,7 +601,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"]}");
 
         assertThat(response.at("/result/isError").asBoolean()).isTrue();
-        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was removed");
+        assertThat(response.at("/result/content/0/text").asText()).contains("nothing was removed from the database");
     }
 
     private static co.elastic.clients.elasticsearch._types.ElasticsearchException indexMissing() {
