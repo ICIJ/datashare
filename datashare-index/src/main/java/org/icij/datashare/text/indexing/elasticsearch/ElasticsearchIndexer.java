@@ -3,6 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.BulkIndexByScrollFailure;
 import co.elastic.clients.elasticsearch._types.Conflicts;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.Script;
 import co.elastic.clients.elasticsearch._types.Refresh;
@@ -515,17 +516,22 @@ public class ElasticsearchIndexer implements Indexer {
 
     // Elasticsearch counts the conflicts without naming them, so ask the index which documents are still not in
     // the wanted state: the caller gets ids to re-tag instead of a number it cannot act on.
-    private String unappliedIds(Project prj, List<String> documentIds, Predicate<List<String>> unapplied) throws
-            IOException {
-        client.indices().refresh(r -> r.index(prj.getId()));
-        SearchResponse<ObjectNode> response = client.search(
-                s -> s.index(prj.getId()).size(documentIds.size()).source(src -> src.filter(f -> f.includes("tags")))
-                      .query(idsQuery(documentIds)), ObjectNode.class);
-        List<String> ids =
-                response.hits().hits().stream().filter(hit -> unapplied.test(tagsOf(hit.source()))).map(Hit::id)
-                        .collect(toList());
-        return ids.size() <= UNAPPLIED_IDS_SHOWN ? ids.toString() :
-               "%s and more, %d shown".formatted(ids.subList(0, UNAPPLIED_IDS_SHOWN), UNAPPLIED_IDS_SHOWN);
+    private String unappliedIds(Project prj, List<String> documentIds, Predicate<List<String>> unapplied) {
+        try {
+            client.indices().refresh(r -> r.index(prj.getId()));
+            SearchResponse<ObjectNode> response = client.search(s -> s.index(prj.getId()).size(documentIds.size())
+                                                                      .source(src -> src.filter(
+                                                                              f -> f.includes("tags")))
+                                                                      .query(idsQuery(documentIds)), ObjectNode.class);
+            List<String> ids =
+                    response.hits().hits().stream().filter(hit -> unapplied.test(tagsOf(hit.source()))).map(Hit::id)
+                            .collect(toList());
+            return ids.size() <= UNAPPLIED_IDS_SHOWN ? ids.toString() :
+                   "%s and more, %d shown".formatted(ids.subList(0, UNAPPLIED_IDS_SHOWN), UNAPPLIED_IDS_SHOWN);
+        } catch (IOException | ElasticsearchException e) {
+            LOGGER.warn("could not list the documents left behind on {}", prj.getId(), e);
+            return "(could not list them: %s)".formatted(e.getMessage());
+        }
     }
 
     private static List<String> tagsOf(ObjectNode source) {
