@@ -22,6 +22,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.icij.datashare.text.Tag;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.slf4j.event.Level;
 
@@ -448,6 +450,21 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         String body = "{\"docIds\":[\"docId\"],\"tags\":[\"" + fortyEmoji + "\"]}";
 
         post("/api/local-datashare/documents/batchUpdate/tag", body).should().respond(200);
+    }
+
+    // tagsAsArray builds new Tag instances on every call, each with its own creation date, so calling it once per
+    // store meant validating one array and writing two others.
+    @Test
+    public void test_group_tag_writes_the_same_tags_to_both_stores() throws Exception {
+        ArgumentCaptor<Tag> indexed = ArgumentCaptor.forClass(Tag.class);
+        ArgumentCaptor<Tag> stored = ArgumentCaptor.forClass(Tag.class);
+
+        post("/api/local-datashare/documents/batchUpdate/tag", "{\"docIds\":[\"docId\"],\"tags\":[\"tag1\"]}")
+                .should().respond(200);
+
+        verify(indexer).tag(any(Project.class), anyList(), indexed.capture());
+        verify(jooqRepository).tag(any(Project.class), anyList(), stored.capture());
+        assertThat(indexed.getValue()).isSameAs(stored.getValue());
     }
 
     @Test
