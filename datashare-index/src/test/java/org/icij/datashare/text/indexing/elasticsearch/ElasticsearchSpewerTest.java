@@ -87,6 +87,19 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
+    public void test_on_indexed_listener_replaces_the_hand_off_to_the_next_stage() throws Exception {
+        List<String> indexed = new ArrayList<>();
+        spewer.onIndexed(document -> indexed.add(document.getId()));
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("listened-file.txt"));
+        document.setReader(new ParsingReader(new ByteArrayInputStream("test".getBytes())));
+
+        spewer.write(document);
+
+        assertThat(indexed).containsOnly(document.getId());
+        assertThat(documentQueueFactory.createQueue("extract:queue:nlp", String.class).size()).isEqualTo(0);
+    }
+
+    @Test
     public void test_simple_write() throws Exception {
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("test-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));

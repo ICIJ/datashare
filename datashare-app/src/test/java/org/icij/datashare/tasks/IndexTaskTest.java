@@ -10,9 +10,7 @@ import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
-import org.icij.task.Option;
 import org.icij.task.Options;
-import org.icij.task.StringOptionParser;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +20,8 @@ import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
 import java.util.HashMap;
+import java.time.Duration;
+import java.util.Optional;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -229,8 +229,8 @@ public class IndexTaskTest {
             }
         }.call();
 
-        Option<String> option = new Option<>(PARSE_TIMEOUT_OPT, StringOptionParser::new).update("48h");
-        assertThat(extractorOptions.get()).contains(option);
+        assertThat(extractorOptions.get().ifPresent(PARSE_TIMEOUT_OPT, option -> option.parse().asDuration()))
+                .isEqualTo(Optional.of(Duration.ofHours(48)));
     }
 
     private ElasticsearchSpewerFactory runIndexTask(Map<String, Object> args) throws Exception {
