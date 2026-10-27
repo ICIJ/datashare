@@ -196,6 +196,40 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
+    public void test_update_with_a_stale_running_task_keeps_task_done() throws Exception {
+        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
+        Task<?> done = new Task<>(task.id, task.name, Task.State.DONE, 1, DatashareTime.getNow(), 3, DatashareTime.getNow(), task.args, null, null);
+        Task<?> staleRunning = new Task<>(task.id, task.name, Task.State.RUNNING, 1, DatashareTime.getNow(), 3, null, task.args, null, null);
+        taskManager.insert(task, null);
+
+        taskManager.update(done);
+        taskManager.update(staleRunning);
+
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.DONE);
+    }
+
+    @Test
+    public void test_cancel_with_requeue_queues_a_running_task() {
+        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        task.setProgress(0.5);
+
+        StoreAndQueueTaskManagerImpl.cancelOrQueue(task, true);
+
+        assertThat(task.getState()).isEqualTo(Task.State.QUEUED);
+    }
+
+    @Test
+    public void test_cancel_with_requeue_keeps_a_finished_task_done() throws Exception {
+        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        taskManager.insert(task, new Group(TaskGroupType.Test));
+        task.setResult(new TaskResult<>(1));
+
+        taskManager.canceled(task, true);
+
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.DONE);
+    }
+
+    @Test
     public void test_wait_task_to_be_done() throws Exception {
         taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100000));
         long unfinished = taskManager.waitTasksToBeDone(200, TimeUnit.MILLISECONDS);
