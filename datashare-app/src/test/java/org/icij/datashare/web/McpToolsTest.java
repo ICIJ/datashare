@@ -390,6 +390,23 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         verifyNoInteractions(indexer);
     }
 
+    // An index that does not exist gets past the grant check, which only knows the user's memberships, and used
+    // to reach the catch-all and answer with nothing but the exception type.
+    @Test
+    public void test_get_document_on_a_project_with_no_index_is_not_found() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get("foo", "doc1", "doc1")).thenThrow(
+                new co.elastic.clients.elasticsearch._types.ElasticsearchException("es/get",
+                        co.elastic.clients.elasticsearch._types.ErrorResponse.of(r -> r.status(404).error(
+                                co.elastic.clients.elasticsearch._types.ErrorCause.of(
+                                        c -> c.type("index_not_found_exception").reason("no such index [foo]"))))));
+
+        JsonNode response = call("local", "get_document", "{\"project\":\"foo\",\"id\":\"doc1\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: foo");
+    }
+
     @Test
     public void test_get_document_unknown_id_is_not_found() throws Exception {
         serveAs("local", "foo");
