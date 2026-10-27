@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Integer.MAX_VALUE;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.Fail.fail;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.ArgumentMatchers.any;
@@ -95,6 +96,29 @@ public class ElasticsearchIndexerVersionConflictTest {
         indexerWith(clientAlwaysConflictingOn("doc2")).untag(index(), List.of("doc1", "doc2"), tag("invoice"));
     }
 
+    @Test
+    public void test_more_documents_left_behind_than_the_message_shows_says_so() throws Exception {
+        List<String> documentIds = indexDocuments(21);
+
+        expected.expect(IOException.class);
+        expected.expectMessage("21 document(s) in version conflict");
+        expected.expectMessage("and more, 20 shown");
+
+        indexerWith(clientApplyingNothing(21)).tag(index(), documentIds, tag("urgent"));
+    }
+
+    @Test
+    public void test_exactly_as_many_documents_as_the_message_shows_claims_nothing_more() throws Exception {
+        List<String> documentIds = indexDocuments(20);
+
+        try {
+            indexerWith(clientApplyingNothing(20)).tag(index(), documentIds, tag("urgent"));
+            fail("the batch left 20 documents behind, it should have thrown");
+        } catch (IOException e) {
+            assertThat(e.getMessage()).contains("doc20]").excludes("and more");
+        }
+    }
+
     // doc1 already carries the tag, so the script noops: nothing was updated and there is no conflict to clear.
     @Test
     public void test_a_batch_without_conflict_is_not_retried() throws Exception {
@@ -107,6 +131,28 @@ public class ElasticsearchIndexerVersionConflictTest {
 
     private Project index() {
         return project(es.getIndexName());
+    }
+
+    private List<String> indexDocuments(int count) throws IOException {
+        List<String> documentIds = new ArrayList<>();
+        for (int i = 1; i <= count; i++) {
+            String id = "doc" + i;
+            es.client.index(r -> r.index(es.getIndexName()).id(id).document(
+                    JsonObjectMapper.getMapper().createObjectNode().put("type", "Document")).refresh(Refresh.True));
+            documentIds.add(id);
+        }
+        return documentIds;
+    }
+
+    // Answers every call the way Elasticsearch answers a batch where every document conflicted: nothing applied.
+    private ElasticsearchClient clientApplyingNothing(int conflicts) throws IOException {
+        ElasticsearchClient stalled = spy(es.client);
+        doAnswer(invocation -> new UpdateByQueryResponse.Builder().total((long) conflicts).updated(0L)
+                                                                  .versionConflicts((long) conflicts)
+                                                                  .build()).when(stalled)
+                                                                           .updateByQuery(
+                                                                                   any(UpdateByQueryRequest.class));
+        return stalled;
     }
 
     private ElasticsearchIndexer indexerWith(ElasticsearchClient client) {
