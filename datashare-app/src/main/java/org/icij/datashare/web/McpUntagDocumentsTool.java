@@ -37,10 +37,11 @@ public class McpUntagDocumentsTool implements McpTool {
         } catch (ForbiddenException e) {
             throw new McpToolException.Forbidden(batch.project(), e);
         } catch (IOException | ElasticsearchException e) {
-            // Same as in McpTagDocumentsTool: the index is written first, so its failure commits nothing.
+            // Same as in McpTagDocumentsTool: the index goes first, so the database has nothing, and the index
+            // may have changed part of the batch before failing.
             throw new McpToolException(
-                    "the search index refused the write, so nothing was removed and no document was changed; the " +
-                    "call can be retried", e);
+                    "the search index refused the write, so nothing was removed from the database; part of the " +
+                    "batch may already be untagged in the index, which a retry of this call will reconcile", e);
         }
         return Map.of("project", batch.project(), "untagged", batch.docIds().size(), "tags", batch.tags());
     }

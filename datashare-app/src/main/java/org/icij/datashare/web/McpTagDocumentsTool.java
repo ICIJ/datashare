@@ -50,12 +50,14 @@ public class McpTagDocumentsTool implements McpTool {
         } catch (BadRequestException e) {
             throw McpToolException.InvalidArgument.because(e.getMessage());
         } catch (IOException | ElasticsearchException e) {
-            // DocumentResource writes the index before the database, so an index failure commits nothing at all.
-            // Only the indexer raises these two, the database raising a DataAccessException instead, so reaching
-            // here means nothing was written and the call can simply be tried again.
+            // DocumentResource writes the index before the database and only the indexer raises these two, the
+            // database raising a DataAccessException instead, so the database has nothing. The index may have
+            // changed part of the batch before failing, since groupTagUntag accumulates across its retries, hence
+            // "may" rather than a promise. Both sides ignore what is already in the wanted state, so a retry
+            // converges.
             throw new McpToolException(
-                    "the search index refused the write, so nothing was saved and no document was changed; the " +
-                    "call can be retried", e);
+                    "the search index refused the write, so nothing was saved in the database; part of the batch " +
+                    "may already be tagged in the index, which a retry of this call will reconcile", e);
         }
         return Map.of("project", batch.project, "tagged", batch.docIds.size(), "tags", batch.tags);
     }
