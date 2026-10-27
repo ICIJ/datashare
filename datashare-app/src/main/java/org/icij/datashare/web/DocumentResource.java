@@ -384,9 +384,10 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         requireGranted(context, projectId);
-        requireTagsWithinColumnWidth(query.tagsAsArray((User) context.currentUser()));
-        indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
-        repository.tag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
+        Tag[] tags = query.tagsAsArray((User) context.currentUser());
+        requireTagsWithinColumnWidth(tags);
+        indexer.tag(project(projectId), query.docIds, tags);
+        repository.tag(project(projectId), query.docIds, tags);
         return Payload.ok();
     }
 
@@ -402,8 +403,9 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         requireGranted(context, projectId);
-        indexer.untag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
-        repository.untag(project(projectId), query.docIds, query.tagsAsArray((User) context.currentUser()));
+        Tag[] tags = query.tagsAsArray((User) context.currentUser());
+        indexer.untag(project(projectId), query.docIds, tags);
+        repository.untag(project(projectId), query.docIds, tags);
         return Payload.ok();
     }
 
