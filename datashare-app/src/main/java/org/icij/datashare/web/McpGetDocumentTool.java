@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
@@ -48,7 +49,19 @@ public class McpGetDocumentTool implements McpTool {
             throw new McpToolException.Forbidden(address.project, e);
         } catch (NotFoundException e) {
             throw new McpToolException.NotFound(address.id, e);
+        } catch (ElasticsearchException e) {
+            // A project whose index does not exist reaches here rather than the grant check, which only knows the
+            // user's memberships. Reported by name so an agent can tell it from a cluster that is down, which the
+            // catch-all answers with the exception type alone.
+            if ("index_not_found_exception".equals(indexNotFound(e))) {
+                throw new McpToolException.NotFound(address.project, e);
+            }
+            throw e;
         }
+    }
+
+    private static String indexNotFound(ElasticsearchException e) {
+        return e.error() == null ? null : e.error().type();
     }
 
     private ExtractedText readText(DocumentAddress address, TextWindow window, Context context) throws IOException {
