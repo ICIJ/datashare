@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Integer.MAX_VALUE;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.IntStream.rangeClosed;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
 import static org.icij.datashare.text.Project.project;
@@ -99,6 +101,32 @@ public class ElasticsearchIndexerVersionConflictTest {
         indexerWith(clientAlwaysConflictingOn("doc2")).untag(index(), List.of("doc1", "doc2"), tag("invoice"));
     }
 
+    // A conflict means another writer got there first. If it applied the same label the index is already in the
+    // wanted state, and failing the request would skip the database write for a batch that has nothing left to do.
+    @Test
+    public void test_a_conflict_that_left_nothing_behind_is_not_a_failure() throws Exception {
+        es.client.update(u -> u.index(es.getIndexName()).id("doc2")
+                               .script(sc -> sc.lang("painless").source("ctx._source.tags.add('urgent')"))
+                               .refresh(Refresh.True), ObjectNode.class);
+
+        assertThat(indexerWith(clientAlwaysConflictingOn("doc2")).tag(index(), List.of("doc1", "doc2"),
+                                                                     tag("urgent"))).isTrue();
+    }
+
+    // Over index.max_result_window the listing cannot answer, and an answer nobody could get is not an empty one:
+    // reporting the conflict matters more than naming the documents.
+    @Test
+    public void test_a_batch_too_large_to_list_is_still_reported() throws Exception {
+        List<String> documentIds = rangeClosed(1, 10_001).mapToObj(i -> "doc" + i).collect(toList());
+
+        try {
+            indexerWith(clientApplyingNothing(10_001)).tag(index(), documentIds, tag("urgent"));
+            fail("the batch left documents behind, it should have thrown");
+        } catch (IOException e) {
+            assertThat(e.getMessage()).contains("10001 documents is over the 10000 a search answers");
+        }
+    }
+
     @Test
     public void test_a_listing_that_fails_keeps_the_conflict_as_the_cause() throws Exception {
         ElasticsearchClient conflicting = clientAlwaysConflictingOn("doc2");
@@ -123,14 +151,13 @@ public class ElasticsearchIndexerVersionConflictTest {
         indexerWith(clientAlwaysConflictingOn("doc2")).tag(index(), List.of("doc1", "doc2"), tag("INVOICE"));
     }
 
+    // No document carries INVOICE, so the untag script has nothing to remove from any of them: the conflicts left
+    // nothing behind and the batch answers rather than raising.
     @Test
-    public void test_an_untag_of_a_label_that_differs_only_by_case_names_no_document() throws Exception {
-        try {
-            indexerWith(clientAlwaysConflictingOn("doc2")).untag(index(), List.of("doc1", "doc2"), tag("INVOICE"));
-            fail("the batch never converged, it should have thrown");
-        } catch (IOException e) {
-            assertThat(e.getMessage()).contains("[]");
-        }
+    public void test_an_untag_of_a_label_that_differs_only_by_case_leaves_nothing_behind() throws Exception {
+        ElasticsearchIndexer indexer = indexerWith(clientAlwaysConflictingOn("doc2"));
+
+        assertThat(indexer.untag(index(), List.of("doc1", "doc2"), tag("INVOICE"))).isFalse();
     }
 
     @Test

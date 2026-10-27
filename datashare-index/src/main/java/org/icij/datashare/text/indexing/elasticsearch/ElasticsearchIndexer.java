@@ -77,6 +77,8 @@ public class ElasticsearchIndexer implements Indexer {
     // and untagged. Both scripts are idempotent, so replaying the request only re-applies what the conflict skipped.
     private static final int CONFLICT_ATTEMPTS = 3;
     private static final int UNAPPLIED_IDS_SHOWN = 20;
+    // index.max_result_window: a search cannot answer for a bigger batch, so it cannot clear it either
+    private static final int MAX_RESULT_WINDOW = 10_000;
     static private final Map<String, String> memoizeScript = new HashMap<>();
 
     public static Map<String, String> getMemoizeScript() {
@@ -502,9 +504,13 @@ public class ElasticsearchIndexer implements Indexer {
                 return updated > 0;
             }
             if (attempt == CONFLICT_ATTEMPTS) {
+                Optional<String> left = unappliedIds(prj, documentIds, unapplied);
+                if (left.isEmpty()) {
+                    return updated > 0;
+                }
                 throw new IOException(
                         "update_by_query on %s left %d document(s) in version conflict after %d attempt(s), not applied: %s".formatted(
-                                prj.getId(), conflicts, attempt, unappliedIds(prj, documentIds, unapplied)));
+                                prj.getId(), conflicts, attempt, left.get()));
             }
             LOGGER.info("update_by_query on {} hit {} version conflict(s), refreshing and retrying ({}/{})",
                         prj.getId(), conflicts, attempt, CONFLICT_ATTEMPTS);
@@ -515,8 +521,14 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     // Elasticsearch counts the conflicts without naming them, so ask the index which documents are still not in
-    // the wanted state: the caller gets ids to re-tag instead of a number it cannot act on.
-    private String unappliedIds(Project prj, List<String> documentIds, Predicate<List<String>> unapplied) {
+    // the wanted state: the caller gets ids to re-tag instead of a number it cannot act on. An empty answer means
+    // the conflicting writer left the index in the wanted state after all, anything else has to be reported, a
+    // listing nobody could make included: an unknown state is not an empty one.
+    private Optional<String> unappliedIds(Project prj, List<String> documentIds, Predicate<List<String>> unapplied) {
+        if (documentIds.size() > MAX_RESULT_WINDOW) {
+            return Optional.of(
+                    "(%d documents is over the %d a search answers)".formatted(documentIds.size(), MAX_RESULT_WINDOW));
+        }
         try {
             client.indices().refresh(r -> r.index(prj.getId()));
             SearchResponse<ObjectNode> response = client.search(s -> s.index(prj.getId()).size(documentIds.size())
@@ -526,11 +538,15 @@ public class ElasticsearchIndexer implements Indexer {
             List<String> ids =
                     response.hits().hits().stream().filter(hit -> unapplied.test(tagsOf(hit.source()))).map(Hit::id)
                             .collect(toList());
-            return ids.size() <= UNAPPLIED_IDS_SHOWN ? ids.toString() :
-                   "%s and more, %d shown".formatted(ids.subList(0, UNAPPLIED_IDS_SHOWN), UNAPPLIED_IDS_SHOWN);
+            if (ids.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(ids.size() <= UNAPPLIED_IDS_SHOWN ? ids.toString() :
+                               "%s and more, %d shown".formatted(ids.subList(0, UNAPPLIED_IDS_SHOWN),
+                                                                 UNAPPLIED_IDS_SHOWN));
         } catch (IOException | ElasticsearchException e) {
             LOGGER.warn("could not list the documents left behind on {}", prj.getId(), e);
-            return "(could not list them: %s)".formatted(e.getMessage());
+            return Optional.of("(could not list them: %s)".formatted(e.getMessage()));
         }
     }
 
