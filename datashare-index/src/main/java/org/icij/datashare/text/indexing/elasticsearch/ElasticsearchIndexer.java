@@ -73,11 +73,9 @@ import static org.icij.datashare.utils.JsonUtils.mapObjectTomapJsonData;
 public class ElasticsearchIndexer implements Indexer {
     public final ElasticsearchClient client;
     private final ElasticsearchConfiguration esCfg;
-    // Conflicts.Proceed keeps a document modified between the search and the update out of failures: it is only
-    // counted in versionConflicts and silently left untagged. Both tag scripts are idempotent, so re-running the
-    // whole request is a no-op for the documents already updated and only re-applies what the conflict skipped.
+    // Conflicts.Proceed leaves a document modified during the batch out of failures, counted in versionConflicts
+    // and untagged. Both scripts are idempotent, so replaying the request only re-applies what the conflict skipped.
     private static final int CONFLICT_ATTEMPTS = 3;
-    // a batch can hold thousands of ids: name enough of them to act on, not the whole list
     private static final int UNAPPLIED_IDS_SHOWN = 20;
     static private final Map<String, String> memoizeScript = new HashMap<>();
 
@@ -505,7 +503,7 @@ public class ElasticsearchIndexer implements Indexer {
             }
             if (attempt == CONFLICT_ATTEMPTS) {
                 throw new IOException(
-                        "update_by_query on %s left %d document(s) in version conflict after %d attempt(s): they were modified during the batch and are not updated, %s".formatted(
+                        "update_by_query on %s left %d document(s) in version conflict after %d attempt(s), not applied: %s".formatted(
                                 prj.getId(), conflicts, attempt, unappliedIds(prj, documentIds, unapplied)));
             }
             LOGGER.info("update_by_query on {} hit {} version conflict(s), refreshing and retrying ({}/{})",
@@ -522,22 +520,22 @@ public class ElasticsearchIndexer implements Indexer {
         client.indices().refresh(r -> r.index(prj.getId()));
         SearchResponse<ObjectNode> response = client.search(
                 s -> s.index(prj.getId()).size(min(documentIds.size(), UNAPPLIED_IDS_SHOWN))
-                      .source(src -> src.fetch(false)).query(
-                              q -> q.bool(b -> b.must(idsQuery(documentIds)).must(unapplied))), ObjectNode.class);
+                      .source(src -> src.fetch(false))
+                      .query(q -> q.bool(b -> b.must(idsQuery(documentIds)).must(unapplied))), ObjectNode.class);
         List<String> ids = response.hits().hits().stream().map(Hit::id).collect(toList());
         return documentIds.size() > ids.size() || ids.size() < UNAPPLIED_IDS_SHOWN ? ids.toString() :
                "%s and more, %d shown".formatted(ids, UNAPPLIED_IDS_SHOWN);
     }
 
     private static Query idsQuery(List<String> documentIds) {
-        return Query.of(q -> q.terms(qt -> qt.field("_id").terms(
-                tq -> tq.value(documentIds.stream().map(FieldValue::of).collect(toList())))));
+        return Query.of(q -> q.terms(qt -> qt.field("_id").terms(tq -> tq.value(
+                documentIds.stream().map(FieldValue::of).collect(toList())))));
     }
 
     private static Query missingOneOfTheTags(Tag[] tags) {
         return Query.of(q -> q.bool(b -> {
-            stream(tags).forEach(t -> b.should(sh -> sh.bool(
-                    nb -> nb.mustNot(mn -> mn.term(tq -> tq.field("tags").value(t.label))))));
+            stream(tags).forEach(t -> b.should(
+                    sh -> sh.bool(nb -> nb.mustNot(mn -> mn.term(tq -> tq.field("tags").value(t.label))))));
             return b.minimumShouldMatch("1");
         }));
     }

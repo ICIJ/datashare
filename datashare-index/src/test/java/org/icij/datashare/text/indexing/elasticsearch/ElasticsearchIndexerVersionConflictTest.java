@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.Project;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Integer.MAX_VALUE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
@@ -30,15 +32,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
- * Every test here runs against the cluster, with the default refresh policy, Refresh.False, the one production
- * runs: a retry that cannot see the writes of the attempt before it conflicts on the documents it just updated
- * and never converges.
+ * Elasticsearch will not produce a version conflict on demand and racing a writer against the batch would only
+ * buy a flaky test, so the conflict is simulated. The simulation stays faithful to Conflicts.Proceed: the
+ * document that did not conflict really is updated and the conflicting one really is skipped, so the retry runs
+ * unstubbed against a real index and the assertions read real documents back.
  *
- * A document modified between the search and the update of an update_by_query is counted in version_conflicts and
- * left out of failures. Elasticsearch will not produce one on demand and racing a writer against the batch would
- * only buy a flaky test, so the conflict is simulated here. The simulation stays faithful to Conflicts.Proceed:
- * the document that did not conflict really is updated in the cluster and the conflicting one really is skipped,
- * so the retry runs unstubbed against a real index and the assertions read real documents back.
+ * Every indexer here keeps the default refresh policy, Refresh.False, the one production runs: a retry that
+ * cannot see the writes of the attempt before it conflicts on the documents it just updated and never converges.
  */
 public class ElasticsearchIndexerVersionConflictTest {
     @ClassRule
@@ -55,13 +55,11 @@ public class ElasticsearchIndexerVersionConflictTest {
         }
     }
 
-    // The conflicting document is the one the batch left behind: the retry has to be what puts the tag on it.
     @Test
     public void test_the_document_left_behind_by_a_conflict_is_tagged_by_the_retry() throws Exception {
-        ElasticsearchClient conflicting = clientConflictingOn("doc2", 1);
-        ElasticsearchIndexer realIndexer = new ElasticsearchIndexer(conflicting, new PropertiesProvider());
+        ElasticsearchClient conflicting = clientConflictingOnceOn("doc2");
 
-        assertThat(realIndexer.tag(project(es.getIndexName()), List.of("doc1", "doc2"), tag("urgent"))).isTrue();
+        assertThat(indexerWith(conflicting).tag(index(), List.of("doc1", "doc2"), tag("urgent"))).isTrue();
 
         verify(conflicting, times(2)).updateByQuery(any(UpdateByQueryRequest.class));
         assertThat(tagsOf("doc2")).containsOnly("invoice", "urgent");
@@ -71,57 +69,63 @@ public class ElasticsearchIndexerVersionConflictTest {
 
     @Test
     public void test_an_untag_conflict_is_cleared_by_the_retry_too() throws Exception {
-        ElasticsearchClient conflicting = clientConflictingOn("doc2", 1);
-        ElasticsearchIndexer realIndexer = new ElasticsearchIndexer(conflicting, new PropertiesProvider());
+        ElasticsearchIndexer indexer = indexerWith(clientConflictingOnceOn("doc2"));
 
-        assertThat(realIndexer.untag(project(es.getIndexName()), List.of("doc1", "doc2"), tag("invoice"))).isTrue();
+        assertThat(indexer.untag(index(), List.of("doc1", "doc2"), tag("invoice"))).isTrue();
 
         assertThat(tagsOf("doc1")).isEmpty();
         assertThat(tagsOf("doc2")).isEmpty();
     }
 
-    // Elasticsearch counts conflicts without naming them, so a batch that never converges has to say which
-    // documents are still missing the tag, not just how many.
     @Test
     public void test_a_version_conflict_that_never_clears_names_the_documents_left_behind() throws Exception {
-        ElasticsearchClient conflicting = clientConflictingOn("doc2", 3);
-        ElasticsearchIndexer realIndexer = new ElasticsearchIndexer(conflicting, new PropertiesProvider());
-
         expected.expect(IOException.class);
         expected.expectMessage(es.getIndexName());
         expected.expectMessage("1 document(s) in version conflict");
         expected.expectMessage("[doc2]");
 
-        realIndexer.tag(project(es.getIndexName()), List.of("doc1", "doc2"), tag("urgent"));
+        indexerWith(clientAlwaysConflictingOn("doc2")).tag(index(), List.of("doc1", "doc2"), tag("urgent"));
     }
 
     @Test
     public void test_an_untag_that_never_clears_names_the_documents_still_carrying_the_tag() throws Exception {
-        ElasticsearchClient conflicting = clientConflictingOn("doc2", 3);
-        ElasticsearchIndexer realIndexer = new ElasticsearchIndexer(conflicting, new PropertiesProvider());
-
         expected.expect(IOException.class);
         expected.expectMessage("[doc2]");
 
-        realIndexer.untag(project(es.getIndexName()), List.of("doc1", "doc2"), tag("invoice"));
+        indexerWith(clientAlwaysConflictingOn("doc2")).untag(index(), List.of("doc1", "doc2"), tag("invoice"));
     }
 
     // doc1 already carries the tag, so the script noops: nothing was updated and there is no conflict to clear.
     @Test
     public void test_a_batch_without_conflict_is_not_retried() throws Exception {
         ElasticsearchClient counting = spy(es.client);
-        ElasticsearchIndexer realIndexer = new ElasticsearchIndexer(counting, new PropertiesProvider());
 
-        assertThat(realIndexer.tag(project(es.getIndexName()), List.of("doc1"), tag("invoice"))).isFalse();
+        assertThat(indexerWith(counting).tag(index(), List.of("doc1"), tag("invoice"))).isFalse();
 
         verify(counting, times(1)).updateByQuery(any(UpdateByQueryRequest.class));
+    }
+
+    private Project index() {
+        return project(es.getIndexName());
+    }
+
+    private ElasticsearchIndexer indexerWith(ElasticsearchClient client) {
+        return new ElasticsearchIndexer(client, new PropertiesProvider());
+    }
+
+    private ElasticsearchClient clientConflictingOnceOn(String conflictingId) throws IOException {
+        return clientConflictingOn(conflictingId, 1);
+    }
+
+    private ElasticsearchClient clientAlwaysConflictingOn(String conflictingId) throws IOException {
+        return clientConflictingOn(conflictingId, MAX_VALUE);
     }
 
     /**
      * Answers the first conflictingAttempts update_by_query calls the way Elasticsearch answers one that hit a
      * conflict: the request is run for real on every document but the conflicting one, and the count of what was
-     * skipped comes back in versionConflicts. Later calls go to the cluster untouched, so a retry that is given
-     * the chance to converge is the real thing.
+     * skipped comes back in versionConflicts. Later calls go to the cluster untouched, so a retry given the
+     * chance to converge is the real thing.
      */
     private ElasticsearchClient clientConflictingOn(String conflictingId, int conflictingAttempts) throws
             IOException {
