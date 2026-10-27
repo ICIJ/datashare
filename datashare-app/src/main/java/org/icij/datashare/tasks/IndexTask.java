@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -137,21 +138,31 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
             DocumentConsumer consumer = new DocumentConsumer(spewer, extractor, parallelism);
             DocumentQueueDrainer<Path> drainer = createDrainer(consumer);
             logger.info("Processing up to {} file(s) in parallel", parallelism);
-            totalToProcess = drainer.drain().get() - skipped.get();
-            drainer.shutdown();
-            drainer.awaitTermination(10, SECONDS); // drain is finished
-            logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
+            try {
+                totalToProcess = drainer.drain().get() - skipped.get();
+                drainer.shutdown();
+                drainer.awaitTermination(10, SECONDS); // drain is finished
+                logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
 
-            consumer.shutdown();
-            // documents could be currently processed
-            while (!consumer.awaitTermination(indexTimeout, MINUTES)) {
-                logger.info("Consumer has not terminated yet.");
+                consumer.shutdown();
+                // documents could be currently processed
+                while (!consumer.awaitTermination(indexTimeout, MINUTES)) {
+                    logger.info("Consumer has not terminated yet.");
+                }
+
+                if (consumer.getReporter() != null)
+                    consumer.getReporter().close();
+                logger.info("exiting");
+                return totalToProcess;
+            } catch (InterruptedException e) {
+                // cancelled: stop polling first so no entry reaches a stopped consumer, then let the extractions
+                // already started finish rather than leave them half-indexed
+                drainer.shutdownNow();
+                drainer.awaitTermination(10, SECONDS);
+                consumer.shutdown();
+                consumer.awaitTermination(indexTimeout, MINUTES);
+                throw e;
             }
-
-            if (consumer.getReporter() != null)
-                consumer.getReporter().close();
-            logger.info("exiting");
-            return totalToProcess;
         }
     }
 
@@ -166,7 +177,13 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable {
                 skipped.incrementAndGet();
                 return;
             }
-            consumer.accept(path);
+            try {
+                consumer.accept(path);
+            } catch (RejectedExecutionException e) {
+                // the drain was stopped while waiting for a free extraction slot: put the entry back for a later run
+                inputQueue.add(path);
+                throw e;
+            }
             processed.incrementAndGet();
             if (progressCallback != null) {
                 progressCallback.apply(getProgressRate());
