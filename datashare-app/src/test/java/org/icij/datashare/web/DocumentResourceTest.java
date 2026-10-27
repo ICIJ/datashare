@@ -322,8 +322,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         post("/api/local-datashare/documents/batchUpdate/untag", "{\"tags\": [\"tag1\", \"tag2\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(200);
     }
 
-    // The index is written first so a failure there commits nothing to the database: a tag in PostgreSQL that
-    // never reached the index drifts silently, while a failed request the user can retry does not.
+    // A tag in PostgreSQL that never reached the index drifts silently, a failed request the user can retry does not.
     @Test
     public void test_a_failing_index_leaves_the_database_untouched_when_tagging() throws Exception {
         when(indexer.tag(eq(project("local-datashare")), anyString(), anyString(), eq(tag("tag1")))).thenThrow(
