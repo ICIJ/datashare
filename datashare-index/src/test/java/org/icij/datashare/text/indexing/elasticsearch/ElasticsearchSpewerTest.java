@@ -16,7 +16,6 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.artifact.*;
@@ -42,6 +41,7 @@ import java.io.StringReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -61,13 +61,17 @@ import static org.junit.Assert.assertTrue;
 public class ElasticsearchSpewerTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private final MemoryDocumentCollectionFactory<String> documentQueueFactory = new MemoryDocumentCollectionFactory<>();
-    // built by the factory, as in production: it hands each indexed document to the queue of the next stage
-    private final ElasticsearchSpewer spewer = new ElasticsearchSpewerFactory(
+    // what a stage hands to the next one: the queue entry of each indexed document
+    private final List<String> handedOver = new CopyOnWriteArrayList<>();
+    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new FieldNames(),
             new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
-            documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
+            text -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider(new HashMap<>() {{
                 put("defaultProject", es.getIndexName());
-    }})).create(es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+    }})), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+
+    {
+        spewer.onIndexed(document -> handedOver.add(DocReference.fromDocument(document).toQueueEntry()));
+    }
 
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
 
@@ -98,7 +102,7 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         assertThat(indexed).containsOnly(document.getId());
-        assertThat(documentQueueFactory.createQueue("extract:queue:nlp", String.class).size()).isEqualTo(0);
+        assertThat(handedOver).isEmpty();
     }
 
     @Test
@@ -115,7 +119,7 @@ public class ElasticsearchSpewerTest {
         assertEquals(new HashMap<String, String>() {{
             put("name", "Document");
         }}, nodeToMap(documentFields.source()).get("join"));
-        assertThat(documentQueueFactory.createQueue("extract:queue:nlp", String.class).size()).isEqualTo(1);
+        assertThat(handedOver).hasSize(1);
     }
 
     @Test
@@ -559,10 +563,8 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document);
 
-        List<String> queueEntries = new ArrayList<>();
-        documentQueueFactory.createQueue("extract:queue:nlp", String.class).drainTo(queueEntries);
-        assertThat(queueEntries).contains(document.getId());
-        assertThat(queueEntries.stream().anyMatch(entry -> entry.endsWith("|" + document.getId()))).isTrue();
+        assertThat(handedOver).contains(document.getId());
+        assertThat(handedOver.stream().anyMatch(entry -> entry.endsWith("|" + document.getId()))).isTrue();
     }
 
     @Test

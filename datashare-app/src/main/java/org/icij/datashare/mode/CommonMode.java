@@ -66,7 +66,7 @@ import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
 import org.icij.datashare.asynctasks.PipelineExecutor;
 import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.tasks.DatashareTaskFactory;
-import org.icij.datashare.tasks.IndexStageProcessor;
+import org.icij.datashare.tasks.IndexStage;
 import org.icij.datashare.tasks.LanguageStage;
 import org.icij.datashare.tasks.QueuePipelineExecutor;
 import org.icij.datashare.tasks.TemporalPipelineExecutor;
@@ -528,8 +528,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @Singleton
     StageRegistry provideStageRegistry(Indexer indexer, LanguageGuesser languageGuesser) {
         return new StageRegistry().register(new LanguageStage(indexer, languageGuesser))
-                                  .register(new IndexStageProcessor(indexer, languageGuesser))
-                                  .register(new ScanStage());
+                                  .register(new IndexStage(indexer, languageGuesser)).register(new ScanStage());
     }
 
     @Provides

@@ -1,13 +1,18 @@
 package org.icij.datashare.tasks;
 
 import org.apache.tika.parser.pdf.PDFParserConfig;
+import org.icij.datashare.PipelineHelper;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.test.LogbackAppenderWrapper;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.ArtifactPath;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
 import org.icij.task.Options;
@@ -15,91 +20,69 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.function.BiFunction;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDENCE;
 import static org.icij.datashare.cli.DatashareCliOptions.PARSE_TIMEOUT_OPT;
 import static org.icij.datashare.user.User.nullUser;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 public class IndexTaskTest {
     private final LogbackAppenderWrapper logWrapper = new LogbackAppenderWrapper();
     private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
+    private final Indexer indexer = mock(Indexer.class);
+    private final Extractor extractor = mock(Extractor.class);
 
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
 
     @Test
     public void test_options_include_ocr() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
-            put("queueName", "test:queue");
-        }}), null);
+        IndexTask indexTask = indexTask(Map.of("queueName", "test:queue"));
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("ocr=");
     }
 
     @Test
     public void test_options_include_ocr_language() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
-            put("queueName", "test:queue");
-        }}), null);
+        IndexTask indexTask = indexTask(Map.of("queueName", "test:queue"));
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("ocrLanguage=");
     }
 
     @Test
     public void test_options_include_ocr_retry_confidence() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
-            put("queueName", "test:queue");
-        }}), null);
+        IndexTask indexTask = indexTask(Map.of("queueName", "test:queue"));
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("ocrRetryConfidence=");
     }
 
     @Test
     public void test_options_include_ocr_page_seg_mode() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
-            put("queueName", "test:queue");
-        }}), null);
+        IndexTask indexTask = indexTask(Map.of("queueName", "test:queue"));
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("ocrPageSegMode=");
     }
 
     @Test
     public void test_options_include_progress_heartbeat_interval() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
-            put("queueName", "test:queue");
-        }}), null);
+        IndexTask indexTask = indexTask(Map.of("queueName", "test:queue"));
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("progressHeartbeatInterval=");
     }
 
     @Test
     public void test_options_include_language() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
-            put("language", "FRENCH");
-            put("queueName", "test:queue");
-        }}), null);
+        IndexTask indexTask = indexTask(Map.of("language", "FRENCH", "queueName", "test:queue"));
 
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("language=");
@@ -107,11 +90,7 @@ public class IndexTaskTest {
     
     @Test
     public void test_ocr_strategy_reaches_extractor() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
-                new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
-                    put("queueName", "test:queue");
-                }}), null);
+        IndexTask indexTask = indexTask(Map.of("queueName", "test:queue"));
 
         Options<String> bound = indexTask.options().createFrom(Options.from(Map.of(
                 "ocrStrategy", "AUTO", "queueName", "test:queue")));
@@ -124,11 +103,7 @@ public class IndexTaskTest {
 
     @Test
     public void test_max_embed_depth_reaches_extractor() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
-                new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
-                    put("queueName", "test:queue");
-                }}), null);
+        IndexTask indexTask = indexTask(Map.of("queueName", "test:queue"));
 
         Options<String> bound = indexTask.options().createFrom(Options.from(Map.of(
                 "maxEmbedDepth", "3", "queueName", "test:queue")));
@@ -140,11 +115,7 @@ public class IndexTaskTest {
 
     @Test
     public void test_warns_when_parse_timeout_disabled() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-
-        new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
-                new Task<>(IndexTask.class.getName(), nullUser(),
-                        Map.of(PARSE_TIMEOUT_OPT, "0", "queueName", "test:queue")), null);
+        run(Map.of(PARSE_TIMEOUT_OPT, "0"));
 
         assertThat(logWrapper.logs(Level.WARN).stream()
                 .anyMatch(l -> l.contains("parseTimeout") && l.contains("DISABLED"))).isTrue();
@@ -152,99 +123,83 @@ public class IndexTaskTest {
 
     @Test
     public void test_does_not_warn_when_parse_timeout_enabled() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-
-        new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
-                new Task<>(IndexTask.class.getName(), nullUser(),
-                        Map.of(PARSE_TIMEOUT_OPT, "48h", "queueName", "test:queue")), null);
+        run(Map.of(PARSE_TIMEOUT_OPT, "48h"));
 
         assertThat(logWrapper.logs(Level.WARN).stream()
                 .anyMatch(l -> l.contains("parseTimeout"))).isFalse();
     }
 
     @Test
-    public void test_artifacts_without_artifact_dir_does_not_throw_at_construction() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+    public void test_artifacts_without_artifact_dir_does_not_throw_at_construction() {
         // Must not throw: --artifacts validation is deferred to call() so a bad config is a clean
         // task error, not a reflective-construction NackException that requeues forever.
-        new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
-                new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>() {{
-                    put("queueName", "test:queue");
-                    put("artifacts", "true");
-                }}), null);
+        indexTask(Map.of("queueName", "test:queue", "artifacts", "true"));
     }
 
     @Test
-    public void test_the_spewer_is_built_for_the_project_name_over_the_default_project() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = runIndexTask(Map.of("defaultProject", "foo", "projectName", "bar"));
+    public void test_the_index_is_created_for_the_project_name_over_the_default_project() throws Exception {
+        run(Map.of("defaultProject", "foo", "projectName", "bar"));
 
-        verify(spewerFactory).create(eq("bar"), eq(DEFAULT_OCR_MIN_CONFIDENCE), isNull());
+        verify(indexer).createIndex("bar");
     }
 
     @Test
-    public void test_the_spewer_is_built_for_the_default_project_without_project_name() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = runIndexTask(Map.of("defaultProject", "foo"));
+    public void test_the_index_is_created_for_the_default_project_without_project_name() throws Exception {
+        run(Map.of("defaultProject", "foo"));
 
-        verify(spewerFactory).create(eq("foo"), eq(DEFAULT_OCR_MIN_CONFIDENCE), isNull());
+        verify(indexer).createIndex("foo");
     }
 
     @Test
-    public void test_a_manifest_recorder_is_passed_to_the_spewer_when_artifacts_are_enabled() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = runIndexTask(Map.of("artifacts", "raw",
-                "artifactDir", artifactDir.getRoot().getPath(), "defaultProject", "foo"));
+    public void test_the_embedded_payload_is_spooled_to_the_project_root_when_raw_artifacts_are_enabled() throws Exception {
+        run(Map.of("artifacts", "raw", "artifactDir", artifactDir.getRoot().getPath(), "defaultProject", "foo"));
 
-        verify(spewerFactory).create(eq("foo"), eq(DEFAULT_OCR_MIN_CONFIDENCE), notNull());
+        verify(extractor).setEmbedOutputPath(ArtifactPath.projectRoot(artifactDir.getRoot().toPath(), "foo"));
     }
 
     @Test
-    public void test_ocr_min_confidence_is_passed_to_the_spewer() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = runIndexTask(Map.of("ocrMinConfidence", "70"));
+    public void test_the_extractor_is_closed_when_the_run_ends() throws Exception {
+        run(Map.of());
 
-        verify(spewerFactory).create(any(), eq(70), isNull());
-    }
-
-    @Test
-    public void test_the_index_is_created_by_the_spewer() throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        Mockito.when(spewerFactory.create(any(), anyInt(), any())).thenReturn(spewer);
-
-        runIndexTask(spewerFactory, Map.of());
-
-        verify(spewer).createIndexIfNotExists();
+        verify(extractor).close();
     }
 
     @Test
     public void test_parse_timeout_value_reaches_extractor_options() throws Exception {
         AtomicReference<Options<String>> extractorOptions = new AtomicReference<>();
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        Mockito.when(spewerFactory.create(any(), anyInt(), any())).thenReturn(mock(ElasticsearchSpewer.class));
-        new IndexTask(spewerFactory, new MemoryDocumentCollectionFactory<>(), new UpstreamGate.Factory(taskRepository),
-                new Task<>(IndexTask.class.getName(), nullUser(),
-                        Map.of(PARSE_TIMEOUT_OPT, "48h", "queueName", "test:queue")), null) {
-            @Override
-            protected Extractor createExtractor(DocumentFactory documentFactory, Options<String> options) {
-                extractorOptions.set(options);
-                return super.createExtractor(documentFactory, options);
-            }
-        }.call();
+
+        run(Map.of(PARSE_TIMEOUT_OPT, "48h"), (documentFactory, options) -> {
+            extractorOptions.set(options);
+            return extractor;
+        });
 
         assertThat(extractorOptions.get().ifPresent(PARSE_TIMEOUT_OPT, option -> option.parse().asDuration()))
                 .isEqualTo(Optional.of(Duration.ofHours(48)));
     }
 
-    private ElasticsearchSpewerFactory runIndexTask(Map<String, Object> args) throws Exception {
-        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
-        Mockito.when(spewerFactory.create(any(), anyInt(), any())).thenReturn(mock(ElasticsearchSpewer.class));
-        runIndexTask(spewerFactory, args);
-        return spewerFactory;
+    /** The task, for what it declares: its queues are never read. */
+    private IndexTask indexTask(Map<String, Object> args) {
+        return new IndexTask(mock(DocumentCollectionFactory.class), mock(DocumentCollectionFactory.class),
+                new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH)),
+                new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), args), null);
     }
 
-    private void runIndexTask(ElasticsearchSpewerFactory spewerFactory, Map<String, Object> args) throws Exception {
+    private void run(Map<String, Object> args) throws Exception {
+        run(args, (documentFactory, options) -> extractor);
+    }
+
+    /** Runs the task over one path: the extractor is the mock, so the path is never read. */
+    private void run(Map<String, Object> args, BiFunction<DocumentFactory, Options<String>, Extractor> extractorFactory)
+            throws Exception {
         Map<String, Object> taskArgs = new HashMap<>(args);
         taskArgs.put("queueName", "test:queue");
-        new IndexTask(spewerFactory, new MemoryDocumentCollectionFactory<>(), new UpstreamGate.Factory(taskRepository),
-                new Task<>(IndexTask.class.getName(), nullUser(), taskArgs), null).call();
+        MemoryDocumentCollectionFactory<Path> input = new MemoryDocumentCollectionFactory<>();
+        input.createQueue(new PipelineHelper(new PropertiesProvider(taskArgs)).getQueueNameFor(Stage.INDEX), Path.class)
+             .add(Paths.get("a-file.txt"));
+        new IndexTask(input, new MemoryDocumentCollectionFactory<>(),
+                new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH, extractorFactory)),
+                new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), nullUser(), taskArgs),
+                null).call();
     }
 
     @After

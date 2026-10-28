@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
@@ -12,7 +13,6 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.artifact.ArtifactCoverageChecker;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
@@ -55,9 +55,9 @@ public class ArtifactCoverageIntTest {
 
         // 2. INDEX with a real spewer (same construction as IndexTaskIntTest:59-60)
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
-        ElasticsearchSpewerFactory spewerFactory = new ElasticsearchSpewerFactory(indexer, stringQueueFactory,
-                text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewerFactory, indexQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(indexQueueFactory, stringQueueFactory,
+                new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH)),
+                new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         // 3. ENQUEUEIDX -> ARTIFACT (queue test:queue:artifact), then the task itself
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
