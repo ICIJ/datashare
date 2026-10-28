@@ -39,7 +39,6 @@ public class ElasticsearchConfiguration {
     static final String SETTINGS_RESOURCE_NAME_WINDOWS = "datashare_index_settings_windows.json";
     static final String ENTITIES_MAPPING_RESOURCE_NAME = "datashare_entities_index_mappings.json";
     static final String ENTITIES_SETTINGS_RESOURCE_NAME = "datashare_entities_index_settings.json";
-    static final int INDEX_MAX_RESULT_WINDOW = 100000;
     static Logger LOGGER = LoggerFactory.getLogger(ElasticsearchConfiguration.class);
     static protected final int DEFAULT_SEARCH_FROM = 0;
     static protected final int DEFAULT_SEARCH_SIZE = 10000;

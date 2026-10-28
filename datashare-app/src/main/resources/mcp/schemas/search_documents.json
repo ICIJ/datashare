@@ -4,7 +4,7 @@
     "project": {"type": "string", "description": "project id"},
     "query": {"type": "string", "description": "Elasticsearch query_string syntax"},
     "size": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10},
-    "from": {"type": "integer", "minimum": 0, "maximum": 10000, "default": 0, "description": "index of the first hit, for paging; from + size cannot exceed 10000"}
+    "from": {"type": "integer", "minimum": 0, "maximum": 9999, "default": 0, "description": "index of the first hit, for paging; from + size cannot exceed 10000. Pages are taken from separate searches, so a document indexed between two calls can shift a hit from one page to the next"}
   },
   "required": ["project", "query"]
 }
