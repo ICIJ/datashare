@@ -1,10 +1,21 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.tika.exception.TikaException;
+import static org.fest.assertions.Assertions.assertThat;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
@@ -15,29 +26,15 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.artifact.ArtifactCoverageChecker;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.queue.DocumentQueue;
-import org.icij.spewer.FieldNames;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.event.Level;
 import org.xml.sax.SAXException;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.fest.assertions.Assertions.assertThat;
 
 /** Chaos/resilience audit for the ARTIFACT pipeline: kill-and-resume convergence,
  *  higher parallelism, and a corrupt member among valid siblings. As with
@@ -67,9 +64,9 @@ public class ArtifactChaosIntTest {
         NastyCorpus.buildInto(corpusDir.getRoot().toPath()).forEach(indexQueue::add);
 
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
-        ElasticsearchSpewerFactory spewerFactory = new ElasticsearchSpewerFactory(indexer, stringQueueFactory,
-                text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewerFactory, indexQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(indexQueueFactory, stringQueueFactory,
+                new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH)),
+                new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
@@ -185,9 +182,9 @@ public class ArtifactChaosIntTest {
         NastyCorpus.buildInto(corpusDir.getRoot().toPath()).forEach(indexQueue::add);
 
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
-        ElasticsearchSpewerFactory spewerFactory = new ElasticsearchSpewerFactory(indexer, stringQueueFactory,
-                text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewerFactory, indexQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(indexQueueFactory, stringQueueFactory,
+                new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH)),
+                new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
@@ -241,9 +238,9 @@ public class ArtifactChaosIntTest {
         indexQueue.add(corruptZip);
 
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
-        ElasticsearchSpewerFactory spewerFactory = new ElasticsearchSpewerFactory(indexer, stringQueueFactory,
-                text -> Language.ENGLISH, new FieldNames(), props);
-        new IndexTask(spewerFactory, indexQueueFactory, new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
+        new IndexTask(indexQueueFactory, stringQueueFactory,
+                new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH)),
+                new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();

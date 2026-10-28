@@ -41,7 +41,7 @@ public class TemporalPipelineExecutorIntTest {
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(PipelineWorkflowImpl.class, queue);
         registry.registerActivity(new StageActivityImpl(new StageRegistry().register(new ScanStage()).register(
-                new IndexStageProcessor(indexer.withRefresh(Refresh.True), text -> Language.ENGLISH)),
+                new IndexStage(indexer.withRefresh(Refresh.True), text -> Language.ENGLISH)),
                 temporal.interlocutor()), queue);
 
         boolean completed;
