@@ -650,6 +650,33 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(response.at("/error/message").asText()).contains("doc_ids").contains("query");
     }
 
+    // An explicit JSON null for one side, with the other side absent, must read as "neither", not as "present":
+    // McpArguments.optionalText/requireTexts both resolve a NullNode away, so a naive presence check (has) that
+    // treats a null value as present would let this slip past the xor guard and crash the write downstream.
+    @Test
+    public void test_tag_documents_rejects_an_explicit_null_query_with_no_doc_ids() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"query\":null,\"tags\":[\"t\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("doc_ids").contains("query");
+        verifyNoInteractions(repository, indexer);
+    }
+
+    @Test
+    public void test_tag_documents_rejects_an_explicit_null_doc_ids_with_no_query() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":null,\"tags\":[\"t\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("doc_ids").contains("query");
+        verifyNoInteractions(repository, indexer);
+    }
+
     @Test
     public void test_tag_documents_by_id_still_writes_in_one_call_when_confirmed_is_given() throws Exception {
         serveAs("local", "foo");
