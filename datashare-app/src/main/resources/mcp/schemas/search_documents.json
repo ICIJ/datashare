@@ -3,7 +3,8 @@
   "properties": {
     "project": {"type": "string", "description": "project id"},
     "query": {"type": "string", "description": "Elasticsearch query_string syntax"},
-    "size": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10}
+    "size": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10},
+    "from": {"type": "integer", "minimum": 0, "maximum": 10000, "default": 0, "description": "index of the first hit, for paging; from + size cannot exceed 10000"}
   },
   "required": ["project", "query"]
 }

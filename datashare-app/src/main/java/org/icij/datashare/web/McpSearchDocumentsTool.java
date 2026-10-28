@@ -16,7 +16,10 @@ import java.util.Map;
 
 public class McpSearchDocumentsTool implements McpTool {
     private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();
+    // index.max_result_window: a search cannot answer for a hit beyond it, so a page past it is not an empty one
+    private static final int MAX_RESULT_WINDOW = 10_000;
     private static final McpArguments.IntArgument SIZE = new McpArguments.IntArgument("size", 10, 1, 50);
+    private static final McpArguments.IntArgument FROM = new McpArguments.IntArgument("from", 0, 0, MAX_RESULT_WINDOW);
     private final Indexer indexer;
 
     @Inject
@@ -37,7 +40,9 @@ public class McpSearchDocumentsTool implements McpTool {
     @Override
     public Object call(JsonNode arguments, Context context) throws IOException {
         String project = requireSingleProject(arguments);
-        Map<String, Object> body = searchBody(McpArguments.requireText(arguments, "query"), SIZE.readFrom(arguments));
+        Map<String, Object> body =
+                searchBody(McpArguments.requireText(arguments, "query"), requirePageInWindow(arguments),
+                           SIZE.readFrom(arguments));
         return McpSearchResult.from(search(project, body, context));
     }
 
@@ -60,6 +65,14 @@ public class McpSearchDocumentsTool implements McpTool {
             }
             throw McpToolException.InvalidArgument.invalid("query");
         }
+    }
+
+    private static int requirePageInWindow(JsonNode arguments) {
+        int from = FROM.readFrom(arguments);
+        if (from + SIZE.readFrom(arguments) > MAX_RESULT_WINDOW) {
+            throw McpToolException.InvalidArgument.invalid("from");
+        }
+        return from;
     }
 
     private static String requireSingleProject(JsonNode arguments) {
@@ -95,13 +108,13 @@ public class McpSearchDocumentsTool implements McpTool {
         return response;
     }
 
-    private static Map<String, Object> searchBody(String query, int size) {
+    private static Map<String, Object> searchBody(String query, int from, int size) {
         Map<String, Object> highlightContent =
                 Map.of("max_analyzed_offset", 999999, "fragment_size", 280, "number_of_fragments", 2);
         Map<String, Object> documentsMatchingQuery =
                 Map.of("must", Map.of("query_string", Map.of("query", query)), "filter",
                        Map.of("term", Map.of("type", "Document")));
-        return Map.of("size", size, "_source", List.of("path", "contentType"), "query",
+        return Map.of("from", from, "size", size, "_source", List.of("path", "contentType"), "query",
                       Map.of("bool", documentsMatchingQuery), "highlight",
                       Map.of("fields", Map.of("content", highlightContent)));
     }
