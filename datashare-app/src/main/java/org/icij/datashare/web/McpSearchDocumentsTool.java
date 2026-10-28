@@ -42,8 +42,10 @@ public class McpSearchDocumentsTool implements McpTool {
         String project = requireSingleProject(arguments);
         int from = FROM.readFrom(arguments);
         int size = SIZE.readFrom(arguments);
+        // The sum is what the window refuses, so naming only from sends a caller whose size is the problem to the
+        // wrong argument.
         if (from + size > MAX_RESULT_WINDOW) {
-            throw McpToolException.InvalidArgument.invalid("from");
+            throw McpToolException.InvalidArgument.invalid("from + size");
         }
         return McpSearchResult.from(
                 search(project, searchBody(McpArguments.requireText(arguments, "query"), from, size), context));

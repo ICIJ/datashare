@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * The part of an Elasticsearch search response an MCP client needs: no _source beyond path and type. {@code relation}
  * is Elasticsearch's own word on the total: "eq" counts every match, "gte" means the count stopped at
- * track_total_hits and there are at least that many.
+ * Elasticsearch's default track_total_hits, a setting Datashare does not override, and there are at least that many.
  */
 record McpSearchResult(long total, String relation, List<McpSearchResult.SearchHit> hits) {
     static McpSearchResult from(JsonNode response) {
