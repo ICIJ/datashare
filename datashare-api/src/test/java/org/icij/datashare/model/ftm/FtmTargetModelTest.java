@@ -1,6 +1,7 @@
 package org.icij.datashare.model.ftm;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.EntityType;
 import org.icij.datashare.model.ModelEntity;
@@ -142,5 +143,64 @@ public class FtmTargetModelTest {
         });
 
         assertThat(conflicts).isEmpty();
+    }
+
+    @Test
+    public void test_a_type_carries_the_label_the_ontology_gives_it() {
+        assertThat(model.type("Person").get().label()).isEqualTo("Person");
+        assertThat(model.type("LegalEntity").get().label()).isEqualTo("Legal entity");
+    }
+
+    @Test
+    public void test_a_property_carries_the_label_the_ontology_gives_it() {
+        assertThat(model.property("Person", "birthDate").get().label()).isEqualTo("Birth date");
+        assertThat(model.property("Person", "vatCode").get().label()).isEqualTo("V.A.T. Identifier");
+    }
+
+    @Test
+    public void test_a_type_carries_its_featured_properties_in_the_ontology_s_order() {
+        assertThat(model.type("Person").get().featured()).isEqualTo(List.of("name", "nationality", "birthDate"));
+        assertThat(model.type("Employment").get().featured()).isEqualTo(
+                List.of("employer", "employee", "role", "startDate", "endDate"));
+    }
+
+    @Test
+    public void test_a_type_carries_its_caption_properties_in_the_ontology_s_order() {
+        assertThat(model.type("Employment").get().caption()).isEqualTo(List.of("role"));
+        assertThat(model.type("Thing").get().caption()).isEqualTo(List.of("name"));
+    }
+
+    @Test
+    public void test_a_type_the_ontology_features_nothing_for_has_an_empty_list() {
+        assertThat(model.type("Page").get().featured()).isEmpty();
+        assertThat(model.type("Page").get().caption()).isEmpty();
+    }
+
+    @Test
+    public void test_a_featured_name_no_property_matches_is_dropped() throws IOException {
+        JsonNode root;
+        try (InputStream stream = Model.class.getResourceAsStream("/defaultModel.json")) {
+            root = JsonObjectMapper.getMapper().readTree(stream);
+        }
+        ((ArrayNode) root.path("schemata").path("Person").path("featured")).add("birthDat");
+        Model patched = Model.fromJson(JsonObjectMapper.getMapper(), root);
+
+        EntityType person = FtmTargetModel.type(patched.getSchema("Person"), root.path("schemata"));
+
+        assertThat(person.featured()).isEqualTo(List.of("name", "nationality", "birthDate"));
+    }
+
+    @Test
+    public void test_types_are_ordered_so_the_serialized_ontology_is_stable_across_restarts() {
+        List<String> keys = List.copyOf(model.types().keySet());
+
+        assertThat(keys).isEqualTo(keys.stream().sorted().toList());
+    }
+
+    @Test
+    public void test_a_type_s_properties_are_ordered_too() {
+        List<String> keys = List.copyOf(model.type("Person").get().properties().keySet());
+
+        assertThat(keys).isEqualTo(keys.stream().sorted().toList());
     }
 }

@@ -2,6 +2,7 @@ package org.icij.datashare.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -13,7 +14,12 @@ public interface TargetModel {
 
     String version();
 
-    Optional<EntityType> type(String name);
+    /** Every type this model declares, keyed by name. */
+    Map<String, EntityType> types();
+
+    default Optional<EntityType> type(String name) {
+        return Optional.ofNullable(types().get(name));
+    }
 
     /**
      * Writes the entity in this model's native JSON form, without validating it: an entity that

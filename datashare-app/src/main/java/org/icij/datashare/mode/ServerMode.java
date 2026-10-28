@@ -138,7 +138,7 @@ public class ServerMode extends CommonMode {
                      .add(DocumentUserRecommendationResource.class).add(BatchSearchResource.class)
                      .add(PathBannerResource.class).add(ExtractionMappingResource.class).add(EntityExportResource.class)
                      .add(FtmResource.class).add(NerResource.class).add(ApiKeyResource.class).add(ProjectResource.class)
-                     .add(ContentTypeResource.class).add(McpResource.class).filter(ApiKeyFilter.class)
-                     .filter(Filter.class).filter(CsrfFilter.class);
+                     .add(ContentTypeResource.class).add(McpResource.class).add(ModelResource.class)
+                     .filter(ApiKeyFilter.class).filter(Filter.class).filter(CsrfFilter.class);
     }
 }
