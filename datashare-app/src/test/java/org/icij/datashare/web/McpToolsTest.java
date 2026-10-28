@@ -629,6 +629,197 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         verify(indexer, never()).untag(any(Project.class), anyList(), any(Tag[].class));
     }
 
+    // Builds a _search response whose hits are exactly `count` documents, the shape a resolved batch has when it
+    // fills the size it asked for.
+    private static String fullBatchSearchResponse(int count, String relation) {
+        StringBuilder hits = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                hits.append(',');
+            }
+            hits.append("{\"_id\":\"doc").append(i).append("\"}");
+        }
+        return "{\"hits\":{\"total\":{\"value\":" + count + ",\"relation\":\"" + relation + "\"},"
+               + "\"hits\":[" + hits + "]}}";
+    }
+
+    @Test
+    public void test_confirmed_tag_by_query_writes_the_resolved_ids() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":2,\"relation\":\"eq\"},"
+                + "\"hits\":[{\"_id\":\"doc1\"},{\"_id\":\"doc2\"}]}}");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"passeport\"],\"confirmed\":true}"));
+
+        verify(indexer).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), any(Tag[].class));
+        verify(repository).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), any(Tag[].class));
+        assertThat(result.get("tagged").asInt()).isEqualTo(2);
+        assertThat(result.get("more").asBoolean()).isFalse();
+        assertThat(result.has("next_query")).isFalse();
+    }
+
+    @Test
+    public void test_confirmed_tag_by_query_refreshes_the_index_after_writing() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"},\"hits\":[{\"_id\":\"doc1\"}]}}");
+
+        call("local", "tag_documents",
+             "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"passeport\"],\"confirmed\":true}");
+
+        verify(indexer).executeRaw(eq("POST"), eq("foo/_refresh"), any());
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(indexer);
+        order.verify(indexer).tag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        order.verify(indexer).executeRaw(eq("POST"), eq("foo/_refresh"), any());
+    }
+
+    // The case the design exists for: a search cannot page past index.max_result_window, so the only way to reach
+    // the rest of the matches is a query that excludes what this batch just tagged.
+    @Test
+    public void test_a_full_batch_returns_the_self_excluding_continuation_query() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                fullBatchSearchResponse(10000, "gte"));
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"passeport\"],\"confirmed\":true}"));
+
+        assertThat(result.get("more").asBoolean()).isTrue();
+        assertThat(result.get("next_query").asText())
+                .isEqualTo("(content:passeport) AND NOT (tags:\"passeport\")");
+        assertThat(result.get("message").asText()).contains("at least").contains("next_query");
+    }
+
+    @Test
+    public void test_the_continuation_query_of_an_untag_keeps_the_tagged_documents() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                fullBatchSearchResponse(10000, "gte"));
+
+        JsonNode result = payload(call("local", "untag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"a\",\"b\"],\"confirmed\":true}"));
+
+        assertThat(result.get("more").asBoolean()).isTrue();
+        assertThat(result.get("next_query").asText())
+                .isEqualTo("(content:passeport) AND (tags:\"a\" OR tags:\"b\")");
+    }
+
+    @Test
+    public void test_the_continuation_query_of_a_multi_tag_write_excludes_only_fully_tagged_documents()
+            throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                fullBatchSearchResponse(10000, "gte"));
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"a\",\"b\"],\"confirmed\":true}"));
+
+        assertThat(result.get("next_query").asText())
+                .isEqualTo("(content:passeport) AND NOT (tags:\"a\" AND tags:\"b\")");
+    }
+
+    @Test
+    public void test_the_continuation_query_quotes_a_tag_carrying_query_syntax() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                fullBatchSearchResponse(10000, "gte"));
+        String tagValue = "a:b \"c\"";
+        String tagsJson = MAPPER.writeValueAsString(List.of(tagValue));
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":" + tagsJson + ",\"confirmed\":true}"));
+
+        String quote = "\"";
+        String escapedQuote = "\\" + quote;
+        String expectedClause = "tags:" + quote + "a:b " + escapedQuote + "c" + escapedQuote + quote;
+        assertThat(result.get("next_query").asText())
+                .isEqualTo("(content:passeport) AND NOT (" + expectedClause + ")");
+    }
+
+    @Test
+    public void test_a_confirmed_query_matching_nothing_writes_nothing() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:nope\",\"tags\":[\"passeport\"],\"confirmed\":true}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(0);
+        assertThat(result.get("more").asBoolean()).isFalse();
+        verify(repository, never()).tag(any(Project.class), anyList(), any(Tag[].class));
+        verify(indexer, never()).tag(any(Project.class), anyList(), any(Tag[].class));
+        verify(indexer, never()).executeRaw(eq("POST"), eq("foo/_refresh"), any());
+    }
+
+    @Test
+    public void test_the_batch_is_sized_to_the_write_budget() throws Exception {
+        serveAs("local", "foo");
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
+        List<String> twentyTags = new java.util.ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            twentyTags.add("\"t" + i + "\"");
+        }
+        String tags = "[" + String.join(",", twentyTags) + "]";
+
+        call("local", "tag_documents",
+             "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":" + tags + ",\"confirmed\":true}");
+
+        JsonNode sent = MAPPER.readTree(body.getValue());
+        assertThat(sent.get("size").asInt()).isEqualTo(5000);
+    }
+
+    @Test
+    public void test_a_refresh_failure_does_not_undo_a_successful_write() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":2,\"relation\":\"eq\"},"
+                + "\"hits\":[{\"_id\":\"doc1\"},{\"_id\":\"doc2\"}]}}");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_refresh"), any()))
+                .thenThrow(new java.io.IOException("connection refused to elasticsearch:9200"));
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"passeport\"],\"confirmed\":true}"));
+
+        verify(indexer).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), any(Tag[].class));
+        verify(repository).tag(eq(new Project("foo")), eq(List.of("doc1", "doc2")), any(Tag[].class));
+        assertThat(result.get("tagged").asInt()).isEqualTo(2);
+        assertThat(result.get("message").asText()).contains("next_query may not be accurate yet");
+    }
+
+    // The case that drove the design: a first confirmed call fills its batch, then a second confirmed call with
+    // the continuation query it handed back finds nothing left, so the exhaustion is visible rather than an
+    // endless loop on the same first batch.
+    @Test
+    public void test_a_query_continued_to_exhaustion_stops_when_nothing_matches() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
+                .thenReturn(fullBatchSearchResponse(10000, "gte"))
+                .thenReturn("{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
+
+        JsonNode first = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"passeport\"],\"confirmed\":true}"));
+        assertThat(first.get("more").asBoolean()).isTrue();
+        String nextQuery = first.get("next_query").asText();
+
+        JsonNode second = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"" + nextQuery.replace("\"", "\\\"")
+                + "\",\"tags\":[\"passeport\"],\"confirmed\":true}"));
+
+        assertThat(second.get("more").asBoolean()).isFalse();
+        assertThat(second.get("tagged").asInt()).isEqualTo(0);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<String>> writtenIds = ArgumentCaptor.forClass(List.class);
+        verify(indexer, org.mockito.Mockito.times(1)).tag(any(Project.class), writtenIds.capture(),
+                                                           any(Tag[].class));
+        verify(repository, org.mockito.Mockito.times(1)).tag(any(Project.class), anyList(), any(Tag[].class));
+        assertThat(writtenIds.getValue().size()).isEqualTo(10000);
+    }
+
     @Test
     public void test_tag_documents_rejects_a_query_and_doc_ids_together() throws Exception {
         serveAs("local", "foo");

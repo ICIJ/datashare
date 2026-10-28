@@ -5,10 +5,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import org.icij.datashare.web.errors.ForbiddenException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 
 public class McpUntagDocumentsTool implements McpTool {
+    private static final Logger logger = LoggerFactory.getLogger(McpUntagDocumentsTool.class);
     private final DocumentResource documentResource;
     private final McpTagByQuery tagByQuery;
 
@@ -37,9 +40,11 @@ public class McpUntagDocumentsTool implements McpTool {
     public Object call(JsonNode arguments, Context context) throws IOException {
         McpTagDocumentsTool.BatchTag batch = McpTagDocumentsTool.BatchTag.from(arguments);
         if (batch.query() != null) {
-            // Task 3 does the confirmed write; until then a query call always only counts, whatever confirmed is.
-            return McpTagByQuery.confirmation("untag", batch, tagByQuery.resolve(batch.project(), batch.query(), 0,
-                                                                                  context));
+            if (!batch.confirmed()) {
+                return McpTagByQuery.confirmation("untag", batch,
+                        tagByQuery.resolve(batch.project(), batch.query(), 0, context));
+            }
+            return writeQueryBatch(batch, context);
         }
         try {
             documentResource.groupUntagDocument(batch.project(), batch.writeFor(batch.docIds()), context);
@@ -53,5 +58,41 @@ public class McpUntagDocumentsTool implements McpTool {
                     "batch may already be untagged in the index, which a retry of this call will reconcile", e);
         }
         return Map.of("project", batch.project(), "untagged", batch.docIds().size(), "tags", batch.tags());
+    }
+
+    // Untagging is not capped by the write budget, so its batch is sized to the id cap alone.
+    private Object writeQueryBatch(McpTagDocumentsTool.BatchTag batch, Context context) throws IOException {
+        int size = McpTagByQuery.batchSize(batch.tags().size(), false);
+        McpTagByQuery.Batch resolved = tagByQuery.resolve(batch.project(), batch.query(), size, context);
+        boolean more = resolved.ids().size() == size;
+        String refreshCaveat = null;
+        if (!resolved.ids().isEmpty()) {
+            try {
+                documentResource.groupUntagDocument(batch.project(), batch.writeFor(resolved.ids()), context);
+            } catch (ForbiddenException e) {
+                throw new McpToolException.Forbidden(batch.project(), e);
+            } catch (IOException | ElasticsearchException e) {
+                throw new McpToolException(
+                        "the search index refused the write, so nothing was removed from the database; part of " +
+                        "the batch may already be untagged in the index, which a retry of this call will "
+                        + "reconcile", e);
+            }
+            refreshCaveat = refreshAfterWrite(batch.project());
+        }
+        return McpTagByQuery.written("untag", batch, resolved, more, refreshCaveat);
+    }
+
+    // A refresh failure does not undo a write that already succeeded; it only means the continuation query below
+    // may still see what this batch just untagged, which the message flags as a caveat rather than failing the
+    // call.
+    private String refreshAfterWrite(String project) {
+        try {
+            tagByQuery.refresh(project);
+            return null;
+        } catch (IOException e) {
+            logger.warn("failed to refresh index {} after a confirmed untag-by-query write", project, e);
+            return "The index refresh failed, so next_query may not be accurate yet; retrying it shortly should "
+                   + "catch up.";
+        }
     }
 }
