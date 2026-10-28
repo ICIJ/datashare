@@ -77,8 +77,8 @@ public class McpTagDocumentsTool implements McpTool {
         static BatchTag from(JsonNode arguments) {
             String project = McpArguments.requireText(arguments, "project");
             List<String> tags = McpArguments.requireTexts(arguments, "tags", MAX_TAGS);
-            boolean hasQuery = arguments.has("query");
-            boolean hasDocIds = arguments.has("doc_ids");
+            boolean hasQuery = arguments.hasNonNull("query");
+            boolean hasDocIds = arguments.hasNonNull("doc_ids");
             if (hasQuery == hasDocIds) {
                 throw McpToolException.InvalidArgument.because(
                         "exactly one of \"doc_ids\" and \"query\" is required, not both and not neither");
