@@ -27,7 +27,8 @@ final class McpArguments {
         }
 
         private int requireInRange(JsonNode node) {
-            if (!node.canConvertToInt() || node.asInt() < min || node.asInt() > max) {
+            // canConvertToInt() only bounds the value: 1.5 converts, and a fraction is not the integer the schema asks for
+            if (!node.isIntegralNumber() || !node.canConvertToInt() || node.asInt() < min || node.asInt() > max) {
                 throw McpToolException.InvalidArgument.invalid(name);
             }
             return node.asInt();

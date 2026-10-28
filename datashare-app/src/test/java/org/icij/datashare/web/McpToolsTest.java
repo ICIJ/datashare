@@ -222,6 +222,74 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_search_sends_from() throws Exception {
+        serveAs("local", "foo");
+        org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_RESPONSE);
+
+        call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\",\"size\":5,\"from\":20}");
+
+        assertThat(MAPPER.readTree(body.getValue()).get("from").asInt()).isEqualTo(20);
+    }
+
+    @Test
+    public void test_search_without_from_starts_at_the_first_hit() throws Exception {
+        serveAs("local", "foo");
+        org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_RESPONSE);
+
+        JsonNode result = payload(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}"));
+
+        assertThat(MAPPER.readTree(body.getValue()).get("from").asInt()).isEqualTo(0);
+        assertThat(result.get("total").asLong()).isEqualTo(1);
+        assertThat(result.at("/hits/0/id").asText()).isEqualTo("doc1");
+    }
+
+    @Test
+    public void test_search_on_the_last_answerable_page_is_accepted() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(ES_RESPONSE);
+
+        JsonNode response = call("local", "search_documents",
+                                 "{\"project\":\"foo\",\"query\":\"leak\",\"from\":9990,\"size\":10}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isFalse();
+        assertThat(response.has("error")).isFalse();
+    }
+
+    @Test
+    public void test_search_past_the_result_window_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "search_documents",
+                                 "{\"project\":\"foo\",\"query\":\"leak\",\"from\":9999,\"size\":10}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("from");
+        org.mockito.Mockito.verifyNoInteractions(indexer);
+    }
+
+    @Test
+    public void test_search_from_above_the_result_window_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        assertThat(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"x\",\"from\":10001}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        org.mockito.Mockito.verifyNoInteractions(indexer);
+    }
+
+    @Test
+    public void test_search_with_a_negative_or_fractional_from_is_invalid() throws Exception {
+        serveAs("local", "foo");
+
+        assertThat(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"x\",\"from\":-1}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"x\",\"from\":1.5}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        org.mockito.Mockito.verifyNoInteractions(indexer);
+    }
+
+    @Test
     public void test_search_without_query_is_invalid() throws Exception {
         serveAs("local", "foo");
         assertThat(call("local", "search_documents", "{\"project\":\"foo\"}").at("/error/code").asInt())
