@@ -25,7 +25,7 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.tasks.ScanStage;
-import org.icij.datashare.tasks.IndexStageProcessor;
+import org.icij.datashare.tasks.IndexStage;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -53,7 +53,7 @@ public class PipelineWorkflowIntTest {
         registry.registerActivity(new ScanActivityImpl(temporal.interlocutor(), serverProperties), WORKFLOWS_DEFAULT);
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, propertiesProvider);
         registry.registerActivity(new StageActivityImpl(new StageRegistry().register(new ScanStage()).register(
-                new IndexStageProcessor(indexer.withRefresh(Refresh.True), text -> Language.ENGLISH)),
+                new IndexStage(indexer.withRefresh(Refresh.True), text -> Language.ENGLISH)),
                 temporal.interlocutor()), WORKFLOWS_DEFAULT);
 
         Map<Stage, StageResult> results;

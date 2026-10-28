@@ -14,6 +14,7 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -144,7 +145,7 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     // Transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a "POISON"
     // entry in a String queue. Callers skip it instead of resolving it as a doc reference.
     protected static boolean isLegacySentinel(Object queueEntry) {
-        return "POISON".equals(queueEntry);
+        return "POISON".equals(queueEntry) || Paths.get("POISON").equals(queueEntry);
     }
 
     /**
