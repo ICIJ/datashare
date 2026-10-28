@@ -6,6 +6,8 @@ import com.google.inject.Inject;
 import net.codestory.http.Context;
 import org.icij.datashare.web.errors.BadRequestException;
 import org.icij.datashare.web.errors.ForbiddenException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,7 @@ public class McpTagDocumentsTool implements McpTool {
     // 100000 rows take under 4 seconds, 1000000 take 29, long enough for a client to give up while the
     // transaction is still open.
     static final int MAX_TAG_WRITES = 100_000;
+    private static final Logger logger = LoggerFactory.getLogger(McpTagDocumentsTool.class);
     private final DocumentResource documentResource;
     private final McpTagByQuery tagByQuery;
 
@@ -48,9 +51,11 @@ public class McpTagDocumentsTool implements McpTool {
     public Object call(JsonNode arguments, Context context) throws IOException {
         BatchTag batch = BatchTag.from(arguments);
         if (batch.query() != null) {
-            // Task 3 does the confirmed write; until then a query call always only counts, whatever confirmed is.
-            return McpTagByQuery.confirmation("tag", batch, tagByQuery.resolve(batch.project(), batch.query(), 0,
-                                                                                context));
+            if (!batch.confirmed()) {
+                return McpTagByQuery.confirmation("tag", batch,
+                        tagByQuery.resolve(batch.project(), batch.query(), 0, context));
+            }
+            return writeQueryBatch(batch, context);
         }
         batch.requireWithinWriteBudget();
         try {
@@ -70,6 +75,43 @@ public class McpTagDocumentsTool implements McpTool {
                     "may already be tagged in the index, which a retry of this call will reconcile", e);
         }
         return Map.of("project", batch.project(), "tagged", batch.docIds().size(), "tags", batch.tags());
+    }
+
+    // Sized to the write budget rather than the id cap, since this batch, unlike doc_ids, multiplies by the tag
+    // count: fewer ids per batch keeps the row count under MAX_TAG_WRITES.
+    private Object writeQueryBatch(BatchTag batch, Context context) throws IOException {
+        int size = McpTagByQuery.batchSize(batch.tags().size(), true);
+        McpTagByQuery.Batch resolved = tagByQuery.resolve(batch.project(), batch.query(), size, context);
+        boolean more = resolved.ids().size() == size;
+        String refreshCaveat = null;
+        if (!resolved.ids().isEmpty()) {
+            try {
+                documentResource.groupTagDocument(batch.project(), batch.writeFor(resolved.ids()), context);
+            } catch (ForbiddenException e) {
+                throw new McpToolException.Forbidden(batch.project(), e);
+            } catch (BadRequestException e) {
+                throw McpToolException.InvalidArgument.because(e.getMessage());
+            } catch (IOException | ElasticsearchException e) {
+                throw new McpToolException(
+                        "the search index refused the write, so nothing was saved in the database; part of the " +
+                        "batch may already be tagged in the index, which a retry of this call will reconcile", e);
+            }
+            refreshCaveat = refreshAfterWrite(batch.project());
+        }
+        return McpTagByQuery.written("tag", batch, resolved, more, refreshCaveat);
+    }
+
+    // A refresh failure does not undo a write that already succeeded; it only means the continuation query below
+    // may still see what this batch just tagged, which the message flags as a caveat rather than failing the call.
+    private String refreshAfterWrite(String project) {
+        try {
+            tagByQuery.refresh(project);
+            return null;
+        } catch (IOException e) {
+            logger.warn("failed to refresh index {} after a confirmed tag-by-query write", project, e);
+            return "The index refresh failed, so next_query may not be accurate yet; retrying it shortly should "
+                   + "catch up.";
+        }
     }
 
     /** The arguments both tagging tools take: either an explicit id list or a query, never both. */

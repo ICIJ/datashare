@@ -44,6 +44,12 @@ class McpIndexSearch {
         return "?preference=" + URLEncoder.encode(((User) context.currentUser()).id, StandardCharsets.UTF_8);
     }
 
+    // index.refresh_interval is 1s by default, so a search run right after a write can still miss it. A confirmed
+    // tag-by-query batch forces a refresh so its own continuation query sees the write it just made.
+    void refresh(String project) throws IOException {
+        indexer.executeRaw("POST", project + "/_refresh", null);
+    }
+
     // Elasticsearch answers a malformed query_string with a 400 whose message carries the cluster address, so a
     // rejected query is reported as bad input instead. Anything else is a real failure and keeps its own path.
     private String runSearch(String path, Map<String, Object> body) throws IOException {

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * The counting half of a query selection on tag_documents / untag_documents: resolves how many documents a
@@ -55,8 +56,77 @@ class McpTagByQuery {
         return e.error() == null ? null : e.error().type();
     }
 
+    // index.refresh_interval delays this call's write from being searchable; refreshing right after it is what
+    // lets the continuation query below see the batch that was just written instead of repeating it.
+    void refresh(String project) throws IOException {
+        indexSearch.refresh(project);
+    }
+
+    // The write budget (MAX_TAG_WRITES rows per call) bounds a tagging batch as tags multiply; untagging deletes
+    // with two IN lists and does not multiply, so it only keeps the id cap.
+    static int batchSize(int tagCount, boolean tagging) {
+        return tagging ? Math.min(McpTagDocumentsTool.MAX_DOC_IDS, McpTagDocumentsTool.MAX_TAG_WRITES / tagCount)
+                       : McpTagDocumentsTool.MAX_DOC_IDS;
+    }
+
     /** What a query resolves to: the matching ids this call fetched, and how many the query matches in total. */
     record Batch(List<String> ids, long matched, boolean lowerBound) {}
+
+    // index.max_result_window caps a search at ten thousand hits, so paging with a cursor cannot reach further
+    // matches; the only way in is for the match set itself to shrink, which this batch's write just did. Tagging
+    // leaves behind the documents still missing at least one of the tags; untagging leaves behind the ones still
+    // carrying at least one.
+    static String continuation(String query, List<String> tags, boolean tagging) {
+        String joiner = tagging ? " AND " : " OR ";
+        String tagClauses = tags.stream().map(McpTagByQuery::phrase).collect(Collectors.joining(joiner));
+        return tagging ? "(%s) AND NOT (%s)".formatted(query, tagClauses)
+                       : "(%s) AND (%s)".formatted(query, tagClauses);
+    }
+
+    // A tag becomes a query_string phrase, so its own backslashes and double quotes are escaped first or they
+    // would close the phrase early or fail to parse.
+    private static String phrase(String tag) {
+        String escaped = tag.replace("\\", "\\\\").replace("\"", "\\\"");
+        return "tags:\"" + escaped + "\"";
+    }
+
+    // The response to a confirmed batch: what got written, whether the batch filled (so more may remain), and,
+    // when it did, the query to send next. The caller must see each batch's count before the next runs, so the
+    // continuation query rides along rather than being left for the model to compose itself.
+    static Map<String, Object> written(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved,
+                                        boolean more, String refreshCaveat) {
+        boolean tagging = "tag".equals(action);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("project", batch.project());
+        result.put(tagging ? "tagged" : "untagged", resolved.ids().size());
+        result.put("tags", batch.tags());
+        result.put("more", more);
+        if (more) {
+            result.put("next_query", continuation(batch.query(), batch.tags(), tagging));
+        }
+        result.put("message", writtenMessage(action, batch, resolved, more, refreshCaveat));
+        return result;
+    }
+
+    private static String writtenMessage(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved,
+                                          boolean more, String refreshCaveat) {
+        if (resolved.ids().isEmpty()) {
+            return "No documents matched the query in project %s, so there is nothing to %s.".formatted(
+                    batch.project(), action);
+        }
+        String verb = "tag".equals(action) ? "Tagged" : "Untagged";
+        StringBuilder text = new StringBuilder("%s %d documents in project %s with %s".formatted(verb,
+                resolved.ids().size(), batch.project(), batch.tags()));
+        if (more) {
+            text.append(", at least %d more may remain; call %s_documents again with next_query and no confirmed "
+                    + "flag to continue".formatted(resolved.ids().size(), action));
+        }
+        text.append('.');
+        if (refreshCaveat != null) {
+            text.append(' ').append(refreshCaveat);
+        }
+        return text.toString();
+    }
 
     static Map<String, Object> confirmation(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved) {
         boolean confirmationRequired = resolved.matched() > 0;
