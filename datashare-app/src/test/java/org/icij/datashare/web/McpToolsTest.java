@@ -267,7 +267,19 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                  "{\"project\":\"foo\",\"query\":\"leak\",\"from\":9999,\"size\":10}");
 
         assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
-        assertThat(response.at("/error/message").asText()).contains("from");
+        assertThat(response.at("/error/message").asText()).isEqualTo("invalid argument: from + size");
+        org.mockito.Mockito.verifyNoInteractions(indexer);
+    }
+
+    @Test
+    public void test_search_names_the_pair_when_size_is_what_overflows_the_window() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "search_documents",
+                                 "{\"project\":\"foo\",\"query\":\"leak\",\"from\":9960,\"size\":50}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).isEqualTo("invalid argument: from + size");
         org.mockito.Mockito.verifyNoInteractions(indexer);
     }
 
@@ -287,6 +299,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"x\",\"from\":-1}")
                            .at("/error/code").asInt()).isEqualTo(-32602);
         assertThat(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"x\",\"from\":1.5}")
+                           .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"x\",\"from\":20.9}")
                            .at("/error/code").asInt()).isEqualTo(-32602);
         org.mockito.Mockito.verifyNoInteractions(indexer);
     }
