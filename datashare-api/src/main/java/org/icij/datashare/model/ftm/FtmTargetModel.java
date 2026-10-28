@@ -21,9 +21,10 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -54,8 +55,9 @@ public class FtmTargetModel implements TargetModel {
         }
         try {
             Model model = Model.fromJson(JsonObjectMapper.getMapper(), root);
-            this.types = model.getSchemata().values().stream()
-                              .collect(Collectors.toUnmodifiableMap(Schema::getName, schema -> type(schema, schemata)));
+            this.types = model.getSchemata().values().stream().collect(Collectors.collectingAndThen(
+                    Collectors.toMap(Schema::getName, schema -> type(schema, schemata), (a, b) -> a, TreeMap::new),
+                    Collections::unmodifiableMap));
         } catch (RuntimeException e) {
             throw new UnreadableModelResource(RESOURCE, e);
         }
@@ -72,8 +74,8 @@ public class FtmTargetModel implements TargetModel {
     }
 
     @Override
-    public Optional<EntityType> type(String name) {
-        return Optional.ofNullable(types.get(name));
+    public Map<String, EntityType> types() {
+        return types;
     }
 
     @Override
@@ -145,9 +147,11 @@ public class FtmTargetModel implements TargetModel {
         }
     }
 
-    private static EntityType type(Schema schema, JsonNode schemata) {
+    static EntityType type(Schema schema, JsonNode schemata) {
         boolean isAbstract = schemata.path(schema.getName()).path("abstract").asBoolean(false);
-        return new EntityType(schema.getName(), isAbstract, ancestors(schema), properties(schema), required(schema),
+        return new EntityType(schema.getName(), schema.getLabel(), isAbstract, ancestors(schema), properties(schema),
+                              required(schema), names(schema.getFeaturedProperties()),
+                              names(schema.getCaptionProperties()),
                               schema.getEdge().map(FtmTargetModel::edge).orElse(null));
     }
 
@@ -156,12 +160,14 @@ public class FtmTargetModel implements TargetModel {
     }
 
     private static Map<String, Property> properties(Schema schema) {
-        return schema.getProperties().stream().collect(
-                Collectors.toUnmodifiableMap(tech.followthemoney.model.Property::getName, FtmTargetModel::property));
+        return schema.getProperties().stream().collect(Collectors.collectingAndThen(
+                Collectors.toMap(tech.followthemoney.model.Property::getName, FtmTargetModel::property, (a, b) -> a,
+                                 TreeMap::new), Collections::unmodifiableMap));
     }
 
     private static Property property(tech.followthemoney.model.Property property) {
-        return new Property(property.getRange().map(Schema::getName).orElse(null), property.isStub());
+        return new Property(property.getLabel(), property.getRange().map(Schema::getName).orElse(null),
+                            property.isStub());
     }
 
     // FtM keeps required per schema, but datashare also enforces what the ancestors require. The type's
@@ -174,7 +180,7 @@ public class FtmTargetModel implements TargetModel {
     }
 
     private static List<String> names(List<tech.followthemoney.model.Property> properties) {
-        return properties.stream().map(tech.followthemoney.model.Property::getName).toList();
+        return properties.stream().filter(Objects::nonNull).map(tech.followthemoney.model.Property::getName).toList();
     }
 
     private static EntityType.Edge edge(Edge edge) {

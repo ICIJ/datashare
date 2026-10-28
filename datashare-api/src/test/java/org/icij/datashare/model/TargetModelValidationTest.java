@@ -4,7 +4,6 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -130,20 +129,21 @@ public class TargetModelValidationTest {
     }
 
     private static class FakeModel implements TargetModel {
-        private static final Property VALUE = new Property(null, false);
-        private static final Property STUB = new Property("Employment", true);
+        private static final Property VALUE = new Property("Name", null, false);
+        private static final Property STUB = new Property("Employers", "Employment", true);
         private static final Map<String, EntityType> TYPES = Map.of(
-                "Thing", new EntityType("Thing", true, Set.of("Thing"),
-                        Map.of("name", VALUE), Set.of("name"), null),
-                "Person", new EntityType("Person", false, Set.of("Person", "Thing"),
+                "Thing", new EntityType("Thing", "Thing", true, Set.of("Thing"),
+                        Map.of("name", VALUE), Set.of("name"), List.of("name"), List.of("name"), null),
+                "Person", new EntityType("Person", "Person", false, Set.of("Person", "Thing"),
                         Map.of("name", VALUE, "employers", STUB),
-                        Set.of("name"), null),
-                "Company", new EntityType("Company", false, Set.of("Company", "Thing"),
+                        Set.of("name"), List.of("name"), List.of("name"), null),
+                "Company", new EntityType("Company", "Company", false, Set.of("Company", "Thing"),
                         Map.of("name", VALUE, "vatNumber", VALUE),
-                        Set.of("name"), null),
-                "Employment", new EntityType("Employment", false, Set.of("Employment"),
+                        Set.of("name"), List.of("name"), List.of("name"), null),
+                "Employment", new EntityType("Employment", "Employment", false, Set.of("Employment"),
                         Map.of("employee", VALUE, "employer", VALUE),
-                        Set.of("employee"), new EntityType.Edge("employee", "employer")));
+                        Set.of("employee"), List.of("employee"), List.of(),
+                        new EntityType.Edge("employee", "employer")));
 
         @Override
         public String name() {
@@ -156,8 +156,8 @@ public class TargetModelValidationTest {
         }
 
         @Override
-        public Optional<EntityType> type(String name) {
-            return Optional.ofNullable(TYPES.get(name));
+        public Map<String, EntityType> types() {
+            return TYPES;
         }
 
         @Override
@@ -168,14 +168,6 @@ public class TargetModelValidationTest {
         @Override
         public ModelEntity parse(String json) {
             throw new UnsupportedOperationException();
-        }
-
-        private static Property property(String name) {
-            return new Property(null, false);
-        }
-
-        private static Property stub(String name) {
-            return new Property("Employment", true);
         }
     }
 }
