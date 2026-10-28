@@ -14,6 +14,15 @@
       "minItems": 1,
       "maxItems": 10000
     },
+    "query": {
+      "type": "string",
+      "description": "Elasticsearch query_string syntax selecting the documents to tag, instead of doc_ids"
+    },
+    "confirmed": {
+      "type": "boolean",
+      "description": "set only on the second call, after the user agreed to the count",
+      "default": false
+    },
     "tags": {
       "type": "array",
       "description": "tag labels to add",
@@ -27,7 +36,6 @@
   },
   "required": [
     "project",
-    "doc_ids",
     "tags"
   ]
 }

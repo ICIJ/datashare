@@ -68,14 +68,15 @@ public class McpToolsTest extends AbstractProdWebServerTest {
                                                                                           propertiesProvider));
         TaskResource taskResource = new TaskResource(mock(DatashareTaskFactory.class), taskManager, propertiesProvider,
                                                      batchSearchRepository, taskFinder);
+        McpTagByQuery tagByQuery = new McpTagByQuery(new McpIndexSearch(indexer));
         McpResource mcp = new McpResource(Set.of(new McpListProjectsTool(projectResource),
                                                  new McpSearchDocumentsTool(new McpIndexSearch(indexer)),
                                                  new McpGetDocumentTool(documentResource),
                                                  new McpListTasksTool(taskResource),
                                                  new McpStopTaskTool(taskResource, taskManager,
                                                                      TaskPolicyChecker.ALLOW_ALL),
-                                                 new McpTagDocumentsTool(documentResource),
-                                                 new McpUntagDocumentsTool(documentResource),
+                                                 new McpTagDocumentsTool(documentResource, tagByQuery),
+                                                 new McpUntagDocumentsTool(documentResource, tagByQuery),
                                                  new McpListTagsTool(documentResource)));
         configure(routes -> routes.add(mcp).filter(
                 new BasicAuthFilter("/", "icij", DatashareUser.singleUser(localUser(login, projects)))));
@@ -544,6 +545,150 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         verify(repository).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
         verify(indexer).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
         assertThat(result.get("untagged").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_tag_documents_with_a_query_counts_without_writing() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":42,\"relation\":\"eq\"},\"hits\":[]}}");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                                       "{\"project\":\"foo\",\"query\":\"content:passeport\","
+                                       + "\"tags\":[\"passeport\"]}"));
+
+        assertThat(result.get("matched").asInt()).isEqualTo(42);
+        assertThat(result.get("confirmation_required").asBoolean()).isTrue();
+        assertThat(result.get("message").asText()).contains("42").contains("confirmed");
+        verify(repository, never()).tag(any(Project.class), anyList(), any(Tag[].class));
+        verify(indexer, never()).tag(any(Project.class), anyList(), any(Tag[].class));
+    }
+
+    @Test
+    public void test_tag_documents_with_a_query_counts_the_documents_only() throws Exception {
+        serveAs("local", "foo");
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
+
+        call("local", "tag_documents", "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"p\"]}");
+
+        JsonNode sent = MAPPER.readTree(body.getValue());
+        assertThat(sent.get("size").asInt()).isEqualTo(0);
+        assertThat(sent.get("_source").asBoolean()).isFalse();
+        assertThat(sent.at("/query/bool/must/query_string/query").asText()).isEqualTo("content:passeport");
+        assertThat(sent.at("/query/bool/filter/term/type").asText()).isEqualTo("Document");
+    }
+
+    // The ten thousand window is Elasticsearch's default track_total_hits cap, left alone rather than forced
+    // exact: an agent deciding whether to proceed does not need the difference between 10000 and 1000000.
+    @Test
+    public void test_tag_documents_reports_a_count_above_the_window_as_a_lower_bound() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":10000,\"relation\":\"gte\"},\"hits\":[]}}");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                                       "{\"project\":\"foo\",\"query\":\"content:passeport\","
+                                       + "\"tags\":[\"passeport\"]}"));
+
+        assertThat(result.get("matched").asInt()).isEqualTo(10000);
+        assertThat(result.get("lower_bound").asBoolean()).isTrue();
+        assertThat(result.get("message").asText()).contains("at least 10000");
+    }
+
+    @Test
+    public void test_tag_documents_with_a_query_matching_nothing_asks_for_no_confirmation() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                                       "{\"project\":\"foo\",\"query\":\"content:nope\",\"tags\":[\"passeport\"]}"));
+
+        assertThat(result.get("matched").asInt()).isEqualTo(0);
+        assertThat(result.get("confirmation_required").asBoolean()).isFalse();
+        verify(repository, never()).tag(any(Project.class), anyList(), any(Tag[].class));
+        verify(indexer, never()).tag(any(Project.class), anyList(), any(Tag[].class));
+    }
+
+    @Test
+    public void test_untag_documents_with_a_query_counts_without_writing() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":42,\"relation\":\"eq\"},\"hits\":[]}}");
+
+        JsonNode result = payload(call("local", "untag_documents",
+                                       "{\"project\":\"foo\",\"query\":\"content:passeport\","
+                                       + "\"tags\":[\"passeport\"]}"));
+
+        assertThat(result.get("matched").asInt()).isEqualTo(42);
+        assertThat(result.get("confirmation_required").asBoolean()).isTrue();
+        assertThat(result.get("message").asText()).contains("42").contains("confirmed");
+        verify(repository, never()).untag(any(Project.class), anyList(), any(Tag[].class));
+        verify(indexer, never()).untag(any(Project.class), anyList(), any(Tag[].class));
+    }
+
+    @Test
+    public void test_tag_documents_rejects_a_query_and_doc_ids_together() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"query\":\"a\",\"tags\":[\"t\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("doc_ids").contains("query");
+    }
+
+    @Test
+    public void test_tag_documents_rejects_neither_query_nor_doc_ids() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"tags\":[\"t\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("doc_ids").contains("query");
+    }
+
+    @Test
+    public void test_tag_documents_by_id_still_writes_in_one_call_when_confirmed_is_given() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode confirmedTrue = payload(call("local", "tag_documents",
+                                              "{\"project\":\"foo\",\"doc_ids\":[\"doc1\"],\"tags\":[\"invoice\"],"
+                                              + "\"confirmed\":true}"));
+        JsonNode confirmedFalse = payload(call("local", "tag_documents",
+                                               "{\"project\":\"foo\",\"doc_ids\":[\"doc2\"],\"tags\":[\"invoice\"],"
+                                               + "\"confirmed\":false}"));
+
+        assertThat(confirmedTrue.get("tagged").asInt()).isEqualTo(1);
+        assertThat(confirmedFalse.get("tagged").asInt()).isEqualTo(1);
+        verify(repository, org.mockito.Mockito.times(2)).tag(any(Project.class), anyList(), any(Tag[].class));
+    }
+
+    @Test
+    public void test_tag_documents_reports_a_malformed_query_as_an_invalid_argument() throws Exception {
+        serveAs("local", "foo");
+        org.elasticsearch.client.ResponseException rejected = elasticsearchError(400);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenThrow(rejected);
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"query\":\"foo AND\",\"tags\":[\"t\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("query");
+    }
+
+    @Test
+    public void test_tag_documents_reports_a_missing_index_as_not_found() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenThrow(indexMissing());
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"t\"]}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: foo");
     }
 
     // The message of a repository failure carries the statement that failed. Only the exceptions this package
