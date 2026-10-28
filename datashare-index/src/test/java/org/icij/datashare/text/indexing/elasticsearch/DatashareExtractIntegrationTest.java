@@ -7,7 +7,6 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.extract.document.DigestIdentifier;
@@ -38,10 +37,9 @@ public class DatashareExtractIntegrationTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
 
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
-    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, new MemoryDocumentCollectionFactory<>(), l -> ENGLISH,
-            new FieldNames(), new PropertiesProvider(new HashMap<>(){{
+    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new FieldNames(), indexer, l -> ENGLISH, IndexOptions.of(new PropertiesProvider(new HashMap<>(){{
                 put("defaultProject", es.getIndexName());
-    }}), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+    }})), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
 
     public DatashareExtractIntegrationTest() throws IOException {}
 
