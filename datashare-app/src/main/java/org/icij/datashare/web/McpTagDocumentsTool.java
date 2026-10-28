@@ -53,7 +53,7 @@ public class McpTagDocumentsTool implements McpTool {
         if (batch.query() != null) {
             if (!batch.confirmed()) {
                 return McpTagByQuery.confirmation("tag", batch,
-                        tagByQuery.resolve(batch.project(), batch.query(), 0, context));
+                                                  tagByQuery.resolve(batch.project(), batch.query(), 0, context));
             }
             return writeQueryBatch(batch, context);
         }
@@ -82,7 +82,6 @@ public class McpTagDocumentsTool implements McpTool {
     private Object writeQueryBatch(BatchTag batch, Context context) throws IOException {
         int size = McpTagByQuery.batchSize(batch.tags().size(), true);
         McpTagByQuery.Batch resolved = tagByQuery.resolve(batch.project(), batch.query(), size, context);
-        boolean more = resolved.ids().size() == size;
         String refreshCaveat = null;
         if (!resolved.ids().isEmpty()) {
             try {
@@ -98,7 +97,7 @@ public class McpTagDocumentsTool implements McpTool {
             }
             refreshCaveat = refreshAfterWrite(batch.project());
         }
-        return McpTagByQuery.written("tag", batch, resolved, more, refreshCaveat);
+        return McpTagByQuery.written("tag", batch, resolved, size, refreshCaveat);
     }
 
     // A refresh failure does not undo a write that already succeeded; it only means the continuation query below
@@ -109,8 +108,8 @@ public class McpTagDocumentsTool implements McpTool {
             return null;
         } catch (IOException e) {
             logger.warn("failed to refresh index {} after a confirmed tag-by-query write", project, e);
-            return "The index refresh failed, so next_query may not be accurate yet; retrying it shortly should "
-                   + "catch up.";
+            return "The index refresh failed, so next_query may not be accurate yet; retrying it shortly should " +
+                   "catch up.";
         }
     }
 

@@ -42,7 +42,7 @@ public class McpUntagDocumentsTool implements McpTool {
         if (batch.query() != null) {
             if (!batch.confirmed()) {
                 return McpTagByQuery.confirmation("untag", batch,
-                        tagByQuery.resolve(batch.project(), batch.query(), 0, context));
+                                                  tagByQuery.resolve(batch.project(), batch.query(), 0, context));
             }
             return writeQueryBatch(batch, context);
         }
@@ -64,7 +64,6 @@ public class McpUntagDocumentsTool implements McpTool {
     private Object writeQueryBatch(McpTagDocumentsTool.BatchTag batch, Context context) throws IOException {
         int size = McpTagByQuery.batchSize(batch.tags().size(), false);
         McpTagByQuery.Batch resolved = tagByQuery.resolve(batch.project(), batch.query(), size, context);
-        boolean more = resolved.ids().size() == size;
         String refreshCaveat = null;
         if (!resolved.ids().isEmpty()) {
             try {
@@ -74,12 +73,12 @@ public class McpUntagDocumentsTool implements McpTool {
             } catch (IOException | ElasticsearchException e) {
                 throw new McpToolException(
                         "the search index refused the write, so nothing was removed from the database; part of " +
-                        "the batch may already be untagged in the index, which a retry of this call will "
-                        + "reconcile", e);
+                        "the batch may already be untagged in the index, which a retry of this call will " +
+                        "reconcile", e);
             }
             refreshCaveat = refreshAfterWrite(batch.project());
         }
-        return McpTagByQuery.written("untag", batch, resolved, more, refreshCaveat);
+        return McpTagByQuery.written("untag", batch, resolved, size, refreshCaveat);
     }
 
     // A refresh failure does not undo a write that already succeeded; it only means the continuation query below
@@ -91,8 +90,8 @@ public class McpUntagDocumentsTool implements McpTool {
             return null;
         } catch (IOException e) {
             logger.warn("failed to refresh index {} after a confirmed untag-by-query write", project, e);
-            return "The index refresh failed, so next_query may not be accurate yet; retrying it shortly should "
-                   + "catch up.";
+            return "The index refresh failed, so next_query may not be accurate yet; retrying it shortly should " +
+                   "catch up.";
         }
     }
 }
