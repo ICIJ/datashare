@@ -4,7 +4,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDE
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.extract.document.DigestIdentifier;
@@ -34,9 +33,7 @@ public class ElasticsearchSpewerStreamingTest {
 
     private final ElasticsearchIndexer indexer =
             new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
-    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer,
-            new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(),
-            new PropertiesProvider(new HashMap<>() {{ put("defaultProject", es.getIndexName()); }}), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new FieldNames(), indexer, l -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider(new HashMap<>() {{ put("defaultProject", es.getIndexName()); }})), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
 
     private static final String FIXTURE = "/docs/embedded_doc.eml";
 

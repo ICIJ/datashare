@@ -2,7 +2,7 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.artifact.ManifestRecorder;
-import org.icij.datashare.text.indexing.elasticsearch.AbstractElasticSearchSpewer;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 import org.icij.extract.extractor.Extractor;
 import org.junit.Test;
@@ -22,7 +22,7 @@ public class IndexStageTest {
 
     @Test
     public void test_a_failing_index_creation_is_unchecked_and_closes_the_extractor() throws Exception {
-        AbstractElasticSearchSpewer spewer = mock(AbstractElasticSearchSpewer.class);
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         IOException failure = new IOException("elasticsearch is down");
         doThrow(failure).when(spewer).createIndexIfNotExists();
 
@@ -44,7 +44,7 @@ public class IndexStageTest {
         verify(extractor).close();
     }
 
-    private IndexStage stageWith(Function<ManifestRecorder, ? extends AbstractElasticSearchSpewer> spewerFactory) {
+    private IndexStage stageWith(Function<ManifestRecorder, ? extends ElasticsearchSpewer> spewerFactory) {
         return new IndexStage(IndexOptions.of(properties), properties.toRecord(ArtifactOptions.class), List::of, false,
                               "task-id", (documentFactory, options) -> extractor, spewerFactory);
     }

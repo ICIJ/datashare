@@ -10,7 +10,7 @@ import org.icij.datashare.text.artifact.ArtifactRegistry;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
-import org.icij.datashare.text.indexing.elasticsearch.SimpleElasticsearchSpewer;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.extract.extractor.Extractor;
 import org.icij.spewer.FieldNames;
 import org.slf4j.Logger;
@@ -55,10 +55,12 @@ public class IndexStageProcessor implements StageProcessor<Path, String> {
                                                                      .select(artifactOptions.artifacts()), false,
                                                (String) ctx.options().get(StageActivityImpl.TASK_ID_OPT),
                                                Extractor::new,
-                                               recorder -> new SimpleElasticsearchSpewer(new FieldNames(), indexer,
-                                                                                         languageGuesser, indexOptions,
-                                                                                         artifactOptions.projectName(),
-                                                                                         recorder))) {
+                                               recorder -> new ElasticsearchSpewer(new FieldNames(), indexer,
+                                                                                   languageGuesser, indexOptions,
+                                                                                   artifactOptions.projectName(),
+                                                                                   indexOptions.languageDetection()
+                                                                                               .ocrMinConfidence(),
+                                                                                   recorder))) {
             return stage.process(batch, ctx);
         }
     }

@@ -7,7 +7,6 @@ import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.parser.DigestingParser;
 import org.apache.tika.parser.digestutils.CommonsDigester;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
@@ -333,8 +332,7 @@ public class SourceExtractorTest {
         Extractor extractor = new Extractor(tikaFactory, options);
 
         final TikaDocument document = extractor.extract(path);
-        ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer,
-                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(spewerProperties), (String) spewerProperties.get("defaultProject"), DEFAULT_OCR_MIN_CONFIDENCE, null);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(new FieldNames(), indexer, l -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider(spewerProperties)), (String) spewerProperties.get("defaultProject"), DEFAULT_OCR_MIN_CONFIDENCE, null);
         spewer.write(document);
         return document;
     }
