@@ -40,10 +40,13 @@ public class McpSearchDocumentsTool implements McpTool {
     @Override
     public Object call(JsonNode arguments, Context context) throws IOException {
         String project = requireSingleProject(arguments);
-        Map<String, Object> body =
-                searchBody(McpArguments.requireText(arguments, "query"), requirePageInWindow(arguments),
-                           SIZE.readFrom(arguments));
-        return McpSearchResult.from(search(project, body, context));
+        int from = FROM.readFrom(arguments);
+        int size = SIZE.readFrom(arguments);
+        if (from + size > MAX_RESULT_WINDOW) {
+            throw McpToolException.InvalidArgument.invalid("from");
+        }
+        return McpSearchResult.from(
+                search(project, searchBody(McpArguments.requireText(arguments, "query"), from, size), context));
     }
 
     // The path is sent to Elasticsearch as is, not through IndexResource: its URL builder appends the incoming request's
@@ -65,14 +68,6 @@ public class McpSearchDocumentsTool implements McpTool {
             }
             throw McpToolException.InvalidArgument.invalid("query");
         }
-    }
-
-    private static int requirePageInWindow(JsonNode arguments) {
-        int from = FROM.readFrom(arguments);
-        if (from + SIZE.readFrom(arguments) > MAX_RESULT_WINDOW) {
-            throw McpToolException.InvalidArgument.invalid("from");
-        }
-        return from;
     }
 
     private static String requireSingleProject(JsonNode arguments) {

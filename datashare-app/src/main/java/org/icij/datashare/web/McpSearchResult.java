@@ -4,12 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The part of an Elasticsearch search response an MCP client needs: no _source beyond path and type. */
-record McpSearchResult(long total, List<McpSearchResult.SearchHit> hits) {
+/**
+ * The part of an Elasticsearch search response an MCP client needs: no _source beyond path and type. {@code relation}
+ * is Elasticsearch's own word on the total: "eq" counts every match, "gte" means the count stopped at
+ * track_total_hits and there are at least that many.
+ */
+record McpSearchResult(long total, String relation, List<McpSearchResult.SearchHit> hits) {
     static McpSearchResult from(JsonNode response) {
         List<SearchHit> hits = new ArrayList<>();
         response.at("/hits/hits").forEach(hit -> hits.add(SearchHit.from(hit)));
-        return new McpSearchResult(response.at("/hits/total/value").asLong(), hits);
+        return new McpSearchResult(response.at("/hits/total/value").asLong(),
+                                   response.at("/hits/total/relation").asText(null), hits);
     }
 
     record SearchHit(String id, String routing, String path, String contentType, List<String> highlights) {

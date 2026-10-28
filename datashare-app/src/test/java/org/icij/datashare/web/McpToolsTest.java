@@ -96,7 +96,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     }
 
     private static final String ES_RESPONSE = """
-            {"hits":{"total":{"value":1},"hits":[{"_id":"doc1","_routing":"root1",
+            {"hits":{"total":{"value":1,"relation":"eq"},"hits":[{"_id":"doc1","_routing":"root1",
               "_source":{"path":"/data/a.pdf","contentType":"application/pdf"},
               "highlight":{"content":["a <em>leak</em> here"]}}]}}""";
 
@@ -108,6 +108,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode result = payload(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}"));
 
         assertThat(result.get("total").asLong()).isEqualTo(1);
+        assertThat(result.get("relation").asText()).isEqualTo("eq");
         assertThat(result.at("/hits/0/id").asText()).isEqualTo("doc1");
         assertThat(result.at("/hits/0/routing").asText()).isEqualTo("root1");
         assertThat(result.at("/hits/0/path").asText()).isEqualTo("/data/a.pdf");
@@ -248,13 +249,14 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_search_on_the_last_answerable_page_is_accepted() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(ES_RESPONSE);
+        org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_RESPONSE);
 
         JsonNode response = call("local", "search_documents",
                                  "{\"project\":\"foo\",\"query\":\"leak\",\"from\":9990,\"size\":10}");
 
-        assertThat(response.at("/result/isError").asBoolean()).isFalse();
         assertThat(response.has("error")).isFalse();
+        assertThat(MAPPER.readTree(body.getValue()).get("from").asInt()).isEqualTo(9990);
     }
 
     @Test
@@ -287,6 +289,31 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"x\",\"from\":1.5}")
                            .at("/error/code").asInt()).isEqualTo(-32602);
         org.mockito.Mockito.verifyNoInteractions(indexer);
+    }
+
+    @Test
+    public void test_search_accepts_a_whole_number_written_as_a_float() throws Exception {
+        serveAs("local", "foo");
+        org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_RESPONSE);
+
+        call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\",\"size\":20.0,\"from\":10.0}");
+
+        JsonNode sent = MAPPER.readTree(body.getValue());
+        assertThat(sent.get("size").asInt()).isEqualTo(20);
+        assertThat(sent.get("from").asInt()).isEqualTo(10);
+    }
+
+    @Test
+    public void test_search_says_when_the_total_is_a_lower_bound() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
+                .thenReturn("{\"hits\":{\"total\":{\"value\":10000,\"relation\":\"gte\"},\"hits\":[]}}");
+
+        JsonNode result = payload(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}"));
+
+        assertThat(result.get("total").asLong()).isEqualTo(10000);
+        assertThat(result.get("relation").asText()).isEqualTo("gte");
     }
 
     @Test

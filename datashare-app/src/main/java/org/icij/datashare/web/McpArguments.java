@@ -27,8 +27,10 @@ final class McpArguments {
         }
 
         private int requireInRange(JsonNode node) {
-            // canConvertToInt() only bounds the value: 1.5 converts, and a fraction is not the integer the schema asks for
-            if (!node.isIntegralNumber() || !node.canConvertToInt() || node.asInt() < min || node.asInt() > max) {
+            // canConvertToInt() only bounds the value: 1.5 converts. canConvertToExactIntegral() is what "type":
+            // "integer" means in JSON Schema: 20.0 is the integer 20, 1.5 is not an integer at all.
+            if (!node.canConvertToExactIntegral() || !node.canConvertToInt() || node.asInt() < min ||
+                node.asInt() > max) {
                 throw McpToolException.InvalidArgument.invalid(name);
             }
             return node.asInt();
