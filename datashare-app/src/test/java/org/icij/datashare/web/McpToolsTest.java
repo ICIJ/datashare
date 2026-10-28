@@ -689,7 +689,39 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(result.get("more").asBoolean()).isTrue();
         assertThat(result.get("next_query").asText())
                 .isEqualTo("(content:passeport) AND NOT (tags:\"passeport\")");
-        assertThat(result.get("message").asText()).contains("at least").contains("next_query");
+        assertThat(result.get("message").asText()).contains("more documents remain").contains("next_query");
+    }
+
+    // The boundary the review caught: a full batch is not proof more remain when the count is exact and equals
+    // what was just written. 100 tags would size this batch at 1000, which is exactly what a 1000-document exact
+    // match means is left over: nothing.
+    @Test
+    public void test_a_batch_that_exactly_matches_the_count_reports_no_more_work() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                fullBatchSearchResponse(10000, "eq"));
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"passeport\"],\"confirmed\":true}"));
+
+        assertThat(result.get("tagged").asInt()).isEqualTo(10000);
+        assertThat(result.get("more").asBoolean()).isFalse();
+        assertThat(result.has("next_query")).isFalse();
+    }
+
+    // An exact count past what this batch wrote is the one case where a precise remaining figure is both known
+    // and true, unlike the lower-bound case above.
+    @Test
+    public void test_an_exact_count_past_the_batch_reports_how_many_remain() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+                fullBatchSearchResponse(10000, "eq").replace("\"value\":10000", "\"value\":10042"));
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"passeport\"],\"confirmed\":true}"));
+
+        assertThat(result.get("more").asBoolean()).isTrue();
+        assertThat(result.get("message").asText()).contains("42 more remain");
     }
 
     @Test
@@ -797,7 +829,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_a_query_continued_to_exhaustion_stops_when_nothing_matches() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
+        ArgumentCaptor<String> searchBody = ArgumentCaptor.forClass(String.class);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), searchBody.capture()))
                 .thenReturn(fullBatchSearchResponse(10000, "gte"))
                 .thenReturn("{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
 
@@ -812,6 +845,11 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(second.get("more").asBoolean()).isFalse();
         assertThat(second.get("tagged").asInt()).isEqualTo(0);
+        // The second call must have actually searched with the continuation query, not silently repeated the
+        // first one, or this test would pass even if next_query were thrown away.
+        JsonNode secondSearch = MAPPER.readTree(searchBody.getAllValues().get(1));
+        assertThat(secondSearch.at("/query/bool/must/query_string/query").asText())
+                .contains("AND NOT (tags:\"passeport\")");
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<String>> writtenIds = ArgumentCaptor.forClass(List.class);
         verify(indexer, org.mockito.Mockito.times(1)).tag(any(Project.class), writtenIds.capture(),

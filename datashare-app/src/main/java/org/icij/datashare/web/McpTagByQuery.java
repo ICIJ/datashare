@@ -29,8 +29,8 @@ class McpTagByQuery {
         Map<String, Object> documentsMatchingQuery =
                 Map.of("must", Map.of("query_string", Map.of("query", query)), "filter",
                        Map.of("term", Map.of("type", "Document")));
-        Map<String, Object> body = Map.of("size", size, "_source", false, "query", Map.of("bool",
-                                                                                           documentsMatchingQuery));
+        Map<String, Object> body =
+                Map.of("size", size, "_source", false, "query", Map.of("bool", documentsMatchingQuery));
         JsonNode response = search(project, body, context);
         long matched = response.at("/hits/total/value").asLong();
         boolean lowerBound = "gte".equals(response.at("/hits/total/relation").asText());
@@ -65,8 +65,8 @@ class McpTagByQuery {
     // The write budget (MAX_TAG_WRITES rows per call) bounds a tagging batch as tags multiply; untagging deletes
     // with two IN lists and does not multiply, so it only keeps the id cap.
     static int batchSize(int tagCount, boolean tagging) {
-        return tagging ? Math.min(McpTagDocumentsTool.MAX_DOC_IDS, McpTagDocumentsTool.MAX_TAG_WRITES / tagCount)
-                       : McpTagDocumentsTool.MAX_DOC_IDS;
+        return tagging ? Math.min(McpTagDocumentsTool.MAX_DOC_IDS, McpTagDocumentsTool.MAX_TAG_WRITES / tagCount) :
+               McpTagDocumentsTool.MAX_DOC_IDS;
     }
 
     /** What a query resolves to: the matching ids this call fetched, and how many the query matches in total. */
@@ -79,8 +79,8 @@ class McpTagByQuery {
     static String continuation(String query, List<String> tags, boolean tagging) {
         String joiner = tagging ? " AND " : " OR ";
         String tagClauses = tags.stream().map(McpTagByQuery::phrase).collect(Collectors.joining(joiner));
-        return tagging ? "(%s) AND NOT (%s)".formatted(query, tagClauses)
-                       : "(%s) AND (%s)".formatted(query, tagClauses);
+        return tagging ? "(%s) AND NOT (%s)".formatted(query, tagClauses) :
+               "(%s) AND (%s)".formatted(query, tagClauses);
     }
 
     // A tag becomes a query_string phrase, so its own backslashes and double quotes are escaped first or they
@@ -90,12 +90,20 @@ class McpTagByQuery {
         return "tags:\"" + escaped + "\"";
     }
 
-    // The response to a confirmed batch: what got written, whether the batch filled (so more may remain), and,
-    // when it did, the query to send next. The caller must see each batch's count before the next runs, so the
-    // continuation query rides along rather than being left for the model to compose itself.
-    static Map<String, Object> written(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved,
-                                        boolean more, String refreshCaveat) {
+    // The batch filling its requested size is necessary but not sufficient: an exact count (relation "eq") that
+    // equals what was just written proves nothing is left, however full the batch looks. Only a lower-bound count,
+    // or an exact count that still exceeds what was written, leaves work provably outstanding.
+    private static boolean more(Batch resolved, int size) {
+        return resolved.ids().size() == size && (resolved.lowerBound() || resolved.matched() > resolved.ids().size());
+    }
+
+    // The response to a confirmed batch: what got written, whether more is provably outstanding, and, when it is,
+    // the query to send next. The caller must see each batch's count before the next runs, so the continuation
+    // query rides along rather than being left for the model to compose itself.
+    static Map<String, Object> written(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved, int size,
+                                       String refreshCaveat) {
         boolean tagging = "tag".equals(action);
+        boolean more = more(resolved, size);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("project", batch.project());
         result.put(tagging ? "tagged" : "untagged", resolved.ids().size());
@@ -109,17 +117,22 @@ class McpTagByQuery {
     }
 
     private static String writtenMessage(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved,
-                                          boolean more, String refreshCaveat) {
+                                         boolean more, String refreshCaveat) {
         if (resolved.ids().isEmpty()) {
-            return "No documents matched the query in project %s, so there is nothing to %s.".formatted(
-                    batch.project(), action);
+            return "No documents matched the query in project %s, so there is nothing to %s.".formatted(batch.project(),
+                                                                                                        action);
         }
         String verb = "tag".equals(action) ? "Tagged" : "Untagged";
-        StringBuilder text = new StringBuilder("%s %d documents in project %s with %s".formatted(verb,
-                resolved.ids().size(), batch.project(), batch.tags()));
+        StringBuilder text = new StringBuilder(
+                "%s %d documents in project %s with %s".formatted(verb, resolved.ids().size(), batch.project(),
+                                                                  batch.tags()));
         if (more) {
-            text.append(", at least %d more may remain; call %s_documents again with next_query and no confirmed "
-                    + "flag to continue".formatted(resolved.ids().size(), action));
+            // A lower-bound count only proves more remain, never how many; an exact count, past what was just
+            // written, says exactly how many, since track_total_hits was not asked to pay for more precision.
+            String remaining = resolved.lowerBound() ? "more documents remain" :
+                               "%d more remain".formatted(resolved.matched() - resolved.ids().size());
+            text.append(", %s; call %s_documents again with next_query and no confirmed flag to continue".formatted(
+                    remaining, action));
         }
         text.append('.');
         if (refreshCaveat != null) {
@@ -142,14 +155,14 @@ class McpTagByQuery {
     }
 
     private static String message(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved,
-                                   boolean confirmationRequired) {
+                                  boolean confirmationRequired) {
         if (!confirmationRequired) {
-            return "No documents matched the query in project %s, so there is nothing to %s.".formatted(
-                    batch.project(), action);
+            return "No documents matched the query in project %s, so there is nothing to %s.".formatted(batch.project(),
+                                                                                                        action);
         }
         String count = (resolved.lowerBound() ? "at least " : "") + resolved.matched();
-        return ("About to %s %s documents in project %s with %s. Show this count to the user and ask whether to "
-                + "proceed. If they agree, call %s_documents again with the same arguments and confirmed: true. "
-                + "Nothing has been changed yet.").formatted(action, count, batch.project(), batch.tags(), action);
+        return ("About to %s %s documents in project %s with %s. Show this count to the user and ask whether to " +
+                "proceed. If they agree, call %s_documents again with the same arguments and confirmed: true. " +
+                "Nothing has been changed yet.").formatted(action, count, batch.project(), batch.tags(), action);
     }
 }
