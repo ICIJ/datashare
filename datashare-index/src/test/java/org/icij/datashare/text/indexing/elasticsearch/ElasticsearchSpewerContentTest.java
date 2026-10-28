@@ -4,7 +4,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_OCR_MIN_CONFIDE
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.extract.document.DocumentFactory;
@@ -25,9 +24,7 @@ import static org.mockito.Mockito.mock;
 // Elasticsearch: they exercise the read/cap/trim path directly with in-memory readers.
 public class ElasticsearchSpewerContentTest {
     private ElasticsearchSpewer spewerWithMaxContentLength(String maxContentLength) {
-        return new ElasticsearchSpewer(mock(Indexer.class), new MemoryDocumentCollectionFactory<>(),
-                text -> Language.ENGLISH, new FieldNames(),
-                new PropertiesProvider(Map.of("maxContentLength", maxContentLength)), DEFAULT_DEFAULT_PROJECT, DEFAULT_OCR_MIN_CONFIDENCE, null);
+        return new ElasticsearchSpewer(new FieldNames(), mock(Indexer.class), text -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider(Map.of("maxContentLength", maxContentLength))), DEFAULT_DEFAULT_PROJECT, DEFAULT_OCR_MIN_CONFIDENCE, null);
     }
 
     private TikaDocument documentReading(Reader reader) {

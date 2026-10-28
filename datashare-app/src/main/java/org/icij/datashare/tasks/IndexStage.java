@@ -7,7 +7,7 @@ import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactType;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
 import org.icij.datashare.text.artifact.ManifestRecorder;
-import org.icij.datashare.text.indexing.elasticsearch.AbstractElasticSearchSpewer;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.Extractor;
@@ -37,7 +37,7 @@ public class IndexStage implements AutoCloseable {
     private final boolean artifactStageRuns;
     private final String taskId;
     private final Extractor extractor;
-    private final AbstractElasticSearchSpewer spewer;
+    private final ElasticsearchSpewer spewer;
 
     /**
      * @param selectedArtifacts only called when the run opted in to --artifacts
@@ -48,7 +48,7 @@ public class IndexStage implements AutoCloseable {
     public IndexStage(IndexOptions indexOptions, ArtifactOptions artifactOptions,
                       Supplier<List<Artifact>> selectedArtifacts, boolean artifactStageRuns, String taskId,
                       BiFunction<DocumentFactory, Options<String>, Extractor> extractorFactory,
-                      Function<ManifestRecorder, ? extends AbstractElasticSearchSpewer> spewerFactory) {
+                      Function<ManifestRecorder, ? extends ElasticsearchSpewer> spewerFactory) {
         this.artifactOptions = artifactOptions;
         this.selectedArtifacts = selectedArtifacts;
         this.artifactStageRuns = artifactStageRuns;
@@ -71,7 +71,7 @@ public class IndexStage implements AutoCloseable {
         return extractor;
     }
 
-    public AbstractElasticSearchSpewer spewer() {
+    public ElasticsearchSpewer spewer() {
         return spewer;
     }
 
