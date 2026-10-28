@@ -10,10 +10,12 @@ import java.util.Map;
 
 public class McpUntagDocumentsTool implements McpTool {
     private final DocumentResource documentResource;
+    private final McpTagByQuery tagByQuery;
 
     @Inject
-    public McpUntagDocumentsTool(DocumentResource documentResource) {
+    public McpUntagDocumentsTool(DocumentResource documentResource, McpTagByQuery tagByQuery) {
         this.documentResource = documentResource;
+        this.tagByQuery = tagByQuery;
     }
 
     @Override
@@ -26,14 +28,21 @@ public class McpUntagDocumentsTool implements McpTool {
         return "Removes up to 100 tags from up to 10000 documents at once. A tag the document does not carry is " +
                "ignored. Tag matching is case-sensitive against the stored label, so \"invoice\" will not remove " +
                "a tag stored as \"Invoice\". The returned count is the number of requested document ids, " +
-               "duplicates and unknown ids included, not of documents actually changed.";
+               "duplicates and unknown ids included, not of documents actually changed. A query selects the " +
+               "documents instead of doc_ids; a query call only reports what it would do and writes nothing " +
+               "until called again with confirmed: true.";
     }
 
     @Override
     public Object call(JsonNode arguments, Context context) throws IOException {
         McpTagDocumentsTool.BatchTag batch = McpTagDocumentsTool.BatchTag.from(arguments);
+        if (batch.query() != null) {
+            // Task 3 does the confirmed write; until then a query call always only counts, whatever confirmed is.
+            return McpTagByQuery.confirmation("untag", batch, tagByQuery.resolve(batch.project(), batch.query(), 0,
+                                                                                  context));
+        }
         try {
-            documentResource.groupUntagDocument(batch.project(), batch.query(), context);
+            documentResource.groupUntagDocument(batch.project(), batch.writeFor(batch.docIds()), context);
         } catch (ForbiddenException e) {
             throw new McpToolException.Forbidden(batch.project(), e);
         } catch (IOException | ElasticsearchException e) {

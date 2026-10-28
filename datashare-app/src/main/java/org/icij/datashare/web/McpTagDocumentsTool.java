@@ -21,10 +21,12 @@ public class McpTagDocumentsTool implements McpTool {
     // transaction is still open.
     static final int MAX_TAG_WRITES = 100_000;
     private final DocumentResource documentResource;
+    private final McpTagByQuery tagByQuery;
 
     @Inject
-    public McpTagDocumentsTool(DocumentResource documentResource) {
+    public McpTagDocumentsTool(DocumentResource documentResource, McpTagByQuery tagByQuery) {
         this.documentResource = documentResource;
+        this.tagByQuery = tagByQuery;
     }
 
     @Override
@@ -37,16 +39,24 @@ public class McpTagDocumentsTool implements McpTool {
         return "Adds up to 100 tags to up to 10000 documents at once, for at most 100000 document-tag pairs per " +
                "call, attributed to the calling user. Tag matching is case-sensitive against the stored label, " +
                "so \"invoice\" and \"Invoice\" are different tags. The returned count is the number of requested " +
-               "document ids, duplicates and unknown ids included, not of documents actually changed.";
+               "document ids, duplicates and unknown ids included, not of documents actually changed. A query " +
+               "selects the documents instead of doc_ids; a query call only reports what it would do and writes " +
+               "nothing until called again with confirmed: true.";
     }
 
     @Override
     public Object call(JsonNode arguments, Context context) throws IOException {
-        BatchTag batch = BatchTag.from(arguments).requireWithinWriteBudget();
+        BatchTag batch = BatchTag.from(arguments);
+        if (batch.query() != null) {
+            // Task 3 does the confirmed write; until then a query call always only counts, whatever confirmed is.
+            return McpTagByQuery.confirmation("tag", batch, tagByQuery.resolve(batch.project(), batch.query(), 0,
+                                                                                context));
+        }
+        batch.requireWithinWriteBudget();
         try {
-            documentResource.groupTagDocument(batch.project, batch.query(), context);
+            documentResource.groupTagDocument(batch.project(), batch.writeFor(batch.docIds()), context);
         } catch (ForbiddenException e) {
-            throw new McpToolException.Forbidden(batch.project, e);
+            throw new McpToolException.Forbidden(batch.project(), e);
         } catch (BadRequestException e) {
             throw McpToolException.InvalidArgument.because(e.getMessage());
         } catch (IOException | ElasticsearchException e) {
@@ -59,19 +69,32 @@ public class McpTagDocumentsTool implements McpTool {
                     "the search index refused the write, so nothing was saved in the database; part of the batch " +
                     "may already be tagged in the index, which a retry of this call will reconcile", e);
         }
-        return Map.of("project", batch.project, "tagged", batch.docIds.size(), "tags", batch.tags);
+        return Map.of("project", batch.project(), "tagged", batch.docIds().size(), "tags", batch.tags());
     }
 
-    /** The arguments both tagging tools take. */
-    record BatchTag(String project, List<String> docIds, List<String> tags) {
+    /** The arguments both tagging tools take: either an explicit id list or a query, never both. */
+    record BatchTag(String project, List<String> docIds, String query, List<String> tags, boolean confirmed) {
         static BatchTag from(JsonNode arguments) {
-            return new BatchTag(McpArguments.requireText(arguments, "project"),
-                                McpArguments.requireTexts(arguments, "doc_ids", MAX_DOC_IDS),
-                                McpArguments.requireTexts(arguments, "tags", MAX_TAGS));
+            String project = McpArguments.requireText(arguments, "project");
+            List<String> tags = McpArguments.requireTexts(arguments, "tags", MAX_TAGS);
+            boolean hasQuery = arguments.has("query");
+            boolean hasDocIds = arguments.has("doc_ids");
+            if (hasQuery == hasDocIds) {
+                throw McpToolException.InvalidArgument.because(
+                        "exactly one of \"doc_ids\" and \"query\" is required, not both and not neither");
+            }
+            String query = hasQuery ? McpArguments.optionalText(arguments, "query") : null;
+            List<String> docIds = hasDocIds ? McpArguments.requireTexts(arguments, "doc_ids", MAX_DOC_IDS) : null;
+            boolean confirmed = arguments.path("confirmed").asBoolean(false);
+            return new BatchTag(project, docIds, query, tags, confirmed);
         }
 
-        /** Only tagging writes a row per pair; untagging deletes with two IN lists and does not multiply. */
+        /** Only tagging writes a row per pair; untagging deletes with two IN lists and does not multiply. The
+         * query path has no ids yet when this runs, so it has nothing to check here. */
         BatchTag requireWithinWriteBudget() {
+            if (docIds == null) {
+                return this;
+            }
             long writes = (long) docIds.size() * tags.size();
             if (writes > MAX_TAG_WRITES) {
                 throw McpToolException.InvalidArgument.because(
@@ -81,8 +104,9 @@ public class McpTagDocumentsTool implements McpTool {
             return this;
         }
 
-        DocumentResource.BatchTagQuery query() {
-            return new DocumentResource.BatchTagQuery(tags, docIds);
+        /** Builds the write for an id list, whether it is the explicit doc_ids or one a query resolved. */
+        DocumentResource.BatchTagQuery writeFor(List<String> ids) {
+            return new DocumentResource.BatchTagQuery(tags, ids);
         }
     }
 }
