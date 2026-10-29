@@ -19,6 +19,11 @@ public class OpenApiResourceTest extends AbstractProdWebServerTest {
                 contain("openapi: 3.0.1");
     }
 
+    @Test
+    public void test_the_models_route_documents_its_ontology_body() {
+        get("/api/openapi").should().respond(200).contain("\"$ref\":\"#/components/schemas/Ontology\"");
+    }
+
     @Before
     public void setUp() {
         configure(routes -> routes.add(new OpenApiResource()));

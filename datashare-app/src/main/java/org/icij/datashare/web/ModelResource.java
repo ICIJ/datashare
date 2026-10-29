@@ -5,6 +5,8 @@ import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -32,7 +34,8 @@ public class ModelResource {
             parameters = {@Parameter(name = "name", description = "the data model, e.g. `ftm`", in = ParameterIn.PATH),
                     @Parameter(name = "version", description = "the ontology version, the bundled one by default",
                             in = ParameterIn.QUERY)})
-    @ApiResponse(responseCode = "200", description = "returns the ontology as an `Ontology` object")
+    @ApiResponse(responseCode = "200", description = "returns the ontology as an `Ontology` object",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Ontology.class)))
     @ApiResponse(responseCode = "404", description = "if no such model, or datashare bundles no such version of it")
     @ApiResponse(responseCode = "500", description = "if the model is known but its bundled ontology cannot be read")
     @Get("/:name?version=:version")
