@@ -1,43 +1,22 @@
 package org.icij.datashare.web;
 
-import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.model.TargetModelRegistry;
-import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-
-import java.util.List;
-
-import static org.icij.datashare.text.Project.project;
-import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
 
 public class ModelResourceTest extends AbstractProdWebServerTest {
     private static final String VERSION = TargetModelRegistry.get("ftm").version();
-    @Mock JooqRepository jooqRepository;
-    private AutoCloseable mocks;
 
     @Before
     public void setUp() {
-        mocks = openMocks(this);
-        when(jooqRepository.getProjects()).thenReturn(List.of(project("prj")));
-        configure(routes -> routes.add(new ModelResource())
-                                  .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        mocks.close();
+        configure(routes -> routes.add(new ModelResource()));
     }
 
     @Test
     public void test_serves_the_ontology_of_the_bundled_model() {
         get("/api/models/ftm").should().respond(200).haveType("application/json")
-                              .contain("\"version\":\"4.10.2\"").contain("\"Birth date\"");
+                              .contain("\"version\":\"%s\"".formatted(VERSION)).contain("\"Birth date\"");
     }
 
     @Test
