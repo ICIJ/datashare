@@ -550,7 +550,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_tag_documents_with_a_query_counts_without_writing() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":42,\"relation\":\"eq\"},\"hits\":[]}}");
 
         JsonNode result = payload(call("local", "tag_documents",
@@ -568,7 +568,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_tag_documents_with_a_query_counts_the_documents_only() throws Exception {
         serveAs("local", "foo");
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), body.capture())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
 
         call("local", "tag_documents", "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"p\"]}");
@@ -585,7 +585,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_tag_documents_reports_a_count_above_the_window_as_a_lower_bound() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":10000,\"relation\":\"gte\"},\"hits\":[]}}");
 
         JsonNode result = payload(call("local", "tag_documents",
@@ -600,7 +600,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_tag_documents_with_a_query_matching_nothing_asks_for_no_confirmation() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
 
         JsonNode result = payload(call("local", "tag_documents",
@@ -615,7 +615,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_untag_documents_with_a_query_counts_without_writing() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":42,\"relation\":\"eq\"},\"hits\":[]}}");
 
         JsonNode result = payload(call("local", "untag_documents",
@@ -646,7 +646,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_confirmed_tag_by_query_writes_the_resolved_ids() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":2,\"relation\":\"eq\"},"
                 + "\"hits\":[{\"_id\":\"doc1\"},{\"_id\":\"doc2\"}]}}");
 
@@ -663,7 +663,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_confirmed_tag_by_query_refreshes_the_index_after_writing() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"},\"hits\":[{\"_id\":\"doc1\"}]}}");
 
         call("local", "tag_documents",
@@ -680,7 +680,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_a_full_batch_returns_the_self_excluding_continuation_query() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 fullBatchSearchResponse(10000, "gte"));
 
         JsonNode result = payload(call("local", "tag_documents",
@@ -698,7 +698,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_a_batch_that_exactly_matches_the_count_reports_no_more_work() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 fullBatchSearchResponse(10000, "eq"));
 
         JsonNode result = payload(call("local", "tag_documents",
@@ -714,7 +714,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_an_exact_count_past_the_batch_reports_how_many_remain() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 fullBatchSearchResponse(10000, "eq").replace("\"value\":10000", "\"value\":10042"));
 
         JsonNode result = payload(call("local", "tag_documents",
@@ -727,7 +727,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_the_continuation_query_of_an_untag_keeps_the_tagged_documents() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 fullBatchSearchResponse(10000, "gte"));
 
         JsonNode result = payload(call("local", "untag_documents",
@@ -742,7 +742,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_the_continuation_query_of_a_multi_tag_write_excludes_only_fully_tagged_documents()
             throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 fullBatchSearchResponse(10000, "gte"));
 
         JsonNode result = payload(call("local", "tag_documents",
@@ -755,7 +755,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_the_continuation_query_quotes_a_tag_carrying_query_syntax() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 fullBatchSearchResponse(10000, "gte"));
         String tagValue = "a:b \"c\"";
         String tagsJson = MAPPER.writeValueAsString(List.of(tagValue));
@@ -773,7 +773,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_a_confirmed_query_matching_nothing_writes_nothing() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
 
         JsonNode result = payload(call("local", "tag_documents",
@@ -790,7 +790,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_the_batch_is_sized_to_the_write_budget() throws Exception {
         serveAs("local", "foo");
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), body.capture())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
         List<String> twentyTags = new java.util.ArrayList<>();
         for (int i = 0; i < 20; i++) {
@@ -808,7 +808,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_a_refresh_failure_does_not_undo_a_successful_write() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
                 "{\"hits\":{\"total\":{\"value\":2,\"relation\":\"eq\"},"
                 + "\"hits\":[{\"_id\":\"doc1\"},{\"_id\":\"doc2\"}]}}");
         when(indexer.executeRaw(eq("POST"), eq("foo/_refresh"), any()))
@@ -830,7 +830,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_a_query_continued_to_exhaustion_stops_when_nothing_matches() throws Exception {
         serveAs("local", "foo");
         ArgumentCaptor<String> searchBody = ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), searchBody.capture()))
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), searchBody.capture()))
                 .thenReturn(fullBatchSearchResponse(10000, "gte"))
                 .thenReturn("{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
 
@@ -926,7 +926,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_tag_documents_reports_a_malformed_query_as_an_invalid_argument() throws Exception {
         serveAs("local", "foo");
         org.elasticsearch.client.ResponseException rejected = elasticsearchError(400);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenThrow(rejected);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenThrow(rejected);
 
         JsonNode response = call("local", "tag_documents",
                                  "{\"project\":\"foo\",\"query\":\"foo AND\",\"tags\":[\"t\"]}");
@@ -938,7 +938,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_tag_documents_reports_a_missing_index_as_not_found() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenThrow(indexMissing());
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenThrow(indexMissing());
 
         JsonNode response = call("local", "tag_documents",
                                  "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"t\"]}");
