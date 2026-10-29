@@ -1,9 +1,10 @@
 package org.icij.datashare.web;
 
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
  * query_string matches, without writing anything, so the caller can show the count and ask the user to confirm.
  */
 class McpTagByQuery {
+    private static final Logger logger = LoggerFactory.getLogger(McpTagByQuery.class);
     private final McpIndexSearch indexSearch;
 
     @Inject
@@ -31,7 +33,7 @@ class McpTagByQuery {
                        Map.of("term", Map.of("type", "Document")));
         Map<String, Object> body =
                 Map.of("size", size, "_source", false, "query", Map.of("bool", documentsMatchingQuery));
-        JsonNode response = search(project, body, context);
+        JsonNode response = indexSearch.search(project, body, context);
         long matched = response.at("/hits/total/value").asLong();
         boolean lowerBound = "gte".equals(response.at("/hits/total/relation").asText());
         List<String> ids = new ArrayList<>();
@@ -39,27 +41,46 @@ class McpTagByQuery {
         return new Batch(ids, matched, lowerBound);
     }
 
-    // A project whose index does not exist reaches here rather than the grant check, which only knows the user's
-    // memberships, same reasoning as McpGetDocumentTool.
-    private JsonNode search(String project, Map<String, Object> body, Context context) throws IOException {
-        try {
-            return indexSearch.search(project, body, context);
-        } catch (ElasticsearchException e) {
-            if ("index_not_found_exception".equals(indexNotFound(e))) {
-                throw new McpToolException.NotFound(project, e);
-            }
-            throw e;
-        }
+    /** The write a confirmed batch performs, with the exception mapping its own tool owns. */
+    interface BatchWriter {
+        void write(String project, DocumentResource.BatchTagQuery query, Context context) throws IOException;
     }
 
-    private static String indexNotFound(ElasticsearchException e) {
-        return e.error() == null ? null : e.error().type();
+    // Both tools run the same confirmed batch: size it, resolve the ids, write them, refresh so the continuation
+    // query no longer sees them, and answer. Only the write itself and the wording of its failure differ.
+    Object writeBatch(String action, McpTagDocumentsTool.BatchTag batch, Context context, BatchWriter writer) throws
+            IOException {
+        int size = batchSize(batch.tags().size(), "tag".equals(action));
+        Batch resolved = resolve(batch.project(), batch.query(), size, context);
+        String refreshCaveat = null;
+        if (!resolved.ids().isEmpty()) {
+            writer.write(batch.project(), batch.writeFor(resolved.ids()), context);
+            refreshCaveat = refreshAfterWrite(batch.project(), action);
+        }
+        return written(action, batch, resolved, size, refreshCaveat);
     }
 
     // index.refresh_interval delays this call's write from being searchable; refreshing right after it is what
-    // lets the continuation query below see the batch that was just written instead of repeating it.
-    void refresh(String project) throws IOException {
-        indexSearch.refresh(project);
+    // lets the continuation query see the batch that was just written instead of repeating it. A refresh failure
+    // does not undo a write that already succeeded, so it is a caveat on the message rather than a failed call.
+    private String refreshAfterWrite(String project, String action) {
+        try {
+            indexSearch.refresh(project);
+            return null;
+        } catch (IOException e) {
+            logger.warn("failed to refresh index {} after a confirmed {}-by-query write", project, action, e);
+            return "The index refresh failed, so next_query may not be accurate yet; retrying it shortly should " +
+                   "catch up.";
+        }
+    }
+
+    // A label wider than the column it lands in is rejected before the first pass answers, so a caller is not told
+    // a count for a write that can only fail. The wording matches DocumentResource, which enforces the same width.
+    static void requireTagsWritable(List<String> tags) {
+        if (tags.stream().anyMatch(tag -> tag.codePointCount(0, tag.length()) > DocumentResource.MAX_TAG_LENGTH)) {
+            throw McpToolException.InvalidArgument.because(
+                    "tag longer than %d characters".formatted(DocumentResource.MAX_TAG_LENGTH));
+        }
     }
 
     // The write budget (MAX_TAG_WRITES rows per call) bounds a tagging batch as tags multiply; untagging deletes
@@ -75,12 +96,14 @@ class McpTagByQuery {
     // index.max_result_window caps a search at ten thousand hits, so paging with a cursor cannot reach further
     // matches; the only way in is for the match set itself to shrink, which this batch's write just did. Tagging
     // leaves behind the documents still missing at least one of the tags; untagging leaves behind the ones still
-    // carrying at least one.
+    // carrying at least one. The caller sends this back as the next query, so wrapping it again each round would
+    // grow the query without bound, a hundred clauses a round with a hundred tags; the filter is idempotent, so a
+    // query already carrying it is returned untouched.
     static String continuation(String query, List<String> tags, boolean tagging) {
         String joiner = tagging ? " AND " : " OR ";
         String tagClauses = tags.stream().map(McpTagByQuery::phrase).collect(Collectors.joining(joiner));
-        return tagging ? "(%s) AND NOT (%s)".formatted(query, tagClauses) :
-               "(%s) AND (%s)".formatted(query, tagClauses);
+        String filter = (tagging ? " AND NOT (%s)" : " AND (%s)").formatted(tagClauses);
+        return query.endsWith(filter) ? query : "(%s)%s".formatted(query, filter);
     }
 
     // A tag becomes a query_string phrase, so its own backslashes and double quotes are escaped first or they
@@ -161,8 +184,14 @@ class McpTagByQuery {
                                                                                                         action);
         }
         String count = (resolved.lowerBound() ? "at least " : "") + resolved.matched();
-        return ("About to %s %s documents in project %s with %s. Show this count to the user and ask whether to " +
+        // One confirmed call writes one batch, not the whole match set, so the count alone would promise more than
+        // the next call delivers whenever the batch is the smaller of the two.
+        int size = batchSize(batch.tags().size(), "tag".equals(action));
+        String reach = resolved.lowerBound() || resolved.matched() > size ?
+                       "The next call %ss the first %d of them, and says whether more remain.".formatted(action, size) :
+                       "The next call %ss all of them.".formatted(action);
+        return ("About to %s %s documents in project %s with %s. %s Show this count to the user and ask whether to " +
                 "proceed. If they agree, call %s_documents again with the same arguments and confirmed: true. " +
-                "Nothing has been changed yet.").formatted(action, count, batch.project(), batch.tags(), action);
+                "Nothing has been changed yet.").formatted(action, count, batch.project(), batch.tags(), reach, action);
     }
 }
