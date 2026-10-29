@@ -10,6 +10,8 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.PipelineExecutor;
+import org.icij.datashare.asynctasks.StageActivityOptions;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.pipeline.PipelineWorkflow;
@@ -23,10 +25,13 @@ public class TemporalPipelineExecutor implements PipelineExecutor {
     private static final String PIPELINE_WORKFLOW_KEY = "PipelineWorkflow";
     private final TemporalInterlocutor temporal;
     private final String taskQueue;
+    private final StageRegistry registry;
 
     @Inject
-    public TemporalPipelineExecutor(TemporalInterlocutor temporal, PropertiesProvider propertiesProvider) {
+    public TemporalPipelineExecutor(TemporalInterlocutor temporal, PropertiesProvider propertiesProvider,
+                                    StageRegistry registry) {
         this.temporal = temporal;
+        this.registry = registry;
         this.taskQueue = taskQueue(propertiesProvider);
     }
 
@@ -37,13 +42,14 @@ public class TemporalPipelineExecutor implements PipelineExecutor {
 
     @Override
     public boolean run(List<Stage> stages, Map<String, Object> args) {
+        Map<Stage, StageActivityOptions> activityOptions = registry.activityOptions(stages);
         PipelineWorkflow workflow = temporal.newWorkflowStub(PipelineWorkflow.class,
                                                              WorkflowOptions.newBuilder().setTaskQueue(taskQueue)
                                                                             .setWorkflowId(
                                                                                     "pipeline-" + UUID.randomUUID())
                                                                             .build());
         try {
-            Map<Stage, StageResult> results = workflow.run(stages, args);
+            Map<Stage, StageResult> results = workflow.run(stages, args, activityOptions);
             results.forEach(
                     (stage, result) -> logger.info("stage {} done: {} updated, {} unchanged, {} skipped, {} failed",
                                                    stage, result.updated(), result.unchanged(), result.skipped(),

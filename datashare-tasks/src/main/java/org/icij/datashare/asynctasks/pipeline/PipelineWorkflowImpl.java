@@ -1,33 +1,33 @@
 package org.icij.datashare.asynctasks.pipeline;
 
 import io.temporal.activity.ActivityOptions;
+import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Async;
 import io.temporal.workflow.Promise;
 import io.temporal.workflow.Workflow;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageActivityOptions;
 import org.icij.datashare.asynctasks.StageResult;
 
 public class PipelineWorkflowImpl implements PipelineWorkflow, StageEmitReceiver {
-    private final StageActivity stageActivity = Workflow.newActivityStub(StageActivity.class,
-                                                                         ActivityOptions.newBuilder()
-                                                                                        .setStartToCloseTimeout(
-                                                                                                Duration.ofMinutes(1))
-                                                                                        .build());
+    private final Map<Stage, StageActivity> stageActivities = new EnumMap<>(Stage.class);
     private final List<Started> pending = new ArrayList<>();
     private List<Stage> stages;
     private Map<String, Object> options;
+    private Map<Stage, StageActivityOptions> activityOptions;
 
     private record Started(Stage stage, Promise<StageResult> result) {}
 
     @Override
-    public Map<Stage, StageResult> run(List<Stage> stages, Map<String, Object> options) {
+    public Map<Stage, StageResult> run(List<Stage> stages, Map<String, Object> options,
+                                       Map<Stage, StageActivityOptions> activityOptions) {
         this.stages = stages;
         this.options = options;
+        this.activityOptions = activityOptions == null ? Map.of() : activityOptions;
         Map<Stage, StageResult> results = new EnumMap<>(Stage.class);
 
         // the source stage is handed an empty batch: it emits what it finds, and onEmitted forwards it
@@ -54,6 +54,17 @@ public class PipelineWorkflowImpl implements PipelineWorkflow, StageEmitReceiver
     }
 
     private void start(Stage stage, List<?> batch) {
-        pending.add(new Started(stage, Async.function(stageActivity::run, stage, options, batch)));
+        StageActivity activity = stageActivities.computeIfAbsent(stage, s -> Workflow.newActivityStub(
+                StageActivity.class, toActivityOptions(activityOptions.getOrDefault(s, StageActivityOptions.DEFAULT))));
+        pending.add(new Started(stage, Async.function(activity::run, stage, options, batch)));
+    }
+
+    private static ActivityOptions toActivityOptions(StageActivityOptions options) {
+        ActivityOptions.Builder builder = ActivityOptions.newBuilder()
+                                                         .setStartToCloseTimeout(options.startToCloseTimeout());
+        if (options.maxAttempts() > 0) {
+            builder.setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(options.maxAttempts()).build());
+        }
+        return builder.build();
     }
 }
