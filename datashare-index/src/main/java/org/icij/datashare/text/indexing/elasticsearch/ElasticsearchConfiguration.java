@@ -34,6 +34,9 @@ import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.apache.http.HttpHost.create;
 
 public class ElasticsearchConfiguration {
+    // index.max_result_window: the Elasticsearch default, which the index settings do not override. A search cannot
+    // answer for a hit beyond it, so neither a page nor a batch can reach past it.
+    public static final int INDEX_MAX_RESULT_WINDOW = 10_000;
     static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
     static final String SETTINGS_RESOURCE_NAME_WINDOWS = "datashare_index_settings_windows.json";

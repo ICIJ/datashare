@@ -77,8 +77,6 @@ public class ElasticsearchIndexer implements Indexer {
     // and untagged. Both scripts are idempotent, so replaying the request only re-applies what the conflict skipped.
     private static final int CONFLICT_ATTEMPTS = 3;
     private static final int UNAPPLIED_IDS_SHOWN = 20;
-    // index.max_result_window: a search cannot answer for a bigger batch, so it cannot clear it either
-    private static final int MAX_RESULT_WINDOW = 10_000;
     static private final Map<String, String> memoizeScript = new HashMap<>();
 
     public static Map<String, String> getMemoizeScript() {
@@ -525,9 +523,9 @@ public class ElasticsearchIndexer implements Indexer {
     // the conflicting writer left the index in the wanted state after all, anything else has to be reported, a
     // listing nobody could make included: an unknown state is not an empty one.
     private Optional<String> unappliedIds(Project prj, List<String> documentIds, Predicate<List<String>> unapplied) {
-        if (documentIds.size() > MAX_RESULT_WINDOW) {
-            return Optional.of(
-                    "(%d documents is over the %d a search answers)".formatted(documentIds.size(), MAX_RESULT_WINDOW));
+        if (documentIds.size() > ElasticsearchConfiguration.INDEX_MAX_RESULT_WINDOW) {
+            return Optional.of("(%d documents is over the %d a search answers)".formatted(documentIds.size(),
+                                                                                          ElasticsearchConfiguration.INDEX_MAX_RESULT_WINDOW));
         }
         try {
             client.indices().refresh(r -> r.index(prj.getId()));

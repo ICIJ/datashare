@@ -9,17 +9,22 @@ import net.codestory.http.errors.UnauthorizedException;
 import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
 import org.icij.datashare.utils.IndexAccessVerifier;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.INDEX_MAX_RESULT_WINDOW;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 public class McpSearchDocumentsTool implements McpTool {
     private static final ObjectMapper MAPPER = JsonObjectMapper.getMapper();
-    // index.max_result_window: a search cannot answer for a hit beyond it, so a page past it is not an empty one
-    private static final int MAX_RESULT_WINDOW = 10_000;
     private static final McpArguments.IntArgument SIZE = new McpArguments.IntArgument("size", 10, 1, 50);
-    private static final McpArguments.IntArgument FROM = new McpArguments.IntArgument("from", 0, 0, MAX_RESULT_WINDOW);
+    // The last hit a search can answer for is the one before index.max_result_window, so a from of the window
+    // itself is out of range whatever the size, and is named as from rather than as the pair.
+    private static final McpArguments.IntArgument FROM =
+            new McpArguments.IntArgument("from", 0, 0, INDEX_MAX_RESULT_WINDOW - 1);
     private final Indexer indexer;
 
     @Inject
@@ -44,7 +49,7 @@ public class McpSearchDocumentsTool implements McpTool {
         int size = SIZE.readFrom(arguments);
         // The sum is what the window refuses, so naming only from sends a caller whose size is the problem to the
         // wrong argument.
-        if (from + size > MAX_RESULT_WINDOW) {
+        if (from + size > INDEX_MAX_RESULT_WINDOW) {
             throw McpToolException.InvalidArgument.invalid("from + size");
         }
         return McpSearchResult.from(
@@ -56,7 +61,7 @@ public class McpSearchDocumentsTool implements McpTool {
     private JsonNode search(String project, Map<String, Object> body, Context context) throws IOException {
         String path = project + "/_search";
         requireReadable(project, path, context);
-        return requireAllShards(MAPPER.readTree(runSearch(path, body)));
+        return requireAllShards(MAPPER.readTree(runSearch(path + preference(context), body)));
     }
 
     // Elasticsearch answers a malformed query_string with a 400 whose message carries the cluster address, so a
@@ -70,6 +75,13 @@ public class McpSearchDocumentsTool implements McpTool {
             }
             throw McpToolException.InvalidArgument.invalid("query");
         }
+    }
+
+    // Elasticsearch breaks a tie on _score with an internal doc id that a shard's copies number differently, so two
+    // pages answered by different copies can repeat a hit and never show another. Sending the caller's own id as the
+    // preference keeps their pages on one copy, without pinning every caller to the same one.
+    private static String preference(Context context) {
+        return "?preference=" + URLEncoder.encode(((User) context.currentUser()).id, StandardCharsets.UTF_8);
     }
 
     private static String requireSingleProject(JsonNode arguments) {

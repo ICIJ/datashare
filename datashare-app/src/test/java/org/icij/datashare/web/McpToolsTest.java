@@ -103,7 +103,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_search_on_granted_project_returns_trimmed_hits() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(ES_RESPONSE);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(ES_RESPONSE);
 
         JsonNode result = payload(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}"));
 
@@ -120,7 +120,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_search_sends_query_string_filtered_on_documents() throws Exception {
         serveAs("local", "foo");
         org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_RESPONSE);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), body.capture())).thenReturn(ES_RESPONSE);
 
         call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\",\"size\":5}");
 
@@ -134,9 +134,20 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_search_pins_the_pages_to_one_shard_copy_per_user() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(ES_RESPONSE);
+
+        JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isFalse();
+        org.mockito.Mockito.verify(indexer).executeRaw(eq("POST"), eq("foo/_search?preference=local"), any());
+    }
+
+    @Test
     public void test_search_with_failed_shards_is_an_error() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any()))
                 .thenReturn("{\"_shards\":{\"failed\":1},\"hits\":{\"total\":{\"value\":0},\"hits\":[]}}");
 
         JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}");
@@ -160,7 +171,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_search_with_a_rejected_query_is_an_invalid_argument() throws Exception {
         serveAs("local", "foo");
         org.elasticsearch.client.ResponseException rejected = elasticsearchError(400);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenThrow(rejected);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenThrow(rejected);
 
         JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"foo AND\"}");
 
@@ -172,7 +183,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_search_with_a_cluster_failure_is_a_tool_error() throws Exception {
         serveAs("local", "foo");
         org.elasticsearch.client.ResponseException unavailable = elasticsearchError(503);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenThrow(unavailable);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenThrow(unavailable);
 
         JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}");
 
@@ -193,13 +204,13 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_search_ignores_the_mcp_request_query_string() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any())).thenReturn(ES_RESPONSE);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(ES_RESPONSE);
         String body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search_documents\","
                       + "\"arguments\":{\"project\":\"foo\",\"query\":\"leak\"}}}";
 
         post("/api/mcp?q=x", body).withPreemptiveAuthentication("local", "").response();
 
-        org.mockito.Mockito.verify(indexer).executeRaw(eq("POST"), eq("foo/_search"), any());
+        org.mockito.Mockito.verify(indexer).executeRaw(eq("POST"), eq("foo/_search?preference=local"), any());
     }
 
     @Test
@@ -226,7 +237,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_search_sends_from() throws Exception {
         serveAs("local", "foo");
         org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_RESPONSE);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), body.capture())).thenReturn(ES_RESPONSE);
 
         call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\",\"size\":5,\"from\":20}");
 
@@ -237,7 +248,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_search_without_from_starts_at_the_first_hit() throws Exception {
         serveAs("local", "foo");
         org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_RESPONSE);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), body.capture())).thenReturn(ES_RESPONSE);
 
         JsonNode result = payload(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}"));
 
@@ -250,7 +261,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_search_on_the_last_answerable_page_is_accepted() throws Exception {
         serveAs("local", "foo");
         org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_RESPONSE);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), body.capture())).thenReturn(ES_RESPONSE);
 
         JsonNode response = call("local", "search_documents",
                                  "{\"project\":\"foo\",\"query\":\"leak\",\"from\":9990,\"size\":10}");
@@ -289,6 +300,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"x\",\"from\":10001}")
                            .at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"x\",\"from\":10000}")
+                           .at("/error/message").asText()).isEqualTo("invalid argument: from");
         org.mockito.Mockito.verifyNoInteractions(indexer);
     }
 
@@ -309,7 +322,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_search_accepts_a_whole_number_written_as_a_float() throws Exception {
         serveAs("local", "foo");
         org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), body.capture())).thenReturn(ES_RESPONSE);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), body.capture())).thenReturn(ES_RESPONSE);
 
         call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\",\"size\":20.0,\"from\":10.0}");
 
@@ -321,7 +334,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     @Test
     public void test_search_says_when_the_total_is_a_lower_bound() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search"), any()))
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any()))
                 .thenReturn("{\"hits\":{\"total\":{\"value\":10000,\"relation\":\"gte\"},\"hits\":[]}}");
 
         JsonNode result = payload(call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}"));
