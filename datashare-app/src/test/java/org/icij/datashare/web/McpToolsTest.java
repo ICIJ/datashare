@@ -935,10 +935,13 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(response.at("/error/message").asText()).contains("query");
     }
 
+    // executeRaw answers a missing index with a 404 ResponseException, never the typed ElasticsearchException the
+    // java client raises, so the mapping belongs where the raw call is made.
     @Test
     public void test_tag_documents_reports_a_missing_index_as_not_found() throws Exception {
         serveAs("local", "foo");
-        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenThrow(indexMissing());
+        org.elasticsearch.client.ResponseException missing = elasticsearchError(404);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenThrow(missing);
 
         JsonNode response = call("local", "tag_documents",
                                  "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"t\"]}");
@@ -1289,5 +1292,152 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         JsonNode response = call("local", "list_tags", "{\"project\":\"foo,bar\"}");
 
         assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: foo,bar");
+    }
+
+    @Test
+    public void test_search_documents_reports_a_missing_index_as_not_found() throws Exception {
+        serveAs("local", "foo");
+        org.elasticsearch.client.ResponseException missing = elasticsearchError(404);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenThrow(missing);
+
+        JsonNode response = call("local", "search_documents", "{\"project\":\"foo\",\"query\":\"leak\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: foo");
+        assertThat(response.toString()).excludes("elasticsearch:9200");
+    }
+
+    // The agent sends next_query back as query, so wrapping it again each round would grow the query without
+    // bound. The filter is idempotent, and so is the query that already carries it.
+    @Test
+    public void test_the_continuation_query_is_not_wrapped_twice_when_sent_back() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
+                fullBatchSearchResponse(10000, "gte"));
+        String continuation = "(content:passeport) AND NOT (tags:\\\"passeport\\\")";
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"" + continuation + "\",\"tags\":[\"passeport\"],\"confirmed\":true}"));
+
+        assertThat(result.get("next_query").asText()).isEqualTo("(content:passeport) AND NOT (tags:\"passeport\")");
+    }
+
+    // One confirmed call writes one batch, not the whole match set, so the count alone would promise more than
+    // the next call delivers.
+    @Test
+    public void test_the_confirmation_says_how_many_the_next_call_writes() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":9000,\"relation\":\"eq\"},\"hits\":[]}}");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":" + tagList(20) + "}"));
+
+        assertThat(result.get("matched").asInt()).isEqualTo(9000);
+        assertThat(result.get("message").asText()).contains("first 5000");
+    }
+
+    @Test
+    public void test_the_confirmation_says_the_next_call_takes_everything_when_it_fits() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":12,\"relation\":\"eq\"},\"hits\":[]}}");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"passeport\"]}"));
+
+        assertThat(result.get("message").asText()).contains("all of them");
+    }
+
+    // A label the write would refuse is refused before the first pass answers, so no count is reported for an
+    // operation that can only fail.
+    @Test
+    public void test_tag_documents_rejects_an_over_long_tag_before_counting() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents", "{\"project\":\"foo\",\"query\":\"content:a\",\"tags\":[\""
+                                                           + "t".repeat(65) + "\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("tag longer than 64 characters");
+        verify(indexer, never()).executeRaw(eq("POST"), eq("foo/_search?preference=local"), any());
+    }
+
+    // In query mode a retry re-resolves the query, and the documents the index already changed have dropped out
+    // of it, so the by-id promise that a retry reconciles does not hold here.
+    @Test
+    public void test_a_failed_tag_by_query_write_does_not_promise_a_retry_reconciles() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"},\"hits\":[{\"_id\":\"doc1\"}]}}");
+        when(indexer.tag(any(Project.class), anyList(), any(Tag[].class))).thenThrow(indexMissing());
+
+        JsonNode response = call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"passeport\"],\"confirmed\":true}");
+
+        String message = response.at("/result/content/0/text").asText();
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(message).contains("no longer match the query").contains("doc_ids");
+        assertThat(message).excludes("retry of this call will reconcile");
+    }
+
+    @Test
+    public void test_a_failed_untag_by_query_write_does_not_promise_a_retry_reconciles() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"},\"hits\":[{\"_id\":\"doc1\"}]}}");
+        when(indexer.untag(any(Project.class), anyList(), any(Tag[].class))).thenThrow(indexMissing());
+
+        JsonNode response = call("local", "untag_documents",
+                "{\"project\":\"foo\",\"query\":\"tags:mistake\",\"tags\":[\"mistake\"],\"confirmed\":true}");
+
+        String message = response.at("/result/content/0/text").asText();
+        assertThat(message).contains("no longer match the query").contains("doc_ids");
+        assertThat(message).excludes("retry of this call will reconcile");
+    }
+
+    // search_documents refuses a comma-separated project; without the same guard here the first pass would count
+    // across both indices and only the confirmed call would be refused.
+    @Test
+    public void test_tag_documents_rejects_a_comma_separated_project() throws Exception {
+        serveAs("local", "foo", "bar");
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo,bar\",\"query\":\"content:a\",\"tags\":[\"t\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("project");
+        verify(indexer, never()).executeRaw(any(), any(), any());
+    }
+
+    @Test
+    public void test_tag_documents_rejects_a_blank_query() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"query\":\"   \",\"tags\":[\"t\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("query");
+        verify(indexer, never()).executeRaw(any(), any(), any());
+    }
+
+    @Test
+    public void test_tag_documents_rejects_a_query_that_is_not_a_string() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "tag_documents",
+                                 "{\"project\":\"foo\",\"query\":[\"content:a\"],\"tags\":[\"t\"]}");
+
+        assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
+        assertThat(response.at("/error/message").asText()).contains("query");
+    }
+
+    private static String tagList(int count) {
+        List<String> tags = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            tags.add("\"t" + i + "\"");
+        }
+        return "[" + String.join(",", tags) + "]";
     }
 }

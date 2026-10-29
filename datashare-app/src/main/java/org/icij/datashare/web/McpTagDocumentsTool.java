@@ -6,8 +6,6 @@ import com.google.inject.Inject;
 import net.codestory.http.Context;
 import org.icij.datashare.web.errors.BadRequestException;
 import org.icij.datashare.web.errors.ForbiddenException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +20,6 @@ public class McpTagDocumentsTool implements McpTool {
     // 100000 rows take under 4 seconds, 1000000 take 29, long enough for a client to give up while the
     // transaction is still open.
     static final int MAX_TAG_WRITES = 100_000;
-    private static final Logger logger = LoggerFactory.getLogger(McpTagDocumentsTool.class);
     private final DocumentResource documentResource;
     private final McpTagByQuery tagByQuery;
 
@@ -51,11 +48,12 @@ public class McpTagDocumentsTool implements McpTool {
     public Object call(JsonNode arguments, Context context) throws IOException {
         BatchTag batch = BatchTag.from(arguments);
         if (batch.query() != null) {
+            McpTagByQuery.requireTagsWritable(batch.tags());
             if (!batch.confirmed()) {
                 return McpTagByQuery.confirmation("tag", batch,
                                                   tagByQuery.resolve(batch.project(), batch.query(), 0, context));
             }
-            return writeQueryBatch(batch, context);
+            return tagByQuery.writeBatch("tag", batch, context, this::tagOrFail);
         }
         batch.requireWithinWriteBudget();
         try {
@@ -77,46 +75,30 @@ public class McpTagDocumentsTool implements McpTool {
         return Map.of("project", batch.project(), "tagged", batch.docIds().size(), "tags", batch.tags());
     }
 
-    // Sized to the write budget rather than the id cap, since this batch, unlike doc_ids, multiplies by the tag
-    // count: fewer ids per batch keeps the row count under MAX_TAG_WRITES.
-    private Object writeQueryBatch(BatchTag batch, Context context) throws IOException {
-        int size = McpTagByQuery.batchSize(batch.tags().size(), true);
-        McpTagByQuery.Batch resolved = tagByQuery.resolve(batch.project(), batch.query(), size, context);
-        String refreshCaveat = null;
-        if (!resolved.ids().isEmpty()) {
-            try {
-                documentResource.groupTagDocument(batch.project(), batch.writeFor(resolved.ids()), context);
-            } catch (ForbiddenException e) {
-                throw new McpToolException.Forbidden(batch.project(), e);
-            } catch (BadRequestException e) {
-                throw McpToolException.InvalidArgument.because(e.getMessage());
-            } catch (IOException | ElasticsearchException e) {
-                throw new McpToolException(
-                        "the search index refused the write, so nothing was saved in the database; part of the " +
-                        "batch may already be tagged in the index, which a retry of this call will reconcile", e);
-            }
-            refreshCaveat = refreshAfterWrite(batch.project());
-        }
-        return McpTagByQuery.written("tag", batch, resolved, size, refreshCaveat);
-    }
-
-    // A refresh failure does not undo a write that already succeeded; it only means the continuation query below
-    // may still see what this batch just tagged, which the message flags as a caveat rather than failing the call.
-    private String refreshAfterWrite(String project) {
+    // The write of one query batch, with the failure worded for query mode: unlike doc_ids, repeating the call
+    // re-resolves the query, and the index having gone first means the documents it already tagged no longer match
+    // it, so they would stay missing from the database.
+    private void tagOrFail(String project, DocumentResource.BatchTagQuery query, Context context) throws IOException {
         try {
-            tagByQuery.refresh(project);
-            return null;
-        } catch (IOException e) {
-            logger.warn("failed to refresh index {} after a confirmed tag-by-query write", project, e);
-            return "The index refresh failed, so next_query may not be accurate yet; retrying it shortly should " +
-                   "catch up.";
+            documentResource.groupTagDocument(project, query, context);
+        } catch (ForbiddenException e) {
+            throw new McpToolException.Forbidden(project, e);
+        } catch (BadRequestException e) {
+            throw McpToolException.InvalidArgument.because(e.getMessage());
+        } catch (IOException | ElasticsearchException e) {
+            throw new McpToolException(
+                    "the search index refused the write, so nothing was saved in the database; part of the batch " +
+                    "may already be tagged in the index, and those documents no longer match the query, so " +
+                    "repeating this call will not bring them back; tag them by doc_ids to reconcile", e);
         }
     }
 
     /** The arguments both tagging tools take: either an explicit id list or a query, never both. */
     record BatchTag(String project, List<String> docIds, String query, List<String> tags, boolean confirmed) {
         static BatchTag from(JsonNode arguments) {
-            String project = McpArguments.requireText(arguments, "project");
+            // The same single-index guard search_documents keeps: a comma-separated list would otherwise be
+            // counted across both indices on the first pass and refused by the grant check on the second.
+            String project = McpIndexSearch.requireSingleProject(arguments);
             List<String> tags = McpArguments.requireTexts(arguments, "tags", MAX_TAGS);
             boolean hasQuery = arguments.hasNonNull("query");
             boolean hasDocIds = arguments.hasNonNull("doc_ids");
@@ -124,7 +106,7 @@ public class McpTagDocumentsTool implements McpTool {
                 throw McpToolException.InvalidArgument.because(
                         "exactly one of \"doc_ids\" and \"query\" is required, not both and not neither");
             }
-            String query = hasQuery ? McpArguments.optionalText(arguments, "query") : null;
+            String query = hasQuery ? McpArguments.requireText(arguments, "query") : null;
             List<String> docIds = hasDocIds ? McpArguments.requireTexts(arguments, "doc_ids", MAX_DOC_IDS) : null;
             boolean confirmed = arguments.path("confirmed").asBoolean(false);
             return new BatchTag(project, docIds, query, tags, confirmed);
