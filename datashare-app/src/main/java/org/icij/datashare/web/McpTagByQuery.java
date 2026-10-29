@@ -32,13 +32,13 @@ class McpTagByQuery {
                 Map.of("must", Map.of("query_string", Map.of("query", query)), "filter",
                        Map.of("term", Map.of("type", "Document")));
         Map<String, Object> body =
-                Map.of("size", size, "_source", false, "query", Map.of("bool", documentsMatchingQuery));
+                Map.of("size", size, "_source", List.of("tags"), "query", Map.of("bool", documentsMatchingQuery));
         JsonNode response = indexSearch.search(project, body, context);
         long matched = response.at("/hits/total/value").asLong();
         boolean lowerBound = "gte".equals(response.at("/hits/total/relation").asText());
-        List<String> ids = new ArrayList<>();
-        response.at("/hits/hits").forEach(hit -> ids.add(hit.at("/_id").asText()));
-        return new Batch(ids, matched, lowerBound);
+        List<Hit> hits = new ArrayList<>();
+        response.at("/hits/hits").forEach(hit -> hits.add(Hit.from(hit)));
+        return new Batch(hits, matched, lowerBound);
     }
 
     /** The write a confirmed batch performs, with the exception mapping its own tool owns. */
@@ -52,12 +52,13 @@ class McpTagByQuery {
             IOException {
         int size = batchSize(batch.tags().size(), "tag".equals(action));
         Batch resolved = resolve(batch.project(), batch.query(), size, context);
+        List<String> targets = resolved.needing(batch.tags(), "tag".equals(action));
         String refreshCaveat = null;
-        if (!resolved.ids().isEmpty()) {
-            writer.write(batch.project(), batch.writeFor(resolved.ids()), context);
+        if (!targets.isEmpty()) {
+            writer.write(batch.project(), batch.writeFor(targets), context);
             refreshCaveat = refreshAfterWrite(batch.project(), action);
         }
-        return written(action, batch, resolved, size, refreshCaveat);
+        return written(action, batch, resolved, targets, size, refreshCaveat);
     }
 
     // index.refresh_interval delays this call's write from being searchable; refreshing right after it is what
@@ -90,8 +91,30 @@ class McpTagByQuery {
                McpTagDocumentsTool.MAX_DOC_IDS;
     }
 
-    /** What a query resolves to: the matching ids this call fetched, and how many the query matches in total. */
-    record Batch(List<String> ids, long matched, boolean lowerBound) {}
+    /** One hit of a resolved batch, with the labels it actually carries, which the search field cannot tell us. */
+    record Hit(String id, List<String> tags) {
+        static Hit from(JsonNode hit) {
+            List<String> tags = new ArrayList<>();
+            hit.at("/_source/tags").forEach(tag -> tags.add(tag.asText()));
+            return new Hit(hit.at("/_id").asText(), tags);
+        }
+    }
+
+    /** What a query resolves to: the hits this call fetched, and how many the query matches in total. */
+    record Batch(List<Hit> hits, long matched, boolean lowerBound) {
+        List<String> ids() {
+            return hits.stream().map(Hit::id).toList();
+        }
+
+        // The tags field is indexed through the keyword_lowercase normalizer, so tags:"Invoice" also matches a
+        // document carrying "invoice", while the Painless scripts and document_tag compare labels exactly. The
+        // query therefore selects a superset of what the write would change, and the exact labels decide which
+        // of its hits this call has anything to do.
+        List<String> needing(List<String> tags, boolean tagging) {
+            return hits.stream().filter(hit -> tagging ? !hit.tags().containsAll(tags) :
+                                               tags.stream().anyMatch(hit.tags()::contains)).map(Hit::id).toList();
+        }
+    }
 
     // index.max_result_window caps a search at ten thousand hits, so paging with a cursor cannot reach further
     // matches; the only way in is for the match set itself to shrink, which this batch's write just did. Tagging
@@ -114,41 +137,56 @@ class McpTagByQuery {
     }
 
     // The batch filling its requested size is necessary but not sufficient: an exact count (relation "eq") that
-    // equals what was just written proves nothing is left, however full the batch looks. Only a lower-bound count,
-    // or an exact count that still exceeds what was written, leaves work provably outstanding.
-    private static boolean more(Batch resolved, int size) {
-        return resolved.ids().size() == size && (resolved.lowerBound() || resolved.matched() > resolved.ids().size());
+    // equals what the batch holds proves nothing is left, however full the batch looks. Only a lower-bound count,
+    // or an exact count that still exceeds the batch, leaves work provably outstanding. A batch where no hit needs
+    // the write is the stall below, not progress: saying more would send the caller back for the same documents.
+    private static boolean more(Batch resolved, List<String> targets, int size) {
+        return !targets.isEmpty() && resolved.ids().size() == size &&
+               (resolved.lowerBound() || resolved.matched() > resolved.ids().size());
+    }
+
+    // A full batch whose hits all turn out to carry the labels in another casing cannot shrink: the write changes
+    // nothing, the query keeps matching the same documents, and continuing would loop on them forever. Stopping
+    // and naming the casing is the only honest answer until the continuation can target the stored label exactly.
+    private static boolean stalled(Batch resolved, List<String> targets, int size) {
+        return targets.isEmpty() && resolved.ids().size() == size;
     }
 
     // The response to a confirmed batch: what got written, whether more is provably outstanding, and, when it is,
     // the query to send next. The caller must see each batch's count before the next runs, so the continuation
     // query rides along rather than being left for the model to compose itself.
-    static Map<String, Object> written(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved, int size,
-                                       String refreshCaveat) {
+    static Map<String, Object> written(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved,
+                                       List<String> targets, int size, String refreshCaveat) {
         boolean tagging = "tag".equals(action);
-        boolean more = more(resolved, size);
+        boolean more = more(resolved, targets, size);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("project", batch.project());
-        result.put(tagging ? "tagged" : "untagged", resolved.ids().size());
+        result.put(tagging ? "tagged" : "untagged", targets.size());
         result.put("tags", batch.tags());
         result.put("more", more);
         if (more) {
             result.put("next_query", continuation(batch.query(), batch.tags(), tagging));
         }
-        result.put("message", writtenMessage(action, batch, resolved, more, refreshCaveat));
+        result.put("message", writtenMessage(action, batch, resolved, targets, size, more, refreshCaveat));
         return result;
     }
 
     private static String writtenMessage(String action, McpTagDocumentsTool.BatchTag batch, Batch resolved,
-                                         boolean more, String refreshCaveat) {
+                                         List<String> targets, int size, boolean more, String refreshCaveat) {
         if (resolved.ids().isEmpty()) {
             return "No documents matched the query in project %s, so there is nothing to %s.".formatted(batch.project(),
                                                                                                         action);
         }
+        if (targets.isEmpty()) {
+            return ("The query matched %d documents in project %s, but none of them carries %s with that exact " +
+                    "casing, so there was nothing to %s. The search field lowercases tags while the stored label " +
+                    "keeps its casing; use list_tags to see how the label is actually stored.%s").formatted(
+                    resolved.ids().size(), batch.project(), batch.tags(), action,
+                    stalled(resolved, targets, size) ? " Stopped here rather than repeating the same batch." : "");
+        }
         String verb = "tag".equals(action) ? "Tagged" : "Untagged";
         StringBuilder text = new StringBuilder(
-                "%s %d documents in project %s with %s".formatted(verb, resolved.ids().size(), batch.project(),
-                                                                  batch.tags()));
+                "%s %d documents in project %s with %s".formatted(verb, targets.size(), batch.project(), batch.tags()));
         if (more) {
             // A lower-bound count only proves more remain, never how many; an exact count, past what was just
             // written, says exactly how many, since track_total_hits was not asked to pay for more precision.

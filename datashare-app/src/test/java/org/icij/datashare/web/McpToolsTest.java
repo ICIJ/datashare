@@ -631,13 +631,15 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
     // Builds a _search response whose hits are exactly `count` documents, the shape a resolved batch has when it
     // fills the size it asked for.
-    private static String fullBatchSearchResponse(int count, String relation) {
+    private static String fullBatchSearchResponse(int count, String relation, String... carried) {
         StringBuilder hits = new StringBuilder();
+        String tags = carried.length == 0 ? "" :
+                      ",\"_source\":{\"tags\":[\"" + String.join("\",\"", carried) + "\"]}";
         for (int i = 0; i < count; i++) {
             if (i > 0) {
                 hits.append(',');
             }
-            hits.append("{\"_id\":\"doc").append(i).append("\"}");
+            hits.append("{\"_id\":\"doc").append(i).append("\"").append(tags).append("}");
         }
         return "{\"hits\":{\"total\":{\"value\":" + count + ",\"relation\":\"" + relation + "\"},"
                + "\"hits\":[" + hits + "]}}";
@@ -728,7 +730,7 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_the_continuation_query_of_an_untag_keeps_the_tagged_documents() throws Exception {
         serveAs("local", "foo");
         when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
-                fullBatchSearchResponse(10000, "gte"));
+                fullBatchSearchResponse(10000, "gte", "a", "b"));
 
         JsonNode result = payload(call("local", "untag_documents",
                 "{\"project\":\"foo\",\"query\":\"content:passeport\",\"tags\":[\"a\",\"b\"],\"confirmed\":true}"));
@@ -1385,7 +1387,8 @@ public class McpToolsTest extends AbstractProdWebServerTest {
     public void test_a_failed_untag_by_query_write_does_not_promise_a_retry_reconciles() throws Exception {
         serveAs("local", "foo");
         when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
-                "{\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"},\"hits\":[{\"_id\":\"doc1\"}]}}");
+                "{\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"},"
+                + "\"hits\":[{\"_id\":\"doc1\",\"_source\":{\"tags\":[\"mistake\"]}}]}}");
         when(indexer.untag(any(Project.class), anyList(), any(Tag[].class))).thenThrow(indexMissing());
 
         JsonNode response = call("local", "untag_documents",
@@ -1431,6 +1434,72 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         assertThat(response.at("/error/code").asInt()).isEqualTo(-32602);
         assertThat(response.at("/error/message").asText()).contains("query");
+    }
+
+
+    // The tags field lowercases what it indexes, so tags:"Invoice" matches a document stored as "invoice" while
+    // the untag script, comparing exactly, removes nothing. Repeating that batch is the loop the design calls an
+    // anti-goal, so a full batch with nothing to remove stops and names the casing.
+    @Test
+    public void test_untag_by_query_stops_instead_of_looping_on_a_casing_mismatch() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
+                fullBatchSearchResponse(10000, "gte", "invoice"));
+
+        JsonNode result = payload(call("local", "untag_documents",
+                "{\"project\":\"foo\",\"query\":\"tags:Invoice\",\"tags\":[\"Invoice\"],\"confirmed\":true}"));
+
+        assertThat(result.get("untagged").asInt()).isEqualTo(0);
+        assertThat(result.get("more").asBoolean()).isFalse();
+        assertThat(result.has("next_query")).isFalse();
+        assertThat(result.get("message").asText()).contains("exact casing").contains("list_tags");
+        verify(indexer, never()).untag(any(Project.class), anyList(), any(Tag[].class));
+        verify(repository, never()).untag(any(Project.class), anyList(), any(Tag[].class));
+    }
+
+    @Test
+    public void test_untag_by_query_writes_only_the_documents_carrying_the_exact_label() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":2,\"relation\":\"eq\"},\"hits\":["
+                + "{\"_id\":\"doc1\",\"_source\":{\"tags\":[\"Invoice\"]}},"
+                + "{\"_id\":\"doc2\",\"_source\":{\"tags\":[\"invoice\"]}}]}}");
+
+        JsonNode result = payload(call("local", "untag_documents",
+                "{\"project\":\"foo\",\"query\":\"tags:Invoice\",\"tags\":[\"Invoice\"],\"confirmed\":true}"));
+
+        verify(indexer).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        verify(repository).untag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        assertThat(result.get("untagged").asInt()).isEqualTo(1);
+    }
+
+    // The mirror case for tagging: a document stored as "invoice" is still missing "Invoice", so it is written
+    // rather than counted as already done.
+    @Test
+    public void test_tag_by_query_still_writes_a_document_whose_label_differs_in_case() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), any())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":1,\"relation\":\"eq\"},"
+                + "\"hits\":[{\"_id\":\"doc1\",\"_source\":{\"tags\":[\"invoice\"]}}]}}");
+
+        JsonNode result = payload(call("local", "tag_documents",
+                "{\"project\":\"foo\",\"query\":\"content:a\",\"tags\":[\"Invoice\"],\"confirmed\":true}"));
+
+        verify(indexer).tag(eq(new Project("foo")), eq(List.of("doc1")), any(Tag[].class));
+        assertThat(result.get("tagged").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_the_resolve_search_asks_for_the_stored_tags() throws Exception {
+        serveAs("local", "foo");
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        when(indexer.executeRaw(eq("POST"), eq("foo/_search?preference=local"), body.capture())).thenReturn(
+                "{\"hits\":{\"total\":{\"value\":0,\"relation\":\"eq\"},\"hits\":[]}}");
+
+        call("local", "untag_documents",
+             "{\"project\":\"foo\",\"query\":\"tags:a\",\"tags\":[\"a\"],\"confirmed\":true}");
+
+        assertThat(MAPPER.readTree(body.getValue()).at("/_source/0").asText()).isEqualTo("tags");
     }
 
     private static String tagList(int count) {
