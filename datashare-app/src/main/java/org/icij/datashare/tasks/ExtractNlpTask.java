@@ -91,10 +91,6 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                 Thread.sleep(UPSTREAM_POLL_INTERVAL_MS);
                 continue;
             }
-            if (isLegacySentinel(queueEntry)) {
-                logger.warn("skipping legacy POISON sentinel in queue {}", inputQueue.getName());
-                continue;
-            }
             try {
                 findNamedEntities(project, queueEntry);
                 nbMessages++;

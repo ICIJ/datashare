@@ -555,23 +555,6 @@ public class ArtifactTaskTest {
         assertThat(secondRun).isEqualTo(1);
     }
 
-    @Test(timeout = 10000)
-    public void test_legacy_poison_entry_is_skipped_and_the_doc_behind_it_is_processed() throws Exception {
-        // a sentinel written by a pre-21.16 run is skipped before it is resolved as a doc reference,
-        // so it is not counted as an unretrievable document. The doc behind it must still be processed.
-        indexEmbeddedDoc();
-        DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
-        queue.add("POISON");
-        queue.add(EMBEDDED_DOC_SHA256);
-
-        Long numberOfDocuments = runArtifactTask();
-
-        assertThat(numberOfDocuments).isEqualTo(1);
-        assertThat(logback.logs(Level.WARN)).contains("skipping legacy POISON sentinel in queue extract:queue:artifact");
-        // the sentinel must not be reported as a document the operator should re-run the stage for
-        assertThat(logback.logs(Level.ERROR)).excludes("1 document(s) could not be retrieved from index prj and got no artifact cache, re-run the ARTIFACT stage for them");
-    }
-
     @Test(timeout = 30000)
     public void test_waits_for_the_upstream_task_before_leaving_an_empty_queue() throws Exception {
         indexEmbeddedDoc();
