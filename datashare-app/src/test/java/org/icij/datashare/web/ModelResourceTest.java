@@ -21,8 +21,7 @@ public class ModelResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_the_abstract_flag_uses_ftm_s_own_key() {
-        get("/api/models/ftm").should().respond(200).contain("\"abstract\":false");
-        get("/api/models/ftm").should().respond(200).not().contain("isAbstract");
+        get("/api/models/ftm").should().respond(200).contain("\"abstract\":false").not().contain("\"isAbstract\"");
     }
 
     @Test

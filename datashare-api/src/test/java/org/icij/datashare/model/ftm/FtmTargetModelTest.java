@@ -6,6 +6,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.EntityType;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Property;
+import org.icij.datashare.model.UnreadableModelResource;
 import org.icij.datashare.model.TargetModel;
 import org.junit.Test;
 import tech.followthemoney.model.Model;
@@ -186,8 +187,9 @@ public class FtmTargetModelTest {
         ((ArrayNode) root.path("schemata").path("Person").path("required")).add("nonesuch");
         Model patched = Model.fromJson(JsonObjectMapper.getMapper(), root);
 
-        assertThrows(NullPointerException.class,
+        UnreadableModelResource unreadable = assertThrows(UnreadableModelResource.class,
                 () -> FtmTargetModel.type(patched.getSchema("Person"), root.path("schemata")));
+        assertThat(unreadable.getMessage()).contains("Person");
     }
 
     @Test
