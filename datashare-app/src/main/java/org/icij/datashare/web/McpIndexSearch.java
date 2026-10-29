@@ -34,7 +34,7 @@ class McpIndexSearch {
     JsonNode search(String project, Map<String, Object> body, Context context) throws IOException {
         String path = project + "/_search";
         requireReadable(project, path, context);
-        return requireAllShards(MAPPER.readTree(runSearch(path + preference(context), body)));
+        return requireAllShards(MAPPER.readTree(runSearch(project, path + preference(context), body)));
     }
 
     // Elasticsearch breaks a tie on _score with an internal doc id that a shard's copies number differently, so two
@@ -51,15 +51,21 @@ class McpIndexSearch {
     }
 
     // Elasticsearch answers a malformed query_string with a 400 whose message carries the cluster address, so a
-    // rejected query is reported as bad input instead. Anything else is a real failure and keeps its own path.
-    private String runSearch(String path, Map<String, Object> body) throws IOException {
+    // rejected query is reported as bad input instead. A 404 is the project's index missing, which the grant check
+    // cannot catch since it only knows the user's memberships. Anything else is a real failure and keeps its own
+    // path.
+    private String runSearch(String project, String path, Map<String, Object> body) throws IOException {
         try {
             return indexer.executeRaw("POST", path, MAPPER.writeValueAsString(body));
         } catch (ResponseException e) {
-            if (e.getResponse().getStatusLine().getStatusCode() != HttpStatus.BAD_REQUEST) {
-                throw e;
+            int status = e.getResponse().getStatusLine().getStatusCode();
+            if (status == HttpStatus.BAD_REQUEST) {
+                throw McpToolException.InvalidArgument.invalid("query");
             }
-            throw McpToolException.InvalidArgument.invalid("query");
+            if (status == HttpStatus.NOT_FOUND) {
+                throw new McpToolException.NotFound(project, e);
+            }
+            throw e;
         }
     }
 
