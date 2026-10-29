@@ -58,7 +58,7 @@ public class PipelineWorkflowIntTest {
                                                  WorkflowOptions.newBuilder().setTaskQueue(WORKFLOWS_DEFAULT)
                                                                 .setWorkflowId(es.getIndexName()).build())
                     .run(List.of(Stage.SCAN, Stage.INDEX),
-                         Map.of("defaultProject", es.getIndexName(), "dataDir", tmp.getRoot().getPath()));
+                         Map.of("defaultProject", es.getIndexName(), "dataDir", tmp.getRoot().getPath()), Map.of());
         }
 
         assertThat(results.get(Stage.SCAN).updated()).isGreaterThan(0);

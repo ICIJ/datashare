@@ -1,7 +1,9 @@
 package org.icij.datashare.asynctasks;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.icij.datashare.Stage;
 
 /**
@@ -26,5 +28,15 @@ public class StageRegistry {
             throw new IllegalArgumentException("no processor registered for stage " + stage);
         }
         return (StageProcessor<I, O>) processor;
+    }
+
+    /**
+     * @throws IllegalArgumentException if one of the stages is not found in the registry
+     */
+    public Map<Stage, StageActivityOptions> activityOptions(List<Stage> stages) {
+        Map<Stage, StageActivityOptions> options = new EnumMap<>(Stage.class);
+        stages.forEach(stage -> options.put(stage, Objects.requireNonNull(get(stage).activityOptions(),
+                                                                          "activity options of stage " + stage)));
+        return options;
     }
 }

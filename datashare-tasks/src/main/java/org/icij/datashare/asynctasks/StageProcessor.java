@@ -10,4 +10,8 @@ public interface StageProcessor<I, O> {
     Class<I> itemType();
 
     StageResult process(List<I> batch, StageContext<O> ctx);
+
+    default StageActivityOptions activityOptions() {
+        return StageActivityOptions.DEFAULT;
+    }
 }
