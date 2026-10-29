@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 /**
@@ -156,7 +157,8 @@ public class FtmTargetModel implements TargetModel {
     }
 
     private static Set<String> ancestors(Schema schema) {
-        return schema.getSchemata().stream().map(Schema::getName).collect(Collectors.toUnmodifiableSet());
+        return schema.getSchemata().stream().map(Schema::getName).collect(Collectors.collectingAndThen(
+                Collectors.toCollection(TreeSet::new), Collections::unmodifiableSet));
     }
 
     private static Map<String, Property> properties(Schema schema) {

@@ -203,4 +203,11 @@ public class FtmTargetModelTest {
 
         assertThat(keys).isEqualTo(keys.stream().sorted().toList());
     }
+
+    @Test
+    public void test_a_type_s_ancestors_are_ordered_too() {
+        List<String> ancestors = List.copyOf(model.type("Message").get().ancestors());
+
+        assertThat(ancestors).isEqualTo(ancestors.stream().sorted().toList());
+    }
 }
