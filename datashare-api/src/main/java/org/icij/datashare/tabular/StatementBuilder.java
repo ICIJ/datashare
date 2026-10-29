@@ -1,8 +1,10 @@
 package org.icij.datashare.tabular;
 
 import org.icij.datashare.model.Statement;
+import org.icij.datashare.text.StructuredEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -37,11 +39,12 @@ public class StatementBuilder {
     private final String documentId;
     private final String sheet;
     private final DateFormats formats = new DateFormats();
-    private final Map<String, List<String>> keyColumns = new TreeMap<>();
     private final Set<String> columns = new TreeSet<>();
     private final Map<Skip, Long> skipped = new EnumMap<>(Skip.class);
     private final Set<String> absent = new TreeSet<>();
-    private boolean checked;
+    private final Set<String> seen = new TreeSet<>();
+    private final Set<String> unmatched = new TreeSet<>();
+    private final List<String> aliases;
 
     /** {@code sheet} is the section of the document these rows come from, as the reader resolved it:
      *  a workbook's sheet name, the Tika fallback's table index, or empty for a format with one
@@ -62,6 +65,7 @@ public class StatementBuilder {
         this.sheet = sheet == null ? null : Row.clean(sheet);
         mapping.requireValid();
         mapping.entities().forEach(this::declare);
+        this.aliases = List.copyOf(new TreeSet<>(mapping.entities().keySet()));
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
 
@@ -77,7 +81,7 @@ public class StatementBuilder {
 
     public List<Statement> statements(Row row) {
         requireColumns(row);
-        Map<String, String> cells = new HashMap<>();
+        Map<String, List<String>> cells = new HashMap<>();
         columns.forEach(column -> cells.put(column, cell(row, column)));
         Map<String, String> ids = entityIds(cells, row.number());
         Set<String> stored = storing(ids, cells);
@@ -95,8 +99,14 @@ public class StatementBuilder {
     // Formats compile without a guard: validate() already refused every pattern this mapping could
     // not run.
     private void declare(String alias, ExtractionMapping.EntityMapping entity) {
-        keyColumns.put(alias, entity.keys());
         columns.addAll(entity.keys());
+        columns.addAll(entity.filters().keySet());
+        if (!entity.filters().isEmpty()) {
+            unmatched.add(alias);
+        }
+        if (entity.idColumn() != null) {
+            columns.add(entity.idColumn());
+        }
         entity.properties().values().forEach(property -> {
             columns.addAll(property.columns());
             if (property.dateFormat() != null) {
@@ -105,39 +115,82 @@ public class StatementBuilder {
         });
     }
 
-    // Row.values pads a short row with empty strings, so a column the file does not have reads like a
-    // blank cell: without this, one typo imports every row as nothing and reports it as a success. A
-    // reader whose records carry their own names can legitimately omit a column further down, so only
-    // the first row is worth failing on: after that a missing column is data, and is counted once,
-    // since a field a whole file omits is one fact and not one per row.
+    // Row.values pads a short row with empty strings, so a column the file does not have reads like
+    // a blank cell: without this, one typo imports every row as nothing and reports it as a success.
+    // A reader whose records carry their own names legitimately omits a column on any row, the first
+    // one included, so the check is what the whole run saw rather than what row 1 had. A column
+    // missing from a row is counted once, since a field a file omits is one fact, not one per row.
     private void requireColumns(Row row) {
-        if (row.values().keySet().containsAll(columns)) {
-            checked = true;
-            return;
+        if (seen.size() < columns.size()) {
+            row.values().keySet().stream().filter(columns::contains).forEach(seen::add);
         }
-        List<String> missing = columns.stream().filter(column -> !row.values().containsKey(column)).toList();
-        if (!checked) {
-            throw new InvalidExtractionMapping(mapping.id(), List.of("the source has no column " + missing));
-        }
-        missing.stream().filter(absent::add).forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
+        columns.stream().filter(column -> !row.values().containsKey(column)).filter(absent::add)
+               .forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
     }
 
-    private Map<String, String> entityIds(Map<String, String> cells, long rowNumber) {
+    /** The mapping typo this guard exists for, reported once the whole source has been read: a
+     *  column no row carried is named here rather than on row 1, because row 1 of a mixed source is
+     *  one record shape among several. The caller runs this inside the write transaction, so the
+     *  retraction rolls back with it, exactly as a failure on row 1 did. */
+    public void requireEveryColumnSeen() {
+        List<String> never = columns.stream().filter(column -> !seen.contains(column)).toList();
+        List<String> problems = new ArrayList<>();
+        if (!never.isEmpty()) {
+            problems.add("the source has no column " + never);
+        }
+        if (!unmatched.isEmpty()) {
+            problems.add("no row matched the filters of " + unmatched);
+        }
+        if (!problems.isEmpty()) {
+            throw new InvalidExtractionMapping(mapping.id(), problems);
+        }
+    }
+
+    private Map<String, String> entityIds(Map<String, List<String>> cells, long rowNumber) {
         Map<String, String> ids = new TreeMap<>();
-        keyColumns.forEach((alias, keys) -> {
-            ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
-            if (keys.isEmpty()) {
-                ids.put(alias, rowId(alias, entity.type(), rowNumber));
-                return;
+        for (String alias : aliases) {
+            String id = idOf(mapping.entities().get(alias), cells, alias, rowNumber);
+            if (id != null) {
+                ids.put(alias, id);
             }
-            List<String> values = keys.stream().map(cells::get).toList();
-            if (values.stream().anyMatch(String::isEmpty)) {
-                count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
-            } else {
-                ids.put(alias, id(entity.type(), entity.keyLiteral(), values));
-            }
-        });
+        }
         return ids;
+    }
+
+    private String idOf(ExtractionMapping.EntityMapping entity, Map<String, List<String>> cells, String alias,
+                        long rowNumber) {
+        // Not a skip: an alias whose filters do not match was never meant to apply to this row, and
+        // counting it would report every row of one schema as a loss for every other schema. A cell
+        // holding several values matches on any of them: an ftm record carries its whole type
+        // hierarchy in 'schema', so a Person row reads as ["LegalEntity", "Person"].
+        for (Map.Entry<String, String> filter : entity.filters().entrySet()) {
+            if (!cells.get(filter.getKey()).contains(filter.getValue())) {
+                return null;
+            }
+        }
+        unmatched.remove(alias);
+        if (entity.idColumn() != null) {
+            String given = single(cells.get(entity.idColumn()));
+            // Elasticsearch caps the _id at bytes, not characters, and the _id is the model-prefixed id.
+            if (given == null ||
+                StructuredEntity.documentId(mapping.model(), given).getBytes(StandardCharsets.UTF_8).length >
+                StructuredEntity.MAX_ID_BYTES) {
+                count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
+                return null;
+            }
+            return given;
+        }
+        if (entity.keys().isEmpty()) {
+            return rowId(alias, entity.type(), rowNumber);
+        }
+        // A key column holding more than one value would have its values sorted into the hash,
+        // picking an identity in silence; single() returns null and the entity is refused.
+        List<String> values = entity.keys().stream().map(key -> single(cells.get(key))).toList();
+        if (values.stream().anyMatch(value -> value == null)) {
+            count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
+            return null;
+        }
+        return id(entity.type(), entity.keyLiteral(), values);
     }
 
     // A keyless entity is row-scoped, each row its own record, so its id carries what locates the
@@ -162,7 +215,8 @@ public class StatementBuilder {
                             String.join("\u0000", values.stream().sorted().toList())));
     }
 
-    private List<Statement> statementsOf(String alias, Row row, Map<String, String> cells, Map<String, String> ids) {
+    private List<Statement> statementsOf(String alias, Row row, Map<String, List<String>> cells,
+                                         Map<String, String> ids) {
         ExtractionMapping.EntityMapping entity = mapping.entities().get(alias);
         Filling filling = new Filling(ids.get(alias), entity.type());
         for (Map.Entry<String, ExtractionMapping.PropertyMapping> declared : entity.properties().entrySet()) {
@@ -172,12 +226,14 @@ public class StatementBuilder {
                 String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
                 filling.fill(property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
-                filling.fill(property, mapped.columns().stream().map(cells::get).filter(cell -> !cell.isEmpty())
-                                             .collect(joining(mapped.join())), mapped.dateFormat(),
-                             provenance(row, String.join(",", mapped.columns())));
+                filling.fill(property, mapped.columns().stream().flatMap(column -> cells.get(column).stream())
+                                             .filter(value -> !value.isEmpty()).collect(joining(mapped.join())),
+                             mapped.dateFormat(), provenance(row, String.join(",", mapped.columns())));
             } else {
                 for (String column : mapped.columns()) {
-                    filling.fill(property, cells.get(column), mapped.dateFormat(), provenance(row, column));
+                    for (String value : cells.get(column)) {
+                        filling.fill(property, value, mapped.dateFormat(), provenance(row, column));
+                    }
                 }
             }
         }
@@ -189,7 +245,7 @@ public class StatementBuilder {
     // on their strength. An entity that stores nothing sits in no index, so an edge naming its id
     // would record an endpoint that exists nowhere, and dropping that edge can in turn empty the
     // entity carrying it, which is why this settles rather than deciding in one pass.
-    private Set<String> storing(Map<String, String> ids, Map<String, String> cells) {
+    private Set<String> storing(Map<String, String> ids, Map<String, List<String>> cells) {
         Set<String> stored = new HashSet<>();
         for (boolean growing = true; growing; ) {
             growing = false;
@@ -203,10 +259,10 @@ public class StatementBuilder {
         return stored;
     }
 
-    private boolean fills(String alias, Map<String, String> cells, Set<String> stored) {
+    private boolean fills(String alias, Map<String, List<String>> cells, Set<String> stored) {
         return mapping.entities().get(alias).properties().values().stream().anyMatch(
                 mapped -> mapped.literal() != null || stored.contains(mapped.entity()) ||
-                          mapped.columns().stream().anyMatch(column -> !cells.get(column).isEmpty()));
+                          mapped.columns().stream().anyMatch(column -> filled(cells.get(column))));
     }
 
     // The entity id and type every statement of one entity carries, so filling a property passes
@@ -252,17 +308,34 @@ public class StatementBuilder {
     }
 
     // The one place a cell enters, keys and values alike. A NUL would abort the run from inside
-    // Statement's constructor, so it reads as blank, and is counted: unlike a genuinely blank cell,
-    // it held content the run could not keep. Row.clean is normalisation, not formatting: an
-    // interior non-breaking space becomes a plain space with no originalValue recorded, the same way
-    // surrounding whitespace is dropped unrecorded.
-    private String cell(Row row, String column) {
-        String cell = row.values().getOrDefault(column, "");
-        if (cell.indexOf('\u0000') >= 0) {
-            count(Skip.CELL_UNREADABLE, column, row.number());
-            return "";
+    // Statement's constructor, so the value holding it reads as no value and is counted on its own:
+    // a column whose other values are readable keeps them, and a cell of several values keeps its
+    // count, so what is left cannot pass for the one value an id is read from.
+    private List<String> cell(Row row, String column) {
+        List<String> raw = row.values().get(column);
+        if (raw == null) {
+            return List.of();
         }
-        return Row.clean(cell);
+        List<String> cleaned = new ArrayList<>(raw.size());
+        for (String value : raw) {
+            if (value.indexOf('\u0000') >= 0) {
+                count(Skip.CELL_UNREADABLE, column, row.number());
+                cleaned.add("");
+            } else {
+                cleaned.add(Row.clean(value));
+            }
+        }
+        return List.copyOf(cleaned);
+    }
+
+    // A column a mapping reads as one value: blank, absent and multi-valued all read as "no value",
+    // and every caller refuses on null rather than picking one.
+    private static String single(List<String> values) {
+        return values.size() == 1 && !values.get(0).isEmpty() ? values.get(0) : null;
+    }
+
+    private static boolean filled(List<String> values) {
+        return values.stream().anyMatch(value -> !value.isEmpty());
     }
 
     private void count(Skip reason, String what, long rowNumber) {

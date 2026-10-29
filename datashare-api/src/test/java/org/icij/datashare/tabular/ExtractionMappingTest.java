@@ -4,6 +4,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.model.UnknownTargetModel;
 import org.junit.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -325,5 +326,100 @@ public class ExtractionMappingTest {
     private static ExtractionMapping mappingIn(String projectId, String id) {
         return new ExtractionMapping(id, projectId, null, "members", "ftm", "doc-1", null,
                 RowSourceOptions.defaults(), Map.of("member", person(Map.of("name", column("full_name")))));
+    }
+
+    private static ExtractionMapping.EntityMapping identified(String keyLiteral, List<String> keys, String idColumn) {
+        return new ExtractionMapping.EntityMapping("Person", keyLiteral, keys, idColumn,
+                Map.of("name", column("full_name")));
+    }
+
+    @Test
+    public void test_an_id_column_and_keys_together_are_refused() {
+        assertThat(mapping("ftm", Map.of("member", identified(null, List.of("passport"), "id"))).validate().toString())
+                .contains("entity 'member' has both an id column and a key, and an id is read one way only");
+    }
+
+    @Test
+    public void test_an_id_column_and_a_key_literal_together_are_refused() {
+        assertThat(mapping("ftm", Map.of("member", identified("registry", List.of(), "id"))).validate().toString())
+                .contains("entity 'member' has a key literal but no key, and a row-scoped id carries no literal");
+    }
+
+    @Test
+    public void test_a_blank_id_column_name_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", identified(null, List.of(), "  "))).validate().toString())
+                .contains("entity 'member' has a blank id column name, which no header can match");
+    }
+
+    @Test
+    public void test_a_nul_in_an_id_column_name_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", identified(null, List.of(), "i\u0000d"))).validate().toString())
+                .contains("the id column name of entity 'member' holds a NUL character");
+    }
+
+    @Test
+    public void test_an_id_column_on_its_own_is_valid() {
+        assertThat(mapping("ftm", Map.of("member", identified(null, List.of(), "id"))).validate()).isEmpty();
+    }
+
+    private static ExtractionMapping.EntityMapping restricted(Map<String, String> filters) {
+        return new ExtractionMapping.EntityMapping("Person", null, List.of(), "id", filters,
+                Map.of("name", column("full_name")));
+    }
+
+    @Test
+    public void test_a_blank_filter_column_name_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of(" ", "Person")))).validate().toString())
+                .contains("entity 'member' has a blank filter column name, which no header can match");
+    }
+
+    @Test
+    public void test_a_blank_filter_value_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of("schema", " ")))).validate().toString())
+                .contains("entity 'member' has a blank filter value on column 'schema', which no row can match");
+    }
+
+    @Test
+    public void test_a_nul_in_a_filter_column_name_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of("sch\u0000ema", "Person")))).validate().toString())
+                .contains("the filter column name of entity 'member' holds a NUL character");
+    }
+
+    @Test
+    public void test_a_nul_in_a_filter_value_is_refused() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of("schema", "Per\u0000son")))).validate().toString())
+                .contains("the filter value of entity 'member' holds a NUL character");
+    }
+
+    @Test
+    public void test_a_filter_on_its_own_is_valid() {
+        assertThat(mapping("ftm", Map.of("member", restricted(Map.of("schema", "Person")))).validate()).isEmpty();
+    }
+
+    @Test
+    public void test_a_mapping_with_no_filters_reads_as_an_empty_map() {
+        assertThat(new ExtractionMapping.EntityMapping("Person", List.of("id"), Map.of("name", column("full_name")))
+                           .filters()).isEmpty();
+    }
+
+    @Test
+    public void test_a_filter_column_named_twice_with_two_values_is_refused() {
+        MalformedExtractionMapping refusal = assertThrows(MalformedExtractionMapping.class,
+                () -> restricted(new LinkedHashMap<>(Map.of("schema", "Person", "schema\u00a0", "Company"))));
+
+        assertThat(refusal.getMessage()).contains("field 'filters' names one column twice");
+    }
+
+    @Test
+    public void test_a_filter_column_named_twice_with_one_value_counts_once() {
+        assertThat(restricted(new LinkedHashMap<>(Map.of("schema", "Person", "schema\u00a0", "Person"))).filters())
+                .isEqualTo(Map.of("schema", "Person"));
+    }
+
+    @Test
+    public void test_an_entity_with_neither_keys_nor_an_id_column_is_refused() {
+        assertThrows(NullPointerException.class,
+                () -> new ExtractionMapping.EntityMapping("Person", null, null, null, Map.of(),
+                                                          Map.of("name", column("full_name"))));
     }
 }
