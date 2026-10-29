@@ -41,6 +41,12 @@ public class ModelResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_the_abstract_flag_uses_ftm_s_own_key() {
+        get("/api/models/ftm").should().respond(200).contain("\"abstract\":false");
+        get("/api/models/ftm").should().respond(200).not().contain("isAbstract");
+    }
+
+    @Test
     public void test_a_type_carries_what_the_entity_list_renders() {
         get("/api/models/ftm").should().respond(200).contain("\"featured\":[\"name\",\"nationality\",\"birthDate\"]");
     }
