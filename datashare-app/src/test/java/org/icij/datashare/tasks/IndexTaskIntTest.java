@@ -88,23 +88,6 @@ public class IndexTaskIntTest {
     }
 
     @Test
-    public void index_task_skips_a_legacy_poison_entry_at_the_head_of_the_queue() throws Exception {
-        DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
-        // a sentinel written by a pre-21.16 run sits FIRST: the drain must skip it and keep going,
-        // where the old drain(PATH_POISON) would have stopped here and indexed nothing
-        queue.add(Paths.get("POISON"));
-        queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
-
-        Long nbDocs = indexTask(new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
-
-        // the sentinel is not a document: the returned count must be 1, not 2
-        assertThat(nbDocs).isEqualTo(1);
-        DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
-        assertThat(outputQueue).contains("bc6852541ef5200206a7a9740f3d2d62178a1f53b1aa5417ab426c6ec1f7cbc7");
-        assertThat(logback.logs(Level.WARN)).contains("skipping legacy POISON sentinel in queue test:queue:index");
-    }
-
-    @Test
     public void index_task_update_progress() throws Exception {
         List<Double> progressValues = Collections.synchronizedList(new ArrayList<>());
         Function<Double, Void> callback = progress -> {

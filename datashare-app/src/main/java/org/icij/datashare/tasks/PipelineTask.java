@@ -14,7 +14,6 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -142,16 +141,10 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
         return !gate.mayGrow() && inputQueue.isEmpty();
     }
 
-    // Transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a "POISON"
-    // entry in a String queue. Callers skip it instead of resolving it as a doc reference.
-    protected static boolean isLegacySentinel(Object queueEntry) {
-        return "POISON".equals(queueEntry) || Paths.get("POISON").equals(queueEntry);
-    }
-
     /**
      * Polls the input queue until it is {@link #drained()} or this thread is interrupted, handing
      * every entry to {@code onEntry}. Shared by the parallel consumer stages so cancellation,
-     * waiting on the upstream producer and legacy sentinels cannot drift between them.
+     * and waiting on the upstream producer cannot drift between them.
      * {@code isCancellation} tells a cancelled poll from a broken queue client: a broken client is
      * an infrastructure failure and is rethrown, which is what makes the run fail instead of green.
      * {@code onEntry} owns what a single document going wrong means, and ends the drain by
@@ -169,10 +162,6 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
                 if (drained() || !waitForUpstream()) {
                     return;
                 }
-                continue;
-            }
-            if (isLegacySentinel(queueEntry)) {
-                logger.warn("skipping legacy POISON sentinel in queue {}", inputQueue.getName());
                 continue;
             }
             onEntry.accept(queueEntry);

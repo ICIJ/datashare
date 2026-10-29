@@ -79,11 +79,6 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
                 Thread.sleep(UPSTREAM_POLL_INTERVAL_MS);
                 continue;
             }
-            // before the offer below, so the sentinel is not forwarded downstream
-            if (isLegacySentinel(queueEntry)) {
-                logger.warn("skipping legacy POISON sentinel in queue {}", inputQueue.getName());
-                continue;
-            }
             try {
                 Document retrievedFromIndexer = getDocument(indexer, project.getName(), DocReference.parse(queueEntry));
                 if (retrievedFromIndexer != null) {
