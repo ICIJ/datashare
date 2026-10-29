@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 
 public class FtmTargetModelTest {
     private static final TargetModel model = new FtmTargetModel();
@@ -174,6 +175,19 @@ public class FtmTargetModelTest {
     public void test_a_type_the_ontology_features_nothing_for_has_an_empty_list() {
         assertThat(model.type("Page").get().featured()).isEmpty();
         assertThat(model.type("Page").get().caption()).isEmpty();
+    }
+
+    @Test
+    public void test_a_required_name_no_property_matches_fails_the_load() throws IOException {
+        JsonNode root;
+        try (InputStream stream = Model.class.getResourceAsStream("/defaultModel.json")) {
+            root = JsonObjectMapper.getMapper().readTree(stream);
+        }
+        ((ArrayNode) root.path("schemata").path("Person").path("required")).add("nonesuch");
+        Model patched = Model.fromJson(JsonObjectMapper.getMapper(), root);
+
+        assertThrows(NullPointerException.class,
+                () -> FtmTargetModel.type(patched.getSchema("Person"), root.path("schemata")));
     }
 
     @Test

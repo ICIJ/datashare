@@ -151,14 +151,14 @@ public class FtmTargetModel implements TargetModel {
     static EntityType type(Schema schema, JsonNode schemata) {
         boolean isAbstract = schemata.path(schema.getName()).path("abstract").asBoolean(false);
         return new EntityType(schema.getName(), schema.getLabel(), isAbstract, ancestors(schema), properties(schema),
-                              required(schema), names(schema.getFeaturedProperties()),
-                              names(schema.getCaptionProperties()),
+                              required(schema), displayNames(schema.getFeaturedProperties()),
+                              displayNames(schema.getCaptionProperties()),
                               schema.getEdge().map(FtmTargetModel::edge).orElse(null));
     }
 
     private static Set<String> ancestors(Schema schema) {
-        return schema.getSchemata().stream().map(Schema::getName).collect(Collectors.collectingAndThen(
-                Collectors.toCollection(TreeSet::new), Collections::unmodifiableSet));
+        return schema.getSchemata().stream().map(Schema::getName).collect(
+                Collectors.collectingAndThen(Collectors.toCollection(TreeSet::new), Collections::unmodifiableSet));
     }
 
     private static Map<String, Property> properties(Schema schema) {
@@ -182,7 +182,13 @@ public class FtmTargetModel implements TargetModel {
     }
 
     private static List<String> names(List<tech.followthemoney.model.Property> properties) {
-        return properties.stream().filter(Objects::nonNull).map(tech.followthemoney.model.Property::getName).toList();
+        return properties.stream().map(tech.followthemoney.model.Property::getName).toList();
+    }
+
+    // FtM leaves a null for a featured or caption name no property matches, and those are display hints only,
+    // so they are dropped. A dangling required name is a corrupt model and still fails the load through names().
+    private static List<String> displayNames(List<tech.followthemoney.model.Property> properties) {
+        return names(properties.stream().filter(Objects::nonNull).toList());
     }
 
     private static EntityType.Edge edge(Edge edge) {
