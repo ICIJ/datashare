@@ -59,6 +59,8 @@ public class FtmTargetModel implements TargetModel {
             this.types = model.getSchemata().values().stream().collect(Collectors.collectingAndThen(
                     Collectors.toMap(Schema::getName, schema -> type(schema, schemata), (a, b) -> a, TreeMap::new),
                     Collections::unmodifiableMap));
+        } catch (UnreadableModelResource e) {
+            throw e;
         } catch (RuntimeException e) {
             throw new UnreadableModelResource(RESOURCE, e);
         }
@@ -175,10 +177,21 @@ public class FtmTargetModel implements TargetModel {
     // FtM keeps required per schema, but datashare also enforces what the ancestors require. The type's
     // own requirements come first so a violation list still reads in the order the schema states them.
     private static Set<String> required(Schema schema) {
-        Set<String> required = new LinkedHashSet<>(names(schema.getRequiredProperties()));
+        Set<String> required = new LinkedHashSet<>(requiredNames(schema));
         schema.getSchemata().stream().sorted(Comparator.comparing(Schema::getName))
-              .forEach(ancestor -> required.addAll(names(ancestor.getRequiredProperties())));
+              .forEach(ancestor -> required.addAll(requiredNames(ancestor)));
         return Collections.unmodifiableSet(required);
+    }
+
+    // A required name the model does not define would otherwise NPE in names() and surface as a bare
+    // UnreadableModelResource; fail deterministically instead, naming the schema so the model is fixable.
+    private static List<String> requiredNames(Schema schema) {
+        List<tech.followthemoney.model.Property> properties = schema.getRequiredProperties();
+        if (properties.contains(null)) {
+            throw new UnreadableModelResource(RESOURCE, "schema '" + schema.getName() +
+                                                        "' requires a property the model does not define");
+        }
+        return names(properties);
     }
 
     private static List<String> names(List<tech.followthemoney.model.Property> properties) {
@@ -186,7 +199,7 @@ public class FtmTargetModel implements TargetModel {
     }
 
     // FtM leaves a null for a featured or caption name no property matches, and those are display hints only,
-    // so they are dropped. A dangling required name is a corrupt model and still fails the load through names().
+    // so they are dropped. A dangling required name is a corrupt model and fails the load in requiredNames().
     private static List<String> displayNames(List<tech.followthemoney.model.Property> properties) {
         return names(properties.stream().filter(Objects::nonNull).toList());
     }
