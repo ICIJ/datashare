@@ -73,7 +73,7 @@ Things that would make this a failure even if it worked:
   and it is unusable here: confirmation has to travel in the tool's own arguments and result.
 - `index.refresh_interval` is 1s. A document tagged a moment ago is not yet visible to a query that
   filters on that tag.
-- Writes go to PostgreSQL first, then to the index, with no transaction spanning the two.
+- Writes go to the index first, then to PostgreSQL, with no transaction spanning the two.
 - `document_tag` holds one row per document and label. There is no tag entity: a tag is its rows.
 - The caps measured for the by-id path hold here too: 10000 documents, 100 tags, and 100000
   document-tag pairs per call, beyond which a single insert takes 29 seconds.
