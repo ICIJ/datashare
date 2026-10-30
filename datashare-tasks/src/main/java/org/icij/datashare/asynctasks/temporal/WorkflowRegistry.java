@@ -172,7 +172,7 @@ public class WorkflowRegistry {
         }
     }
 
-    static String buildWorkflowKeyFrom(Class<?> workflowInterface) {
+    public static String buildWorkflowKeyFrom(Class<?> workflowInterface) {
         // We have to get method by name because of the dynamic class loader and proxies... inspection doesn't work
         // properly: m.isAnnotationPresent(WorkflowMethod.class) fails
         List<Method> annotated =
