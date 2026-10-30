@@ -9,7 +9,7 @@ import org.icij.datashare.tasks.ArtifactOptions;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 
 @WorkflowInterface
-public interface IndexationWorkflow {
+public interface IndexWorkflow {
     @WorkflowMethod(name = "IndexWorkflow")
     Long run(final ScanOptions scanOptions, final Path path, final String index, final IndexOptions indexOptions,
              final ArtifactOptions artifactOptions) throws IOException;

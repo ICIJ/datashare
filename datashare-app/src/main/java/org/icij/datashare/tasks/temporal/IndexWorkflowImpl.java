@@ -13,7 +13,7 @@ import java.util.List;
 import org.icij.datashare.tasks.ArtifactOptions;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 
-public class IndexationWorkflowImpl implements IndexationWorkflow, PathBatchReceiver {
+public class IndexWorkflowImpl implements IndexWorkflow, PathBatchReceiver {
     private final ScanActivity scanActivity = Workflow.newActivityStub(ScanActivity.class, ActivityOptions.newBuilder()
                                                                                                           .setStartToCloseTimeout(
                                                                                                                   Duration.ofMinutes(

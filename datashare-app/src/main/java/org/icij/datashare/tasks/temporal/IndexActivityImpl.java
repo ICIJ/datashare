@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import org.icij.datashare.asynctasks.temporal.ActivityArgs;
 import org.icij.datashare.tasks.ArtifactOptions;
 import org.icij.datashare.text.artifact.Artifact;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
@@ -22,6 +23,7 @@ import org.icij.spewer.FieldNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ActivityArgs({Indexer.class, LanguageGuesser.class})
 public class IndexActivityImpl implements IndexActivity {
     private final Logger logger = LoggerFactory.getLogger(IndexActivityImpl.class);
     private final Indexer indexer;

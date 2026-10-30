@@ -11,6 +11,7 @@ import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
 
@@ -43,7 +45,7 @@ public class WorkflowRegistry {
      */
     @FunctionalInterface
     public interface ActivityInstantiator {
-        Object instantiate(Class<? extends TemporalActivityImpl<?, ?>> activityClass) throws Exception;
+        Object instantiate(Class<?> activityClass) throws Exception;
     }
 
     /**
@@ -132,22 +134,36 @@ public class WorkflowRegistry {
      * @param temporal
      * @param taskRepository
      * @param progressWeight
+     * @param extraArgResolver resolves the types declared by {@link ActivityArgs} on the activity, if any
      * @return
      * @param <A>
      */
-    public static <A extends TemporalActivityImpl<?, ?>> ThrowingSupplier<A> activityFactoryForSingleActivitiesWorkflow(
-            Class<A> activityCls, TaskFactory taskFactory, TemporalInterlocutor temporal, TaskRepository taskRepository,
-            double progressWeight) {
-        return () -> activityCls.getConstructor(TaskFactory.class, TemporalInterlocutor.class, TaskRepository.class,
-                                                Double.class)
-                                .newInstance(taskFactory, temporal, taskRepository, progressWeight);
+    public static <A> ThrowingSupplier<A> activityFactoryForSingleActivitiesWorkflow(Class<A> activityCls,
+                                                                                     TaskFactory taskFactory,
+                                                                                     TemporalInterlocutor temporal,
+                                                                                     TaskRepository taskRepository,
+                                                                                     double progressWeight,
+                                                                                     Function<Class<?>, ?> extraArgResolver) {
+        List<Class<?>> types = new ArrayList<>();
+        List<Object> args = new ArrayList<>();
+        if (TemporalActivityImpl.class.isAssignableFrom(activityCls)) {
+            types.addAll(List.of(TaskFactory.class, TemporalInterlocutor.class, TaskRepository.class, Double.class));
+            args.addAll(List.of(taskFactory, temporal, taskRepository, progressWeight));
+        }
+        ActivityArgs extras = activityCls.getAnnotation(ActivityArgs.class);
+        if (extras != null) {
+            for (Class<?> type : extras.value()) {
+                types.add(type);
+                args.add(extraArgResolver.apply(type));
+            }
+        }
+        return () -> activityCls.getConstructor(types.toArray(Class<?>[]::new)).newInstance(args.toArray());
     }
 
     private static Class<?> workflowImplementation(Class<?> workflowInterface) {
         return loadClass(workflowInterface.getName() + "Impl", workflowInterface);
     }
 
-    @SuppressWarnings("unchecked")
     private static Object activityInstance(Class<?> workflowInterface, ActivityInstantiator activityInstantiator) {
         String workflowClassName = workflowInterface.getName();
         if (!workflowClassName.endsWith(WORKFLOW_SUFFIX)) {
@@ -158,7 +174,7 @@ public class WorkflowRegistry {
         String baseName = workflowClassName.substring(0, workflowClassName.length() - WORKFLOW_SUFFIX.length());
         Class<?> activityClass = loadClass(baseName + "ActivityImpl", workflowInterface);
         try {
-            return activityInstantiator.instantiate((Class<? extends TemporalActivityImpl<?, ?>>) activityClass);
+            return activityInstantiator.instantiate(activityClass);
         } catch (Exception e) {
             throw new WorkflowRegistrationException(
                     "cannot instantiate activity " + activityClass.getName() + " for workflow " + workflowClassName, e);
