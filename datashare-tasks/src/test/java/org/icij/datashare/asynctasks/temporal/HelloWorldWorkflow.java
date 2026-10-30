@@ -5,6 +5,7 @@ import io.temporal.workflow.WorkflowMethod;
 import java.util.Map;
 
 @WorkflowInterface
+@DiscoverableWorkflow
 public interface HelloWorldWorkflow {
     @WorkflowMethod(name = "hello-world")
     String helloWorld(Map<String, Object> args);
