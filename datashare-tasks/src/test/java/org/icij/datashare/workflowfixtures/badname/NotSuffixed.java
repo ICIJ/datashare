@@ -2,6 +2,7 @@ package org.icij.datashare.workflowfixtures.badname;
 
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
+import org.icij.datashare.asynctasks.temporal.DiscoverableWorkflow;
 
 import java.util.Map;
 
@@ -10,6 +11,7 @@ import java.util.Map;
  * from it.
  */
 @WorkflowInterface
+@DiscoverableWorkflow
 public interface NotSuffixed {
     @WorkflowMethod(name = "not-suffixed")
     String run(Map<String, Object> args);
