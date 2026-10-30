@@ -5,6 +5,7 @@ import io.temporal.workflow.WorkflowMethod;
 import java.util.Map;
 
 @WorkflowInterface
+@DiscoverableWorkflow
 public interface DoNothingWorkflow {
     @WorkflowMethod(name = "org.icij.datashare.asynctasks.temporal.DoNothingTask")
     String run(Map<String, Object> args) throws Exception;

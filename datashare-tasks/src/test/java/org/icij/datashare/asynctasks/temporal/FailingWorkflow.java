@@ -5,6 +5,7 @@ import io.temporal.workflow.WorkflowMethod;
 import java.util.Map;
 
 @WorkflowInterface
+@DiscoverableWorkflow
 public interface FailingWorkflow {
     @WorkflowMethod(name = "failing")
     void fail(Map<String, Object> args);
