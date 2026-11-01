@@ -13,7 +13,9 @@ public interface StageActivity {
     /**
      * @param options the properties of the run, as the queue executor gives them to a stage
      * @param batch items as the stage's processor declares them, received as JSON
+     * @param hasNextStage false when nothing follows the stage in the pipeline: what it emits would be dropped, so it
+     *                     is not sent
      */
     @ActivityMethod(name = "stage")
-    StageResult run(Stage stage, Map<String, Object> options, List<?> batch);
+    StageResult run(Stage stage, Map<String, Object> options, List<?> batch, boolean hasNextStage);
 }
