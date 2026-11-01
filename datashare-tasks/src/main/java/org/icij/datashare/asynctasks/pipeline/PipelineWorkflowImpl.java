@@ -56,7 +56,8 @@ public class PipelineWorkflowImpl implements PipelineWorkflow, StageEmitReceiver
     private void start(Stage stage, List<?> batch) {
         StageActivity activity = stageActivities.computeIfAbsent(stage, s -> Workflow.newActivityStub(
                 StageActivity.class, toActivityOptions(activityOptions.getOrDefault(s, StageActivityOptions.DEFAULT))));
-        pending.add(new Started(stage, Async.function(activity::run, stage, options, batch)));
+        boolean hasNextStage = stages.indexOf(stage) + 1 < stages.size();
+        pending.add(new Started(stage, Async.function(activity::run, stage, options, batch, hasNextStage)));
     }
 
     private static ActivityOptions toActivityOptions(StageActivityOptions options) {

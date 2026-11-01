@@ -73,8 +73,10 @@ interface StageContext<O> extends AutoCloseable {
   `datashare-api` (the enum cannot see app classes) and is not `PipelineRegistry`.
 - Not done: a `produced` payload on `Stage` to check that a stage can feed the next one when a
   pipeline is declared (`A.produced == B.consumed`), which would replace the ad-hoc
-  `getDefaultNextStage` logic. Per-stage Temporal settings (task queue, timeout) as metadata on
-  the processor are not done either: the generic activity has one fixed timeout today.
+  `getDefaultNextStage` logic. A stage's Temporal activity settings are `StageActivityOptions`
+  (start-to-close timeout and maximum attempts, 0 for unbounded), passed to the workflow per
+  stage; a stage that declares nothing gets the default (one minute, unbounded). A task queue
+  per stage is not done.
 
 **Source stages (SCAN).** Output goes through `ctx.emit`, not the return value, so a source stage
 is an ordinary processor called with an empty batch that emits as it walks. Non-source stages use
@@ -175,8 +177,8 @@ pipeline path.
    factory. Done.
 3. **Scan, then generic workflow:** the `emit` contract, `PipelineWorkflow` and `StageActivity`
    replace `IndexWorkflowImpl`. Done.
-4. **Temporal robustness (section 6):** emit batching, per-stage timeout, bounded retries and
-   heartbeat. To do.
+4. **Temporal robustness (section 6):** emit batching, per-stage timeout and bounded retries
+   (`StageActivityOptions`): done. Activity heartbeat: to do.
 5. **The other stages as processors,** one at a time: NLP first (the easy one), then ARTIFACT
    (the test of the page-task design, see section 7), then CATEGORIZE, DEDUPLICATE and the
    index-reading sources. To do; ARTIFACT was tried on `StageTask` and reverted.
@@ -252,12 +254,15 @@ Consequences to handle before running at scale on Temporal:
   Whether N small pools perform as well as one large one is to be measured on a corpus with
   images and PSTs.
 - A huge document holds its slot for hours. The other slots keep draining the queue, but the
-  activity needs a per-stage timeout, a bounded retry policy and a heartbeat (the generic
-  activity's one-minute timeout with unbounded retries is not usable for INDEX or ARTIFACT).
-- Emitting one signal per document grows the workflow history (181 events for 40 documents
-  measured; Temporal caps a history near 50k events). `emit` must be batched, with a flush
-  after a successful `process`, and a final stage must not emit at all. A prototype took the
-  40-document history from 181 to 21 events; it is not in the code.
+  activity needs a per-stage timeout, a bounded retry policy and a heartbeat. The first two are
+  `StageActivityOptions`, which each stage must set: the default (one minute, unbounded
+  retries) is not usable for INDEX or ARTIFACT. The heartbeat is not done.
+- Emitting one signal per document would grow the workflow history (181 events for 40
+  documents measured; Temporal caps a history near 50k events). Done: `StageActivityImpl`
+  buffers what a stage emits (`EmitBuffer`, signals of 1000 items at most) and flushes it only
+  after a successful `process`, so a retried batch emits once; a final stage emits nothing
+  (`hasNextStage`). The history of 40 documents went from 181 to 21 events, and
+  `PipelineWorkflowIntTest` guards it.
 - ARTIFACT is partly fused into INDEX: the raw artifact and the embed payload are recorded
   during the streaming parse, the other artifacts are produced by a second pass. The coupling
   goes through the artifact directory and manifest, which therefore must be shared by all

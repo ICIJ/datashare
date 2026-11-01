@@ -30,7 +30,7 @@ public class ScriptedStageActivity implements StageActivity {
     }
 
     @Override
-    public StageResult run(Stage stage, Map<String, Object> options, List<?> batch) {
+    public StageResult run(Stage stage, Map<String, Object> options, List<?> batch, boolean hasNextStage) {
         calls.computeIfAbsent(stage, s -> new AtomicInteger()).incrementAndGet();
         if (failures.containsKey(stage)) {
             throw failures.get(stage);
