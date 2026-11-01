@@ -20,7 +20,7 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 
 public class StageActivityImpl implements StageActivity {
-    /** The workflow id, for what a processor records against the run (artifact manifests). */
+    static final int EMIT_BATCH_SIZE = 1000;
     private final StageRegistry registry;
     private final TemporalInterlocutor temporal;
 
@@ -30,11 +30,12 @@ public class StageActivityImpl implements StageActivity {
     }
 
     @Override
-    public StageResult run(Stage stage, Map<String, Object> options, List<?> batch) {
-        return process(registry.get(stage), options, batch);
+    public StageResult run(Stage stage, Map<String, Object> options, List<?> batch, boolean hasNextStage) {
+        return process(registry.get(stage), options, batch, hasNextStage);
     }
 
-    private <I, O> StageResult process(StageProcessor<I, O> processor, Map<String, Object> options, List<?> batch) {
+    private <I, O> StageResult process(StageProcessor<I, O> processor, Map<String, Object> options, List<?> batch,
+                                       boolean hasNextStage) {
         String workflowId = Activity.getExecutionContext().getInfo().getWorkflowId();
         StageEmitReceiver receiver = temporal.newWorkflowStub(StageEmitReceiver.class, workflowId);
         List<I> items =
@@ -44,6 +45,8 @@ public class StageActivityImpl implements StageActivity {
         contextOptions.put(StageContext.TASK_ID_OPT, workflowId);
         Project project = Project.project(
                 new PropertiesProvider(options).get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
+        EmitBuffer<O> emitted = new EmitBuffer<>(EMIT_BATCH_SIZE,
+                out -> receiver.onEmitted(processor.stage(), List.<Object>copyOf(out)));
         // one context for the batch: what the processor builds with it is closed when the activity ends
         try (ScopedStageContext<O> ctx = new ScopedStageContext<>() {
             public Project project() {return project;}
@@ -53,12 +56,15 @@ public class StageActivityImpl implements StageActivity {
             public boolean isCancelled() {return Thread.currentThread().isInterrupted();}
 
             public void emit(List<O> out) {
-                if (!out.isEmpty()) {
-                    receiver.onEmitted(processor.stage(), List.copyOf(out));
+                if (hasNextStage) {
+                    emitted.add(out);
                 }
             }
         }) {
-            return processor.process(items, ctx);
+            StageResult result = processor.process(items, ctx);
+            // only once the batch went through: Temporal retries a failed one, which would emit twice
+            emitted.flush();
+            return result;
         }
     }
 }
