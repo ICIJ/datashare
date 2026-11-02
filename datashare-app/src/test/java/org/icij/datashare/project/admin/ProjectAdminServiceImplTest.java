@@ -1,6 +1,8 @@
 package org.icij.datashare.project.admin;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.Repository;
 import net.codestory.http.security.Users;
@@ -33,6 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.fail;
@@ -51,6 +54,7 @@ public class ProjectAdminServiceImplTest {
     private UsersIdProviderCache usersIdProviderCache;
     private DocumentCollectionFactory<Path> documentCollectionFactory;
     private PropertiesProvider propertiesProvider;
+    private TaskManager taskManager;
     private ProjectAdminServiceImpl service;
 
     @Before
@@ -63,9 +67,10 @@ public class ProjectAdminServiceImplTest {
         usersIdProviderCache = mock(UsersIdProviderCache.class);
         documentCollectionFactory = mock(DocumentCollectionFactory.class);
         propertiesProvider = mock(PropertiesProvider.class);
+        taskManager = mock(TaskManager.class);
         service = new ProjectAdminServiceImpl(
                 repository, indexer, authorizer, documentCollectionFactory, propertiesProvider, users, userStore,
-                usersIdProviderCache, mock(TaskManager.class));
+                usersIdProviderCache, taskManager);
         // the #2441 inventory sweep lists every user on each project delete; empty by default
         when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
                 .thenReturn(new WebResponse<>(List.of(), 0, 0, 0));
@@ -378,6 +383,28 @@ public class ProjectAdminServiceImplTest {
         assertThat(deleted.reportMapDeleted()).isTrue();
         assertThat(deleted.artifactsDeleted()).isFalse(); // no artifact dir configured
         assertThat(deleted.noop()).isFalse();
+    }
+
+    @Test
+    public void test_delete_clears_the_tasks_before_dropping_the_index() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        when(indexer.exists("foo")).thenReturn(true);
+        when(indexer.deleteIndex("foo")).thenReturn(true);
+        Task<?> indexTask = new Task<>("index-foo", "IndexTask", User.local(), Map.of("projectName", "foo"));
+        indexTask.setState(Task.State.DONE);
+        doReturn(Stream.of(indexTask)).when(taskManager).getTasks(any(TaskFilters.class));
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
+        when(documentCollectionFactory.createMap(any())).thenReturn(mock(ReportMap.class));
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+
+        service.delete("foo", new ProjectDeleteOptions(false));
+
+        InOrder inOrder = Mockito.inOrder(repository, taskManager, indexer);
+        inOrder.verify(repository).deleteAll("foo");
+        inOrder.verify(taskManager).clearTask("index-foo");
+        inOrder.verify(indexer).deleteIndex("foo");
     }
 
     @Test

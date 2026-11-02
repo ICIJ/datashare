@@ -473,6 +473,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         String name = project.getName();
 
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
+        // before the index drop: a task still writing to the index would re-create it
+        boolean tasksDeleted = runStep("tasks", name, () -> deleteTasks(name));
         // The db row goes first and the index drop is gated on it: dropping the index destroys the
         // documents, so a project row that survives a failed db step would be left searchable-but-
         // empty with no way back. Leaving the index in place instead keeps the project intact and
@@ -501,7 +503,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
         boolean artifactsDeleted = deleteArtifacts(name);
-        boolean tasksDeleted = runStep("tasks", name, () -> deleteTasks(name));
 
         return new ProjectDeleted(name, dbDeleted, indexDeleted, casbinDeleted, inventoryDeleted, queuesDeleted,
                                   reportMapDeleted, artifactsDeleted, tasksDeleted, false);
