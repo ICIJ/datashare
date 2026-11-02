@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.Properties;
 import java.util.Set;
@@ -62,10 +63,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     // Lower ordinal == higher tier in Role enum (INSTANCE_ADMIN=0, ..., NONE=6).
     private static final Comparator<Role> ROLE_BY_TIER = Comparator.comparingInt(Enum::ordinal);
     // Task args keys that carry a project name, as written by the launchers: IndexTask and
-    // ArtifactOptions use "projectName", the pipeline stages read "defaultProject", and batch
-    // downloads and batch searches keep their projects inside their own payload.
+    // ArtifactOptions use "projectName", batch downloads and batch searches keep their projects
+    // inside their own payload, and the pipeline stages only read "defaultProject". Args can carry
+    // the server's "defaultProject" next to any of the others, so it is read last, like
+    // ArtifactOptions does.
     private static final List<String> PROJECT_ARG_LOCATIONS =
-            List.of("projectName", DEFAULT_PROJECT_OPT, "batchDownload.projects", "batchRecord.projects");
+            List.of("projectName", "batchDownload.projects", "batchRecord.projects", DEFAULT_PROJECT_OPT);
     private final Repository repository;
     private final Indexer indexer;
     private final Authorizer authorizer;
@@ -569,30 +572,37 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private List<Task<?>> tasksOf(String name) throws IOException {
         try (Stream<Task<?>> tasks = taskManager.getTasks(new TaskFilters())) {
-            return tasks.filter(task -> namesProject(task.args, name)).collect(Collectors.toList());
+            return tasks.filter(task -> belongsTo(task.args, name)).collect(Collectors.toList());
         }
     }
 
     /**
-     * Whether the task args point at the project, looked up in the places a task can carry one. The
-     * project is not a column of the task table, so this match on the args json is the only way to
-     * reach a project's tasks.
+     * Whether the task args point at the project and at no other one, read from the first place a
+     * task carries its projects. The project is not a column of the task table, so this match on the
+     * args json is the only way to reach a project's tasks. A task that also names another project
+     * stays, like the batch search row the db keeps while another project still references it.
      */
-    private static boolean namesProject(Map<String, Object> args, String name) {
-        return PROJECT_ARG_LOCATIONS.stream().map(location -> getValue(args, location))
-                                    .anyMatch(value -> isProjectNamed(value, name));
+    private static boolean belongsTo(Map<String, Object> args, String name) {
+        List<String> projects =
+                PROJECT_ARG_LOCATIONS.stream().map(location -> getValue(args, location)).filter(Objects::nonNull)
+                                     .findFirst().map(ProjectAdminServiceImpl::projectNamesOf).orElse(List.of());
+        return !projects.isEmpty() && projects.stream().allMatch(name::equals);
     }
 
-    private static boolean isProjectNamed(Object value, String name) {
+    private static List<String> projectNamesOf(Object value) {
         if (value instanceof Collection<?> projects) {
-            return projects.stream().anyMatch(project -> isProjectNamed(project, name));
+            return projects.stream().map(ProjectAdminServiceImpl::projectNameOf).toList();
         }
-        if (value instanceof String projectName) {
+        return List.of(projectNameOf(value));
+    }
+
+    private static String projectNameOf(Object project) {
+        if (project instanceof String projectName) {
             // the bean fallback below introspects and throws NoSuchFieldException on a String, once
             // per task of every other project
-            return name.equals(projectName);
+            return projectName;
         }
-        return name.equals(value) || name.equals(getValue(value, "name"));
+        return String.valueOf(getValue(project, "name"));
     }
 
     private boolean deleteCasbinRows(String name) {
