@@ -27,8 +27,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
@@ -675,17 +673,6 @@ public class ElasticsearchIndexer implements Indexer {
         Request delete = new Request("DELETE", "/" + indexName);
         RestClient restClient = ((RestClientTransport) client._transport()).restClient();
         return restClient.performRequest(delete).getStatusLine().getStatusCode() == 200;
-    }
-
-    @Override
-    public boolean deleteAll(String indexName) throws IOException {
-        if (!exists(indexName))
-            return false;
-        Request post = new Request("POST", "/" + indexName + "/_delete_by_query?refresh");
-        post.setEntity(new NStringEntity("{\"query\":{\"match_all\": {}}}", ContentType.APPLICATION_JSON));
-        RestClient restClient = ((RestClientTransport) client._transport()).restClient();
-        Response response = restClient.performRequest(post);
-        return response.getStatusLine().getStatusCode() == 200;
     }
 
     @Override

@@ -46,13 +46,6 @@ public class ElasticsearchIndexerRequestPathTest {
     }
 
     @Test
-    public void test_delete_all_targets_an_absolute_path() throws Exception {
-        indexer.deleteAll("my-project");
-
-        assertThat(capturedRequest().getEndpoint()).isEqualTo("/my-project/_delete_by_query?refresh");
-    }
-
-    @Test
     public void test_delete_index_targets_an_absolute_path() throws Exception {
         indexer.deleteIndex("my-project");
 
