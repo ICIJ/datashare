@@ -790,6 +790,7 @@ class CliApp {
         if (deleted.noop()) {
             System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
             warnIfAccessCleanupFailed(deleted);
+            warnIfPartialFailure(deleted, options);
             return;
         }
         String indexBadge =
@@ -823,8 +824,10 @@ class CliApp {
         // the access cleanup counts: reporting success while the project's roles survive is the
         // silent half of the bug #2441 is about
         boolean accessFailed = !deleted.casbinDeleted() || !deleted.inventoryDeleted();
-        if (!deleted.dbDeleted() || indexFailed || accessFailed || !deleted.queuesDeleted() ||
-            !deleted.reportMapDeleted() || !deleted.tasksDeleted()) {
+        // a noop had no row to delete, and retries every other step
+        boolean dbFailed = !deleted.noop() && !deleted.dbDeleted();
+        if (dbFailed || indexFailed || accessFailed || !deleted.queuesDeleted() || !deleted.reportMapDeleted() ||
+            !deleted.tasksDeleted()) {
             // Some load-bearing step failed: keep the cascade exit code 0
             // (the cascade did run to completion) but nudge the operator
             // to retry with --if-exists, which is continuation-friendly.

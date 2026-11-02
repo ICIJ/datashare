@@ -24,6 +24,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserFilter;
+import org.icij.extract.report.ReportMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
@@ -134,22 +135,19 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         if (project == null) {
             throw new ProjectNotFoundException(name);
         }
-        return cascade(project, options);
+        return cascade(project, options, false);
     }
 
     @Override
     public ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException {
         Project project = repository.getProject(name);
         if (project == null) {
-            // Access rows outlive the project row (an earlier cascade that failed halfway, a
-            // hand-deleted row), so the noop branch still sweeps them: otherwise no API or CLI path
-            // can reach them, and the next project of the same name inherits the grants.
-            boolean casbinDeleted = deleteCasbinRows(name);
-            boolean inventoryDeleted = deleteInventoryEntries(name);
-            return new ProjectDeleted(name, false, false, casbinDeleted, inventoryDeleted, false, false, false, false,
-                                      true);
+            // Everything but the project row can outlive it (an earlier cascade that failed halfway, a
+            // hand-deleted row), so the noop branch still runs every other step: otherwise no API or
+            // CLI path can reach the leftovers, and the next project of the same name inherits them.
+            return cascade(new Project(name), options, true);
         }
-        return cascade(project, options);
+        return cascade(project, options, false);
     }
 
     @Override
@@ -470,7 +468,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return copy;
     }
 
-    private ProjectDeleted cascade(Project project, ProjectDeleteOptions options) {
+    private ProjectDeleted cascade(Project project, ProjectDeleteOptions options, boolean rowGone) {
         // Per-step containment: each cleanup step swallows its own failures and
         // sets the corresponding bool to false. A partial-failure cascade is
         // worse than a continuing one -- operators can rerun with --if-exists
@@ -479,7 +477,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // intact is a sticky state if the cascade aborts mid-stream.
         String name = project.getName();
 
-        boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name));
+        boolean dbDeleted = !rowGone && runStep("db", name, () -> repository.deleteAll(name));
+        boolean noRow = rowGone || dbDeleted;
         // before the index drop: a task still writing to the index would re-create it
         boolean tasksDeleted = runStep("tasks", name, () -> deleteTasks(name));
         // The db row goes first and the index drop is gated on it: dropping the index destroys the
@@ -490,7 +489,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // combined only once both have run: a failure on either index
         // must neither hide the other nor stop it from being deleted. A project older than the
         // entities index has none, which is nothing to report.
-        boolean deleteIndex = dbDeleted && !options.keepIndex();
+        boolean deleteIndex = noRow && !options.keepIndex();
         boolean documentsDeleted =
                 deleteIndex && runStep("index", name, () -> !indexer.exists(name) || indexer.deleteIndex(name));
         String entitiesIndex = Project.entitiesIndex(name);
@@ -502,17 +501,17 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // no Casbin row behind it is re-enrolled as PROJECT_MEMBER by PostLoginEnroller on that
         // user's next login, which resurrects the very rows this cascade removes. Leaving the grants
         // in place instead is the loud failure -- it is reported, and --if-exists converges on retry.
-        // Both are gated on dbDeleted: if the project row survives, stripping its grants would leave
+        // Both are gated on the row being gone: if the project row survives, stripping its grants would leave
         // a live project nobody can reach, and grants cannot be rebuilt.
         //TODO #DOMAIN: drop the rows of every domain once projects carry one.
-        boolean inventoryDeleted = dbDeleted && deleteInventoryEntries(name);
-        boolean casbinDeleted = dbDeleted && inventoryDeleted && deleteCasbinRows(name);
+        boolean inventoryDeleted = noRow && deleteInventoryEntries(name);
+        boolean casbinDeleted = noRow && inventoryDeleted && deleteCasbinRows(name);
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
         boolean artifactsDeleted = deleteArtifacts(name);
 
         return new ProjectDeleted(name, dbDeleted, indexDeleted, casbinDeleted, inventoryDeleted, queuesDeleted,
-                                  reportMapDeleted, artifactsDeleted, tasksDeleted, false);
+                                  reportMapDeleted, artifactsDeleted, tasksDeleted, rowGone);
     }
 
     /**
@@ -656,7 +655,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private boolean deleteReportMap(Project project) {
         String reportMapName = "extract:report:" + project.getName();
-        return documentCollectionFactory.createMap(reportMapName).delete();
+        ReportMap reportMap = documentCollectionFactory.createMap(reportMapName);
+        // a Redis delete answers false on a map that is already gone, which a retry has to count as done
+        return reportMap.delete() || reportMap.isEmpty();
     }
 
     private boolean deleteArtifacts(String name) {

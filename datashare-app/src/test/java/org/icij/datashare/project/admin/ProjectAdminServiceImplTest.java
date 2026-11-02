@@ -538,9 +538,49 @@ public class ProjectAdminServiceImplTest {
 
         assertThat(deleted.noop()).isTrue();
         assertThat(deleted.dbDeleted()).isFalse();
-        assertThat(deleted.indexDeleted()).isFalse();
         verify(indexer, never()).deleteIndex(any());
         verify(repository, never()).deleteAll(any());
+    }
+
+    @Test
+    public void test_delete_if_exists_retries_the_steps_a_failed_cascade_left_behind() throws Exception {
+        when(repository.getProject("ghost")).thenReturn(null);
+        when(indexer.exists("ghost")).thenReturn(true);
+        when(indexer.deleteIndex("ghost")).thenReturn(true);
+        DocumentQueue<Path> queue = mock(DocumentQueue.class);
+        when(queue.delete()).thenReturn(true);
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
+        ReportMap reportMap = mock(ReportMap.class);
+        when(reportMap.delete()).thenReturn(true);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+
+        ProjectDeleted deleted = service.deleteIfExists("ghost", new ProjectDeleteOptions(false));
+
+        verify(indexer).deleteIndex("ghost");
+        verify(queue, atLeastOnce()).delete();
+        verify(reportMap).delete();
+        verify(taskManager).getTasks(any(TaskFilters.class));
+        assertThat(deleted.noop()).isTrue();
+        assertThat(deleted.indexDeleted()).isTrue();
+        assertThat(deleted.queuesDeleted()).isTrue();
+        assertThat(deleted.reportMapDeleted()).isTrue();
+        verify(repository, never()).deleteAll(any());
+    }
+
+    @Test
+    public void test_delete_if_exists_reports_an_absent_report_map_as_deleted() throws Exception {
+        when(repository.getProject("ghost")).thenReturn(null);
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
+        ReportMap reportMap = mock(ReportMap.class);
+        when(reportMap.delete()).thenReturn(false);
+        when(reportMap.isEmpty()).thenReturn(true);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+
+        assertThat(service.deleteIfExists("ghost", new ProjectDeleteOptions(false)).reportMapDeleted()).isTrue();
     }
 
     @Test

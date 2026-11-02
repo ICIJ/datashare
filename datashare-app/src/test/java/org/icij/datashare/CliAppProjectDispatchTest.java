@@ -266,6 +266,36 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_delete_if_exists_missing_warns_when_a_retried_step_fails() throws Exception {
+        when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
+        when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("ghost", false, false, true, true, true, true, false, true, true));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "ghost");
+        props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
+
+        assertThat(stderr.toString()).contains("re-run with --if-exists");
+    }
+
+    @Test
+    public void test_delete_if_exists_missing_does_not_warn_when_every_step_ran() throws Exception {
+        when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
+        when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("ghost", false, true, true, true, true, true, false, true, true));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "ghost");
+        props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
+
+        assertThat(stderr.toString()).isEmpty();
+    }
+
+    @Test
     public void test_delete_summary_reports_the_access_cleanup() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
