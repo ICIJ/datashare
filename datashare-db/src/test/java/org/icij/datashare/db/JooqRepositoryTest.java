@@ -489,6 +489,19 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_delete_all_project_keeps_the_user_events_another_project_still_references() {
+        User user = new User("userid");
+        repository.save(project("prj"));
+        UserEvent sharedEvent = new UserEvent(user, DOCUMENT, "doc_id", Paths.get("doc_uri").toUri());
+        repository.addToUserHistory(asList(project("prj"), project("other")), sharedEvent);
+
+        assertThat(repository.deleteAll("prj")).isTrue();
+
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, "other")).hasSize(1);
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, "prj")).isEmpty();
+    }
+
+    @Test
     public void test_delete_all_project_purges_its_statements_and_extraction_mappings() {
         repository.save(project("prj"));
         JooqStatementRepository statements = dbRule.createStatementRepository();

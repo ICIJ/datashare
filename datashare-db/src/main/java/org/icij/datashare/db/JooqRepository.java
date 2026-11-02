@@ -423,10 +423,12 @@ public class JooqRepository implements Repository {
             inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
             inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId))
                  .execute();
-            List<Integer> deletedUserHistoryProjectIds =
+            List<Integer> unlinkedHistoryIds =
                     inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).returning()
                          .fetch().getValues(USER_HISTORY_PROJECT.USER_HISTORY_ID);
-            inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(deletedUserHistoryProjectIds)).execute();
+            inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(unlinkedHistoryIds)).andNotExists(
+                    inner.selectOne().from(USER_HISTORY_PROJECT)
+                         .where(USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(USER_HISTORY.ID))).execute();
             inner.deleteFrom(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId)).execute();
             inner.deleteFrom(EXTRACTION_MAPPING).where(EXTRACTION_MAPPING.PRJ_ID.eq(projectId)).execute();
             inner.deleteFrom(PATH_BANNER).where(PATH_BANNER.PROJECT_ID.eq(projectId)).execute();
