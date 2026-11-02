@@ -80,7 +80,7 @@ public class CategorizeTask extends PipelineTask<String> implements Monitorable 
                 continue;
             }
             try {
-                Document retrievedFromIndexer = getDocument(indexer, project.getName(), DocReference.parse(queueEntry));
+                Document retrievedFromIndexer = indexer.get(project.getName(), DocReference.parse(queueEntry));
                 if (retrievedFromIndexer != null) {
                     enrichWithType(retrievedFromIndexer);
                 }

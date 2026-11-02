@@ -1,5 +1,17 @@
 package org.icij.datashare.tasks;
 
+import static org.mockito.Mockito.when;
+
+import static org.mockito.ArgumentMatchers.anyString;
+
+import static org.mockito.ArgumentMatchers.any;
+
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
+
+import org.icij.datashare.text.DocReference;
+
+import org.icij.datashare.asynctasks.StageRegistry;
+
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -51,8 +63,10 @@ public class UpstreamGateTest {
     private final CountDownLatch firstEmptyPoll = new CountDownLatch(1);
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         initMocks(this);
+        when(pipeline.initialize(any())).thenReturn(true);
+        when(indexer.get(anyString(), any(DocReference.class))).thenReturn(createDoc("content").build());
     }
 
     @After
@@ -74,8 +88,8 @@ public class UpstreamGateTest {
         upstream.setResult(new TaskResult<>(0L));
 
         assertThat(consumed.get(20, SECONDS)).isEqualTo(2L);
-        verify(indexer).get("local-datashare", "docId1", "docId1");
-        verify(indexer).get("local-datashare", "docId2", "docId2");
+        verify(indexer).get("local-datashare", DocReference.parse("docId1"));
+        verify(indexer).get("local-datashare", DocReference.parse("docId2"));
     }
 
     @Test(timeout = 30000)
@@ -149,8 +163,8 @@ public class UpstreamGateTest {
 
     private ExtractNlpTask nlpTaskGatedOn(Task<Long> upstream, TaskRepository repository) {
         Map<String, Object> args = Map.of(UPSTREAM_TASK_ID, upstream.id);
-        return new ExtractNlpTask(indexer, pipeline, factory,
-                new UpstreamGate.Factory(repository).forTask(new Task<>(ExtractNlpTask.class.getName(), User.local(), args)),
+        return new ExtractNlpTask(factory, new StageRegistry().register(new NlpStage(indexer, pipeline)),
+                new UpstreamGate.Factory(repository),
                 new Task<>(ExtractNlpTask.class.getName(), User.local(), args), progress -> null);
     }
 

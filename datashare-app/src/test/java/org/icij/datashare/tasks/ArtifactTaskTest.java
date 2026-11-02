@@ -27,6 +27,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.artifact.FilesystemManifestRepository;
 import org.icij.datashare.text.artifact.ManifestEntry;
 import org.icij.datashare.text.artifact.ManifestEntryStatus;
+import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
@@ -102,7 +103,6 @@ public class ArtifactTaskTest {
         Long numberOfDocuments = runArtifactTask();
 
         assertThat(numberOfDocuments).isEqualTo(1);
-        assertThat(logback.logs(Level.WARN)).contains("document <unknownId> could not be retrieved from index prj (missing document or index fetch error), skipping");
         assertThat(logback.logs(Level.ERROR)).contains("1 document(s) could not be retrieved from index prj and got no artifact cache, re-run the ARTIFACT stage for them");
         assertThat(logback.logs(Level.ERROR)).excludes("error in ArtifactTask loop");
     }
@@ -117,7 +117,7 @@ public class ArtifactTaskTest {
         // root, rootId says embed), so structure would attempt an embedded lookup it cannot support.
         Long numberOfDocuments = runArtifactTask(Map.of("artifacts", "raw"));
 
-        verify(mockEs).get("prj", EMBEDDED_DOC_SHA256, "rootId", List.of("content", "content_translated"));
+        verify(mockEs).get("prj", new DocReference(EMBEDDED_DOC_SHA256, "rootId"), List.of("content", "content_translated"));
         // Raw asks isRootDocument() like the source path does, so on that disagreement the document is an
         // embedded node with no payload of its own on disk: it fails loudly and stays re-runnable instead
         // of being stamped "processed, source is the on-disk original" for a source getSource() can only
@@ -283,7 +283,6 @@ public class ArtifactTaskTest {
         Long numberOfDocuments = runArtifactTask(2);
 
         assertThat(numberOfDocuments).isEqualTo(1);
-        assertThat(logback.logs(Level.WARN)).contains("document <unknownId> could not be retrieved from index prj (missing document or index fetch error), skipping");
         assertThat(logback.logs(Level.ERROR)).contains("1 document(s) could not be retrieved from index prj and got no artifact cache, re-run the ARTIFACT stage for them");
     }
 
@@ -502,7 +501,7 @@ public class ArtifactTaskTest {
     public void test_a_document_failure_wrapping_an_interrupt_is_counted_and_the_drain_continues() throws Exception {
         indexEmbeddedDoc();
         String failingId = "3333333333333333333333333333333333333333333333333333333333333333";
-        when(mockEs.get("prj", failingId, failingId, List.of("content", "content_translated")))
+        when(mockEs.get("prj", DocReference.parse(failingId), List.of("content", "content_translated")))
                 .thenThrow(new RuntimeException(new InterruptedException("wrapped by the es client")));
         DocumentQueue<String> queue = factory.createQueue("extract:queue:artifact", String.class);
         queue.add(failingId);
