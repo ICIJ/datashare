@@ -408,6 +408,27 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_delete_clears_a_queued_task_without_waiting_for_it() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        Task<?> queuedTask = new Task<>("index-foo", "IndexTask", User.local(), Map.of("projectName", "foo"));
+        queuedTask.setState(Task.State.QUEUED);
+        doReturn(Stream.of(queuedTask)).when(taskManager).getTasks(any(TaskFilters.class));
+        doReturn(queuedTask).when(taskManager).getTask("index-foo");
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
+        when(documentCollectionFactory.createMap(any())).thenReturn(mock(ReportMap.class));
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
+
+        verify(taskManager).stopTask("index-foo");
+        verify(taskManager, never()).awaitTermination(anyInt(), any(), any());
+        verify(taskManager).clearTask("index-foo");
+        assertThat(deleted.tasksDeleted()).isTrue();
+    }
+
+    @Test
     public void test_delete_drops_the_entities_index_too() throws Exception {
         Project project = new Project("foo");
         when(repository.getProject("foo")).thenReturn(project);

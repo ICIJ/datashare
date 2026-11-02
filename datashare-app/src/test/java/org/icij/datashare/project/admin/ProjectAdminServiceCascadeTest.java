@@ -72,7 +72,8 @@ public class ProjectAdminServiceCascadeTest {
         UsersIdProviderCache usersIdProviderCache = mock(UsersIdProviderCache.class);
         documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
         taskRepository = new TaskRepositoryMemory();
-        taskManager = new TaskManagerMemory(mock(TaskFactory.class), taskRepository, new PropertiesProvider(),
+        taskManager = new TaskManagerMemory(mock(TaskFactory.class), taskRepository,
+                                            new PropertiesProvider(Map.of("taskManagerPollingIntervalMilliseconds", "50")),
                                             new CountDownLatch(1));
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("dataDir", "/vault");
@@ -214,12 +215,40 @@ public class ProjectAdminServiceCascadeTest {
         assertThat(service.delete("foo", new ProjectDeleteOptions(true)).tasksDeleted()).isTrue();
     }
 
+    @Test
+    public void test_delete_waits_for_a_running_task_to_stop_before_clearing_it() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        insertTask("index-foo", Map.of("projectName", "foo"));
+        setState("index-foo", Task.State.RUNNING);
+        Thread worker = new Thread(() -> {
+            try {
+                Thread.sleep(300);
+                setState("index-foo", Task.State.CANCELLED);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        worker.start();
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
+
+        worker.join();
+        assertThat(deleted.tasksDeleted()).isTrue();
+        assertThat(taskIds()).isEmpty();
+    }
+
     private static BatchSearchRecord batchRecordOf(String projectName) {
         return new BatchSearchRecord(List.of(new ProjectProxy(projectName)), "search", "", 1, new Date(), null);
     }
 
     private void insertTask(String id, Map<String, Object> args) throws Exception {
         taskRepository.insert(new Task<>(id, "IndexTask", User.local(), args), new Group(TaskGroupType.Java));
+    }
+
+    private void setState(String id, Task.State state) throws Exception {
+        Task<?> task = taskRepository.getTask(id);
+        task.setState(state);
+        taskRepository.update(task);
     }
 
     private List<String> taskIds() throws Exception {
