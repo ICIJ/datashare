@@ -278,11 +278,19 @@ public class PropertiesProviderTest {
     }
 
     @Test
-    public void test_filter_by_introspection() {
+    public void test_filter_by_introspection_to_record() {
         PropertiesProvider props = new PropertiesProvider(Map.of("foo", "12", "bar", "baz"));
         record FooOptions(String bar, int foo) {}
 
         assertThat(props.toRecord(FooOptions.class)).isEqualTo(new FooOptions("baz", 12));
+    }
+
+    @Test
+    public void test_map_to_option_record() {
+        Map<String, Object> map = Map.of("foo", "12", "bar", "baz");
+        record FooOptions(String bar, int foo) {}
+
+        assertThat(PropertiesProvider.mapToRecord(FooOptions.class, map)).isEqualTo(new FooOptions("baz", 12));
     }
 
     /**
