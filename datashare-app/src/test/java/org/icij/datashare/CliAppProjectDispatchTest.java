@@ -180,7 +180,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_happy_path_with_yes_skips_prompt() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, true, false, true, false));
+                .thenReturn(fullyDeleted("foo"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -196,7 +196,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_with_typed_name_confirmation_proceeds() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, true, false, true, false));
+                .thenReturn(fullyDeleted("foo"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
 
@@ -236,7 +236,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_if_exists_missing_returns_0_noop() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("ghost", false, false, true, true, false, false, false, false, true));
+                .thenReturn(noop("ghost"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
@@ -254,7 +254,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_if_exists_missing_warns_when_the_access_cleanup_fails() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("ghost", false, false, false, true, false, false, false, false, true));
+                .thenReturn(noopExcept("ghost", "casbin"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
@@ -269,7 +269,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_if_exists_missing_warns_when_a_retried_step_fails() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("ghost", false, false, true, true, true, true, false, true, true));
+                .thenReturn(noopExcept("ghost", "index"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
@@ -284,7 +284,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_if_exists_missing_does_not_warn_when_every_step_ran() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("ghost", false, true, true, true, true, true, false, true, true));
+                .thenReturn(noop("ghost"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
@@ -299,7 +299,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_summary_reports_the_access_cleanup() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, false, true, true, true, true, true, false));
+                .thenReturn(deletedExcept("foo", "casbin"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -317,7 +317,7 @@ public class CliAppProjectDispatchTest {
         org.mockito.ArgumentCaptor<ProjectDeleteOptions> captor =
                 org.mockito.ArgumentCaptor.forClass(ProjectDeleteOptions.class);
         when(service.delete(eq("foo"), captor.capture()))
-                .thenReturn(new ProjectDeleted("foo", true, false, true, true, true, true, false, true, false));
+                .thenReturn(deletedExcept("foo", "index"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_KEEP_INDEX_OPT, "true");
@@ -333,7 +333,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_json_output() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, true, true, true, false));
+                .thenReturn(fullyDeleted("foo"));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -814,5 +814,28 @@ public class CliAppProjectDispatchTest {
                 new java.io.BufferedReader(new java.io.StringReader("y\n")),
                 new java.io.PrintWriter(new java.io.StringWriter(), true),
                 () -> new char[0]);
+    }
+
+    private static ProjectDeleted fullyDeleted(String name) {
+        return deleted(name, null, false);
+    }
+
+    private static ProjectDeleted deletedExcept(String name, String failedStep) {
+        return deleted(name, failedStep, false);
+    }
+
+    private static ProjectDeleted noop(String name) {
+        return deleted(name, null, true);
+    }
+
+    private static ProjectDeleted noopExcept(String name, String failedStep) {
+        return deleted(name, failedStep, true);
+    }
+
+    private static ProjectDeleted deleted(String name, String failedStep, boolean noop) {
+        return new ProjectDeleted(name, !noop && !"db".equals(failedStep), !"index".equals(failedStep),
+                                  !"casbin".equals(failedStep), !"inventory".equals(failedStep),
+                                  !"queues".equals(failedStep), !"reportMap".equals(failedStep),
+                                  !"artifacts".equals(failedStep), !"tasks".equals(failedStep), noop);
     }
 }
