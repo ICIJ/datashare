@@ -477,7 +477,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // documents, so a project row that survives a failed db step would be left searchable-but-
         // empty with no way back. Leaving the index in place instead keeps the project intact and
         // --if-exists converges on retry.
-        // two steps rather than one, and combined only once both have run: a failure on either index
+        // The documents index and the entities index are dropped in two steps rather than one, and
+        // combined only once both have run: a failure on either index
         // must neither hide the other nor stop it from being deleted. A project older than the
         // entities index has none, which is nothing to report.
         boolean deleteIndex = dbDeleted && !options.keepIndex();
