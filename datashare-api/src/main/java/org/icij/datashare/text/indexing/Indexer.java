@@ -31,11 +31,8 @@ public interface Indexer extends Closeable {
      *  entity mappings rather than the document ones. Returns false when it already exists. */
     boolean createEntitiesIndex(String projectId) throws IOException;
 
-    /** Drops {@code indexName}, mappings included, and returns false when it does not exist. Unlike
-     *  {@link #deleteAll} this discards the mappings, so it is how an index gets re-created with new ones. */
+    /** Drops {@code indexName}, mappings included, and returns false when it does not exist. */
     boolean deleteIndex(String indexName) throws IOException;
-
-    boolean deleteAll(String indexName) throws IOException;
 
     /**
      * Returns the number of documents indexed in {@code indexName}, or 0 if the index

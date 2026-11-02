@@ -657,24 +657,6 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_delete_by_query() throws Exception {
-        Document doc = createDoc("docId").build();
-        indexer.add(es.getIndexName(), doc);
-        indexer.add(es.getIndexName(), create(PERSON, "Joe Foo", singletonList(2L), "docId", "root", CORENLP, Language.FRENCH));
-        indexer.add(es.getIndexName(), create(PERSON, "John Doe", singletonList(12L), "docId", "root", CORENLP, Language.FRENCH));
-
-        assertThat(indexer.deleteAll(es.getIndexName())).isTrue();
-
-        Object[] documents = indexer.search(singletonList(es.getIndexName()), Document.class).execute().toArray();
-        assertThat(documents.length).isEqualTo(0);
-    }
-
-    @Test
-    public void test_delete_all_non_existing_index() throws Exception {
-        assertThat(indexer.deleteAll("non_existing_index")).isFalse();
-    }
-
-    @Test
     public void test_query_like_js_front_finds_document_from_its_child_named_entity() throws Exception {
         Document doc = createDoc("id").with("content with john doe").build();
         indexer.add(es.getIndexName(), doc);
