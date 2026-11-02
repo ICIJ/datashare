@@ -14,6 +14,7 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.ContentTypeCategory;
+import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Duplicate;
@@ -89,6 +90,21 @@ public class ElasticsearchIndexerTest {
     public void test_get_unknown_document() {
         Document doc = indexer.get(es.getIndexName(), "unknown");
         assertThat(doc).isNull();
+    }
+
+    @Test
+    public void test_get_by_reference_with_and_without_routing() throws IOException {
+        Document root = createDoc("root").build();
+        Document embedded = createDoc("embedded").withParentId(root.getId()).withRootId(root.getId()).build();
+        indexer.bulkAdd(es.getIndexName(), asList(root, embedded));
+
+        assertThat(indexer.get(es.getIndexName(), DocReference.parse("root"))).isEqualTo(root);
+        assertThat(indexer.get(es.getIndexName(), DocReference.parse("embedded|root"))).isEqualTo(embedded);
+    }
+
+    @Test
+    public void test_get_unknown_reference_is_null() {
+        assertThat(indexer.get(es.getIndexName(), DocReference.parse("unknownId"))).isNull();
     }
 
     @Test

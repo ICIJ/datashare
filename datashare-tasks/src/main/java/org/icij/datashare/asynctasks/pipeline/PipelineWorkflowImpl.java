@@ -54,15 +54,19 @@ public class PipelineWorkflowImpl implements PipelineWorkflow, StageEmitReceiver
     }
 
     private void start(Stage stage, List<?> batch) {
-        StageActivity activity = stageActivities.computeIfAbsent(stage, s -> Workflow.newActivityStub(
-                StageActivity.class, toActivityOptions(activityOptions.getOrDefault(s, StageActivityOptions.DEFAULT))));
+        StageActivity activity = stageActivities.computeIfAbsent(stage,
+                                                                 s -> Workflow.newActivityStub(StageActivity.class,
+                                                                                               toActivityOptions(
+                                                                                                       activityOptions.getOrDefault(
+                                                                                                               s,
+                                                                                                               StageActivityOptions.DEFAULT))));
         boolean hasNextStage = stages.indexOf(stage) + 1 < stages.size();
         pending.add(new Started(stage, Async.function(activity::run, stage, options, batch, hasNextStage)));
     }
 
     private static ActivityOptions toActivityOptions(StageActivityOptions options) {
-        ActivityOptions.Builder builder = ActivityOptions.newBuilder()
-                                                         .setStartToCloseTimeout(options.startToCloseTimeout());
+        ActivityOptions.Builder builder =
+                ActivityOptions.newBuilder().setStartToCloseTimeout(options.startToCloseTimeout());
         if (options.maxAttempts() > 0) {
             builder.setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(options.maxAttempts()).build());
         }
