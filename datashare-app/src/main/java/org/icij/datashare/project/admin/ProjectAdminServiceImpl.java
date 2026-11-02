@@ -35,11 +35,14 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
@@ -55,6 +58,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     // by the UI/API to list a user's projects.
     private static final String GROUPS_BY_APPLICATIONS = "groups_by_applications";
     private static final String DATASHARE_APP = "datashare";
+    private static final int TASK_STOP_TIMEOUT_SECONDS = 30;
     // Lower ordinal == higher tier in Role enum (INSTANCE_ADMIN=0, ..., NONE=6).
     private static final Comparator<Role> ROLE_BY_TIER = Comparator.comparingInt(Enum::ordinal);
     // Task args keys that carry a project name, as written by the launchers: IndexTask and
@@ -516,18 +520,46 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
      * A task that vanished between the scan and the delete is the outcome we wanted, not a failure:
      * aborting there would strip the step of its idempotence, and --if-exists cannot retry it once
      * the project row is gone.
+     * <p>
+     * Stopping is asynchronous and a task manager refuses to clear a running task, so the step waits
+     * for the running tasks it stopped to end, and leaves the ones still running after that as a failure.
+     * A queued task is not waited for: with no worker to pick up the cancel it would never leave the queue.
      */
-    private boolean deleteTasks(String name) throws IOException {
-        boolean allDeleted = true;
-        for (Task<?> task : tasksOf(name)) {
-            try {
-                if (NON_FINAL_STATES.contains(task.getState())) {
+    private boolean deleteTasks(String name) throws IOException, InterruptedException {
+        List<Task<?>> tasks = tasksOf(name);
+        Set<String> stopped = new HashSet<>();
+        Set<String> running = new HashSet<>();
+        for (Task<?> task : tasks) {
+            if (NON_FINAL_STATES.contains(task.getState())) {
+                try {
                     taskManager.stopTask(task.getId());
+                    stopped.add(task.getId());
+                    if (task.getState() == Task.State.RUNNING) {
+                        running.add(task.getId());
+                    }
+                } catch (UnknownTask ignored) {
+                    LOGGER.info("task {} of project {} is already gone", task.getId(), name);
+                } catch (IOException e) {
+                    LOGGER.error("cannot stop task {} of project {}", task.getId(), name, e);
                 }
-                taskManager.clearTask(task.getId());
+            }
+        }
+        if (!running.isEmpty()) {
+            taskManager.awaitTermination(TASK_STOP_TIMEOUT_SECONDS, TimeUnit.SECONDS, running);
+        }
+        boolean allDeleted = true;
+        for (Task<?> task : tasks) {
+            try {
+                if (stopped.contains(task.getId()) &&
+                    taskManager.getTask(task.getId()).getState() == Task.State.RUNNING) {
+                    LOGGER.error("task {} of project {} is still running", task.getId(), name);
+                    allDeleted = false;
+                } else {
+                    taskManager.clearTask(task.getId());
+                }
             } catch (UnknownTask ignored) {
                 LOGGER.info("task {} of project {} is already gone", task.getId(), name);
-            } catch (IOException | RuntimeException e) {
+            } catch (IOException e) {
                 LOGGER.error("cannot delete task {} of project {}", task.getId(), name, e);
                 allDeleted = false;
             }
