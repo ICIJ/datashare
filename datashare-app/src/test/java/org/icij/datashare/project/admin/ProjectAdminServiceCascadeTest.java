@@ -208,6 +208,26 @@ public class ProjectAdminServiceCascadeTest {
     }
 
     @Test
+    public void test_delete_leaves_a_task_whose_project_name_is_another_project() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        insertTask("index-bar", Map.of("projectName", "bar", "defaultProject", "foo"));
+
+        service.delete("foo", new ProjectDeleteOptions(true));
+
+        assertThat(taskIds()).containsOnly("index-bar");
+    }
+
+    @Test
+    public void test_delete_leaves_a_batch_search_task_that_still_searches_another_project() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        insertTask("search-foo-bar", Map.of("batchRecord", Map.of("projects", List.of("foo", "bar"))));
+
+        service.delete("foo", new ProjectDeleteOptions(true));
+
+        assertThat(taskIds()).containsOnly("search-foo-bar");
+    }
+
+    @Test
     public void test_delete_reports_the_task_step() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         insertTask("index-foo", Map.of("projectName", "foo"));
