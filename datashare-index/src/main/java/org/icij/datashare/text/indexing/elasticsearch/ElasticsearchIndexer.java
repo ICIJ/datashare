@@ -36,6 +36,7 @@ import org.elasticsearch.client.RestClient;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
@@ -227,6 +228,16 @@ public class ElasticsearchIndexer implements Indexer {
         GetResponse<ObjectNode> resp = client.get(req, ObjectNode.class);
         String respPath = ofNullable(resp.source()).map(s -> s.get("path").asText()).orElse("");
         return respPath.equals(path.toString());
+    }
+
+    @Override
+    public Document get(String projectName, DocReference ref) {
+        return warnIfNull(get(projectName, ref.id(), ref.routing()), projectName, ref.id());
+    }
+
+    @Override
+    public Document get(String projectName, DocReference ref, List<String> sourceExcludes) {
+        return warnIfNull(get(projectName, ref.id(), ref.routing(), sourceExcludes), projectName, ref.id());
     }
 
     @Override
@@ -622,6 +633,16 @@ public class ElasticsearchIndexer implements Indexer {
                                    .params(mapObjectTomapJsonData(new HashMap<>() {{
                                        put("tags", labels(tags));
                                    }})).build();
+    }
+
+    private Document warnIfNull(Document document, String projectName, String docId) {
+        // indexer.get() also returns null on fetch failures (it logs them as ERROR), not only on missing ids
+        if (document == null) {
+            LOGGER.warn(
+                    "document <{}> could not be retrieved from index {} (missing document or index fetch error), skipping",
+                    docId, projectName);
+        }
+        return document;
     }
 
     @Override

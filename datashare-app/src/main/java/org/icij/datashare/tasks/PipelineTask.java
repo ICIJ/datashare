@@ -105,14 +105,6 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
         return null;
     }
 
-    protected Document getDocument(Indexer indexer, String projectName, DocReference ref) {
-        return warnIfNull(indexer.get(projectName, ref.id(), ref.routing()), projectName, ref.id());
-    }
-
-    protected Document getDocument(Indexer indexer, String projectName, DocReference ref, List<String> sourceExcludes) {
-        return warnIfNull(indexer.get(projectName, ref.id(), ref.routing(), sourceExcludes), projectName, ref.id());
-    }
-
     /**
      * True when this throwable is, or wraps, an InterruptedException. Redisson and the
      * Elasticsearch rest-client both re-interrupt the thread and rethrow a RuntimeException
@@ -237,16 +229,6 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
 
     private static ThreadFactory namedThreadFactory(String prefix) {
         return Thread.ofPlatform().name(prefix + "-", 1).factory();
-    }
-
-    private Document warnIfNull(Document document, String projectName, String docId) {
-        // indexer.get() also returns null on fetch failures (it logs them as ERROR), not only on missing ids
-        if (document == null) {
-            logger.warn(
-                    "document <{}> could not be retrieved from index {} (missing document or index fetch error), skipping",
-                    docId, projectName);
-        }
-        return document;
     }
 
     protected String getInputQueueName() {

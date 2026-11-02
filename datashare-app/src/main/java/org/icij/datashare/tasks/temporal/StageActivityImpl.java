@@ -45,8 +45,8 @@ public class StageActivityImpl implements StageActivity {
         contextOptions.put(StageContext.TASK_ID_OPT, workflowId);
         Project project = Project.project(
                 new PropertiesProvider(options).get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
-        EmitBuffer<O> emitted = new EmitBuffer<>(EMIT_BATCH_SIZE,
-                out -> receiver.onEmitted(processor.stage(), List.<Object>copyOf(out)));
+        EmitBuffer<O> emitted = new EmitBuffer<>(EMIT_BATCH_SIZE, out -> receiver.onEmitted(processor.stage(),
+                                                                                            List.<Object>copyOf(out)));
         // one context for the batch: what the processor builds with it is closed when the activity ends
         try (ScopedStageContext<O> ctx = new ScopedStageContext<>() {
             public Project project() {return project;}

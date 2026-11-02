@@ -1,5 +1,11 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.text.DocReference;
+
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
+
+import org.icij.datashare.asynctasks.StageRegistry;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -55,7 +61,7 @@ public class ExtractNlpTaskIntTest {
         when(pipeline.getType()).thenReturn(Pipeline.Type.CORENLP);
         when(pipeline.initialize(any())).thenReturn(true);
         Document doc = createDoc("content").build();
-        when(indexer.get(anyString(), eq("docId"), eq("docId"))).thenReturn(doc);
+        when(indexer.get(anyString(), eq(DocReference.parse("docId")))).thenReturn(doc);
 
         String queueName = new PipelineHelper(new PropertiesProvider()).getQueueNameFor(Stage.NLP);
         DocumentQueue<String> queue = factory.createQueue(queueName, String.class);
@@ -79,9 +85,9 @@ public class ExtractNlpTaskIntTest {
         Document doc1 = createDoc("docId1").build();
         Document doc2 = createDoc("docId2").build();
         Document doc3 = createDoc("docId3").build();
-        when(indexer.get(anyString(), eq("docId1"), eq("docId1"))).thenReturn(doc1);
-        when(indexer.get(anyString(), eq("docId2"), eq("docId2"))).thenReturn(doc2);
-        when(indexer.get(anyString(), eq("docId3"), eq("docId3"))).thenReturn(doc3);
+        when(indexer.get(anyString(), eq(DocReference.parse("docId1")))).thenReturn(doc1);
+        when(indexer.get(anyString(), eq(DocReference.parse("docId2")))).thenReturn(doc2);
+        when(indexer.get(anyString(), eq(DocReference.parse("docId3")))).thenReturn(doc3);
 
         String queueName = new PipelineHelper(new PropertiesProvider()).getQueueNameFor(Stage.NLP);
         DocumentQueue<String> queue = factory.createQueue(queueName, String.class);
@@ -89,7 +95,7 @@ public class ExtractNlpTaskIntTest {
         queue.add("docId2");
         queue.add("docId3");
 
-        new ExtractNlpTask(indexer, pipeline, factory, UpstreamGate.NONE, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
+        new ExtractNlpTask(factory, new StageRegistry().register(new NlpStage(indexer, pipeline)), new UpstreamGate.Factory(new TaskRepositoryMemory()), new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>() {{
             put("maxContentLength", "32");
         }}), callback).call();
 
@@ -124,8 +130,8 @@ public class ExtractNlpTaskIntTest {
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, UpstreamGate.NONE, new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
+        nlpTask = new ExtractNlpTask(factory, new StageRegistry().register(new NlpStage(indexer, pipeline)), new UpstreamGate.Factory(new TaskRepositoryMemory()), new Task<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
             put("maxContentLength", "32");
-        }}), null);
+        }}), progress -> null);
     }
 }

@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
@@ -54,6 +55,9 @@ public class MockIndexer {
         when(mockIndexer.get(index, rootDocument.getId())).thenReturn(rootDocument);
         when(mockIndexer.get(index, document.getId(), document.getRootDocument())).thenReturn(document);
         when(mockIndexer.get(index, document.getId(), document.getRootDocument(), sourceExcludes)).thenReturn(document);
+        DocReference ref = new DocReference(document.getId(), document.getRootDocument());
+        when(mockIndexer.get(index, ref)).thenReturn(document);
+        when(mockIndexer.get(index, ref, sourceExcludes)).thenReturn(document);
     }
 
     public void indexFile(String index, Document document) {
@@ -62,6 +66,11 @@ public class MockIndexer {
         when(mockIndexer.get(index, document.getId(), document.getId())).thenReturn(document);
         when(mockIndexer.get(index, document.getId(), sourceExcludes)).thenReturn(document);
         when(mockIndexer.get(index, document.getId(), document.getId(), sourceExcludes)).thenReturn(document);
+        for (DocReference ref : List.of(new DocReference(document.getId(), null),
+                                        new DocReference(document.getId(), document.getId()))) {
+            when(mockIndexer.get(index, ref)).thenReturn(document);
+            when(mockIndexer.get(index, ref, sourceExcludes)).thenReturn(document);
+        }
     }
 
     public static void write(File file, String content) throws IOException {

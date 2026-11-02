@@ -96,8 +96,8 @@ public class ArtifactTask extends PipelineTask<String> {
         Path projectRoot = ArtifactPath.projectRoot(artifactOptions.artifactDir(), artifactOptions.projectName());
         drainQueue(producer::isCancellation, queueEntry -> {
             try {
-                Document doc = getDocument(indexer, artifactOptions.projectName(), DocReference.parse(queueEntry),
-                                           SOURCE_EXCLUDES);
+                Document doc =
+                        indexer.get(artifactOptions.projectName(), DocReference.parse(queueEntry), SOURCE_EXCLUDES);
                 if (doc == null) {
                     nbSkipped.incrementAndGet();
                     return;

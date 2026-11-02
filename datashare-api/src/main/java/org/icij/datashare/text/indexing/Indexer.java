@@ -1,6 +1,7 @@
 package org.icij.datashare.text.indexing;
 
 import org.icij.datashare.Entity;
+import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
@@ -78,6 +79,10 @@ public interface Indexer extends Closeable {
     boolean exists(String indexName, String id) throws IOException;
 
     boolean exists(String indexName, String id, Path path) throws IOException;
+
+    Document get(String projectName, DocReference ref);
+
+    Document get(String projectName, DocReference ref, List<String> sourceExcludes);
 
     <T extends Entity> T get(String indexName, String id);
 

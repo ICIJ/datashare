@@ -58,7 +58,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_extract_nlp_task() throws Exception {
         Task<Long> task = new Task<>(ExtractNlpTask.class.getName(), User.local(), Map.of("nlpPipeline", "EMAIL"));
-        ExtractNlpTask taskRunner = new ExtractNlpTask(mock(Indexer.class), new PipelineRegistry(new PropertiesProvider()), mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
+        ExtractNlpTask taskRunner = new ExtractNlpTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new NlpStage(mock(Indexer.class), new PipelineRegistry(new PropertiesProvider()))), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
         when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
