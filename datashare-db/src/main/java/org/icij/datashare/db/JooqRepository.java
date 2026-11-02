@@ -442,7 +442,8 @@ public class JooqRepository implements Repository {
 
     /**
      * A batch search can span several projects, so deleting one only strips that project from the search:
-     * the search row itself goes away when the project was the last one it searched.
+     * the search row itself goes away when the project was the last one it searched. A search that survives
+     * keeps the result counters it had, including the results of the deleted project.
      */
     private void deleteBatchSearchesOf(DSLContext inner, String projectId) {
         List<String> searchesOfProject = batchSearchUuidsOf(inner, projectId);
