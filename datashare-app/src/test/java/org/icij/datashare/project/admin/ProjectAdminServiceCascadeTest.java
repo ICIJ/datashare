@@ -24,6 +24,7 @@ import org.icij.extract.extractor.ExtractionStatus;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.report.Report;
 import org.icij.extract.report.ReportMap;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -83,6 +84,11 @@ public class ProjectAdminServiceCascadeTest {
         service = new ProjectAdminServiceImpl(repository, indexer, authorizer, documentCollectionFactory,
                                               propertiesProvider, users, userStore, usersIdProviderCache,
                                               taskManager);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        taskManager.close();
     }
 
     @Test
