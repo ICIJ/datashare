@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import org.icij.datashare.PropertiesProvider;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import org.icij.datashare.Stage;
@@ -71,7 +72,7 @@ public class StageTask<I, O> extends PipelineTask<I> {
                 out.forEach(StageTask.this::offerToNextStage);
             }
         }) {
-            runWorkers(() -> drainQueue(PipelineTask::causedByInterrupt, entry -> {
+            runWorkers(() -> drainQueue(t -> workerPool.isShutdown() && causedByInterrupt(t), entry -> {
                 total.accumulateAndGet(processor.process(List.of(entry), ctx), StageResult::plus);
                 onEntryProcessed();
             }));

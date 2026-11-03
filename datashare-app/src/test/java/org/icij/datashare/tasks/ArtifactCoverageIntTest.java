@@ -35,6 +35,7 @@ public class ArtifactCoverageIntTest {
     @Rule public TemporaryFolder corpusDir = new TemporaryFolder();
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
     private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
+    private final StageRegistry stageRegistry = new StageRegistry();
 
     @Test(timeout = 300_000)
     public void every_indexed_document_has_a_terminal_manifest_and_servable_source() throws Exception {
@@ -55,6 +56,7 @@ public class ArtifactCoverageIntTest {
 
         // 2. INDEX with a real spewer (same construction as IndexTaskIntTest:59-60)
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
+        stageRegistry.register(new ArtifactStage(indexer));
         new IndexTask(indexQueueFactory, stringQueueFactory,
                 new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH)),
                 new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
@@ -62,7 +64,7 @@ public class ArtifactCoverageIntTest {
         // 3. ENQUEUEIDX -> ARTIFACT (queue test:queue:artifact), then the task itself
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, new UpstreamGate.Factory(taskRepository),
+        new ArtifactTask(stringQueueFactory, stageRegistry, new UpstreamGate.Factory(taskRepository),
                 ArtifactTaskFixture.taskWith(map), null).call();
 
         // 4. coverage

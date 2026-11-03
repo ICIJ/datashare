@@ -4,6 +4,8 @@ import java.util.List;
 import org.icij.datashare.Stage;
 
 public interface StageProcessor<I, O> {
+    List<String> SOURCE_EXCLUDES = List.of("content", "content_translated");
+
     Stage stage();
 
     /** What a batch holds, so an executor that receives it as JSON can convert it back. */
