@@ -10,11 +10,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.apache.tika.exception.TikaException;
 import static org.fest.assertions.Assertions.assertThat;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageContext;
 import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
@@ -25,11 +28,13 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.artifact.ArtifactCoverageChecker;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.queue.DocumentQueue;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -77,28 +82,25 @@ public class ArtifactChaosIntTest {
         int realBeforeBlock = 5;
         AtomicInteger callCount = new AtomicInteger(0);
         CountDownLatch blocked = new CountDownLatch(1);
-        ArtifactTask killedTask = new ArtifactTask(stringQueueFactory, indexer, new UpstreamGate.Factory(taskRepository),
-                ArtifactTaskFixture.taskWith(map), null) {
-            @Override
-            protected SourceExtractor createSourceExtractor() {
-                SourceExtractor real = new SourceExtractor(props);
-                return new SourceExtractor(props) {
-                    @Override
-                    public TikaDocument extractEmbeddedSources(Project project, Document document) throws TikaException, IOException, SAXException {
-                        if (callCount.getAndIncrement() < realBeforeBlock) {
-                            return real.extractEmbeddedSources(project, document);
-                        }
-                        blocked.countDown();
-                        try {
-                            Thread.sleep(30_000);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                        throw new IOException("killed mid-extraction");
+        ArtifactTask killedTask = new ArtifactTask(stringQueueFactory, stageRegistry(indexer, (m) -> {
+            SourceExtractor real = new SourceExtractor(props);
+            return new SourceExtractor(props) {
+                @Override
+                public TikaDocument extractEmbeddedSources(Project project, Document document) throws TikaException,
+                        IOException, SAXException {
+                    if (callCount.getAndIncrement() < realBeforeBlock) {
+                        return real.extractEmbeddedSources(project, document);
                     }
-                };
-            }
-        };
+                    blocked.countDown();
+                    try {
+                        Thread.sleep(30_000);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    throw new IOException("killed mid-extraction");
+                }
+                                };
+        }), new UpstreamGate.Factory(taskRepository), ArtifactTaskFixture.taskWith(map), null);
 
         AtomicReference<Throwable> thrown = new AtomicReference<>();
         Thread callerThread = new Thread(() -> {
@@ -134,22 +136,18 @@ public class ArtifactChaosIntTest {
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
 
         AtomicInteger reproductions = new AtomicInteger(0);
-        ArtifactTask resumeTask = new ArtifactTask(stringQueueFactory, indexer, new UpstreamGate.Factory(taskRepository),
-                ArtifactTaskFixture.taskWith(map), null) {
-            @Override
-            protected SourceExtractor createSourceExtractor() {
-                SourceExtractor real = new SourceExtractor(props);
-                return new SourceExtractor(props) {
-                    @Override
-                    public TikaDocument extractEmbeddedSources(Project project, Document document) throws TikaException, IOException, SAXException {
-                        // counts only the calls that actually reach extraction: the skip-if-current
-                        // pre-check in ArtifactProducer runs before this and never calls it at all.
-                        reproductions.incrementAndGet();
-                        return real.extractEmbeddedSources(project, document);
-                    }
-                };
-            }
-        };
+        ArtifactTask resumeTask = new ArtifactTask(stringQueueFactory, stageRegistry(indexer, (m) -> {
+            SourceExtractor real = new SourceExtractor(new PropertiesProvider(m));
+            return new SourceExtractor(new PropertiesProvider(m)) {
+                @Override
+                public TikaDocument extractEmbeddedSources(Project project, Document document) throws TikaException, IOException, SAXException {
+                    // counts only the calls that actually reach extraction: the skip-if-current
+                    // pre-check in ArtifactProducer runs before this and never calls it at all.
+                    reproductions.incrementAndGet();
+                    return real.extractEmbeddedSources(project, document);
+                }
+            };
+        }), new UpstreamGate.Factory(taskRepository), ArtifactTaskFixture.taskWith(map), null);
         resumeTask.call();
 
         ArtifactCoverageChecker.Report finalReport = checker.check(Project.project(es.getIndexName()), artifactDir.getRoot().toPath(), 100);
@@ -188,7 +186,8 @@ public class ArtifactChaosIntTest {
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, new UpstreamGate.Factory(taskRepository),
+        new ArtifactTask(stringQueueFactory, stageRegistry(indexer, (m) -> new SourceExtractor(new PropertiesProvider(m))),
+                         new UpstreamGate.Factory(taskRepository),
                 ArtifactTaskFixture.taskWith(map), null).call();
 
         ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(indexer, new SourceExtractor(props))
@@ -216,6 +215,7 @@ public class ArtifactChaosIntTest {
     // the garbage member itself are all indexed (3 documents, corrupt.zip's fixed-seed content
     // makes this an exact, deterministic count) and all three get a covered, terminal manifest -
     // the corrupt member is served as possibly-garbage bytes rather than surfaced as a failure.
+
     @Test(timeout = 300_000)
     public void corrupt_member_does_not_break_sibling_coverage() throws Exception {
         Map<String, Object> map = new HashMap<>(Map.of(
@@ -244,7 +244,8 @@ public class ArtifactChaosIntTest {
 
         new EnqueueFromIndexTask(stringQueueFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
-        new ArtifactTask(stringQueueFactory, indexer, new UpstreamGate.Factory(taskRepository),
+        new ArtifactTask(stringQueueFactory, stageRegistry(indexer, (m) -> new SourceExtractor(new PropertiesProvider(m))),
+                         new UpstreamGate.Factory(taskRepository),
                 ArtifactTaskFixture.taskWith(map), null).call();
 
         ArtifactCoverageChecker.Report report = new ArtifactCoverageChecker(indexer, new SourceExtractor(props))
@@ -254,5 +255,8 @@ public class ArtifactChaosIntTest {
         // garbage member: root + sibling-ok.txt + broken.docx, exactly (fixed-seed corpus).
         assertThat(report.checked()).isEqualTo(3);
         assertThat(report.holes()).isEmpty();
+    }
+    private StageRegistry stageRegistry(Indexer indexer, Function<Map<String, Object>, SourceExtractor> extractorFactory) {
+        return new StageRegistry().register(new ArtifactStage(indexer, extractorFactory));
     }
 }
