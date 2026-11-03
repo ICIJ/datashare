@@ -407,7 +407,7 @@ public class ExtractionMappingTest {
         MalformedExtractionMapping refusal = assertThrows(MalformedExtractionMapping.class,
                 () -> restricted(new LinkedHashMap<>(Map.of("schema", "Person", "schema\u00a0", "Company"))));
 
-        assertThat(refusal.getMessage()).contains("field 'filters' names one column twice");
+        assertThat(refusal.getMessage()).contains("field 'filters' names column 'schema' twice");
     }
 
     @Test

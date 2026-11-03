@@ -5,6 +5,7 @@ import org.icij.datashare.model.TargetModel;
 import org.icij.datashare.model.TargetModelRegistry;
 import org.icij.datashare.text.Project;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -12,7 +13,6 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
-import static java.util.stream.Collectors.toUnmodifiableMap;
 
 /**
  * @param rootId the container an embedded document was extracted from, or null for a root document:
@@ -84,22 +84,25 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             // that side gets elsewhere: the comparison then runs on two values cleaned the same way,
             // which is the rule every other column comparison follows.
             // Two names for one column are one column, as they are for keys and for a property's
-            // columns, and two values for it are a mapping no row can honour rather than a Java
-            // collector's business.
-            filters = (filters == null ? Map.<String, String>of() : filters).entrySet().stream().collect(
-                    toUnmodifiableMap(entry -> Row.clean(entry.getKey()), entry -> Row.clean(
-                                              Objects.requireNonNull(entry.getValue(), "filters." + entry.getKey())),
-                                      ExtractionMapping::oneValuePerColumn));
+            // columns, and two values for it are a mapping no row can honour, refused by the column
+            // name the author has to go and fix.
+            filters = cleanFilters(filters);
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
     }
 
-    private static String oneValuePerColumn(String first, String second) {
-        if (!first.equals(second)) {
-            throw new MalformedExtractionMapping(
-                    "field 'filters' names one column twice, with '" + first + "' and '" + second + "'");
-        }
-        return first;
+    private static Map<String, String> cleanFilters(Map<String, String> filters) {
+        Map<String, String> cleaned = new LinkedHashMap<>();
+        (filters == null ? Map.<String, String>of() : filters).forEach((column, value) -> {
+            String name = Row.clean(column);
+            String clean = Row.clean(Objects.requireNonNull(value, "filters." + column));
+            String first = cleaned.putIfAbsent(name, clean);
+            if (first != null && !first.equals(clean)) {
+                throw new MalformedExtractionMapping(
+                        "field 'filters' names column '" + name + "' twice, with '" + first + "' and '" + clean + "'");
+            }
+        });
+        return Map.copyOf(cleaned);
     }
 
     public record PropertyMapping(List<String> columns, String join, String literal, String entity, String dateFormat) {
