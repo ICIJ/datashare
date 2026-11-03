@@ -1220,4 +1220,35 @@ public class StatementBuilderTest {
         assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
         assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
     }
+
+    @Test
+    public void test_one_id_read_as_two_types_on_a_row_fails_the_run() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))),
+                "legalEntity", filtered("LegalEntity", "id", Map.of("schema", "LegalEntity"),
+                                        Map.of("name", column("name"))))), "");
+
+        InvalidExtractionMapping refusal = assertThrows(InvalidExtractionMapping.class,
+                () -> builder.statements(multi(Map.of("id", List.of("e1"),
+                                                      "schema", List.of("LegalEntity", "Person"),
+                                                      "name", List.of("Jane")))));
+
+        assertThat(refusal.getMessage()).contains("person");
+        assertThat(refusal.getMessage()).contains("legalEntity");
+    }
+
+    @Test
+    public void test_one_id_read_by_two_aliases_of_one_type_still_merges() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))),
+                "alias", filtered("Person", "id", Map.of("schema", "Person"),
+                                  Map.of("name", column("other_name"))))), "");
+
+        List<Statement> statements = builder.statements(
+                row(Map.of("id", "e1", "schema", "Person", "name", "Jane", "other_name", "Jane Doe")));
+
+        assertThat(statements).hasSize(2);
+        assertThat(statements.get(0).entityId()).isEqualTo("e1");
+        assertThat(statements.get(1).entityId()).isEqualTo("e1");
+    }
 }

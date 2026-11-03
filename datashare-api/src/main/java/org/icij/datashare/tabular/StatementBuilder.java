@@ -84,6 +84,7 @@ public class StatementBuilder {
         Map<String, List<String>> cells = new HashMap<>();
         columns.forEach(column -> cells.put(column, cell(row, column)));
         Map<String, String> ids = entityIds(cells, row.number());
+        requireOneTypePerId(ids, row.number());
         Set<String> stored = storing(ids, cells);
         ids.keySet().stream().filter(alias -> !stored.contains(alias))
            .forEach(alias -> count(Skip.ENTITY_EMPTY, alias, row.number()));
@@ -155,6 +156,29 @@ public class StatementBuilder {
             }
         }
         return ids;
+    }
+
+    // An id read verbatim carries no type, so two aliases of different types reading one id column
+    // mint one entity with two types, which ModelEntity refuses at rebuild, once the statements are
+    // committed and the index dropped. An ftm row carries its whole type hierarchy in 'schema', so
+    // two sibling aliases matching one row is the ordinary way to write that mapping wrong. The id
+    // itself stays out of the message: a cell is document content.
+    private void requireOneTypePerId(Map<String, String> ids, long rowNumber) {
+        if (ids.size() < 2) {
+            return;
+        }
+        Map<String, String> claimants = new HashMap<>();
+        for (Map.Entry<String, String> claim : ids.entrySet()) {
+            String alias = claim.getKey();
+            String type = mapping.entities().get(alias).type();
+            String other = claimants.putIfAbsent(claim.getValue(), alias);
+            if (other != null && !mapping.entities().get(other).type().equals(type)) {
+                throw new InvalidExtractionMapping(mapping.id(), List.of("entities '" + other + "' and '" + alias +
+                                                                         "' read one id as both a " +
+                                                                         mapping.entities().get(other).type() +
+                                                                         " and a " + type + ", on row " + rowNumber));
+            }
+        }
     }
 
     private String idOf(ExtractionMapping.EntityMapping entity, Map<String, List<String>> cells, String alias,
