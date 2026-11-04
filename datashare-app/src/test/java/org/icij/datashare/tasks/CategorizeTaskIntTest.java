@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
@@ -33,6 +34,7 @@ public class CategorizeTaskIntTest {
 
     private MemoryDocumentCollectionFactory<String> documentCollectionFactory;
     private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
+    private final StageRegistry stageRegistry = new StageRegistry().register(new CategorizeStage(indexer));
     private static final String DEFAULT_INPUT_QUEUE_NAME = "extract:queue:categorize";
 
     @Before
@@ -53,7 +55,7 @@ public class CategorizeTaskIntTest {
         Document unknownTypeDoc = aDocWithContentType("other-that-is-not_Kn%wn");
 
         indexAndEnqueue(videoDoc, pdfDoc, unknownTypeDoc);
-        CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), new Task<>(CategorizeTask.class.getName(),
+        CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), stageRegistry, new Task<>(CategorizeTask.class.getName(),
                 "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName())), NO_OP_PROGRESS);
 
         //WHEN
@@ -74,7 +76,7 @@ public class CategorizeTaskIntTest {
     public void test_categorization_with_different_queue_name() throws Exception {
         //GIVEN
         indexAndEnqueueTwoDocuments("foo:categorize");
-        CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), new Task<>(CategorizeTask.class.getName(),
+        CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), stageRegistry, new Task<>(CategorizeTask.class.getName(),
                 "categorizeTask1", User.local(), Map.of(QUEUE_NAME_OPT, "foo", DEFAULT_PROJECT_OPT, es.getIndexName())), NO_OP_PROGRESS);
 
         //WHEN
@@ -94,7 +96,7 @@ public class CategorizeTaskIntTest {
             progressValues.add(progress);
             return null;
         };
-        CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), new Task<>(CategorizeTask.class.getName(),
+        CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), stageRegistry, new Task<>(CategorizeTask.class.getName(),
                 "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName())), callback);
 
         //WHEN
@@ -111,7 +113,7 @@ public class CategorizeTaskIntTest {
         // GIVEN
         // A document that will not be in the index
         enqueue(aDoc());
-        CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), new Task<>(CategorizeTask.class.getName(),
+        CategorizeTask categorizeTask = new CategorizeTask(indexer, documentCollectionFactory, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), stageRegistry, new Task<>(CategorizeTask.class.getName(),
                 "categorizeTask1", User.local(), Map.of(DEFAULT_PROJECT_OPT, es.getIndexName())), NO_OP_PROGRESS);
 
         // WHEN
@@ -140,7 +142,7 @@ public class CategorizeTaskIntTest {
         new EnqueueFromIndexTask(documentCollectionFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), args), null).call();
 
-        new CategorizeTask(indexer, documentCollectionFactory, new UpstreamGate.Factory(taskRepository),
+        new CategorizeTask(indexer, documentCollectionFactory, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), stageRegistry,
                 new Task<>(CategorizeTask.class.getName(), "categorizeTask2", User.local(), args), NO_OP_PROGRESS).call();
 
         // THEN
@@ -167,7 +169,7 @@ public class CategorizeTaskIntTest {
         new EnqueueFromIndexTask(documentCollectionFactory, indexer,
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), args), null).call();
 
-        new CategorizeTask(indexer, documentCollectionFactory, new UpstreamGate.Factory(taskRepository),
+        new CategorizeTask(indexer, documentCollectionFactory, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), stageRegistry,
                 new Task<>(CategorizeTask.class.getName(), "categorizeTask2", User.local(), args), NO_OP_PROGRESS).call();
         Document updatedDoc = indexer.get(es.getIndexName(), toUpdateDoc.getId());
         // THEN
@@ -196,7 +198,7 @@ public class CategorizeTaskIntTest {
         assertThat(documentCollectionFactory.queues.get("extract:queue:categorize"))
                 .contains(embedded.getId() + "|" + root.getId());
 
-        new CategorizeTask(indexer, documentCollectionFactory, new UpstreamGate.Factory(taskRepository),
+        new CategorizeTask(indexer, documentCollectionFactory, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), stageRegistry,
                 new Task<>(CategorizeTask.class.getName(), "categorizeTask3", User.local(), args), NO_OP_PROGRESS).call();
 
         // THEN the embedded doc got categorized (fetched and updated with routing)...
