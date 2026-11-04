@@ -2,8 +2,10 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import java.util.concurrent.atomic.AtomicLong;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
@@ -12,19 +14,8 @@ import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.ContentTypeCategory;
-import org.icij.datashare.text.DocReference;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.DocumentBuilder;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 
 /**
  * Computes the contentTypeCategory field of documents based on their contentType in Elasticsearch.
@@ -35,93 +26,36 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT
  */
 @TemporalSingleActivityWorkflow(name = "categorize", activityOptions = @ActivityOpts(timeout = "PT10M"))
 @TaskGroup(TaskGroupType.Java)
-public class CategorizeTask extends PipelineTask<String> implements Monitorable {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final AtomicInteger processed = new AtomicInteger(0);
+public class CategorizeTask extends StageTask<String, String> implements Monitorable {
     private final Function<Double, Void> progressCallback;
-    private final Indexer indexer;
-    private final Project project;
+    private final AtomicLong totalToProcess = new AtomicLong();
 
     @Inject
     public CategorizeTask(final Indexer indexer, final DocumentCollectionFactory<String> factory,
-                          final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
+                          final DocumentCollectionFactory<String> outputFactory, final UpstreamGate.Factory gateFactory,
+                          final StageRegistry stageRegistry, @Assisted Task<Long> taskView,
                           @Assisted final Function<Double, Void> progressCallback) {
         super(Stage.CATEGORIZE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class,
-              gateFactory.forTask(taskView));
+              gateFactory.forTask(taskView), stageRegistry, outputFactory, String.class);
         this.progressCallback = progressCallback;
-        this.indexer = indexer;
-        project = Project.project(
-                ofNullable((String) taskView.args.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
     }
 
     @Override
     public Long call() throws Exception {
-        super.call();
-        logger.info("enriching {} docs from inputQueue {} and adding them in {}", inputQueue.size(),
-                    inputQueue.getName(), outputQueue.getName());
-        long nbMessages = 0;
+        return super.call();
+    }
 
-        while (!Thread.currentThread().isInterrupted()) {
-            String queueEntry;
-            try {
-                queueEntry = inputQueue.poll();
-            } catch (RuntimeException e) {
-                if (causedByInterrupt(e)) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-                throw e;
-            }
-            if (queueEntry == null) {
-                if (drained()) {
-                    break;
-                }
-                Thread.sleep(UPSTREAM_POLL_INTERVAL_MS);
-                continue;
-            }
-            try {
-                Document retrievedFromIndexer = indexer.get(project.getName(), DocReference.parse(queueEntry));
-                if (retrievedFromIndexer != null) {
-                    enrichWithType(retrievedFromIndexer);
-                }
-                nbMessages++;
-                processed.incrementAndGet();
-                progressCallback.apply(getProgressRate());
-                if (!outputQueue.offer(queueEntry)) {
-                    logger.warn("unable to offer {} to queue {}", queueEntry, outputQueue.getName());
-                }
-            } catch (Exception e) {
-                if (causedByInterrupt(e)) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-                logger.error("error in CategorizeTask loop", e);
-            }
+    @Override
+    protected void onEntryProcessed() {
+        if (progressCallback != null) {
+            progressCallback.apply(getProgressRate());
         }
-        // Thread.interrupted() tests AND clears: TaskWorkerLoop never clears the flag itself, so
-        // leaving it set would leak the interrupt onto the runner thread and make the next task
-        // start already cancelled.
-        if (Thread.interrupted()) {
-            throw new InterruptedException("cancelled while draining " + inputQueue.getName());
-        }
-        logger.info("exiting CategorizeTask loop after {} messages.", nbMessages);
-        return nbMessages;
     }
 
     @Override
     public double getProgressRate() {
-        int done = processed.get();
-        int totalToProcess = done + inputQueue.size();
-        return totalToProcess == 0 ? 0 : (double) done / totalToProcess;
-    }
-
-    private void enrichWithType(Document doc) throws IOException {
-        Document enrichedDoc =
-                DocumentBuilder.from(doc).with(ContentTypeCategory.fromContentType(doc.getContentType())).build();
-        indexer.update(project.getName(), enrichedDoc);
-        logger.atDebug().setMessage(
-                      () -> String.format("Added type %s to %s", enrichedDoc.getContentTypeCategory(), enrichedDoc.getId()))
-              .log();
+        long total = totalToProcess.accumulateAndGet(inputQueue.size(), Math::max);
+        return total == 0 ? 0 : (double) (total - inputQueue.size()) / total;
     }
 }
 

@@ -65,6 +65,7 @@ import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
 import org.icij.datashare.asynctasks.PipelineExecutor;
 import org.icij.datashare.asynctasks.StageRegistry;
+import org.icij.datashare.tasks.CategorizeStage;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.IndexStage;
 import org.icij.datashare.tasks.LanguageStage;
@@ -114,7 +115,6 @@ import java.util.concurrent.CountDownLatch;
 import java.io.Serializable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.lang.Integer.parseInt;
@@ -531,7 +531,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                                        PipelineRegistry pipelineRegistry) {
         return new StageRegistry().register(new LanguageStage(indexer, languageGuesser))
                                   .register(new IndexStage(indexer, languageGuesser)).register(new ScanStage())
-                                  .register(new NlpStage(indexer, pipelineRegistry));
+                                  .register(new NlpStage(indexer, pipelineRegistry))
+                                  .register(new CategorizeStage(indexer));
     }
 
     @Provides
