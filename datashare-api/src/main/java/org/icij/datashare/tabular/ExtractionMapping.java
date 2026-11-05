@@ -56,11 +56,6 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             this(type, keyLiteral, keys, null, Map.of(), properties);
         }
 
-        public EntityMapping(String type, String keyLiteral, List<String> keys, String idColumn,
-                             Map<String, PropertyMapping> properties) {
-            this(type, keyLiteral, keys, idColumn, Map.of(), properties);
-        }
-
         public EntityMapping {
             Objects.requireNonNull(type, "type");
             // Keys name header columns, so they get the cleaning headers get: a key pasted with a

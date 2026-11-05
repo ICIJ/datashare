@@ -142,7 +142,7 @@ public class JsonRowSource implements RowSource {
             } else if (value.isArray()) {
                 values.put(column, members(column, value));
             } else {
-                values.put(column, List.of(text(value)));
+                values.put(column, List.of(value.isNull() ? "" : value.asText()));
             }
         });
     }
@@ -159,10 +159,6 @@ public class JsonRowSource implements RowSource {
             }
         }
         return List.copyOf(members);
-    }
-
-    private static String text(JsonNode value) {
-        return value.isNull() ? "" : value.asText();
     }
 
     private static void refuseTrailingContent(JsonParser parser) {

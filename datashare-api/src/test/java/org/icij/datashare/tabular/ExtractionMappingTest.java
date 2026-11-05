@@ -329,7 +329,7 @@ public class ExtractionMappingTest {
     }
 
     private static ExtractionMapping.EntityMapping identified(String keyLiteral, List<String> keys, String idColumn) {
-        return new ExtractionMapping.EntityMapping("Person", keyLiteral, keys, idColumn,
+        return new ExtractionMapping.EntityMapping("Person", keyLiteral, keys, idColumn, Map.of(),
                 Map.of("name", column("full_name")));
     }
 

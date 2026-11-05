@@ -1009,7 +1009,7 @@ public class StatementBuilderTest {
 
     private static ExtractionMapping.EntityMapping identified(String type, String idColumn,
                                                               Map<String, ExtractionMapping.PropertyMapping> properties) {
-        return new ExtractionMapping.EntityMapping(type, null, List.of(), idColumn, properties);
+        return new ExtractionMapping.EntityMapping(type, null, List.of(), idColumn, Map.of(), properties);
     }
 
     @Test
