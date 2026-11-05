@@ -6,6 +6,7 @@ import net.codestory.http.Context;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
+import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.DatashareUser;
@@ -57,7 +58,10 @@ public class DocumentSourceAccess {
             return PayloadFormatter.error("You are not allowed to download this document", HttpStatus.FORBIDDEN);
         }
         List<String> sourceExcludes = List.of("content", "content_translated");
-        Document document = notFoundIfNull(indexer.get(project, id, routing == null ? id : routing, sourceExcludes));
+        // Read as an Entity first: an id that resolves to a Duplicate would fail an implicit cast to
+        // Document with a ClassCastException, which reaches the caller as a 500 rather than a 404.
+        Entity entity = indexer.get(project, id, routing == null ? id : routing, sourceExcludes);
+        Document document = notFoundIfNull(entity instanceof Document found ? found : null);
         if (!documentVerifier.isRootDocumentSizeAllowed(document, project(project))) {
             return PayloadFormatter.error("The file or its parent is too large", HttpStatus.REQUEST_ENTITY_TOO_LARGE);
         }

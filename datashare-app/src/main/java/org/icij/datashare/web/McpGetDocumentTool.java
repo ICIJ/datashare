@@ -60,7 +60,7 @@ public class McpGetDocumentTool implements McpTool {
         }
     }
 
-    private static String indexNotFound(ElasticsearchException e) {
+    static String indexNotFound(ElasticsearchException e) {
         return e.error() == null ? null : e.error().type();
     }
 
