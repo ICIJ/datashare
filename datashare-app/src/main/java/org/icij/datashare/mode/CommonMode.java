@@ -70,6 +70,7 @@ import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.web.McpGetDocumentSourceTool;
 import org.icij.datashare.web.McpGetDocumentTool;
 import org.icij.datashare.web.McpListProjectsTool;
 import org.icij.datashare.web.McpListTagsTool;
@@ -582,6 +583,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         tools.addBinding().to(McpListProjectsTool.class);
         tools.addBinding().to(McpSearchDocumentsTool.class);
         tools.addBinding().to(McpGetDocumentTool.class);
+        tools.addBinding().to(McpGetDocumentSourceTool.class);
         tools.addBinding().to(McpListTasksTool.class);
         tools.addBinding().to(McpStopTaskTool.class);
         tools.addBinding().to(McpTagDocumentsTool.class);
