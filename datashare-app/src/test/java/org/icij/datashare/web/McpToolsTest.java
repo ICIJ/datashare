@@ -63,15 +63,15 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         TaskFinder taskFinder = new TaskFinder(taskManager, batchSearchRepository);
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider,
                                                               projectAdminService);
-        DocumentResource documentResource = new DocumentResource(repository, indexer, propertiesProvider,
-                                                                 new DocumentSourceAccess(repository, indexer,
-                                                                                          propertiesProvider));
+        DocumentSourceAccess sources = new DocumentSourceAccess(repository, indexer, propertiesProvider);
+        DocumentResource documentResource = new DocumentResource(repository, indexer, propertiesProvider, sources);
         TaskResource taskResource = new TaskResource(mock(DatashareTaskFactory.class), taskManager, propertiesProvider,
                                                      batchSearchRepository, taskFinder);
         McpTagByQuery tagByQuery = new McpTagByQuery(new McpIndexSearch(indexer));
         McpResource mcp = new McpResource(Set.of(new McpListProjectsTool(projectResource),
                                                  new McpSearchDocumentsTool(new McpIndexSearch(indexer)),
                                                  new McpGetDocumentTool(documentResource),
+                                                 new McpGetDocumentSourceTool(sources),
                                                  new McpListTasksTool(taskResource),
                                                  new McpStopTaskTool(taskResource, taskManager,
                                                                      TaskPolicyChecker.ALLOW_ALL),
@@ -379,6 +379,48 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(result.get("contentType").asText()).isEqualTo("application/pdf");
         assertThat(result.get("text").asText()).isEqualTo("hello world");
         assertThat(result.get("maxOffset").asInt()).isEqualTo(11);
+    }
+
+    @Test
+    public void test_get_document_source_returns_a_download_url() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get(eq("foo"), eq("doc1"), eq("doc1"), anyList())).thenReturn(doc("hello world"));
+
+        JsonNode result = payload(call("local", "get_document_source", "{\"project\":\"foo\",\"id\":\"doc1\"}"));
+
+        assertThat(result.get("url").asText()).isEqualTo("/api/foo/documents/src/doc1");
+        assertThat(result.get("contentType").asText()).isEqualTo("application/pdf");
+    }
+
+    @Test
+    public void test_get_document_source_of_an_embedded_document_carries_its_routing() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get(eq("foo"), eq("doc1"), eq("root1"), anyList())).thenReturn(doc("hello world"));
+
+        JsonNode result = payload(call("local", "get_document_source",
+                                       "{\"project\":\"foo\",\"id\":\"doc1\",\"routing\":\"root1\"}"));
+
+        assertThat(result.get("url").asText()).isEqualTo("/api/foo/documents/src/doc1?routing=root1");
+    }
+
+    @Test
+    public void test_get_document_source_on_ungranted_project_is_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "get_document_source", "{\"project\":\"bar\",\"id\":\"doc1\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
+    }
+
+    @Test
+    public void test_get_document_source_unknown_id_is_not_found() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "get_document_source", "{\"project\":\"foo\",\"id\":\"nope\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: nope");
     }
 
     @Test
