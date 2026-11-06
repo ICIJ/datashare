@@ -564,7 +564,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
                 taskManager.clearTask(task.getId());
             } catch (IllegalStateException e) {
                 // every task manager refuses to clear a running task this way
-                LOGGER.error("task {} of project {} is still running", task.getId(), name);
+                LOGGER.error("cannot clear task {} of project {}, it is still running", task.getId(), name, e);
                 allDeleted = false;
             } catch (UnknownTask ignored) {
                 LOGGER.info("task {} of project {} is already gone", task.getId(), name);
