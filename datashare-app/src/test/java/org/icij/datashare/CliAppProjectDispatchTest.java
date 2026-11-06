@@ -245,7 +245,7 @@ public class CliAppProjectDispatchTest {
         int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
 
         assertThat(exit).isEqualTo(0);
-        assertThat(stdout.toString()).contains("does not exist (no-op)");
+        assertThat(stdout.toString()).contains("whose row was already gone (db already gone, index OK");
         // the no-op still goes through the service: that is where leftover grants get cleared
         verify(service).deleteIfExists(eq("ghost"), eq(new ProjectDeleteOptions(false)));
     }
@@ -276,7 +276,7 @@ public class CliAppProjectDispatchTest {
         int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
 
         assertThat(exit).isEqualTo(0);
-        assertThat(stdout.toString()).contains("does not exist (no-op)");
+        assertThat(stdout.toString()).contains("whose row was already gone");
         verify(service).deleteIfExists(eq("ghost"), eq(new ProjectDeleteOptions(false)));
     }
 
@@ -292,7 +292,8 @@ public class CliAppProjectDispatchTest {
 
         CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
 
-        assertThat(stderr.toString()).contains("leftover grants");
+        assertThat(stdout.toString()).contains("grants FAILED");
+        assertThat(stderr.toString().split("warning:", -1)).hasSize(2);
     }
 
     @Test

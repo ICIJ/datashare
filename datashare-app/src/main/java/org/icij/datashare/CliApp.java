@@ -788,36 +788,21 @@ class CliApp {
             printJsonOrFallback(deleteResultMap(deleted), "deleted project '" + deleted.name() + "'");
             return;
         }
-        if (deleted.noop()) {
-            System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
-            warnIfAccessCleanupFailed(deleted);
-            warnIfPartialFailure(deleted, options);
-            return;
-        }
         String indexBadge =
                 options.keepIndex() ? "index skipped" : (deleted.indexDeleted() ? "index OK" : "index FAILED");
-        String dbBadge = deleted.dbDeleted() ? "db OK" : "db FAILED";
+        String dbBadge = deleted.noop() ? "db already gone" : (deleted.dbDeleted() ? "db OK" : "db FAILED");
         String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
         String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
         String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
         String tasksBadge = deleted.tasksDeleted() ? "tasks OK" : "tasks FAILED";
         String grantsBadge = deleted.casbinDeleted() ? "grants OK" : "grants FAILED";
         String inventoryBadge = deleted.inventoryDeleted() ? "inventory OK" : "inventory FAILED";
+        String headline = deleted.noop() ? "cleaned up project '" + deleted.name() + "', whose row was already gone" :
+                          "deleted project '" + deleted.name() + "'";
         System.out.println(
-                "deleted project '" + deleted.name() + "' (" + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", " +
-                reportMapBadge + ", " + artifactsBadge + ", " + tasksBadge + ", " + grantsBadge + ", " +
-                inventoryBadge + ")");
+                headline + " (" + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", " + reportMapBadge + ", " +
+                artifactsBadge + ", " + tasksBadge + ", " + grantsBadge + ", " + inventoryBadge + ")");
         warnIfPartialFailure(deleted, options);
-    }
-
-    /**
-     * A no-op delete still runs the access cleanup, so it can still fail; the summary line for that
-     * case carries no badges, which would otherwise leave the failure unreported.
-     */
-    private static void warnIfAccessCleanupFailed(ProjectDeleted deleted) {
-        if (!deleted.casbinDeleted() || !deleted.inventoryDeleted()) {
-            System.err.println("warning: leftover grants or inventory entries could not be cleaned");
-        }
     }
 
     private static void warnIfPartialFailure(ProjectDeleted deleted, ProjectDeleteOptions options) {
