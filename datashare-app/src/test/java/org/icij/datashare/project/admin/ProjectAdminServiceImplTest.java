@@ -466,6 +466,24 @@ public class ProjectAdminServiceImplTest {
         assertThat(deleted.tasksDeleted()).isFalse();
     }
 
+    @Test
+    public void test_delete_keeps_the_interrupt_flag_when_interrupted_while_waiting_for_tasks() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        doReturn(Stream.of(runningTaskOf("index-foo", "foo"))).when(taskManager).getTasks(any(TaskFilters.class));
+        doThrow(new InterruptedException()).when(taskManager).awaitTermination(anyInt(), any(), any());
+        stubEmptyQueuesAndReportMap();
+
+        try {
+            ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
+
+            assertThat(deleted.tasksDeleted()).isFalse();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
     private static Task<?> runningTaskOf(String id, String projectName) {
         Task<?> task = new Task<>(id, "IndexTask", User.local(), Map.of("projectName", projectName));
         task.setState(Task.State.RUNNING);
