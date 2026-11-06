@@ -715,9 +715,7 @@ class CliApp {
         ProjectDeleteOptions options = new ProjectDeleteOptions(keepIndex);
 
         try {
-            ProjectStats stats = loadStatsOrNoop(service, name, options, ifExists, json);
-            if (stats == null)
-                return EXIT_SUCCESS; // not-found + --if-exists, already emitted
+            ProjectStats stats = loadStatsOrNull(service, name, options, ifExists);
 
             if (!(yes || noInput) && !confirmDeletion(stats, name, prompterFactory)) {
                 emitDeleteAborted(name, json);
@@ -740,20 +738,16 @@ class CliApp {
     }
 
     /**
-     * Returns the project stats, or {@code null} when the project is missing and
-     * {@code --if-exists} converts that into a successful no-op (which this
-     * method emits before returning). Any other not-found case re-throws.
+     * Returns the project stats, or {@code null} when the project row is missing and
+     * {@code --if-exists} is set: the delete still runs then, since a missing row can leave the
+     * index, grants and other records behind. Any other not-found case re-throws.
      */
-    private static ProjectStats loadStatsOrNoop(ProjectAdminService service, String name, ProjectDeleteOptions options,
-                                                boolean ifExists, boolean json) throws ProjectNotFoundException,
-            IOException {
+    private static ProjectStats loadStatsOrNull(ProjectAdminService service, String name, ProjectDeleteOptions options,
+                                                boolean ifExists) throws ProjectNotFoundException, IOException {
         try {
             return service.stats(name, !options.keepIndex());
         } catch (ProjectNotFoundException e) {
             if (ifExists) {
-                // through the service, not a canned no-op: a missing project row can still leave
-                // grants and inventory entries behind, and this is the path that clears them
-                emitDeleteResult(service.deleteIfExists(name, options), options, json);
                 return null;
             }
             throw e;
@@ -767,9 +761,7 @@ class CliApp {
      * return from the prompter means the typed name matched.
      */
     private static boolean confirmDeletion(ProjectStats stats, String name, Supplier<Prompter> prompterFactory) {
-        String docCount = stats.indexedDocuments().stream().mapToObj(n -> n + " indexed documents").findFirst()
-                               .orElse("(index check skipped)");
-        System.err.println("Project '" + name + "' has " + docCount + " and " + stats.memberCount() + " members.");
+        System.err.println(impactSummary(stats, name));
         System.err.println("This will permanently delete the project, its index, tasks, batch searches, " +
                            "path banners, document queues, report map, and artifact directory. " +
                            "This cannot be undone.");
@@ -780,6 +772,15 @@ class CliApp {
             }
         });
         return true;
+    }
+
+    private static String impactSummary(ProjectStats stats, String name) {
+        if (stats == null) {
+            return "Project '" + name + "' has no project row left, only what an earlier delete left behind.";
+        }
+        String docCount = stats.indexedDocuments().stream().mapToObj(n -> n + " indexed documents").findFirst()
+                               .orElse("(index check skipped)");
+        return "Project '" + name + "' has " + docCount + " and " + stats.memberCount() + " members.";
     }
 
     private static void emitDeleteResult(ProjectDeleted deleted, ProjectDeleteOptions options, boolean json) {
