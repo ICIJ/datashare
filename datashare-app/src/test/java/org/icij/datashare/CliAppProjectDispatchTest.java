@@ -261,6 +261,7 @@ public class CliAppProjectDispatchTest {
 
         assertThat(exit).isEqualTo(0);
         assertThat(stderr.toString()).contains("aborted");
+        assertThat(stderr.toString()).contains("has no project row left, but may still hold an index");
         verify(service, never()).deleteIfExists(any(), any());
     }
 
