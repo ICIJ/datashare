@@ -378,6 +378,51 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_delete_reports_the_steps_a_failed_db_delete_held_back_as_skipped() throws Exception {
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
+        when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("foo", false, false, false, false, true, true, true, false, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
+
+        assertThat(stdout.toString()).contains("db FAILED, index skipped");
+        assertThat(stdout.toString()).contains("tasks skipped, grants skipped, inventory skipped");
+    }
+
+    @Test
+    public void test_delete_reports_the_index_a_failed_tasks_step_held_back_as_skipped() throws Exception {
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
+        when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("foo", true, false, true, true, true, true, true, false, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
+
+        assertThat(stdout.toString()).contains("db OK, index skipped");
+        assertThat(stdout.toString()).contains("tasks FAILED, grants OK");
+    }
+
+    @Test
+    public void test_delete_reports_the_grants_a_failed_inventory_step_held_back_as_skipped() throws Exception {
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
+        when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("foo", true, true, false, false, true, true, true, true, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
+
+        assertThat(stdout.toString()).contains("grants skipped, inventory FAILED");
+        assertThat(stderr.toString()).contains("re-run with --if-exists");
+    }
+
+    @Test
     public void test_delete_keep_index_passes_option() throws Exception {
         when(service.stats(eq("foo"), eq(false))).thenReturn(ProjectStats.withSkippedIndex("foo", 3));
         org.mockito.ArgumentCaptor<ProjectDeleteOptions> captor =
