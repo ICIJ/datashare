@@ -40,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Properties;
 import java.util.Set;
@@ -516,7 +517,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean casbinDeleted = noRow && inventoryDeleted && deleteCasbinRows(name);
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
-        boolean artifactsDeleted = deleteArtifacts(name);
+        boolean artifactsDeleted = runStep("artifacts", name, () -> deleteArtifacts(name));
 
         return new ProjectDeleted(name, dbDeleted, indexDeleted, casbinDeleted, inventoryDeleted, queuesDeleted,
                                   reportMapDeleted, artifactsDeleted, tasksDeleted, rowGone);
@@ -670,22 +671,19 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return reportMap.delete() || reportMap.isEmpty();
     }
 
-    private boolean deleteArtifacts(String name) {
-        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> {
-            try {
-                Path artifactRoot = Path.of(dir).toAbsolutePath().normalize();
-                Path projectArtifactDir = artifactRoot.resolve(name).normalize();
-                if (!isStrictChildOf(projectArtifactDir, artifactRoot)) {
-                    LOGGER.error("project name {} resolves outside the artifact dir {}", name, artifactRoot);
-                    return false;
-                }
-                FileUtils.deleteDirectory(projectArtifactDir.toFile());
-                return true;
-            } catch (IOException e) {
-                LOGGER.error("cannot delete project {} artifact dir", name, e);
-                return false;
-            }
-        }).orElse(false);
+    private boolean deleteArtifacts(String name) throws IOException {
+        Optional<String> dir = propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT);
+        if (dir.isEmpty()) {
+            return false;
+        }
+        Path artifactRoot = Path.of(dir.get()).toAbsolutePath().normalize();
+        Path projectArtifactDir = artifactRoot.resolve(name).normalize();
+        if (!isStrictChildOf(projectArtifactDir, artifactRoot)) {
+            LOGGER.error("project name {} resolves outside the artifact dir {}", name, artifactRoot);
+            return false;
+        }
+        FileUtils.deleteDirectory(projectArtifactDir.toFile());
+        return true;
     }
 
     private static boolean isStrictChildOf(Path path, Path parent) {
