@@ -251,6 +251,35 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_delete_if_exists_missing_asks_for_confirmation_before_deleting() throws Exception {
+        when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "ghost");
+        props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysDeclining());
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stderr.toString()).contains("aborted");
+        verify(service, never()).deleteIfExists(any(), any());
+    }
+
+    @Test
+    public void test_delete_if_exists_missing_deletes_once_confirmed() throws Exception {
+        when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
+        when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class))).thenReturn(noop("ghost"));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "ghost");
+        props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stdout.toString()).contains("does not exist (no-op)");
+        verify(service).deleteIfExists(eq("ghost"), eq(new ProjectDeleteOptions(false)));
+    }
+
+    @Test
     public void test_delete_if_exists_missing_warns_when_the_access_cleanup_fails() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
