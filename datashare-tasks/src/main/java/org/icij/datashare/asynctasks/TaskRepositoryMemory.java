@@ -35,7 +35,10 @@ public class TaskRepositoryMemory extends ConcurrentHashMap<String, TaskGroupMet
 
     @Override
     public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
-        put(task.id, super.get(task.id).withTask(task));
+        TaskGroupMetadata<?> updated = computeIfPresent(task.id, (id, stored) -> stored.withTaskUnlessReopened(task));
+        if (updated == null) {
+            throw new UnknownTask(task.id);
+        }
     }
 
     @Override

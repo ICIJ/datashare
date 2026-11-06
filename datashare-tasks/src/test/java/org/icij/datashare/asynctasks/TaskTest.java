@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import org.fest.assertions.Assertions;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.TaskType;
 import org.icij.datashare.user.User;
@@ -67,6 +68,37 @@ public class TaskTest {
         taskView.setProgress(0.3);
         assertThat(taskView.getProgress()).isEqualTo(0.3);
         assertThat(taskView.getState()).isEqualTo(Task.State.RUNNING);
+    }
+
+    @Test
+    public void test_progress_after_result_keeps_task_done() {
+        Task<String> taskView = new Task<>("name", User.local(), new HashMap<>());
+        taskView.setResult(new TaskResult<>("foo"));
+
+        taskView.setProgress(1.0);
+
+        assertThat(taskView.getState()).isEqualTo(Task.State.DONE);
+    }
+
+    @Test
+    public void test_progress_after_error_keeps_task_in_error() {
+        Task<String> taskView = new Task<>("name", User.local(), new HashMap<>());
+        taskView.setError(new TaskError(new RuntimeException("boom")));
+
+        taskView.setProgress(1.0);
+
+        assertThat(taskView.getState()).isEqualTo(Task.State.ERROR);
+    }
+
+    @Test
+    public void test_progress_after_cancel_keeps_task_cancelled() {
+        Task<String> taskView = new Task<>("name", User.local(), new HashMap<>());
+        taskView.cancel();
+
+        taskView.setProgress(0.5);
+
+        assertThat(taskView.getState()).isEqualTo(Task.State.CANCELLED);
+        assertThat(taskView.getProgress()).isEqualTo(0);
     }
 
     @Test

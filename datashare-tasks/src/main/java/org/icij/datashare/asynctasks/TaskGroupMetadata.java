@@ -10,4 +10,11 @@ public record TaskGroupMetadata<V extends Serializable>(Task<V> task, Group grou
     TaskGroupMetadata<?> withTask(Task<?> task) {
         return new TaskGroupMetadata<>(task, this.group);
     }
+
+    TaskGroupMetadata<?> withTaskUnlessReopened(Task<?> next) {
+        if (!task.getState().canBeReplacedBy(next.getState())) {
+            return this;
+        }
+        return withTask(next);
+    }
 }
