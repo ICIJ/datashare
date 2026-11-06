@@ -483,6 +483,22 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_delete_keeps_the_index_while_a_task_of_the_project_still_runs() throws Exception {
+        givenExistingProject("foo");
+        givenLeftoverIndex("foo");
+        Task<?> stuckTask = runningTaskOf("index-foo", "foo");
+        doReturn(Stream.of(stuckTask)).when(taskManager).getTasks(any(TaskFilters.class));
+        doReturn(stuckTask).when(taskManager).getTask("index-foo");
+        doThrow(new IllegalStateException("running")).when(taskManager).clearTask("index-foo");
+        givenNoLeftovers();
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
+
+        verify(indexer, never()).deleteIndex("foo");
+        assertThat(deleted.indexDeleted()).isFalse();
+    }
+
+    @Test
     public void test_delete_if_exists_refuses_a_name_no_project_can_have() throws Exception {
         givenProjectDoesNotExist("*");
 
