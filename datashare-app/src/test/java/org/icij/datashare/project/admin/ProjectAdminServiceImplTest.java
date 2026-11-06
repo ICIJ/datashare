@@ -444,6 +444,34 @@ public class ProjectAdminServiceImplTest {
         assertThat(deleted.tasksDeleted()).isFalse();
     }
 
+    @Test
+    public void test_delete_clears_the_other_tasks_when_one_cannot_be_stopped() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        Task<?> stuckTask = runningTaskOf("index-foo-1", "foo");
+        Task<?> stoppedTask = runningTaskOf("index-foo-2", "foo");
+        doReturn(Stream.of(stuckTask, stoppedTask)).when(taskManager).getTasks(any(TaskFilters.class));
+        doThrow(new IOException("broker down")).when(taskManager).stopTask("index-foo-1");
+        doReturn(stuckTask).when(taskManager).getTask("index-foo-1");
+        Task<?> cancelledTask = runningTaskOf("index-foo-2", "foo");
+        cancelledTask.setState(Task.State.CANCELLED);
+        doReturn(cancelledTask).when(taskManager).getTask("index-foo-2");
+        doThrow(new IllegalStateException("running")).when(taskManager).clearTask("index-foo-1");
+        stubEmptyQueuesAndReportMap();
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
+
+        verify(taskManager, never()).clearTask("index-foo-1");
+        verify(taskManager).clearTask("index-foo-2");
+        assertThat(deleted.tasksDeleted()).isFalse();
+    }
+
+    private static Task<?> runningTaskOf(String id, String projectName) {
+        Task<?> task = new Task<>(id, "IndexTask", User.local(), Map.of("projectName", projectName));
+        task.setState(Task.State.RUNNING);
+        return task;
+    }
+
     private void stubEmptyQueuesAndReportMap() {
         when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
         when(documentCollectionFactory.createMap(any())).thenReturn(mock(ReportMap.class));
