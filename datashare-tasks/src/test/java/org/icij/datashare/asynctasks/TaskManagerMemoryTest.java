@@ -157,6 +157,22 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
+    public void test_wait_tasks_to_be_done_keeps_the_interrupt_flag() throws Exception {
+        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        taskManager.startTask(task, new Group(TaskGroupType.Test));
+        taskInspector.awaitToBeStarted(task.id, 10000);
+
+        Thread.currentThread().interrupt();
+        try {
+            taskManager.waitTasksToBeDone(10, TimeUnit.SECONDS);
+        } catch (RuntimeException expected) {
+        } finally {
+            assertThat(Thread.interrupted()).isTrue();
+            taskManager.stopTask(task.id);
+        }
+    }
+
+    @Test
     public void test_progress_on_unknown_task() throws Exception {
         taskManager.awaitTermination(1, TimeUnit.SECONDS);
         taskManager.progress("unknownId", 0.5);

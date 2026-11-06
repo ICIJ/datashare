@@ -142,6 +142,7 @@ public interface TaskManager extends Closeable {
             try {
                 Thread.sleep(Math.min(getTerminationPollingInterval(), maxDuration));
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
             nUnfinished = countUnfinished(filterNotCompleted, scopeTaskIds);
