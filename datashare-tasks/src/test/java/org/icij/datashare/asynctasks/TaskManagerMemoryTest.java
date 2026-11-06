@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -154,6 +155,21 @@ public class TaskManagerMemoryTest {
         assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.RUNNING);
 
         taskManager.clearTask(task.id);
+    }
+
+    @Test
+    public void test_await_termination_throws_the_interrupt_and_keeps_its_flag() throws Exception {
+        Task<Integer> task = new Task<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
+        taskManager.startTask(task, new Group(TaskGroupType.Test));
+        taskInspector.awaitToBeStarted(task.id, 10000);
+
+        Thread.currentThread().interrupt();
+        try {
+            assertThrows(InterruptedException.class, () -> taskManager.awaitTermination(10, TimeUnit.SECONDS));
+            assertThat(Thread.interrupted()).isTrue();
+        } finally {
+            taskManager.stopTask(task.id);
+        }
     }
 
     @Test

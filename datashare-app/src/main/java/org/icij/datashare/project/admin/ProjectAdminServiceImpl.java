@@ -27,7 +27,6 @@ import org.icij.datashare.user.admin.UserFilter;
 import org.icij.extract.report.ReportMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
@@ -41,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Properties;
 import java.util.Set;
@@ -139,9 +139,14 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    public ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException {
+    public ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException,
+            ValidationException {
         Project project = repository.getProject(name);
         if (project == null) {
+            // no row vouches for the name, and the index and queue lookups read it as a pattern
+            if (!Project.NAME_PATTERN.matcher(name).matches()) {
+                throw new ValidationException("name", "project name must match " + Project.NAME_REGEX);
+            }
             // Everything but the project row can outlive it (an earlier cascade that failed halfway, a
             // hand-deleted row), so the noop branch still runs every other step: otherwise no API or
             // CLI path can reach the leftovers, and the next project of the same name inherits them.
@@ -477,10 +482,13 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // intact is a sticky state if the cascade aborts mid-stream.
         String name = project.getName();
 
-        boolean dbDeleted = !rowGone && runStep("db", name, () -> repository.deleteAll(name));
+        // The dependent rows can outlive a row that is already gone (a halfway cascade, a hand-deleted
+        // row), so the sweep runs on both paths; without a row, a done sweep is all there is to delete.
+        boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name) || rowGone);
         boolean noRow = rowGone || dbDeleted;
         // before the index drop: a task still writing to the index would re-create it
-        boolean tasksDeleted = runStep("tasks", name, () -> deleteTasks(name));
+        // gated on the row too: a project that survives a failed db step must keep its running tasks
+        boolean tasksDeleted = noRow && runStep("tasks", name, () -> deleteTasks(name));
         // The db row goes first and the index drop is gated on it: dropping the index destroys the
         // documents, so a project row that survives a failed db step would be left searchable-but-
         // empty with no way back. Leaving the index in place instead keeps the project intact and
@@ -489,7 +497,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // combined only once both have run: a failure on either index
         // must neither hide the other nor stop it from being deleted. A project older than the
         // entities index has none, which is nothing to report.
-        boolean deleteIndex = noRow && !options.keepIndex();
+        // gated on the tasks step too, since a task still running would re-create the index
+        boolean deleteIndex = tasksDeleted && !options.keepIndex();
         boolean documentsDeleted =
                 deleteIndex && runStep("index", name, () -> !indexer.exists(name) || indexer.deleteIndex(name));
         String entitiesIndex = Project.entitiesIndex(name);
@@ -508,7 +517,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean casbinDeleted = noRow && inventoryDeleted && deleteCasbinRows(name);
         boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
         boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
-        boolean artifactsDeleted = deleteArtifacts(name);
+        boolean artifactsDeleted = runStep("artifacts", name, () -> deleteArtifacts(name));
 
         return new ProjectDeleted(name, dbDeleted, indexDeleted, casbinDeleted, inventoryDeleted, queuesDeleted,
                                   reportMapDeleted, artifactsDeleted, tasksDeleted, rowGone);
@@ -516,8 +525,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     /**
      * Goes through the task manager rather than the repository: a task still running or queued owns
-     * resources of the project being deleted, and only the manager cancels the execution and drops
-     * the queued message before the row goes away.
+     * resources of the project being deleted, and only the manager can cancel it. Only the memory
+     * and Temporal managers take a queued task out of the queue; Redis and AMQP publish a cancel
+     * event that the live workers remember. A worker started after that event never sees it and can
+     * still run the task, re-creating the index this cascade drops: a known hole.
      * <p>
      * A task that vanished between the scan and the delete is the outcome we wanted, not a failure:
      * aborting there would strip the step of its idempotence, and --if-exists cannot retry it once
@@ -529,13 +540,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
      */
     private boolean deleteTasks(String name) throws IOException, InterruptedException {
         List<Task<?>> tasks = tasksOf(name);
-        Set<String> stopped = new HashSet<>();
         Set<String> running = new HashSet<>();
         for (Task<?> task : tasks) {
             if (NON_FINAL_STATES.contains(task.getState())) {
                 try {
                     taskManager.stopTask(task.getId());
-                    stopped.add(task.getId());
                     if (task.getState() == Task.State.RUNNING) {
                         running.add(task.getId());
                     }
@@ -552,13 +561,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean allDeleted = true;
         for (Task<?> task : tasks) {
             try {
-                if (stopped.contains(task.getId()) &&
-                    taskManager.getTask(task.getId()).getState() == Task.State.RUNNING) {
-                    LOGGER.error("task {} of project {} is still running", task.getId(), name);
-                    allDeleted = false;
-                } else {
-                    taskManager.clearTask(task.getId());
-                }
+                taskManager.clearTask(task.getId());
+            } catch (IllegalStateException e) {
+                // every task manager refuses to clear a running task this way
+                LOGGER.error("cannot clear task {} of project {}, it is still running", task.getId(), name, e);
+                allDeleted = false;
             } catch (UnknownTask ignored) {
                 LOGGER.info("task {} of project {} is already gone", task.getId(), name);
             } catch (IOException e) {
@@ -627,6 +634,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             // trace of how far it got. Both the API and the CLI go through here now.
             LOGGER.info("deleted {} for project {}: {}", label, project, done);
             return done;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.error("interrupted while deleting {} for project {}", label, project, e);
+            return false;
         } catch (Exception e) {
             LOGGER.error("cannot delete {} for project {}", label, project, e);
             return false;
@@ -660,17 +671,23 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         return reportMap.delete() || reportMap.isEmpty();
     }
 
-    private boolean deleteArtifacts(String name) {
-        return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> {
-            try {
-                File projectArtifactDir = Path.of(dir).resolve(name).toFile();
-                FileUtils.deleteDirectory(projectArtifactDir);
-                return true;
-            } catch (IOException e) {
-                LOGGER.error("cannot delete project {} artifact dir", name, e);
-                return false;
-            }
-        }).orElse(false);
+    private boolean deleteArtifacts(String name) throws IOException {
+        Optional<String> dir = propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT);
+        if (dir.isEmpty()) {
+            return false;
+        }
+        Path artifactRoot = Path.of(dir.get()).toAbsolutePath().normalize();
+        Path projectArtifactDir = artifactRoot.resolve(name).normalize();
+        if (!isStrictChildOf(projectArtifactDir, artifactRoot)) {
+            LOGGER.error("project name {} resolves outside the artifact dir {}", name, artifactRoot);
+            return false;
+        }
+        FileUtils.deleteDirectory(projectArtifactDir.toFile());
+        return true;
+    }
+
+    private static boolean isStrictChildOf(Path path, Path parent) {
+        return path.startsWith(parent) && !path.equals(parent);
     }
 
     private void validate(ProjectCreateRequest request) throws ValidationException {

@@ -40,7 +40,7 @@ public interface ProjectAdminService {
      * Idempotent counterpart of {@link #delete}: returns a noop result when the
      * project is already missing.
      */
-    ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException;
+    ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException, ValidationException;
 
     /**
      * Grants {@code role} on the named project to the named user, replacing

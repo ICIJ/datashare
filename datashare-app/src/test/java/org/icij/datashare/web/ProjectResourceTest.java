@@ -10,6 +10,7 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectDeleteOptions;
 import org.icij.datashare.project.admin.ProjectDeleted;
+import org.icij.datashare.project.admin.ValidationException;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
@@ -606,6 +607,18 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_project_delete_answers_400_on_a_name_no_project_can_have() throws Exception {
+        Project legacy = new Project("Legacy_Name");
+        when(repository.getProjects(any())).thenReturn(List.of(legacy));
+        when(projectAdminService.deleteIfExists(eq("Legacy_Name"), any(ProjectDeleteOptions.class))).thenAnswer(
+                invocation -> {
+                    throw new ValidationException("name", "project name must match " + Project.NAME_REGEX);
+                });
+
+        delete("/api/project/Legacy_Name").should().respond(400);
+    }
+
+    @Test
     public void test_project_delete_reports_a_failed_task_step() throws Exception {
         // the CLI warns on this one, so answering 204 would make the two surfaces disagree about
         // what "deleted" means
@@ -617,8 +630,22 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         delete("/api/project/to-delete").should().respond(500);
     }
 
+    @Test
+    public void test_project_delete_answers_204_when_the_row_was_already_gone() throws Exception {
+        Project foo = new Project("to-delete");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(projectAdminService.deleteIfExists(eq("to-delete"), any(ProjectDeleteOptions.class)))
+                .thenReturn(noop("to-delete"));
+
+        delete("/api/project/to-delete").should().respond(204);
+    }
+
     private static ProjectDeleted fullyDeleted(String name) {
         return new ProjectDeleted(name, true, true, true, true, true, true, true, true, false);
+    }
+
+    private static ProjectDeleted noop(String name) {
+        return new ProjectDeleted(name, true, true, true, true, true, true, true, true, true);
     }
 
     @Test

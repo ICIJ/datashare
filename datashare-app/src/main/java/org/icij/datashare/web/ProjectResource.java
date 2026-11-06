@@ -22,6 +22,7 @@ import org.icij.datashare.policies.Role;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectDeleteOptions;
 import org.icij.datashare.project.admin.ProjectDeleted;
+import org.icij.datashare.project.admin.ValidationException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Project;
@@ -193,7 +194,12 @@ public class ProjectResource {
         }
         // one cascade, in the service: it also clears the project's casbin rows and its name
         // from every user's inventory
-        ProjectDeleted deleted = projectAdminService.deleteIfExists(id, new ProjectDeleteOptions(false));
+        ProjectDeleted deleted;
+        try {
+            deleted = projectAdminService.deleteIfExists(id, new ProjectDeleteOptions(false));
+        } catch (ValidationException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
         LoggerFactory.getLogger(getClass()).info("Deleted project {}: {}", id, deleted);
         if (!deleted.dbDeleted() || !deleted.indexDeleted() || !deleted.casbinDeleted() ||
             !deleted.inventoryDeleted() || !deleted.tasksDeleted()) {

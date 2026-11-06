@@ -715,9 +715,7 @@ class CliApp {
         ProjectDeleteOptions options = new ProjectDeleteOptions(keepIndex);
 
         try {
-            ProjectStats stats = loadStatsOrNoop(service, name, options, ifExists, json);
-            if (stats == null)
-                return EXIT_SUCCESS; // not-found + --if-exists, already emitted
+            ProjectStats stats = loadStatsOrNull(service, name, options, ifExists);
 
             if (!(yes || noInput) && !confirmDeletion(stats, name, prompterFactory)) {
                 emitDeleteAborted(name, json);
@@ -730,6 +728,8 @@ class CliApp {
             return EXIT_SUCCESS;
         } catch (ProjectNotFoundException e) {
             return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
+        } catch (org.icij.datashare.project.admin.ValidationException e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, json);
         } catch (Prompter.ValidationFailedException e) {
             // Confirmation prompt exhausted retries: treat as user-initiated abort.
             emitDeleteAborted(name, json);
@@ -740,20 +740,16 @@ class CliApp {
     }
 
     /**
-     * Returns the project stats, or {@code null} when the project is missing and
-     * {@code --if-exists} converts that into a successful no-op (which this
-     * method emits before returning). Any other not-found case re-throws.
+     * Returns the project stats, or {@code null} when the project row is missing and
+     * {@code --if-exists} is set: the delete still runs then, since a missing row can leave the
+     * index, grants and other records behind. Any other not-found case re-throws.
      */
-    private static ProjectStats loadStatsOrNoop(ProjectAdminService service, String name, ProjectDeleteOptions options,
-                                                boolean ifExists, boolean json) throws ProjectNotFoundException,
-            IOException {
+    private static ProjectStats loadStatsOrNull(ProjectAdminService service, String name, ProjectDeleteOptions options,
+                                                boolean ifExists) throws ProjectNotFoundException, IOException {
         try {
             return service.stats(name, !options.keepIndex());
         } catch (ProjectNotFoundException e) {
             if (ifExists) {
-                // through the service, not a canned no-op: a missing project row can still leave
-                // grants and inventory entries behind, and this is the path that clears them
-                emitDeleteResult(service.deleteIfExists(name, options), options, json);
                 return null;
             }
             throw e;
@@ -767,9 +763,7 @@ class CliApp {
      * return from the prompter means the typed name matched.
      */
     private static boolean confirmDeletion(ProjectStats stats, String name, Supplier<Prompter> prompterFactory) {
-        String docCount = stats.indexedDocuments().stream().mapToObj(n -> n + " indexed documents").findFirst()
-                               .orElse("(index check skipped)");
-        System.err.println("Project '" + name + "' has " + docCount + " and " + stats.memberCount() + " members.");
+        System.err.println(impactSummary(stats, name));
         System.err.println("This will permanently delete the project, its index, tasks, batch searches, " +
                            "path banners, document queues, report map, and artifact directory. " +
                            "This cannot be undone.");
@@ -782,41 +776,45 @@ class CliApp {
         return true;
     }
 
+    private static String impactSummary(ProjectStats stats, String name) {
+        if (stats == null) {
+            return "Project '" + name + "' has no project row left, but may still hold an index and other data.";
+        }
+        String docCount = stats.indexedDocuments().stream().mapToObj(n -> n + " indexed documents").findFirst()
+                               .orElse("(index check skipped)");
+        return "Project '" + name + "' has " + docCount + " and " + stats.memberCount() + " members.";
+    }
+
     private static void emitDeleteResult(ProjectDeleted deleted, ProjectDeleteOptions options, boolean json) {
         if (json) {
             printJsonOrFallback(deleteResultMap(deleted), "deleted project '" + deleted.name() + "'");
             return;
         }
-        if (deleted.noop()) {
-            System.out.println("project '" + deleted.name() + "' does not exist (no-op)");
-            warnIfAccessCleanupFailed(deleted);
-            warnIfPartialFailure(deleted, options);
-            return;
-        }
-        String indexBadge =
-                options.keepIndex() ? "index skipped" : (deleted.indexDeleted() ? "index OK" : "index FAILED");
-        String dbBadge = deleted.dbDeleted() ? "db OK" : "db FAILED";
+        // the cascade holds back the steps behind a failed gate, which is not a failure of their own
+        boolean noRowLeft = deleted.noop() || deleted.dbDeleted();
+        boolean indexRan = deleted.tasksDeleted() && !options.keepIndex();
+        boolean grantsRan = noRowLeft && deleted.inventoryDeleted();
+        String indexBadge = stepBadge("index", indexRan, deleted.indexDeleted());
+        String dbBadge = deleted.dbDeleted() ? (deleted.noop() ? "db already gone" : "db OK") : "db FAILED";
         String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
         String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
         String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
-        String tasksBadge = deleted.tasksDeleted() ? "tasks OK" : "tasks FAILED";
-        String grantsBadge = deleted.casbinDeleted() ? "grants OK" : "grants FAILED";
-        String inventoryBadge = deleted.inventoryDeleted() ? "inventory OK" : "inventory FAILED";
+        String tasksBadge = stepBadge("tasks", noRowLeft, deleted.tasksDeleted());
+        String grantsBadge = stepBadge("grants", grantsRan, deleted.casbinDeleted());
+        String inventoryBadge = stepBadge("inventory", noRowLeft, deleted.inventoryDeleted());
+        String headline = deleted.noop() ? "cleaned up project '" + deleted.name() + "', whose row was already gone" :
+                          "deleted project '" + deleted.name() + "'";
         System.out.println(
-                "deleted project '" + deleted.name() + "' (" + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", " +
-                reportMapBadge + ", " + artifactsBadge + ", " + tasksBadge + ", " + grantsBadge + ", " +
-                inventoryBadge + ")");
+                headline + " (" + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", " + reportMapBadge + ", " +
+                artifactsBadge + ", " + tasksBadge + ", " + grantsBadge + ", " + inventoryBadge + ")");
         warnIfPartialFailure(deleted, options);
     }
 
-    /**
-     * A no-op delete still runs the access cleanup, so it can still fail; the summary line for that
-     * case carries no badges, which would otherwise leave the failure unreported.
-     */
-    private static void warnIfAccessCleanupFailed(ProjectDeleted deleted) {
-        if (!deleted.casbinDeleted() || !deleted.inventoryDeleted()) {
-            System.err.println("warning: leftover grants or inventory entries could not be cleaned");
+    private static String stepBadge(String step, boolean ran, boolean done) {
+        if (!ran) {
+            return step + " skipped";
         }
+        return step + (done ? " OK" : " FAILED");
     }
 
     private static void warnIfPartialFailure(ProjectDeleted deleted, ProjectDeleteOptions options) {
@@ -824,10 +822,8 @@ class CliApp {
         // the access cleanup counts: reporting success while the project's roles survive is the
         // silent half of the bug #2441 is about
         boolean accessFailed = !deleted.casbinDeleted() || !deleted.inventoryDeleted();
-        // a noop had no row to delete, and retries every other step
-        boolean dbFailed = !deleted.noop() && !deleted.dbDeleted();
-        if (dbFailed || indexFailed || accessFailed || !deleted.queuesDeleted() || !deleted.reportMapDeleted() ||
-            !deleted.tasksDeleted()) {
+        if (!deleted.dbDeleted() || indexFailed || accessFailed || !deleted.queuesDeleted() ||
+            !deleted.reportMapDeleted() || !deleted.tasksDeleted()) {
             // Some load-bearing step failed: keep the cascade exit code 0
             // (the cascade did run to completion) but nudge the operator
             // to retry with --if-exists, which is continuation-friendly.
