@@ -728,6 +728,8 @@ class CliApp {
             return EXIT_SUCCESS;
         } catch (ProjectNotFoundException e) {
             return error(e.getMessage(), "not_found", EXIT_NOT_FOUND, json);
+        } catch (org.icij.datashare.project.admin.ValidationException e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, json);
         } catch (Prompter.ValidationFailedException e) {
             // Confirmation prompt exhausted retries: treat as user-initiated abort.
             emitDeleteAborted(name, json);

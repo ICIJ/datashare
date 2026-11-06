@@ -10,6 +10,8 @@ import org.icij.datashare.project.admin.ProjectExistsException;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectStats;
 import org.icij.datashare.project.admin.UserNotFoundException;
+import org.icij.datashare.project.admin.ValidationException;
+import org.icij.datashare.text.Project;
 import org.mockito.Mockito;
 import org.junit.After;
 import org.junit.Before;
@@ -248,6 +250,22 @@ public class CliAppProjectDispatchTest {
         assertThat(stdout.toString()).contains("whose row was already gone (db already gone, index OK");
         // the no-op still goes through the service: that is where leftover grants get cleared
         verify(service).deleteIfExists(eq("ghost"), eq(new ProjectDeleteOptions(false)));
+    }
+
+    @Test
+    public void test_delete_if_exists_reports_a_name_no_project_can_have_as_a_validation_error() throws Exception {
+        when(service.stats(eq("*"), eq(true))).thenThrow(new ProjectNotFoundException("*"));
+        when(service.deleteIfExists(eq("*"), any(ProjectDeleteOptions.class))).thenAnswer(invocation -> {
+            throw new ValidationException("name", "project name must match " + Project.NAME_REGEX);
+        });
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "*");
+        props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("*"));
+
+        assertThat(exit).isEqualTo(CliApp.EXIT_VALIDATION);
     }
 
     @Test

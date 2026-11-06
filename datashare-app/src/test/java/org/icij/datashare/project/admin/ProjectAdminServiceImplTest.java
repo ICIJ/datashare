@@ -38,6 +38,7 @@ import java.util.Properties;
 import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -502,12 +503,10 @@ public class ProjectAdminServiceImplTest {
     public void test_delete_if_exists_refuses_a_name_no_project_can_have() throws Exception {
         givenProjectDoesNotExist("*");
 
-        try {
-            service.deleteIfExists("*", new ProjectDeleteOptions(false));
-            fail("expected IllegalArgumentException");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains(Project.NAME_REGEX);
-        }
+        ValidationException refused =
+                assertThrows(ValidationException.class, () -> service.deleteIfExists("*", new ProjectDeleteOptions(false)));
+
+        assertThat(refused.field()).isEqualTo("name");
         verify(indexer, never()).deleteIndex(any());
         verify(authorizer, never()).removeAllPoliciesForProject(any(), any());
     }
