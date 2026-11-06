@@ -27,7 +27,6 @@ import org.icij.datashare.user.admin.UserFilter;
 import org.icij.extract.report.ReportMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
@@ -671,14 +670,23 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private boolean deleteArtifacts(String name) {
         return propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT).map(dir -> {
             try {
-                File projectArtifactDir = Path.of(dir).resolve(name).toFile();
-                FileUtils.deleteDirectory(projectArtifactDir);
+                Path artifactRoot = Path.of(dir).toAbsolutePath().normalize();
+                Path projectArtifactDir = artifactRoot.resolve(name).normalize();
+                if (!isStrictChildOf(projectArtifactDir, artifactRoot)) {
+                    LOGGER.error("project name {} resolves outside the artifact dir {}", name, artifactRoot);
+                    return false;
+                }
+                FileUtils.deleteDirectory(projectArtifactDir.toFile());
                 return true;
             } catch (IOException e) {
                 LOGGER.error("cannot delete project {} artifact dir", name, e);
                 return false;
             }
         }).orElse(false);
+    }
+
+    private static boolean isStrictChildOf(Path path, Path parent) {
+        return path.startsWith(parent) && !path.equals(parent);
     }
 
     private void validate(ProjectCreateRequest request) throws ValidationException {
