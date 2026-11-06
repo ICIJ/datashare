@@ -516,8 +516,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     /**
      * Goes through the task manager rather than the repository: a task still running or queued owns
-     * resources of the project being deleted, and only the manager cancels the execution and drops
-     * the queued message before the row goes away.
+     * resources of the project being deleted, and only the manager can cancel it. Only the memory
+     * and Temporal managers take a queued task out of the queue; Redis and AMQP publish a cancel
+     * event that the live workers remember. A worker started after that event never sees it and can
+     * still run the task, re-creating the index this cascade drops: a known hole.
      * <p>
      * A task that vanished between the scan and the delete is the outcome we wanted, not a failure:
      * aborting there would strip the step of its idempotence, and --if-exists cannot retry it once
