@@ -43,8 +43,8 @@ public class JsonRowSourceTest {
 
         assertThat(rows).hasSize(2);
         assertThat(rows.get(0).number()).isEqualTo(1L);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
-        assertThat(rows.get(1).values().get("id")).isEqualTo("2");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
+        assertThat(rows.get(1).values().get("id")).isEqualTo(List.of("2"));
     }
 
     @Test
@@ -52,28 +52,63 @@ public class JsonRowSourceTest {
         List<Row> rows = read("{\"id\":1,\"name\":\"ACME\"}\n{\"id\":2,\"name\":\"Globex\"}\n");
 
         assertThat(rows).hasSize(2);
-        assertThat(rows.get(1).values().get("name")).isEqualTo("Globex");
+        assertThat(rows.get(1).values().get("name")).isEqualTo(List.of("Globex"));
     }
 
     @Test
     public void test_flattens_nested_objects_to_dotted_columns() throws Exception {
         List<Row> rows = read("[{\"id\":1,\"addr\":{\"city\":\"Paris\",\"zip\":\"75002\"}}]");
 
-        assertThat(rows.get(0).values().get("addr.city")).isEqualTo("Paris");
-        assertThat(rows.get(0).values().get("addr.zip")).isEqualTo("75002");
+        assertThat(rows.get(0).values().get("addr.city")).isEqualTo(List.of("Paris"));
+        assertThat(rows.get(0).values().get("addr.zip")).isEqualTo(List.of("75002"));
         assertThat(rows.get(0).values().get("addr")).isNull();
     }
 
     @Test
-    public void test_an_array_value_is_refused_naming_its_row_and_column() throws Exception {
+    public void test_a_scalar_array_fills_the_column_with_its_values() throws Exception {
+        List<Row> rows = read("[{\"id\":1,\"tags\":[\"a\",\"b\"]}]");
+
+        assertThat(rows.get(0).values().get("tags")).isEqualTo(List.of("a", "b"));
+    }
+
+    @Test
+    public void test_an_array_nested_under_an_object_fills_its_dotted_column() throws Exception {
+        List<Row> rows = read("[{\"id\":\"e1\",\"properties\":{\"name\":[\"ACME\",\"Acme SA\"]}}]");
+
+        assertThat(rows.get(0).values().get("properties.name")).isEqualTo(List.of("ACME", "Acme SA"));
+    }
+
+    @Test
+    public void test_an_empty_array_fills_nothing() throws Exception {
+        List<Row> rows = read("[{\"id\":1,\"tags\":[]}]");
+
+        assertThat(rows.get(0).values().get("tags")).isEqualTo(List.of());
+    }
+
+    @Test
+    public void test_a_null_inside_an_array_reads_as_no_value_at_all() throws Exception {
+        List<Row> rows = read("[{\"id\":1,\"tags\":[null,\"a\"]}]");
+
+        assertThat(rows.get(0).values().get("tags")).isEqualTo(List.of("a"));
+    }
+
+    @Test
+    public void test_a_null_inside_a_nested_array_reads_as_no_value_at_all() throws Exception {
+        List<Row> rows = read("[{\"properties\":{\"name\":[null,\"ACME\"]}}]");
+
+        assertThat(rows.get(0).values().get("properties.name")).isEqualTo(List.of("ACME"));
+    }
+
+    @Test
+    public void test_an_array_of_objects_is_still_refused_naming_its_row_and_column() throws Exception {
         Map<String, String> columnByContent = Map.of(
-                "[{\"id\":1,\"tags\":[\"a\",\"b\"]}]", "tags",
                 "[{\"id\":1,\"kids\":[{\"n\":1}]}]", "kids",
-                "[{\"id\":1,\"addr\":{\"lines\":[]}}]", "addr.lines");
+                "[{\"id\":1,\"pairs\":[[1,2]]}]", "pairs",
+                "[{\"id\":1,\"addr\":{\"kids\":[{\"n\":1}]}}]", "addr.kids");
         for (Map.Entry<String, String> arrayValue : columnByContent.entrySet()) {
             try {
                 read(arrayValue.getKey());
-                fail("an array has no tabular representation: joining or skipping it loses data");
+                fail("a member with no column name of its own cannot be mapped");
             } catch (IllegalArgumentException failure) {
                 assertThat(failure.getMessage()).contains("row 1");
                 assertThat(failure.getMessage()).contains(arrayValue.getValue());
@@ -85,7 +120,7 @@ public class JsonRowSourceTest {
     public void test_null_becomes_the_empty_string() throws Exception {
         List<Row> rows = read("[{\"id\":1,\"name\":null}]");
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of(""));
     }
 
     @Test
@@ -93,7 +128,7 @@ public class JsonRowSourceTest {
         List<Row> rows = read("[{\"id\":1},{\"id\":2,\"name\":\"Globex\"}]");
 
         assertThat(rows.get(0).values().get("name")).isNull();
-        assertThat(rows.get(1).values().get("name")).isEqualTo("Globex");
+        assertThat(rows.get(1).values().get("name")).isEqualTo(List.of("Globex"));
     }
 
     @Test
@@ -174,6 +209,6 @@ public class JsonRowSourceTest {
 
         List<Row> rows = read("{\"blob\":\"" + blob + "\"}");
 
-        assertThat(rows.get(0).values().get("blob")).isEqualTo(blob);
+        assertThat(rows.get(0).values().get("blob")).isEqualTo(List.of(blob));
     }
 }
