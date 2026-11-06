@@ -429,6 +429,29 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_delete_keeps_the_tasks_when_the_db_step_fails() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        when(repository.deleteAll("foo")).thenReturn(false);
+        Task<?> runningTask = new Task<>("index-foo", "IndexTask", User.local(), Map.of("projectName", "foo"));
+        runningTask.setState(Task.State.RUNNING);
+        doReturn(Stream.of(runningTask)).when(taskManager).getTasks(any(TaskFilters.class));
+        stubEmptyQueuesAndReportMap();
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
+
+        verify(taskManager, never()).stopTask(any());
+        verify(taskManager, never()).clearTask(any());
+        assertThat(deleted.tasksDeleted()).isFalse();
+    }
+
+    private void stubEmptyQueuesAndReportMap() {
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
+        when(documentCollectionFactory.createMap(any())).thenReturn(mock(ReportMap.class));
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+    }
+
+    @Test
     public void test_delete_drops_the_entities_index_too() throws Exception {
         Project project = new Project("foo");
         when(repository.getProject("foo")).thenReturn(project);
