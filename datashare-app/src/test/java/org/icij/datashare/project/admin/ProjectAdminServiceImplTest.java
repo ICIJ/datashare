@@ -466,6 +466,20 @@ public class ProjectAdminServiceImplTest {
         }
     }
 
+    @Test
+    public void test_delete_if_exists_refuses_a_name_no_project_can_have() throws Exception {
+        givenProjectDoesNotExist("*");
+
+        try {
+            service.deleteIfExists("*", new ProjectDeleteOptions(false));
+            fail("expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains(Project.NAME_REGEX);
+        }
+        verify(indexer, never()).deleteIndex(any());
+        verify(authorizer, never()).removeAllPoliciesForProject(any(), any());
+    }
+
     private static Task<?> runningTaskOf(String id, String projectName) {
         Task<?> task = new Task<>(id, "IndexTask", User.local(), Map.of("projectName", projectName));
         task.setState(Task.State.RUNNING);

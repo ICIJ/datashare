@@ -146,10 +146,12 @@ public class ProjectAdminServiceCascadeTest {
             throws Exception {
         artifactDir.newFolder("bar");
 
-        ProjectDeleted deleted = service.deleteIfExists(".", new ProjectDeleteOptions(true));
+        try {
+            service.deleteIfExists(".", new ProjectDeleteOptions(true));
+        } catch (IllegalArgumentException expected) {
+        }
 
         assertThat(artifactDir.getRoot().toPath().resolve("bar").toFile()).exists();
-        assertThat(deleted.artifactsDeleted()).isFalse();
     }
 
     @Test
