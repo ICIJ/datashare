@@ -444,7 +444,6 @@ public class ProjectAdminServiceImplTest {
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
 
-        verify(taskManager, never()).clearTask("index-foo-1");
         verify(taskManager).clearTask("index-foo-2");
         assertThat(deleted.tasksDeleted()).isFalse();
     }
@@ -467,6 +466,23 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_delete_clears_the_other_tasks_when_one_starts_running_before_its_clear() throws Exception {
+        givenExistingProject("foo");
+        Task<?> racingTask = queuedTaskOf("index-foo-1");
+        Task<?> queuedTask = queuedTaskOf("index-foo-2");
+        doReturn(Stream.of(racingTask, queuedTask)).when(taskManager).getTasks(any(TaskFilters.class));
+        doReturn(racingTask).when(taskManager).getTask("index-foo-1");
+        doReturn(queuedTask).when(taskManager).getTask("index-foo-2");
+        doThrow(new IllegalStateException("running")).when(taskManager).clearTask("index-foo-1");
+        givenNoLeftovers();
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
+
+        verify(taskManager).clearTask("index-foo-2");
+        assertThat(deleted.tasksDeleted()).isFalse();
+    }
+
+    @Test
     public void test_delete_if_exists_refuses_a_name_no_project_can_have() throws Exception {
         givenProjectDoesNotExist("*");
 
@@ -478,6 +494,12 @@ public class ProjectAdminServiceImplTest {
         }
         verify(indexer, never()).deleteIndex(any());
         verify(authorizer, never()).removeAllPoliciesForProject(any(), any());
+    }
+
+    private static Task<?> queuedTaskOf(String id) {
+        Task<?> task = new Task<>(id, "IndexTask", User.local(), Map.of("projectName", "foo"));
+        task.setState(Task.State.QUEUED);
+        return task;
     }
 
     private static Task<?> runningTaskOf(String id, String projectName) {
