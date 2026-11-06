@@ -26,6 +26,10 @@ import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkerOptions;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkers;
 import org.icij.datashare.asynctasks.temporal.WorkflowRegistry;
+import org.icij.datashare.tasks.temporal.IndexActivityImpl;
+import org.icij.datashare.tasks.temporal.IndexationWorkflow;
+import org.icij.datashare.tasks.temporal.IndexationWorkflowImpl;
+import org.icij.datashare.tasks.temporal.ScanActivityImpl;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -63,6 +67,7 @@ import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.Utils;
 import org.icij.datashare.text.indexing.Indexer;
@@ -115,6 +120,7 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.cli.QueueType.TEMPORAL;
+import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule implements Closeable {
@@ -632,11 +638,20 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             TemporalInterlocutor temporal = get(TemporalInterlocutor.class);
             DatashareTaskFactory taskFactory = get(DatashareTaskFactory.class);
             TaskRepository taskRepository = get(TaskRepository.class);
+            RoutingStrategy routingStrategy = Utils.getRoutingStrategy(propertiesProvider);
+            Group group = new Group(TaskGroupType.Java);
             WorkflowRegistry registry = new WorkflowRegistry();
             registry.discoverWorkflows("org.icij.datashare.tasks",
                                        activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
                                                activityClass, taskFactory, temporal, taskRepository, 1d).getThrows(),
-                                       Utils.getRoutingStrategy(propertiesProvider), new Group(TaskGroupType.Java));
+                                       routingStrategy, group);
+            String indexationQueue =
+                    resolveWfTaskQueue(routingStrategy, WorkflowRegistry.buildWorkflowKeyFrom(IndexationWorkflow.class),
+                                       group);
+            registry.registerWorkflow(IndexationWorkflowImpl.class, indexationQueue);
+            registry.registerActivity(new ScanActivityImpl(temporal), indexationQueue);
+            registry.registerActivity(new IndexActivityImpl(get(Indexer.class), get(LanguageGuesser.class)),
+                                      indexationQueue);
             // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
             addCloseable(new TemporalWorkers(temporal).start(registry, registry.registeredQueues(),
                                                              TemporalWorkerOptions.defaultValues()));

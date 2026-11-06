@@ -47,6 +47,7 @@ public class TemporalWorkflowGeneratorTest {
                 import java.util.Map;
                 
                 @WorkflowInterface
+                @DiscoverableWorkflow
                 public interface HelloWorldWorkflow {
                     @WorkflowMethod(name = "org.icij.datashare.asynctasks.temporal.HelloWorldTask")
                     String run(final Map<String, Object> args) throws Exception;
