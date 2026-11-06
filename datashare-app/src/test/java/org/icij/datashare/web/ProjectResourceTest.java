@@ -10,6 +10,7 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectDeleteOptions;
 import org.icij.datashare.project.admin.ProjectDeleted;
+import org.icij.datashare.project.admin.ValidationException;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
@@ -603,6 +604,18 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .thenReturn(new ProjectDeleted("to-delete", true, true, false, true, true, true, true, true, false));
 
         delete("/api/project/to-delete").should().respond(500);
+    }
+
+    @Test
+    public void test_project_delete_answers_400_on_a_name_no_project_can_have() throws Exception {
+        Project legacy = new Project("Legacy_Name");
+        when(repository.getProjects(any())).thenReturn(List.of(legacy));
+        when(projectAdminService.deleteIfExists(eq("Legacy_Name"), any(ProjectDeleteOptions.class))).thenAnswer(
+                invocation -> {
+                    throw new ValidationException("name", "project name must match " + Project.NAME_REGEX);
+                });
+
+        delete("/api/project/Legacy_Name").should().respond(400);
     }
 
     @Test

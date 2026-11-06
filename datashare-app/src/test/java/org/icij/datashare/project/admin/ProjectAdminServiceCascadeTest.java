@@ -148,7 +148,7 @@ public class ProjectAdminServiceCascadeTest {
 
         try {
             service.deleteIfExists(".", new ProjectDeleteOptions(true));
-        } catch (IllegalArgumentException expected) {
+        } catch (ValidationException expected) {
         }
 
         assertThat(artifactDir.getRoot().toPath().resolve("bar").toFile()).exists();

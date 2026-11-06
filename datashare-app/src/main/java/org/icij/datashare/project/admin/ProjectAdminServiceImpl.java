@@ -138,12 +138,13 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     }
 
     @Override
-    public ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException {
+    public ProjectDeleted deleteIfExists(String name, ProjectDeleteOptions options) throws IOException,
+            ValidationException {
         Project project = repository.getProject(name);
         if (project == null) {
             // no row vouches for the name, and the index and queue lookups read it as a pattern
             if (!Project.NAME_PATTERN.matcher(name).matches()) {
-                throw new IllegalArgumentException("project name must match " + Project.NAME_REGEX);
+                throw new ValidationException("name", "project name must match " + Project.NAME_REGEX);
             }
             // Everything but the project row can outlive it (an earlier cascade that failed halfway, a
             // hand-deleted row), so the noop branch still runs every other step: otherwise no API or
