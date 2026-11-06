@@ -530,13 +530,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
      */
     private boolean deleteTasks(String name) throws IOException, InterruptedException {
         List<Task<?>> tasks = tasksOf(name);
-        Set<String> stopped = new HashSet<>();
         Set<String> running = new HashSet<>();
         for (Task<?> task : tasks) {
             if (NON_FINAL_STATES.contains(task.getState())) {
                 try {
                     taskManager.stopTask(task.getId());
-                    stopped.add(task.getId());
                     if (task.getState() == Task.State.RUNNING) {
                         running.add(task.getId());
                     }
@@ -553,8 +551,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean allDeleted = true;
         for (Task<?> task : tasks) {
             try {
-                if (stopped.contains(task.getId()) &&
-                    taskManager.getTask(task.getId()).getState() == Task.State.RUNNING) {
+                if (isStillRunning(task)) {
                     LOGGER.error("task {} of project {} is still running", task.getId(), name);
                     allDeleted = false;
                 } else {
@@ -568,6 +565,12 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             }
         }
         return allDeleted;
+    }
+
+    /** A task final at scan time stays final, so only the others need a fresh read. */
+    private boolean isStillRunning(Task<?> scannedTask) throws IOException {
+        return NON_FINAL_STATES.contains(scannedTask.getState()) &&
+               taskManager.getTask(scannedTask.getId()).getState() == Task.State.RUNNING;
     }
 
     private List<Task<?>> tasksOf(String name) throws IOException {
