@@ -480,7 +480,8 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean dbDeleted = !rowGone && runStep("db", name, () -> repository.deleteAll(name));
         boolean noRow = rowGone || dbDeleted;
         // before the index drop: a task still writing to the index would re-create it
-        boolean tasksDeleted = runStep("tasks", name, () -> deleteTasks(name));
+        // gated on the row too: a project that survives a failed db step must keep its running tasks
+        boolean tasksDeleted = noRow && runStep("tasks", name, () -> deleteTasks(name));
         // The db row goes first and the index drop is gated on it: dropping the index destroys the
         // documents, so a project row that survives a failed db step would be left searchable-but-
         // empty with no way back. Leaving the index in place instead keeps the project intact and

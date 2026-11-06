@@ -82,6 +82,7 @@ public class ProjectAdminServiceCascadeTest {
         }});
         when(userStore.listUsers(any(), any(), anyInt(), anyInt()))
                 .thenReturn(new WebResponse<>(List.<User>of(), 0, 0, 0));
+        when(repository.deleteAll(any())).thenReturn(true);
         service = new ProjectAdminServiceImpl(repository, indexer, authorizer, documentCollectionFactory,
                                               propertiesProvider, users, userStore, usersIdProviderCache,
                                               taskManager);
