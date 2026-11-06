@@ -617,6 +617,16 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         delete("/api/project/to-delete").should().respond(500);
     }
 
+    @Test
+    public void test_project_delete_answers_204_when_the_row_was_already_gone() throws Exception {
+        Project foo = new Project("to-delete");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(projectAdminService.deleteIfExists(eq("to-delete"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("to-delete", false, true, true, true, true, true, true, true, true));
+
+        delete("/api/project/to-delete").should().respond(204);
+    }
+
     private static ProjectDeleted fullyDeleted(String name) {
         return new ProjectDeleted(name, true, true, true, true, true, true, true, true, false);
     }
