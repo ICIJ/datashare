@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -153,16 +154,21 @@ public class ProjectAdminServiceCascadeTest {
     }
 
     @Test
-    public void test_delete_if_exists_leaves_the_artifact_dir_of_a_name_resolving_outside_its_project()
+    public void test_delete_if_exists_refuses_a_missing_project_whose_name_resolves_outside_its_artifact_dir() {
+        assertThrows(ValidationException.class, () -> service.deleteIfExists(".", new ProjectDeleteOptions(true)));
+    }
+
+    @Test
+    public void test_delete_leaves_the_artifact_dir_of_a_legacy_name_resolving_outside_its_project()
             throws Exception {
+        // a row older than the name pattern is not validated, so only the containment check stands here
+        when(repository.getProject(".")).thenReturn(new Project("."));
         artifactDir.newFolder("bar");
 
-        try {
-            service.deleteIfExists(".", new ProjectDeleteOptions(true));
-        } catch (ValidationException expected) {
-        }
+        ProjectDeleted deleted = service.delete(".", new ProjectDeleteOptions(true));
 
         assertThat(artifactDir.getRoot().toPath().resolve("bar").toFile()).exists();
+        assertThat(deleted.artifactsDeleted()).isFalse();
     }
 
     @Test
