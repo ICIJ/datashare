@@ -195,7 +195,7 @@ public class ProjectResource {
         // from every user's inventory
         ProjectDeleted deleted = projectAdminService.deleteIfExists(id, new ProjectDeleteOptions(false));
         LoggerFactory.getLogger(getClass()).info("Deleted project {}: {}", id, deleted);
-        if ((!deleted.noop() && !deleted.dbDeleted()) || !deleted.indexDeleted() || !deleted.casbinDeleted() ||
+        if (!deleted.dbDeleted() || !deleted.indexDeleted() || !deleted.casbinDeleted() ||
             !deleted.inventoryDeleted() || !deleted.tasksDeleted()) {
             return PayloadFormatter.error("Unable to delete the project", HttpStatus.INTERNAL_SERVER_ERROR);
         }

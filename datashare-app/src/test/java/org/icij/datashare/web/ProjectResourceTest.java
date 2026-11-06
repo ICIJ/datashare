@@ -622,7 +622,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         Project foo = new Project("to-delete");
         when(repository.getProjects(any())).thenReturn(List.of(foo));
         when(projectAdminService.deleteIfExists(eq("to-delete"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("to-delete", false, true, true, true, true, true, true, true, true));
+                .thenReturn(new ProjectDeleted("to-delete", true, true, true, true, true, true, true, true, true));
 
         delete("/api/project/to-delete").should().respond(204);
     }
