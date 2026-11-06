@@ -776,7 +776,7 @@ class CliApp {
 
     private static String impactSummary(ProjectStats stats, String name) {
         if (stats == null) {
-            return "Project '" + name + "' has no project row left, only what an earlier delete left behind.";
+            return "Project '" + name + "' has no project row left, but may still hold an index and other data.";
         }
         String docCount = stats.indexedDocuments().stream().mapToObj(n -> n + " indexed documents").findFirst()
                                .orElse("(index check skipped)");
