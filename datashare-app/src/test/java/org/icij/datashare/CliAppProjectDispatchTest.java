@@ -283,7 +283,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_if_exists_missing_warns_when_the_access_cleanup_fails() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
-                .thenReturn(noopExcept("ghost", "casbin"));
+                .thenReturn(noopExcept("ghost", Step.CASBIN));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
@@ -298,7 +298,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_if_exists_missing_warns_when_a_retried_step_fails() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
-                .thenReturn(noopExcept("ghost", "index"));
+                .thenReturn(noopExcept("ghost", Step.INDEX));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "ghost");
         props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
@@ -328,7 +328,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_summary_reports_the_access_cleanup() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(deletedExcept("foo", "casbin"));
+                .thenReturn(deletedExcept("foo", Step.CASBIN));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -346,7 +346,7 @@ public class CliAppProjectDispatchTest {
         org.mockito.ArgumentCaptor<ProjectDeleteOptions> captor =
                 org.mockito.ArgumentCaptor.forClass(ProjectDeleteOptions.class);
         when(service.delete(eq("foo"), captor.capture()))
-                .thenReturn(deletedExcept("foo", "index"));
+                .thenReturn(deletedExcept("foo", Step.INDEX));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_KEEP_INDEX_OPT, "true");
@@ -845,11 +845,13 @@ public class CliAppProjectDispatchTest {
                 () -> new char[0]);
     }
 
+    private enum Step { DB, INDEX, CASBIN, INVENTORY, QUEUES, REPORT_MAP, ARTIFACTS, TASKS }
+
     private static ProjectDeleted fullyDeleted(String name) {
         return deleted(name, null, false);
     }
 
-    private static ProjectDeleted deletedExcept(String name, String failedStep) {
+    private static ProjectDeleted deletedExcept(String name, Step failedStep) {
         return deleted(name, failedStep, false);
     }
 
@@ -857,14 +859,14 @@ public class CliAppProjectDispatchTest {
         return deleted(name, null, true);
     }
 
-    private static ProjectDeleted noopExcept(String name, String failedStep) {
+    private static ProjectDeleted noopExcept(String name, Step failedStep) {
         return deleted(name, failedStep, true);
     }
 
-    private static ProjectDeleted deleted(String name, String failedStep, boolean noop) {
-        return new ProjectDeleted(name, !noop && !"db".equals(failedStep), !"index".equals(failedStep),
-                                  !"casbin".equals(failedStep), !"inventory".equals(failedStep),
-                                  !"queues".equals(failedStep), !"reportMap".equals(failedStep),
-                                  !"artifacts".equals(failedStep), !"tasks".equals(failedStep), noop);
+    private static ProjectDeleted deleted(String name, Step failedStep, boolean noop) {
+        return new ProjectDeleted(name, !noop && failedStep != Step.DB, failedStep != Step.INDEX,
+                                  failedStep != Step.CASBIN, failedStep != Step.INVENTORY,
+                                  failedStep != Step.QUEUES, failedStep != Step.REPORT_MAP,
+                                  failedStep != Step.ARTIFACTS, failedStep != Step.TASKS, noop);
     }
 }
