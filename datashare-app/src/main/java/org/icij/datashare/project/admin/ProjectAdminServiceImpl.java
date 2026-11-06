@@ -631,6 +631,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             // trace of how far it got. Both the API and the CLI go through here now.
             LOGGER.info("deleted {} for project {}: {}", label, project, done);
             return done;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.error("interrupted while deleting {} for project {}", label, project, e);
+            return false;
         } catch (Exception e) {
             LOGGER.error("cannot delete {} for project {}", label, project, e);
             return false;
