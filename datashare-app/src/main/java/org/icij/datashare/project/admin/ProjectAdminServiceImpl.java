@@ -556,12 +556,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         boolean allDeleted = true;
         for (Task<?> task : tasks) {
             try {
-                if (isStillRunning(task)) {
-                    LOGGER.error("task {} of project {} is still running", task.getId(), name);
-                    allDeleted = false;
-                } else {
-                    taskManager.clearTask(task.getId());
-                }
+                taskManager.clearTask(task.getId());
+            } catch (IllegalStateException e) {
+                // every task manager refuses to clear a running task this way
+                LOGGER.error("task {} of project {} is still running", task.getId(), name);
+                allDeleted = false;
             } catch (UnknownTask ignored) {
                 LOGGER.info("task {} of project {} is already gone", task.getId(), name);
             } catch (IOException e) {
@@ -570,12 +569,6 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             }
         }
         return allDeleted;
-    }
-
-    /** A task final at scan time stays final, so only the others need a fresh read. */
-    private boolean isStillRunning(Task<?> scannedTask) throws IOException {
-        return NON_FINAL_STATES.contains(scannedTask.getState()) &&
-               taskManager.getTask(scannedTask.getId()).getState() == Task.State.RUNNING;
     }
 
     private List<Task<?>> tasksOf(String name) throws IOException {
