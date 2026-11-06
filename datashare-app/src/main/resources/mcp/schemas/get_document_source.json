@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "project": {"type": "string"},
+    "id": {"type": "string", "description": "document id"},
+    "routing": {"type": "string", "description": "root document id, for embedded documents"}
+  },
+  "required": ["project", "id"]
+}

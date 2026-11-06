@@ -25,7 +25,9 @@ import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
@@ -47,6 +49,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class McpToolsTest extends AbstractProdWebServerTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    @Rule public TemporaryFolder temp = new TemporaryFolder();
     @Mock Repository repository;
     @Mock Indexer indexer;
     @Mock TaskManager taskManager;
@@ -63,15 +66,15 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         TaskFinder taskFinder = new TaskFinder(taskManager, batchSearchRepository);
         ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider,
                                                               projectAdminService);
-        DocumentResource documentResource = new DocumentResource(repository, indexer, propertiesProvider,
-                                                                 new DocumentSourceAccess(repository, indexer,
-                                                                                          propertiesProvider));
+        DocumentSourceAccess sources = new DocumentSourceAccess(repository, indexer, propertiesProvider);
+        DocumentResource documentResource = new DocumentResource(repository, indexer, propertiesProvider, sources);
         TaskResource taskResource = new TaskResource(mock(DatashareTaskFactory.class), taskManager, propertiesProvider,
                                                      batchSearchRepository, taskFinder);
         McpTagByQuery tagByQuery = new McpTagByQuery(new McpIndexSearch(indexer));
         McpResource mcp = new McpResource(Set.of(new McpListProjectsTool(projectResource),
                                                  new McpSearchDocumentsTool(new McpIndexSearch(indexer)),
                                                  new McpGetDocumentTool(documentResource),
+                                                 new McpGetDocumentSourceTool(sources),
                                                  new McpListTasksTool(taskResource),
                                                  new McpStopTaskTool(taskResource, taskManager,
                                                                      TaskPolicyChecker.ALLOW_ALL),
@@ -379,6 +382,122 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(result.get("contentType").asText()).isEqualTo("application/pdf");
         assertThat(result.get("text").asText()).isEqualTo("hello world");
         assertThat(result.get("maxOffset").asInt()).isEqualTo(11);
+    }
+
+    // A real file on disk: the tool refuses to hand out a URL whose download could not read any bytes.
+    private Document sourceDoc(String id, String rootId) throws Exception {
+        java.io.File file = temp.newFile(id + ".pdf");
+        return DocumentBuilder.createDoc(id).with(new Project("foo")).with(java.nio.file.Paths.get(file.getPath()))
+                              .withRootId(rootId).withExtractionLevel((short) (id.equals(rootId) ? 0 : 1))
+                              .ofContentType("application/pdf").build();
+    }
+
+    @Test
+    public void test_get_document_source_returns_a_download_url() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get(eq("foo"), eq("doc1"), eq("doc1"), anyList())).thenReturn(sourceDoc("doc1", "doc1"));
+
+        JsonNode result = payload(call("local", "get_document_source", "{\"project\":\"foo\",\"id\":\"doc1\"}"));
+
+        assertThat(result.get("url").asText()).isEqualTo("/api/foo/documents/src/doc1");
+    }
+
+    @Test
+    public void test_get_document_source_of_an_embedded_document_carries_its_routing() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get(eq("foo"), eq("doc1"), eq("root1"), anyList())).thenReturn(sourceDoc("doc1", "root1"));
+        when(indexer.get("foo", "root1")).thenReturn(sourceDoc("root1", "root1"));
+
+        JsonNode result = payload(call("local", "get_document_source",
+                                       "{\"project\":\"foo\",\"id\":\"doc1\",\"routing\":\"root1\"}"));
+
+        assertThat(result.get("url").asText()).isEqualTo("/api/foo/documents/src/doc1?routing=root1");
+    }
+
+    // An LLM client routinely fills an optional string with "", which must mean absent and not an empty routing.
+    @Test
+    public void test_get_document_source_ignores_a_blank_routing() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get(eq("foo"), eq("doc1"), eq("doc1"), anyList())).thenReturn(sourceDoc("doc1", "doc1"));
+
+        JsonNode result = payload(call("local", "get_document_source",
+                                       "{\"project\":\"foo\",\"id\":\"doc1\",\"routing\":\"\"}"));
+
+        assertThat(result.get("url").asText()).isEqualTo("/api/foo/documents/src/doc1");
+    }
+
+    @Test
+    public void test_get_document_source_whose_file_is_gone_is_not_found() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get(eq("foo"), eq("doc1"), eq("doc1"), anyList())).thenReturn(doc("hello world"));
+
+        JsonNode response = call("local", "get_document_source", "{\"project\":\"foo\",\"id\":\"doc1\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: doc1");
+    }
+
+    @Test
+    public void test_get_document_source_of_an_embed_whose_root_is_too_large_is_refused() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get(eq("foo"), eq("doc1"), eq("root1"), anyList())).thenReturn(sourceDoc("doc1", "root1"));
+        when(indexer.get("foo", "root1")).thenReturn(
+                DocumentBuilder.createDoc("root1").withContentLength(2_000_000_000L).build());
+
+        JsonNode response = call("local", "get_document_source",
+                                 "{\"project\":\"foo\",\"id\":\"doc1\",\"routing\":\"root1\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("The file or its parent is too large");
+    }
+
+    // A duplicate's id is a Document id as far as an agent can tell, and used to reach the caller as a 500.
+    @Test
+    public void test_get_document_source_of_a_duplicate_id_is_not_found() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get(eq("foo"), eq("dup1"), eq("dup1"), anyList()))
+                .thenReturn(new org.icij.datashare.text.Duplicate(java.nio.file.Paths.get("/data/a.pdf"), "doc1"));
+
+        JsonNode response = call("local", "get_document_source", "{\"project\":\"foo\",\"id\":\"dup1\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: dup1");
+    }
+
+    @Test
+    public void test_get_document_source_on_a_project_with_no_index_is_not_found() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get(eq("foo"), eq("doc1"), eq("doc1"), anyList())).thenThrow(
+                new co.elastic.clients.elasticsearch._types.ElasticsearchException("es/get",
+                        co.elastic.clients.elasticsearch._types.ErrorResponse.of(r -> r.status(404).error(
+                                co.elastic.clients.elasticsearch._types.ErrorCause.of(
+                                        c -> c.type("index_not_found_exception").reason("no such index [foo]"))))));
+
+        JsonNode response = call("local", "get_document_source", "{\"project\":\"foo\",\"id\":\"doc1\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: foo");
+    }
+
+    @Test
+    public void test_get_document_source_on_ungranted_project_is_forbidden() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "get_document_source", "{\"project\":\"bar\",\"id\":\"doc1\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("forbidden: bar");
+        verifyNoInteractions(indexer);
+    }
+
+    @Test
+    public void test_get_document_source_unknown_id_is_not_found() throws Exception {
+        serveAs("local", "foo");
+
+        JsonNode response = call("local", "get_document_source", "{\"project\":\"foo\",\"id\":\"nope\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: nope");
     }
 
     @Test

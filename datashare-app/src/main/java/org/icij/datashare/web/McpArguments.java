@@ -15,8 +15,11 @@ final class McpArguments {
         return value;
     }
 
+    // Blank reads as absent: an LLM client routinely fills an optional string with "", and every caller
+    // means "not given" by it rather than "the empty value".
     static String optionalText(JsonNode arguments, String name) {
-        return arguments.path(name).asText(null);
+        String value = arguments.path(name).asText(null);
+        return value == null || value.isBlank() ? null : value;
     }
 
     /**
