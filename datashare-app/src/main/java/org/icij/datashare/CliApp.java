@@ -790,7 +790,7 @@ class CliApp {
         }
         String indexBadge =
                 options.keepIndex() ? "index skipped" : (deleted.indexDeleted() ? "index OK" : "index FAILED");
-        String dbBadge = deleted.noop() ? "db already gone" : (deleted.dbDeleted() ? "db OK" : "db FAILED");
+        String dbBadge = deleted.dbDeleted() ? (deleted.noop() ? "db already gone" : "db OK") : "db FAILED";
         String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
         String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
         String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
@@ -810,10 +810,8 @@ class CliApp {
         // the access cleanup counts: reporting success while the project's roles survive is the
         // silent half of the bug #2441 is about
         boolean accessFailed = !deleted.casbinDeleted() || !deleted.inventoryDeleted();
-        // a noop had no row to delete, and retries every other step
-        boolean dbFailed = !deleted.noop() && !deleted.dbDeleted();
-        if (dbFailed || indexFailed || accessFailed || !deleted.queuesDeleted() || !deleted.reportMapDeleted() ||
-            !deleted.tasksDeleted()) {
+        if (!deleted.dbDeleted() || indexFailed || accessFailed || !deleted.queuesDeleted() ||
+            !deleted.reportMapDeleted() || !deleted.tasksDeleted()) {
             // Some load-bearing step failed: keep the cascade exit code 0
             // (the cascade did run to completion) but nudge the operator
             // to retry with --if-exists, which is continuation-friendly.

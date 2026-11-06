@@ -480,7 +480,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // intact is a sticky state if the cascade aborts mid-stream.
         String name = project.getName();
 
-        boolean dbDeleted = !rowGone && runStep("db", name, () -> repository.deleteAll(name));
+        // The dependent rows can outlive a row that is already gone (a halfway cascade, a hand-deleted
+        // row), so the sweep runs on both paths; without a row, a done sweep is all there is to delete.
+        boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name) || rowGone);
         boolean noRow = rowGone || dbDeleted;
         // before the index drop: a task still writing to the index would re-create it
         // gated on the row too: a project that survives a failed db step must keep its running tasks

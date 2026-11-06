@@ -601,15 +601,26 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
-    public void test_delete_if_exists_returns_noop_when_project_missing() throws Exception {
+    public void test_delete_if_exists_sweeps_the_rows_a_missing_project_left_behind() throws Exception {
         givenProjectDoesNotExist("ghost");
 
         ProjectDeleted deleted = service.deleteIfExists("ghost", new ProjectDeleteOptions(false));
 
         assertThat(deleted.noop()).isTrue();
-        assertThat(deleted.dbDeleted()).isFalse();
+        assertThat(deleted.dbDeleted()).isTrue();
         verify(indexer, never()).deleteIndex(any());
-        verify(repository, never()).deleteAll(any());
+        verify(repository).deleteAll("ghost");
+    }
+
+    @Test
+    public void test_delete_if_exists_reports_a_failed_sweep_of_a_missing_project() throws Exception {
+        givenProjectDoesNotExist("ghost");
+        when(repository.deleteAll("ghost")).thenThrow(new RuntimeException("db down"));
+
+        ProjectDeleted deleted = service.deleteIfExists("ghost", new ProjectDeleteOptions(false));
+
+        assertThat(deleted.noop()).isTrue();
+        assertThat(deleted.dbDeleted()).isFalse();
     }
 
     @Test
@@ -632,7 +643,7 @@ public class ProjectAdminServiceImplTest {
         assertThat(deleted.indexDeleted()).isTrue();
         assertThat(deleted.queuesDeleted()).isTrue();
         assertThat(deleted.reportMapDeleted()).isTrue();
-        verify(repository, never()).deleteAll(any());
+        verify(repository).deleteAll("ghost");
     }
 
     @Test

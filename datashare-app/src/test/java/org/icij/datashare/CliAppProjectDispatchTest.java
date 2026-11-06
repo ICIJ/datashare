@@ -251,6 +251,23 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_delete_if_exists_missing_reports_a_failed_sweep() throws Exception {
+        when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
+        when(service.deleteIfExists(eq("ghost"), any(ProjectDeleteOptions.class)))
+                .thenReturn(noopExcept("ghost", Step.DB));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "ghost");
+        props.setProperty(PROJECT_DELETE_IF_EXISTS_OPT, "true");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
+
+        assertThat(exit).isEqualTo(0);
+        assertThat(stdout.toString()).contains("db FAILED");
+        assertThat(stderr.toString()).contains("re-run with --if-exists");
+    }
+
+    @Test
     public void test_delete_if_exists_missing_asks_for_confirmation_before_deleting() throws Exception {
         when(service.stats(eq("ghost"), eq(true))).thenThrow(new ProjectNotFoundException("ghost"));
         Properties props = new Properties();
@@ -866,7 +883,7 @@ public class CliAppProjectDispatchTest {
     }
 
     private static ProjectDeleted deleted(String name, Step failedStep, boolean noop) {
-        return new ProjectDeleted(name, !noop && failedStep != Step.DB, failedStep != Step.INDEX,
+        return new ProjectDeleted(name, failedStep != Step.DB, failedStep != Step.INDEX,
                                   failedStep != Step.CASBIN, failedStep != Step.INVENTORY,
                                   failedStep != Step.QUEUES, failedStep != Step.REPORT_MAP,
                                   failedStep != Step.ARTIFACTS, failedStep != Step.TASKS, noop);
