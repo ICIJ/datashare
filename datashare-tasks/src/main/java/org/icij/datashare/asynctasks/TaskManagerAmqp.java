@@ -51,12 +51,8 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
     public boolean stopTask(String taskId) throws IOException, UnknownTask {
         Task<?> taskView = this.getTask(taskId);
         if (taskView != null) {
-            try {
-                logger.info("sending cancel event for {}", taskId);
-                amqp.publish(AmqpQueue.WORKER_EVENT, new CancelEvent(taskId, false));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            logger.info("sending cancel event for {}", taskId);
+            amqp.publish(AmqpQueue.WORKER_EVENT, new CancelEvent(taskId, false));
             return true;
         } else {
             logger.warn("unknown task id <{}> for cancel call", taskId);

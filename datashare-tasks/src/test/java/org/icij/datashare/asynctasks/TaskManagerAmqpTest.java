@@ -11,6 +11,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
+import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -36,6 +37,10 @@ import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 
 public class TaskManagerAmqpTest {
     private static AmqpInterlocutor AMQP;
@@ -167,6 +172,20 @@ public class TaskManagerAmqpTest {
         assertThat(taskView1Id).isEqualTo(clearedTask.id);
         assertThrows(UnknownTask.class, () -> taskManager.getTask(taskView1Id));
         assertThat(taskManager.getTasks().toList()).hasSize(1);
+    }
+
+    @Test
+    public void test_stop_task_reports_a_failed_publish_as_an_io_exception() throws Exception {
+        AmqpInterlocutor failingAmqp = spy(AMQP);
+        doThrow(new IOException("broker down")).when(failingAmqp).publish(eq(AmqpQueue.WORKER_EVENT), any(Event.class));
+        TaskManagerAmqp failingTaskManager = new TaskManagerAmqp(failingAmqp, taskRepository, RoutingStrategy.UNIQUE);
+        try {
+            String taskId = failingTaskManager.startTask("taskName", User.local(), new HashMap<>());
+
+            assertThrows(IOException.class, () -> failingTaskManager.stopTask(taskId));
+        } finally {
+            failingTaskManager.close();
+        }
     }
 
     @Test(expected = IllegalStateException.class)
