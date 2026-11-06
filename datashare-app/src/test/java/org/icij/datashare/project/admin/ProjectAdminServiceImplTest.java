@@ -350,21 +350,14 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_runs_full_cascade_in_order() throws Exception {
-        Project project = new Project("foo");
-        when(repository.getProject("foo")).thenReturn(project);
-        when(repository.deleteAll("foo")).thenReturn(true);
-        when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteIndex("foo")).thenReturn(true);
-        when(indexer.exists("foo.entities")).thenReturn(true);
-        when(indexer.deleteIndex("foo.entities")).thenReturn(true);
+        givenExistingProject("foo");
+        givenLeftoverIndex("foo");
+        givenLeftoverIndex("foo.entities");
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
-        when(queue.delete()).thenReturn(true);
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
+        givenLeftoverQueue(queue);
         ReportMap reportMap = mock(ReportMap.class);
-        when(reportMap.delete()).thenReturn(true);
-        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty()); // no artifact dir configured
+        givenLeftoverReportMap(reportMap);
+        givenNoArtifactDir();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
@@ -387,17 +380,12 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_clears_the_tasks_before_dropping_the_index() throws Exception {
-        when(repository.getProject("foo")).thenReturn(new Project("foo"));
-        when(repository.deleteAll("foo")).thenReturn(true);
-        when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteIndex("foo")).thenReturn(true);
+        givenExistingProject("foo");
+        givenLeftoverIndex("foo");
         Task<?> indexTask = new Task<>("index-foo", "IndexTask", User.local(), Map.of("projectName", "foo"));
         indexTask.setState(Task.State.DONE);
         doReturn(Stream.of(indexTask)).when(taskManager).getTasks(any(TaskFilters.class));
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
-        when(documentCollectionFactory.createMap(any())).thenReturn(mock(ReportMap.class));
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenNoLeftovers();
 
         service.delete("foo", new ProjectDeleteOptions(false));
 
@@ -409,16 +397,12 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_clears_a_queued_task_without_waiting_for_it() throws Exception {
-        when(repository.getProject("foo")).thenReturn(new Project("foo"));
-        when(repository.deleteAll("foo")).thenReturn(true);
+        givenExistingProject("foo");
         Task<?> queuedTask = new Task<>("index-foo", "IndexTask", User.local(), Map.of("projectName", "foo"));
         queuedTask.setState(Task.State.QUEUED);
         doReturn(Stream.of(queuedTask)).when(taskManager).getTasks(any(TaskFilters.class));
         doReturn(queuedTask).when(taskManager).getTask("index-foo");
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
-        when(documentCollectionFactory.createMap(any())).thenReturn(mock(ReportMap.class));
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenNoLeftovers();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
 
@@ -435,7 +419,7 @@ public class ProjectAdminServiceImplTest {
         Task<?> runningTask = new Task<>("index-foo", "IndexTask", User.local(), Map.of("projectName", "foo"));
         runningTask.setState(Task.State.RUNNING);
         doReturn(Stream.of(runningTask)).when(taskManager).getTasks(any(TaskFilters.class));
-        stubEmptyQueuesAndReportMap();
+        givenNoLeftovers();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
@@ -446,8 +430,7 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_clears_the_other_tasks_when_one_cannot_be_stopped() throws Exception {
-        when(repository.getProject("foo")).thenReturn(new Project("foo"));
-        when(repository.deleteAll("foo")).thenReturn(true);
+        givenExistingProject("foo");
         Task<?> stuckTask = runningTaskOf("index-foo-1", "foo");
         Task<?> stoppedTask = runningTaskOf("index-foo-2", "foo");
         doReturn(Stream.of(stuckTask, stoppedTask)).when(taskManager).getTasks(any(TaskFilters.class));
@@ -457,7 +440,7 @@ public class ProjectAdminServiceImplTest {
         cancelledTask.setState(Task.State.CANCELLED);
         doReturn(cancelledTask).when(taskManager).getTask("index-foo-2");
         doThrow(new IllegalStateException("running")).when(taskManager).clearTask("index-foo-1");
-        stubEmptyQueuesAndReportMap();
+        givenNoLeftovers();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
 
@@ -468,11 +451,10 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_keeps_the_interrupt_flag_when_interrupted_while_waiting_for_tasks() throws Exception {
-        when(repository.getProject("foo")).thenReturn(new Project("foo"));
-        when(repository.deleteAll("foo")).thenReturn(true);
+        givenExistingProject("foo");
         doReturn(Stream.of(runningTaskOf("index-foo", "foo"))).when(taskManager).getTasks(any(TaskFilters.class));
         doThrow(new InterruptedException()).when(taskManager).awaitTermination(anyInt(), any(), any());
-        stubEmptyQueuesAndReportMap();
+        givenNoLeftovers();
 
         try {
             ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
@@ -490,30 +472,16 @@ public class ProjectAdminServiceImplTest {
         return task;
     }
 
-    private void stubEmptyQueuesAndReportMap() {
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
-        when(documentCollectionFactory.createMap(any())).thenReturn(mock(ReportMap.class));
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
-    }
-
     @Test
     public void test_delete_drops_the_entities_index_too() throws Exception {
-        Project project = new Project("foo");
-        when(repository.getProject("foo")).thenReturn(project);
-        when(repository.deleteAll("foo")).thenReturn(true);
-        when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteIndex("foo")).thenReturn(true);
-        when(indexer.exists("foo.entities")).thenReturn(true);
-        when(indexer.deleteIndex("foo.entities")).thenReturn(true);
+        givenExistingProject("foo");
+        givenLeftoverIndex("foo");
+        givenLeftoverIndex("foo.entities");
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
-        when(queue.delete()).thenReturn(true);
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
+        givenLeftoverQueue(queue);
         ReportMap reportMap = mock(ReportMap.class);
-        when(reportMap.delete()).thenReturn(true);
-        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenLeftoverReportMap(reportMap);
+        givenNoArtifactDir();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
@@ -524,21 +492,15 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_reports_the_index_step_failed_when_only_the_entities_index_fails() throws Exception {
-        Project project = new Project("foo");
-        when(repository.getProject("foo")).thenReturn(project);
-        when(repository.deleteAll("foo")).thenReturn(true);
-        when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteIndex("foo")).thenReturn(true);
+        givenExistingProject("foo");
+        givenLeftoverIndex("foo");
         when(indexer.exists("foo.entities")).thenReturn(true);
         when(indexer.deleteIndex("foo.entities")).thenThrow(new IOException("ES down"));
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
-        when(queue.delete()).thenReturn(true);
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
+        givenLeftoverQueue(queue);
         ReportMap reportMap = mock(ReportMap.class);
-        when(reportMap.delete()).thenReturn(true);
-        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenLeftoverReportMap(reportMap);
+        givenNoArtifactDir();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
@@ -550,17 +512,10 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_reports_index_deleted_when_the_project_has_no_entities_index() throws Exception {
-        when(repository.getProject("foo")).thenReturn(new Project("foo"));
-        when(repository.deleteAll("foo")).thenReturn(true);
-        when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteIndex("foo")).thenReturn(true);
+        givenExistingProject("foo");
+        givenLeftoverIndex("foo");
         when(indexer.exists("foo.entities")).thenReturn(false);
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
-        ReportMap reportMap = mock(ReportMap.class);
-        when(reportMap.delete()).thenReturn(true);
-        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenNoLeftovers();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
@@ -570,14 +525,8 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_skips_index_when_keepIndex_true() throws Exception {
-        when(repository.getProject("foo")).thenReturn(new Project("foo"));
-        when(repository.deleteAll("foo")).thenReturn(true);
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
-        ReportMap reportMap = mock(ReportMap.class);
-        when(reportMap.delete()).thenReturn(true);
-        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenExistingProject("foo");
+        givenNoLeftovers();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
 
@@ -588,7 +537,7 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_throws_when_project_missing() throws Exception {
-        when(repository.getProject("ghost")).thenReturn(null);
+        givenProjectDoesNotExist("ghost");
         try {
             service.delete("ghost", new ProjectDeleteOptions(false));
             fail("expected ProjectNotFoundException");
@@ -601,7 +550,7 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_if_exists_returns_noop_when_project_missing() throws Exception {
-        when(repository.getProject("ghost")).thenReturn(null);
+        givenProjectDoesNotExist("ghost");
 
         ProjectDeleted deleted = service.deleteIfExists("ghost", new ProjectDeleteOptions(false));
 
@@ -613,17 +562,13 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_if_exists_retries_the_steps_a_failed_cascade_left_behind() throws Exception {
-        when(repository.getProject("ghost")).thenReturn(null);
-        when(indexer.exists("ghost")).thenReturn(true);
-        when(indexer.deleteIndex("ghost")).thenReturn(true);
+        givenProjectDoesNotExist("ghost");
+        givenLeftoverIndex("ghost");
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
-        when(queue.delete()).thenReturn(true);
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
+        givenLeftoverQueue(queue);
         ReportMap reportMap = mock(ReportMap.class);
-        when(reportMap.delete()).thenReturn(true);
-        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenLeftoverReportMap(reportMap);
+        givenNoArtifactDir();
 
         ProjectDeleted deleted = service.deleteIfExists("ghost", new ProjectDeleteOptions(false));
 
@@ -640,14 +585,13 @@ public class ProjectAdminServiceImplTest {
 
     @Test
     public void test_delete_if_exists_reports_an_absent_report_map_as_deleted() throws Exception {
-        when(repository.getProject("ghost")).thenReturn(null);
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
+        givenProjectDoesNotExist("ghost");
+        givenNoLeftoverQueue();
         ReportMap reportMap = mock(ReportMap.class);
         when(reportMap.delete()).thenReturn(false);
         when(reportMap.isEmpty()).thenReturn(true);
         when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenNoArtifactDir();
 
         assertThat(service.deleteIfExists("ghost", new ProjectDeleteOptions(false)).reportMapDeleted()).isTrue();
     }
@@ -655,20 +599,14 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_delete_continues_cascade_when_db_delete_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
-        when(indexer.exists("foo")).thenReturn(true);
-        when(indexer.deleteIndex("foo")).thenReturn(true);
-        when(indexer.exists("foo.entities")).thenReturn(true);
-        when(indexer.deleteIndex("foo.entities")).thenReturn(true);
+        givenLeftoverIndex("foo");
+        givenLeftoverIndex("foo.entities");
         when(repository.deleteAll("foo")).thenThrow(new RuntimeException("DB down"));
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
-        when(queue.delete()).thenReturn(true);
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class)))
-                .thenReturn(List.of(queue));
+        givenLeftoverQueue(queue);
         ReportMap reportMap = mock(ReportMap.class);
-        when(reportMap.delete()).thenReturn(true);
-        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenLeftoverReportMap(reportMap);
+        givenNoArtifactDir();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
@@ -690,14 +628,10 @@ public class ProjectAdminServiceImplTest {
         when(indexer.deleteIndex("foo")).thenThrow(new IOException("ES down"));
         when(repository.deleteAll("foo")).thenReturn(true);
         DocumentQueue<Path> queue = mock(DocumentQueue.class);
-        when(queue.delete()).thenReturn(true);
-        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class)))
-                .thenReturn(List.of(queue));
+        givenLeftoverQueue(queue);
         ReportMap reportMap = mock(ReportMap.class);
-        when(reportMap.delete()).thenReturn(true);
-        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
-        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
-        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+        givenLeftoverReportMap(reportMap);
+        givenNoArtifactDir();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
@@ -1605,5 +1539,45 @@ public class ProjectAdminServiceImplTest {
         apps.put("datashare", new ArrayList<>(projects));
         details.put("groups_by_applications", apps);
         return new User(id, id, id + "@e.test", "local", details);
+    }
+
+    private void givenExistingProject(String name) {
+        when(repository.getProject(name)).thenReturn(new Project(name));
+        when(repository.deleteAll(name)).thenReturn(true);
+    }
+
+    private void givenProjectDoesNotExist(String name) {
+        when(repository.getProject(name)).thenReturn(null);
+    }
+
+    private void givenLeftoverIndex(String indexName) throws IOException {
+        when(indexer.exists(indexName)).thenReturn(true);
+        when(indexer.deleteIndex(indexName)).thenReturn(true);
+    }
+
+    private void givenLeftoverQueue(DocumentQueue<Path> queue) {
+        when(queue.delete()).thenReturn(true);
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of(queue));
+    }
+
+    private void givenNoLeftoverQueue() {
+        when(propertiesProvider.createOverriddenWith(any())).thenReturn(new Properties());
+        when(documentCollectionFactory.getQueues(any(String.class), eq(Path.class))).thenReturn(List.of());
+    }
+
+    private void givenLeftoverReportMap(ReportMap reportMap) {
+        when(reportMap.delete()).thenReturn(true);
+        when(documentCollectionFactory.createMap(any())).thenReturn(reportMap);
+    }
+
+    private void givenNoArtifactDir() {
+        when(propertiesProvider.get(any())).thenReturn(Optional.empty());
+    }
+
+    private void givenNoLeftovers() {
+        givenNoLeftoverQueue();
+        when(documentCollectionFactory.createMap(any())).thenReturn(mock(ReportMap.class));
+        givenNoArtifactDir();
     }
 }
