@@ -4,12 +4,14 @@ import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.test.LogbackAppenderWrapper;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.datashare.test.LogbackAppenderWrapper;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.extract.document.DocumentFactory;
+import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
+import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.Option;
 import org.icij.task.Options;
 import org.icij.task.StringOptionParser;
@@ -21,8 +23,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -34,6 +39,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.notNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -245,6 +251,39 @@ public class IndexTaskTest {
         taskArgs.put("queueName", "test:queue");
         new IndexTask(spewerFactory, new MemoryDocumentCollectionFactory<>(), new UpstreamGate.Factory(taskRepository),
                 new Task<>(IndexTask.class.getName(), nullUser(), taskArgs), null).call();
+    }
+
+    @Test
+    public void test_cancel_stops_draining_the_queue_without_losing_documents() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        Mockito.when(spewerFactory.create(any(), anyInt(), any())).thenReturn(spewer);
+        MemoryDocumentCollectionFactory<Path> factory = new MemoryDocumentCollectionFactory<>();
+        DocumentQueue<Path> queue = factory.createQueue("extract:queue:index", Path.class);
+        Path doc = Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath());
+        for (int i = 0; i < 3; i++) {
+            queue.add(doc);
+        }
+        IndexTask indexTask = new IndexTask(spewerFactory, factory, new UpstreamGate.Factory(taskRepository),
+                new Task<>(IndexTask.class.getName(), nullUser(), Map.of("parallelism", "1", "streamingSpew", "false")), null);
+        AtomicInteger written = new AtomicInteger();
+        Mockito.doAnswer(invocation -> {
+            if (written.incrementAndGet() == 1) {
+                indexTask.cancel(false);
+            }
+            return null;
+        }).when(spewer).write(Mockito.any(TikaDocument.class));
+
+        try {
+            indexTask.call();
+            fail("expected an InterruptedException");
+        } catch (InterruptedException expected) {
+            assertThat(queue.size()).isGreaterThan(0);
+            assertThat(written.get() + queue.size()).isEqualTo(3);
+            verify(spewer).close();
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     @After

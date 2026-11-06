@@ -98,6 +98,9 @@ public class TaskManagerMemory extends StoreAndQueueTaskManagerImpl implements T
         try {
             taskView = getTask(task.id);
             taskView.cancel();
+            if (requeue) {
+                taskView.queue();
+            }
             update(taskView);
         } catch (UnknownTask ex) {
             logger.warn("unknown task id <{}> for cancel={} call", task.id, requeue);

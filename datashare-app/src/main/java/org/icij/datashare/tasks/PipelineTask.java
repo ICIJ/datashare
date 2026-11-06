@@ -46,6 +46,7 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     protected final ExecutorService workerPool;
     private final DocumentCollectionFactory<T> factory;
     private volatile Thread taskThread;
+    private volatile boolean cancelled;
 
     /** For producer stages: nothing feeds their input queue, the gate is {@link UpstreamGate#NONE}. */
     public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory,
@@ -72,11 +73,16 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
 
     @Override
     public void cancel(boolean requeue) {
+        cancelled = true;
         // interrupt the task thread first: that is what makes the blocking wait on the workers in
         // runWorkers() throw InterruptedException and surface the cancellation. Then stop the pool
         // so the workers themselves wind down promptly.
         ofNullable(taskThread).ifPresent(Thread::interrupt);
         workerPool.shutdownNow();
+    }
+
+    protected boolean isCancelled() {
+        return cancelled;
     }
 
     public Long call() throws Exception {
