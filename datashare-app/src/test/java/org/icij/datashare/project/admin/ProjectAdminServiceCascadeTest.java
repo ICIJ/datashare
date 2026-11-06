@@ -142,6 +142,17 @@ public class ProjectAdminServiceCascadeTest {
     }
 
     @Test
+    public void test_delete_if_exists_leaves_the_artifact_dir_of_a_name_resolving_outside_its_project()
+            throws Exception {
+        artifactDir.newFolder("bar");
+
+        ProjectDeleted deleted = service.deleteIfExists(".", new ProjectDeleteOptions(true));
+
+        assertThat(artifactDir.getRoot().toPath().resolve("bar").toFile()).exists();
+        assertThat(deleted.artifactsDeleted()).isFalse();
+    }
+
+    @Test
     public void test_delete_leaves_another_projects_queue_alone() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         DocumentQueue<Path> other = documentCollectionFactory.createQueue("extract:queue:bar", Path.class);
