@@ -142,6 +142,17 @@ public class ProjectAdminServiceCascadeTest {
     }
 
     @Test
+    public void test_delete_reports_an_artifact_path_that_is_not_a_directory() throws Exception {
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        artifactDir.newFile("foo");
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
+
+        assertThat(deleted.artifactsDeleted()).isFalse();
+        assertThat(deleted.dbDeleted()).isTrue();
+    }
+
+    @Test
     public void test_delete_if_exists_leaves_the_artifact_dir_of_a_name_resolving_outside_its_project()
             throws Exception {
         artifactDir.newFolder("bar");
