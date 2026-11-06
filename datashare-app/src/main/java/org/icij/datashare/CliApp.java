@@ -790,21 +790,31 @@ class CliApp {
             printJsonOrFallback(deleteResultMap(deleted), "deleted project '" + deleted.name() + "'");
             return;
         }
-        String indexBadge =
-                options.keepIndex() ? "index skipped" : (deleted.indexDeleted() ? "index OK" : "index FAILED");
+        // the cascade holds back the steps behind a failed gate, which is not a failure of their own
+        boolean noRowLeft = deleted.noop() || deleted.dbDeleted();
+        boolean indexRan = deleted.tasksDeleted() && !options.keepIndex();
+        boolean grantsRan = noRowLeft && deleted.inventoryDeleted();
+        String indexBadge = stepBadge("index", indexRan, deleted.indexDeleted());
         String dbBadge = deleted.dbDeleted() ? (deleted.noop() ? "db already gone" : "db OK") : "db FAILED";
         String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
         String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
         String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
-        String tasksBadge = deleted.tasksDeleted() ? "tasks OK" : "tasks FAILED";
-        String grantsBadge = deleted.casbinDeleted() ? "grants OK" : "grants FAILED";
-        String inventoryBadge = deleted.inventoryDeleted() ? "inventory OK" : "inventory FAILED";
+        String tasksBadge = stepBadge("tasks", noRowLeft, deleted.tasksDeleted());
+        String grantsBadge = stepBadge("grants", grantsRan, deleted.casbinDeleted());
+        String inventoryBadge = stepBadge("inventory", noRowLeft, deleted.inventoryDeleted());
         String headline = deleted.noop() ? "cleaned up project '" + deleted.name() + "', whose row was already gone" :
                           "deleted project '" + deleted.name() + "'";
         System.out.println(
                 headline + " (" + dbBadge + ", " + indexBadge + ", " + queuesBadge + ", " + reportMapBadge + ", " +
                 artifactsBadge + ", " + tasksBadge + ", " + grantsBadge + ", " + inventoryBadge + ")");
         warnIfPartialFailure(deleted, options);
+    }
+
+    private static String stepBadge(String step, boolean ran, boolean done) {
+        if (!ran) {
+            return step + " skipped";
+        }
+        return step + (done ? " OK" : " FAILED");
     }
 
     private static void warnIfPartialFailure(ProjectDeleted deleted, ProjectDeleteOptions options) {
