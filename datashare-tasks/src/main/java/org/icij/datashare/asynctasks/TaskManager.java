@@ -58,12 +58,12 @@ public interface TaskManager extends Closeable {
     int getTerminationPollingInterval();
 
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
-        return waitTasksToBeDone(timeout, timeUnit) == 0L;
+        return pollUntilTasksAreDone(timeout, timeUnit, null) == 0L;
     }
 
     default boolean awaitTermination(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws
             InterruptedException, IOException {
-        return waitTasksToBeDone(timeout, timeUnit, scopeTaskIds) == 0L;
+        return pollUntilTasksAreDone(timeout, timeUnit, scopeTaskIds) == 0L;
     }
 
     default Map<String, Boolean> stopTasks(User user) throws IOException {
@@ -134,6 +134,16 @@ public interface TaskManager extends Closeable {
     }
 
     default long waitTasksToBeDone(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws IOException {
+        try {
+            return pollUntilTasksAreDone(timeout, timeUnit, scopeTaskIds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+    }
+
+    private long pollUntilTasksAreDone(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws IOException,
+            InterruptedException {
         long startTime = System.currentTimeMillis();
         long maxDuration = timeUnit.toMillis(timeout);
         TaskFilters filterNotCompleted = new TaskFilters().withStates(NON_FINAL_STATES);
@@ -142,8 +152,9 @@ public interface TaskManager extends Closeable {
             try {
                 Thread.sleep(Math.min(getTerminationPollingInterval(), maxDuration));
             } catch (InterruptedException e) {
+                // the sleep clears the flag, and a caller further up still has to see it
                 Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
+                throw e;
             }
             nUnfinished = countUnfinished(filterNotCompleted, scopeTaskIds);
         }
