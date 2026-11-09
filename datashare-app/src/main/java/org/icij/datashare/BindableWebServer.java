@@ -3,6 +3,7 @@ package org.icij.datashare;
 import net.codestory.http.WebServer;
 import net.codestory.http.internal.Handler;
 import net.codestory.http.internal.HttpServerWrapper;
+import net.codestory.http.misc.Env;
 import net.codestory.http.websockets.WebSocketHandler;
 import org.simpleframework.http.core.Container;
 import org.simpleframework.http.core.ContainerSocketProcessor;
@@ -19,6 +20,14 @@ class BindableWebServer extends WebServer {
 
     BindableWebServer(String host) {
         this.host = host;
+    }
+
+    // Force production mode regardless of the PROD_MODE system property, so running the fat jar
+    // directly cannot leave development mode on: stack-trace error pages, the .source route and the
+    // live-reload server. The official launchers already pass -DPROD_MODE=true; this makes it certain.
+    @Override
+    protected Env createEnv() {
+        return Env.prod();
     }
 
     @Override
