@@ -223,6 +223,7 @@ public class DatashareCli {
         DatashareCliOptions.temporalNamespaceOpt(parser);
         DatashareCliOptions.temporalAddressOpt(parser);
         DatashareCliOptions.statusAllowedNets(parser);
+        DatashareCliOptions.maxHttpBodySize(parser);
         return parser;
     }
 
