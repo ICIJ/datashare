@@ -156,12 +156,12 @@ public class TaskManagerTemporalIntTest {
     }
 
     @Test(timeout = 10000)
-    public void test_get_task_result() throws IOException {
+    public void test_get_task_result() throws IOException, InterruptedException {
         try (Closeable ignored = testCloseableWorkerFactory()) {
             Task<String> task = new Task<>("hello-world", User.local(), Map.of("name", "world"));
 
             taskManager.startTask(task);
-            taskManager.waitTasksToBeDone(10, TimeUnit.SECONDS);
+            taskManager.awaitTermination(10, TimeUnit.SECONDS);
             Task<?> completed = taskManager.getTask(task.id);
 
             assertThat(completed.getState()).isEqualTo(DONE);
@@ -249,7 +249,7 @@ public class TaskManagerTemporalIntTest {
      *
      */
     @Test(timeout = 10000)
-    public void test_task_id_matches_workflow_id() throws IOException {
+    public void test_task_id_matches_workflow_id() throws IOException, InterruptedException {
         AtomicReference<String> capturedId = new AtomicReference<>();
         TaskFactory capturingFactory = new TaskFactory() {
             // The factory will capture the Task id that will be set in the Task
@@ -262,7 +262,7 @@ public class TaskManagerTemporalIntTest {
             Task<String> task = new Task<>(DoNothingTask.class.getName(), User.local(), Map.of());
 
             taskManager.startTask(task);
-            taskManager.waitTasksToBeDone(10, TimeUnit.SECONDS);
+            taskManager.awaitTermination(10, TimeUnit.SECONDS);
 
             assertThat(capturedId.get()).isEqualTo(task.id);
         }
@@ -304,7 +304,7 @@ public class TaskManagerTemporalIntTest {
         try (Closeable ignored = doNothingWorkerFactory(progressFactory)) {
             Task<String> task = new Task<>(DoNothingTask.class.getName(), User.local(), Map.of());
             taskManager.startTask(task);
-            taskManager.waitTasksToBeDone(15, TimeUnit.SECONDS);
+            taskManager.awaitTermination(15, TimeUnit.SECONDS);
 
             // Repository side: progress must have reached 1.0
             Task<?> fromRepo = taskRepository.getTask(task.id);
@@ -351,7 +351,7 @@ public class TaskManagerTemporalIntTest {
             Task<String> task = new Task<>(GreetingTask.class.getName(), User.local(), Map.of("name", who));
 
             manager.startTask(task, group);
-            manager.waitTasksToBeDone(10, TimeUnit.SECONDS);
+            manager.awaitTermination(10, TimeUnit.SECONDS);
             Task<?> completed = manager.getTask(task.id);
 
             assertThat(completed.getState()).isEqualTo(DONE);

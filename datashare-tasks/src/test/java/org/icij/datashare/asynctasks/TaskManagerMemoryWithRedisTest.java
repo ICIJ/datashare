@@ -38,7 +38,7 @@ public class TaskManagerMemoryWithRedisTest {
     public void test_run_task() throws Exception {
         String tid = taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 10));
 
-        taskManager.waitTasksToBeDone(1, SECONDS);
+        taskManager.awaitTermination(1, SECONDS);
 
         assertThat(taskManager.getTask(tid).getState()).isEqualTo(Task.State.DONE);
         assertThat(taskManager.getTask(tid).getResult()).isEqualTo(new TaskResult<>(10));

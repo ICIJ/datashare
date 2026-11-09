@@ -57,6 +57,12 @@ public interface TaskManager extends Closeable {
 
     int getTerminationPollingInterval();
 
+    /**
+     * Polls the task list until every task has a result or the timeout is reached. With a lot of tasks, or
+     * heavy ones, each poll is costly on network and CPU.
+     *
+     * @return true if no task is left unfinished
+     */
     default boolean awaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException, IOException {
         return pollUntilTasksAreDone(timeout, timeUnit, null) == 0L;
     }
@@ -117,29 +123,6 @@ public interface TaskManager extends Closeable {
 
     default <V extends Serializable> String startTask(Task<V> taskView) throws IOException, TaskAlreadyExists {
         return startTask(taskView, null);
-    }
-
-    /**
-     * wait for all the tasks to have a result.
-     * This method will poll the task list. So if there are a lot of tasks or if tasks are
-     * containing a lot of information, this method call could be very intensive on network and CPU.
-     *
-     * @param timeout amount for the timeout
-     * @param timeUnit unit of the timeout
-     * @return the number of unfinished tasks
-     * @throws IOException if the task list cannot be retrieved because of a network failure.
-     */
-    default long waitTasksToBeDone(int timeout, TimeUnit timeUnit) throws IOException {
-        return waitTasksToBeDone(timeout, timeUnit, null);
-    }
-
-    default long waitTasksToBeDone(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws IOException {
-        try {
-            return pollUntilTasksAreDone(timeout, timeUnit, scopeTaskIds);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        }
     }
 
     private long pollUntilTasksAreDone(int timeout, TimeUnit timeUnit, Set<String> scopeTaskIds) throws IOException,
