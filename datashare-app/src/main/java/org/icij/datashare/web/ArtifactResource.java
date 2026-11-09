@@ -11,6 +11,7 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.text.Document;
@@ -206,8 +207,9 @@ public class ArtifactResource {
     // (both 404). The document is always resolved through the indexer first, so a URL cannot probe
     // arbitrary digests or another project's data.
     private Path docArtifactDir(final String project, final String id, final String routing) {
-        Document document = asDocument(
-                indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated")));
+        String root = ofNullable(routing).orElse(id);
+        Entity entity = indexer.get(project, id, root, List.of("content", "content_translated"));
+        Document document = asDocument(entity);
         if (document == null) {
             return null;
         }

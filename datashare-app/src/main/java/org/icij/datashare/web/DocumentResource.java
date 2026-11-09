@@ -19,6 +19,7 @@ import org.icij.datashare.web.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.Repository.Aggregate;
@@ -74,7 +75,8 @@ public class DocumentResource {
     @Get("/:project/documents/:id?routing=:routing")
     public Document getDoc(String project, String id, String routing, final Context context) {
         requireGranted(context, project);
-        return notFoundIfNull(asDocument(indexer.get(project, id, ofNullable(routing).orElse(id))));
+        Entity entity = indexer.get(project, id, ofNullable(routing).orElse(id));
+        return notFoundIfNull(asDocument(entity));
     }
 
     @Operation(
@@ -173,8 +175,8 @@ public class DocumentResource {
     public PageIndices getPages(final String project, final String id, final String routing,
                                 final Context context) throws IOException {
         requireGranted(context, project);
-        Document doc =
-                notFoundIfNull(asDocument(indexer.get(project, id, routing, List.of("content", "content_translated"))));
+        Entity entity = indexer.get(project, id, routing, List.of("content", "content_translated"));
+        Document doc = notFoundIfNull(asDocument(entity));
         try (Extractor extractor = getExtractor(doc)) {
             if (doc.getOcrParser() == null) {
                 extractor.disableOcr();
@@ -205,8 +207,8 @@ public class DocumentResource {
     public List<String> getContentByPage(final String project, final String id, final String routing,
                                          final Context context) throws IOException {
         requireGranted(context, project);
-        Document doc =
-                notFoundIfNull(asDocument(indexer.get(project, id, routing, List.of("content", "content_translated"))));
+        Entity entity = indexer.get(project, id, routing, List.of("content", "content_translated"));
+        Document doc = notFoundIfNull(asDocument(entity));
         try (Extractor extractor = getExtractor(doc)) {
             if (doc.getOcrParser() == null) {
                 extractor.disableOcr();

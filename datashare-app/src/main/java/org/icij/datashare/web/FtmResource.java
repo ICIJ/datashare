@@ -9,7 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
+import org.icij.datashare.Entity;
 import org.icij.datashare.ftm.FtmDocument;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
@@ -35,7 +37,9 @@ public class FtmResource {
             @Parameter(name = "docId", description = "document identifier", in = ParameterIn.PATH) String docId,
             final Context context) throws Exception {
         requireGranted(context, project);
-        return new FtmDocument(notFoundIfNull(asDocument(indexer.get(project, docId))));
+        Entity entity = indexer.get(project, docId);
+        Document document = notFoundIfNull(asDocument(entity));
+        return new FtmDocument(document);
     }
 
 }
