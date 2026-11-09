@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
@@ -10,6 +9,8 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -21,32 +22,44 @@ import static org.fest.assertions.Assertions.assertThat;
 
 
 public class TaskManagerAmqpIntTest {
-    private CountDownLatch nextMessage = new CountDownLatch(1);
+    private static final int MAX_DELIVERIES = 20;
+    private final String amqpUri = EnvUtils.resolveUri("amqp", "amqp://guest:guest@amqp");
+    private final ConnectionFactory workerConnectionFactory = new ConnectionFactory();
+    private volatile CountDownLatch nextMessage = new CountDownLatch(1);
+    private AmqpInterlocutor amqpInterlocutor;
+    private TaskManagerAmqp taskManager;
+    private TaskSupplier taskSupplier;
+
+    @Before
+    public void setUp() throws Exception {
+        amqpInterlocutor = new AmqpInterlocutor(new PropertiesProvider(Map.of("messageBusAddress", amqpUri)),
+                new AmqpQueue[]{AmqpQueue.TASK, AmqpQueue.MANAGER_EVENT});
+        amqpInterlocutor.deleteQueues(AmqpQueue.TASK, AmqpQueue.MANAGER_EVENT, AmqpQueue.TASK_DLQ);
+        taskManager = new TaskManagerAmqp(amqpInterlocutor, new TaskRepositoryMemory(), RoutingStrategy.UNIQUE,
+                () -> nextMessage.countDown());
+        taskSupplier = new TaskSupplierAmqp(amqpInterlocutor);
+        workerConnectionFactory.setUri(amqpUri);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        taskSupplier.close();
+        taskManager.close();
+        amqpInterlocutor.deleteQueues(AmqpQueue.TASK, AmqpQueue.MANAGER_EVENT, AmqpQueue.TASK_DLQ);
+        amqpInterlocutor.close();
+    }
 
     @Test
     public void test_task_out_of_retries_is_in_error() throws Exception {
         // GIVEN a started task
-        String amqpUri = EnvUtils.resolveUri("amqp", "amqp://guest:guest@amqp");
-        AmqpInterlocutor amqpInterlocutor = new AmqpInterlocutor(
-                new PropertiesProvider(Map.of("messageBusAddress", amqpUri)),
-                new AmqpQueue[]{AmqpQueue.TASK, AmqpQueue.MANAGER_EVENT});
-        amqpInterlocutor.deleteQueues(AmqpQueue.TASK, AmqpQueue.MANAGER_EVENT, AmqpQueue.TASK_DLQ);
-        TaskRepository taskRepository = new TaskRepositoryMemory();
-        TaskManagerAmqp taskManager = new TaskManagerAmqp(amqpInterlocutor, taskRepository, RoutingStrategy.UNIQUE,
-                () -> nextMessage.countDown());
-        TaskSupplier taskSupplier = new TaskSupplierAmqp(amqpInterlocutor);
         String taskId = taskManager.startTask("task", User.local(), new HashMap<>());
 
-        // WHEN its worker keep dying until running out of retries
-        ConnectionFactory workerConnectionFactory = new ConnectionFactory();
-        workerConnectionFactory.setUri(amqpUri);
-        int maxDeliveries = 20;
+        // WHEN its workers keep dying until it runs out of retries
         int deliveries = 0;
         GetResponse delivery;
         do {
             try (Connection workerConnection = workerConnectionFactory.newConnection()) {
-                Channel workerChannel = workerConnection.createChannel();
-                delivery = workerChannel.basicGet(AmqpQueue.TASK.name(), false);
+                delivery = workerConnection.createChannel().basicGet(AmqpQueue.TASK.name(), false);
                 if (delivery != null) {
                     deliveries++;
                     taskSupplier.progress(taskId, 0.5);
@@ -54,8 +67,8 @@ public class TaskManagerAmqpIntTest {
                     nextMessage = new CountDownLatch(1);
                 }
             }
-        } while (delivery != null && deliveries < maxDeliveries);
-        assertThat(deliveries).isLessThan(maxDeliveries);
+        } while (delivery != null && deliveries < MAX_DELIVERIES);
+        assertThat(deliveries).isLessThan(MAX_DELIVERIES);
 
         // THEN the task is in error state
         assertThat(nextMessage.await(5, TimeUnit.SECONDS)).isTrue();
