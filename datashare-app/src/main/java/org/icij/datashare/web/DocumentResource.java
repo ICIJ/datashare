@@ -45,6 +45,7 @@ import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
+import static org.icij.datashare.text.Document.asDocument;
 import static org.icij.datashare.text.Project.project;
 
 @Singleton
@@ -73,7 +74,7 @@ public class DocumentResource {
     @Get("/:project/documents/:id?routing=:routing")
     public Document getDoc(String project, String id, String routing, final Context context) {
         requireGranted(context, project);
-        return notFoundIfNull(indexer.get(project, id, ofNullable(routing).orElse(id)));
+        return notFoundIfNull(asDocument(indexer.get(project, id, ofNullable(routing).orElse(id))));
     }
 
     @Operation(
@@ -172,7 +173,8 @@ public class DocumentResource {
     public PageIndices getPages(final String project, final String id, final String routing,
                                 final Context context) throws IOException {
         requireGranted(context, project);
-        Document doc = indexer.get(project, id, routing, List.of("content", "content_translated"));
+        Document doc =
+                notFoundIfNull(asDocument(indexer.get(project, id, routing, List.of("content", "content_translated"))));
         try (Extractor extractor = getExtractor(doc)) {
             if (doc.getOcrParser() == null) {
                 extractor.disableOcr();
@@ -203,7 +205,8 @@ public class DocumentResource {
     public List<String> getContentByPage(final String project, final String id, final String routing,
                                          final Context context) throws IOException {
         requireGranted(context, project);
-        Document doc = indexer.get(project, id, routing, List.of("content", "content_translated"));
+        Document doc =
+                notFoundIfNull(asDocument(indexer.get(project, id, routing, List.of("content", "content_translated"))));
         try (Extractor extractor = getExtractor(doc)) {
             if (doc.getOcrParser() == null) {
                 extractor.disableOcr();

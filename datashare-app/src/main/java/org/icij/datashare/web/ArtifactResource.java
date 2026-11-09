@@ -35,6 +35,7 @@ import java.util.Optional;
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.text.Document.asDocument;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
 
 /** Serves per-document artifacts from artifactDir, driven by each document's manifest.json.
@@ -205,8 +206,8 @@ public class ArtifactResource {
     // (both 404). The document is always resolved through the indexer first, so a URL cannot probe
     // arbitrary digests or another project's data.
     private Path docArtifactDir(final String project, final String id, final String routing) {
-        Document document =
-                indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated"));
+        Document document = asDocument(
+                indexer.get(project, id, ofNullable(routing).orElse(id), List.of("content", "content_translated")));
         if (document == null) {
             return null;
         }

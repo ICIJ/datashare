@@ -10,11 +10,10 @@ import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.ftm.FtmDocument;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import static org.icij.datashare.web.errors.ForbiddenException.requireGranted;
-import static java.util.Optional.ofNullable;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
+import static org.icij.datashare.text.Document.asDocument;
 
 @Singleton
 @Prefix("/api/ftm")
@@ -36,8 +35,7 @@ public class FtmResource {
             @Parameter(name = "docId", description = "document identifier", in = ParameterIn.PATH) String docId,
             final Context context) throws Exception {
         requireGranted(context, project);
-        return notFoundIfNull(
-                ofNullable(indexer.get(project, docId)).map(d -> new FtmDocument((Document) d)).orElse(null));
+        return new FtmDocument(notFoundIfNull(asDocument(indexer.get(project, docId))));
     }
 
 }

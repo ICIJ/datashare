@@ -4,6 +4,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.MockIndexer;
+import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -12,6 +13,7 @@ import org.mockito.Mock;
 
 import java.nio.file.Path;
 
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class FtmResourceTest extends AbstractProdWebServerTest {
@@ -30,6 +32,13 @@ public class FtmResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_doc_id_not_found() {
         get("/api/ftm/local-datashare/unknown_doc_id").should().respond(404);
+    }
+
+    @Test
+    public void test_doc_id_of_a_duplicate_is_not_found() {
+        when(mockEs.get("local-datashare", "dup1")).thenReturn(new Duplicate(Path.of("/data/a.pdf"), "doc1"));
+
+        get("/api/ftm/local-datashare/dup1").should().respond(404);
     }
 
     @Test

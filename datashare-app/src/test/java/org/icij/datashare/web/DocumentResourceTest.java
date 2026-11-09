@@ -11,6 +11,7 @@ import org.icij.datashare.tasks.MockIndexer;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
@@ -515,6 +516,29 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
         when(jooqRepository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "127.0.1.*"));
         get("/api/local-datashare/documents/src/docId?routing=root").should().respond(403);
+    }
+
+    @Test
+    public void test_get_document_of_a_duplicate_id_is_not_found() {
+        when(indexer.get("local-datashare", "dup1", "dup1")).thenReturn(new Duplicate(Paths.get("/data/a.pdf"), "doc1"));
+
+        get("/api/local-datashare/documents/dup1").should().respond(404);
+    }
+
+    @Test
+    public void test_get_pages_of_a_duplicate_id_is_not_found() {
+        when(indexer.get(eq("local-datashare"), eq("dup1"), eq("dup1"), anyList()))
+                .thenReturn(new Duplicate(Paths.get("/data/a.pdf"), "doc1"));
+
+        get("/api/local-datashare/documents/pages/dup1?routing=dup1").should().respond(404);
+    }
+
+    @Test
+    public void test_get_content_by_page_of_a_duplicate_id_is_not_found() {
+        when(indexer.get(eq("local-datashare"), eq("dup1"), eq("dup1"), anyList()))
+                .thenReturn(new Duplicate(Paths.get("/data/a.pdf"), "doc1"));
+
+        get("/api/local-datashare/documents/content/pages/dup1?routing=dup1").should().respond(404);
     }
 
     @Test

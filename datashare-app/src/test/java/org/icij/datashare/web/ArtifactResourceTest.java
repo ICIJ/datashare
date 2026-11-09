@@ -8,6 +8,7 @@ import org.icij.datashare.tasks.MockIndexer;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.artifact.ArtifactType;
 import org.icij.datashare.text.indexing.Indexer;
@@ -33,6 +34,8 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACT_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -255,6 +258,14 @@ public class ArtifactResourceTest extends AbstractProdWebServerTest {
         // be caused by the missing format, not by a missing page or entry.
         get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=md").should().respond(200);
         get("/api/local-datashare/artifacts/structure/" + DIGEST + "/1?format=xhtml").should().respond(404);
+    }
+
+    @Test
+    public void test_structure_of_a_duplicate_id_is_not_found() {
+        when(indexer.get(eq("local-datashare"), eq("dup1"), eq("dup1"), anyList()))
+                .thenReturn(new Duplicate(Paths.get("/data/a.pdf"), "doc1"));
+
+        get("/api/local-datashare/artifacts/structure/dup1").should().respond(404);
     }
 
     @Test
