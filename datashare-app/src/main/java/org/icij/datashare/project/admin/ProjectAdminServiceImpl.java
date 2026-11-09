@@ -46,6 +46,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import static org.icij.datashare.asynctasks.Task.State.NON_FINAL_STATES;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
@@ -54,6 +55,7 @@ import static org.icij.datashare.text.StringUtils.getValue;
 @Singleton
 public class ProjectAdminServiceImpl implements ProjectAdminService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectAdminServiceImpl.class);
+    private static final Pattern CLEANABLE_NAME = Pattern.compile("^[A-Za-z0-9._-]{1,255}$");
     private static final String DEFAULT_ALLOW_FROM_MASK = "*.*.*.*";
     // Keys into User.details: per-application membership lists. The "datashare"
     // entry under "groups_by_applications" is the load-bearing projection used
@@ -143,9 +145,10 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
             ValidationException {
         Project project = repository.getProject(name);
         if (project == null) {
-            // no row vouches for the name, and the index and queue lookups read it as a pattern
-            if (!Project.NAME_PATTERN.matcher(name).matches()) {
-                throw new ValidationException("name", "project name must match " + Project.NAME_REGEX);
+            // No row vouches for the name and the queue lookup reads it as a glob, so wildcards are refused.
+            // Older names than Project.NAME_REGEX still pass, and isStrictChildOf contains "." and "..".
+            if (!CLEANABLE_NAME.matcher(name).matches()) {
+                throw new ValidationException("name", "project name must match " + CLEANABLE_NAME.pattern());
             }
             // Everything but the project row can outlive it (an earlier cascade that failed halfway, a
             // hand-deleted row), so the noop branch still runs every other step: otherwise no API or
