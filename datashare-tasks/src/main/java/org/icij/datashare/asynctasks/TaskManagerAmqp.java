@@ -16,6 +16,7 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
     private final RoutingStrategy routingStrategy;
     private final AmqpInterlocutor amqp;
     private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
+    private final AmqpConsumer<Task, Consumer<Task>> deadLetterConsumer;
     private final int taskPollingIntervalMs;
 
     public TaskManagerAmqp(AmqpInterlocutor amqp, TaskRepository taskRepository) throws IOException {
@@ -41,6 +42,10 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
         eventConsumer = new AmqpConsumer<>(amqp, event -> ofNullable(this.handleAck(event)).flatMap(
                 t -> ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT,
                                            TaskEvent.class).consumeEvents();
+        deadLetterConsumer = new AmqpConsumer<>(amqp, task -> ofNullable(this.handleAck(new ErrorEvent(task.id,
+                new TaskError(null, "task " + task.id + " ran out of retries", null, List.of()))))
+                .flatMap(t -> ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.TASK_DLQ, Task.class)
+                .consumeEvents();
     }
 
     @Override
@@ -135,6 +140,7 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
     public void close() throws IOException {
         clearDoneTasks();
         eventConsumer.shutdown();
+        deadLetterConsumer.shutdown();
     }
 
     @Override
