@@ -6,6 +6,7 @@ import net.codestory.http.Context;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
+import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.DatashareUser;
@@ -58,8 +59,9 @@ public class DocumentSourceAccess {
             return PayloadFormatter.error("You are not allowed to download this document", HttpStatus.FORBIDDEN);
         }
         List<String> sourceExcludes = List.of("content", "content_translated");
-        Document document =
-                notFoundIfNull(asDocument(indexer.get(project, id, routing == null ? id : routing, sourceExcludes)));
+        String root = routing == null ? id : routing;
+        Entity entity = indexer.get(project, id, root, sourceExcludes);
+        Document document = notFoundIfNull(asDocument(entity));
         if (!documentVerifier.isRootDocumentSizeAllowed(document, project(project))) {
             return PayloadFormatter.error("The file or its parent is too large", HttpStatus.REQUEST_ENTITY_TOO_LARGE);
         }
