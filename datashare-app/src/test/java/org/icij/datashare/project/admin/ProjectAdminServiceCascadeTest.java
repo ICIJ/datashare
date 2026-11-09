@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -166,8 +165,14 @@ public class ProjectAdminServiceCascadeTest {
     }
 
     @Test
-    public void test_delete_if_exists_refuses_a_missing_project_whose_name_resolves_outside_its_artifact_dir() {
-        assertThrows(ValidationException.class, () -> service.deleteIfExists(".", new ProjectDeleteOptions(true)));
+    public void test_delete_if_exists_leaves_the_artifact_dir_of_a_missing_project_resolving_outside_it()
+            throws Exception {
+        artifactDir.newFolder("bar");
+
+        ProjectDeleted deleted = service.deleteIfExists(".", new ProjectDeleteOptions(true));
+
+        assertThat(artifactDir.getRoot().toPath().resolve("bar").toFile()).exists();
+        assertThat(deleted.artifactsDeleted()).isFalse();
     }
 
     @Test

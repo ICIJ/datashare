@@ -200,7 +200,7 @@ public class ProjectResource {
         try {
             deleted = projectAdminService.deleteIfExists(id, new ProjectDeleteOptions(false));
         } catch (ValidationException e) {
-            // only reached when another request deletes a project older than the name pattern between both reads
+            // only reached when another request deletes, between both reads, a project whose name a cleanup refuses
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
         LoggerFactory.getLogger(getClass()).info("Deleted project {}: {}", id, deleted);

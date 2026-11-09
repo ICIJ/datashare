@@ -492,6 +492,17 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
+    public void test_delete_if_exists_cleans_up_a_missing_project_whose_name_predates_the_pattern() throws Exception {
+        givenProjectDoesNotExist("my_old.project");
+        givenNoLeftovers();
+
+        ProjectDeleted deleted = service.deleteIfExists("my_old.project", new ProjectDeleteOptions(false));
+
+        verify(repository).deleteAll("my_old.project");
+        assertThat(deleted.noop()).isTrue();
+    }
+
+    @Test
     public void test_delete_if_exists_refuses_a_name_no_project_can_have() throws Exception {
         givenProjectDoesNotExist("*");
 
