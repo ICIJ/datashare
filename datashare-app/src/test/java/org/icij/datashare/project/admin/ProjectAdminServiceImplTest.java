@@ -606,12 +606,18 @@ public class ProjectAdminServiceImplTest {
     @Test
     public void test_delete_if_exists_reports_a_failed_sweep_of_a_missing_project() throws Exception {
         givenProjectDoesNotExist("ghost");
+        givenLeftoverIndex("ghost");
         when(repository.deleteAll("ghost")).thenThrow(new RuntimeException("db down"));
 
         ProjectDeleted deleted = service.deleteIfExists("ghost", new ProjectDeleteOptions(false));
 
         assertThat(deleted.noop()).isTrue();
         assertThat(deleted.dbDeleted()).isFalse();
+        // the rows the sweep missed are still there, so the rest waits for a retry like on a live project
+        verify(indexer, never()).deleteIndex(any());
+        verify(taskManager, never()).getTasks(any(TaskFilters.class));
+        assertThat(deleted.inventoryDeleted()).isFalse();
+        assertThat(deleted.casbinDeleted()).isFalse();
     }
 
     @Test

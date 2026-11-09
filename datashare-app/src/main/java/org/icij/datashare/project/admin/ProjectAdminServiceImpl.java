@@ -485,10 +485,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // The dependent rows can outlive a row that is already gone (a halfway cascade, a hand-deleted
         // row), so the sweep runs on both paths; without a row, a done sweep is all there is to delete.
         boolean dbDeleted = runStep("db", name, () -> repository.deleteAll(name) || rowGone);
-        boolean noRow = rowGone || dbDeleted;
         // before the index drop: a task still writing to the index would re-create it
         // gated on the row too: a project that survives a failed db step must keep its running tasks
-        boolean tasksDeleted = noRow && runStep("tasks", name, () -> deleteTasks(name));
+        boolean tasksDeleted = dbDeleted && runStep("tasks", name, () -> deleteTasks(name));
         // The db row goes first and the index drop is gated on it: dropping the index destroys the
         // documents, so a project row that survives a failed db step would be left searchable-but-
         // empty with no way back. Leaving the index in place instead keeps the project intact and
@@ -510,11 +509,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         // no Casbin row behind it is re-enrolled as PROJECT_MEMBER by PostLoginEnroller on that
         // user's next login, which resurrects the very rows this cascade removes. Leaving the grants
         // in place instead is the loud failure -- it is reported, and --if-exists converges on retry.
-        // Both are gated on the row being gone: if the project row survives, stripping its grants would leave
-        // a live project nobody can reach, and grants cannot be rebuilt.
+        // Both are gated on the db step: if the project row or its dependent rows survive, stripping the
+        // grants would leave data nobody can reach, and grants cannot be rebuilt.
         //TODO #DOMAIN: drop the rows of every domain once projects carry one.
-        boolean inventoryDeleted = noRow && deleteInventoryEntries(name);
-        boolean casbinDeleted = noRow && inventoryDeleted && deleteCasbinRows(name);
+        boolean inventoryDeleted = dbDeleted && deleteInventoryEntries(name);
+        boolean casbinDeleted = dbDeleted && inventoryDeleted && deleteCasbinRows(name);
         // gated on the tasks step like the index: a task still running reads the queues and writes
         // the report map and the artifacts
         boolean queuesDeleted = tasksDeleted && runStep("queues", name, () -> deleteQueues(project));
