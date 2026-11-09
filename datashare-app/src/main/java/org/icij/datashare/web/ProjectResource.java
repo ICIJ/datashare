@@ -182,6 +182,8 @@ public class ProjectResource {
     @Operation(description = "Deletes the project, its elasticsearch index, its tasks, its batch searches and " +
                              "its path banners.", parameters = {@Parameter(name = "id", description = "project id")})
     @ApiResponse(responseCode = "204", description = "if project is deleted")
+    @ApiResponse(responseCode = "400",
+            description = "if the project row is gone and its id is not a valid project name")
     @ApiResponse(responseCode = "401", description = "if project id is not in the current user's projects")
     @ApiResponse(responseCode = "500", description = "if a step of the delete cascade failed")
     @Delete("/:id")
@@ -198,6 +200,7 @@ public class ProjectResource {
         try {
             deleted = projectAdminService.deleteIfExists(id, new ProjectDeleteOptions(false));
         } catch (ValidationException e) {
+            // only reached when another request deletes a project older than the name pattern between both reads
             return PayloadFormatter.error(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
         LoggerFactory.getLogger(getClass()).info("Deleted project {}: {}", id, deleted);
