@@ -515,9 +515,11 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
         //TODO #DOMAIN: drop the rows of every domain once projects carry one.
         boolean inventoryDeleted = noRow && deleteInventoryEntries(name);
         boolean casbinDeleted = noRow && inventoryDeleted && deleteCasbinRows(name);
-        boolean queuesDeleted = runStep("queues", name, () -> deleteQueues(project));
-        boolean reportMapDeleted = runStep("report map", name, () -> deleteReportMap(project));
-        boolean artifactsDeleted = runStep("artifacts", name, () -> deleteArtifacts(name));
+        // gated on the tasks step like the index: a task still running reads the queues and writes
+        // the report map and the artifacts
+        boolean queuesDeleted = tasksDeleted && runStep("queues", name, () -> deleteQueues(project));
+        boolean reportMapDeleted = tasksDeleted && runStep("report map", name, () -> deleteReportMap(project));
+        boolean artifactsDeleted = tasksDeleted && runStep("artifacts", name, () -> deleteArtifacts(name));
 
         return new ProjectDeleted(name, dbDeleted, indexDeleted, casbinDeleted, inventoryDeleted, queuesDeleted,
                                   reportMapDeleted, artifactsDeleted, tasksDeleted, rowGone);

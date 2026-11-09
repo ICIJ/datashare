@@ -388,7 +388,7 @@ public class CliAppProjectDispatchTest {
 
         CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
 
-        assertThat(stdout.toString()).contains("db FAILED, index skipped");
+        assertThat(stdout.toString()).contains("db FAILED, index skipped, queues skipped, report-map skipped");
         assertThat(stdout.toString()).contains("tasks skipped, grants skipped, inventory skipped");
     }
 
@@ -403,7 +403,7 @@ public class CliAppProjectDispatchTest {
 
         CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
 
-        assertThat(stdout.toString()).contains("db OK, index skipped");
+        assertThat(stdout.toString()).contains("db OK, index skipped, queues skipped, report-map skipped");
         assertThat(stdout.toString()).contains("tasks FAILED, grants OK");
     }
 

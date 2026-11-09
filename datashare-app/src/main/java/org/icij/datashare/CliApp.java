@@ -796,8 +796,8 @@ class CliApp {
         boolean grantsRan = noRowLeft && deleted.inventoryDeleted();
         String indexBadge = stepBadge("index", indexRan, deleted.indexDeleted());
         String dbBadge = deleted.dbDeleted() ? (deleted.noop() ? "db already gone" : "db OK") : "db FAILED";
-        String queuesBadge = deleted.queuesDeleted() ? "queues OK" : "queues FAILED";
-        String reportMapBadge = deleted.reportMapDeleted() ? "report-map OK" : "report-map FAILED";
+        String queuesBadge = stepBadge("queues", deleted.tasksDeleted(), deleted.queuesDeleted());
+        String reportMapBadge = stepBadge("report-map", deleted.tasksDeleted(), deleted.reportMapDeleted());
         String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
         String tasksBadge = stepBadge("tasks", noRowLeft, deleted.tasksDeleted());
         String grantsBadge = stepBadge("grants", grantsRan, deleted.casbinDeleted());
