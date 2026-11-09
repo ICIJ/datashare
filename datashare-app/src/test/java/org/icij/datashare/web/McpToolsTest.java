@@ -384,6 +384,18 @@ public class McpToolsTest extends AbstractProdWebServerTest {
         assertThat(result.get("maxOffset").asInt()).isEqualTo(11);
     }
 
+    @Test
+    public void test_get_document_of_a_duplicate_id_is_not_found() throws Exception {
+        serveAs("local", "foo");
+        when(indexer.get("foo", "dup1", "dup1"))
+                .thenReturn(new org.icij.datashare.text.Duplicate(java.nio.file.Paths.get("/data/a.pdf"), "doc1"));
+
+        JsonNode response = call("local", "get_document", "{\"project\":\"foo\",\"id\":\"dup1\"}");
+
+        assertThat(response.at("/result/isError").asBoolean()).isTrue();
+        assertThat(response.at("/result/content/0/text").asText()).isEqualTo("not found: dup1");
+    }
+
     // A real file on disk: the tool refuses to hand out a URL whose download could not read any bytes.
     private Document sourceDoc(String id, String rootId) throws Exception {
         java.io.File file = temp.newFile(id + ".pdf");

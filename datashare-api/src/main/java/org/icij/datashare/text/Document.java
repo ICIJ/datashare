@@ -36,6 +36,13 @@ import static org.icij.datashare.text.StringUtils.isEmpty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Document implements Entity, DocumentMetadataConstants {
     private static final long serialVersionUID = 5913568429773112L;
+
+    /** The entity as a Document, or null when it is something else (a Duplicate shares the id space),
+     *  so a caller answers 404 instead of failing an implicit cast with a ClassCastException. */
+    public static Document asDocument(Entity entity) {
+        return entity instanceof Document document ? document : null;
+    }
+
     /**
      * see git log for pom.xml in <a href="https://github.com/ICIJ/extract">extract-lib</a>
      */
