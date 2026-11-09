@@ -76,7 +76,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_enqueue_from_index_task() throws Exception {
         Task<Long> task = new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), Map.of("nlpPipeline", "EMAIL"));
-        EnqueueFromIndexTask taskRunner = new EnqueueFromIndexTask(mock(DocumentCollectionFactory.class), mock(Indexer.class), task, updateCallback);
+        EnqueueFromIndexTask taskRunner = new EnqueueFromIndexTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new EnqueueFromIndexStage(mock(Indexer.class))), task, updateCallback);
         when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
