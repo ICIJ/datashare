@@ -43,7 +43,7 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
                 t -> ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT,
                                            TaskEvent.class).consumeEvents();
         deadLetterConsumer = new AmqpConsumer<>(amqp, task -> {
-            TaskError error = new TaskError(null, "task " + task.id + " ran out of retries", null, List.of());
+            TaskError error = new TaskError(null, "task " + task.id + " was dead-lettered (worker crashed or rejected it)", null, List.of());
             ofNullable(this.handleAck(new ErrorEvent(task.id, error))).flatMap(t -> ofNullable(eventCallback))
                                                                       .ifPresent(Runnable::run);
         }, AmqpQueue.TASK_DLQ, Task.class).consumeEvents();
