@@ -218,8 +218,8 @@ public class TaskManagerMemoryTest {
     @Test
     public void test_wait_task_to_be_done() throws Exception {
         taskManager.startTask(TestFactory.Sleep.class, User.local(), Map.of("duration", 100000));
-        long unfinished = taskManager.waitTasksToBeDone(200, TimeUnit.MILLISECONDS);
-        assert unfinished == 1L;
+        boolean terminated = taskManager.awaitTermination(200, TimeUnit.MILLISECONDS);
+        assertThat(terminated).isFalse();
     }
 
     @Test

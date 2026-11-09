@@ -115,7 +115,7 @@ public class TaskManagerMemoryForBatchSearchTest {
 
         bs1Started.await();
         Signal.raise(new Signal("TERM"));
-        taskManager.waitTasksToBeDone(1, TimeUnit.SECONDS);
+        taskManager.awaitTermination(1, TimeUnit.SECONDS);
 
         assertThat(taskManager.getTasks().toList()).hasSize(2);
     }
