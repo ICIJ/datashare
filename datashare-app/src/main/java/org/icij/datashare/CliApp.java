@@ -798,7 +798,7 @@ class CliApp {
         String dbBadge = deleted.dbDeleted() ? (deleted.noop() ? "db already gone" : "db OK") : "db FAILED";
         String queuesBadge = stepBadge("queues", deleted.tasksDeleted(), deleted.queuesDeleted());
         String reportMapBadge = stepBadge("report-map", deleted.tasksDeleted(), deleted.reportMapDeleted());
-        String artifactsBadge = deleted.artifactsDeleted() ? "artifacts OK" : "artifacts skipped";
+        String artifactsBadge = stepBadge("artifacts", deleted.tasksDeleted(), deleted.artifactsDeleted());
         String tasksBadge = stepBadge("tasks", noRowLeft, deleted.tasksDeleted());
         String grantsBadge = stepBadge("grants", grantsRan, deleted.casbinDeleted());
         String inventoryBadge = stepBadge("inventory", noRowLeft, deleted.inventoryDeleted());
@@ -823,7 +823,7 @@ class CliApp {
         // silent half of the bug #2441 is about
         boolean accessFailed = !deleted.casbinDeleted() || !deleted.inventoryDeleted();
         if (!deleted.dbDeleted() || indexFailed || accessFailed || !deleted.queuesDeleted() ||
-            !deleted.reportMapDeleted() || !deleted.tasksDeleted()) {
+            !deleted.reportMapDeleted() || !deleted.artifactsDeleted() || !deleted.tasksDeleted()) {
             // Some load-bearing step failed: keep the cascade exit code 0
             // (the cascade did run to completion) but nudge the operator
             // to retry with --if-exists, which is continuation-friendly.

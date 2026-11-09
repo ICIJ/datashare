@@ -375,7 +375,7 @@ public class ProjectAdminServiceImplTest {
         assertThat(deleted.dbDeleted()).isTrue();
         assertThat(deleted.queuesDeleted()).isTrue();
         assertThat(deleted.reportMapDeleted()).isTrue();
-        assertThat(deleted.artifactsDeleted()).isFalse(); // no artifact dir configured
+        assertThat(deleted.artifactsDeleted()).isTrue();
         assertThat(deleted.noop()).isFalse();
     }
 
