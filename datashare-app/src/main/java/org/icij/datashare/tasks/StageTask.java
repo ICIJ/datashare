@@ -54,10 +54,35 @@ public class StageTask<I, O> extends PipelineTask<I> {
     @Override
     public Long call() throws Exception {
         super.call();
+        StageResult result;
+        try (ScopedStageContext<O> ctx = newContext()) {
+            result = run(ctx);
+        }
+        logSummary(result);
+        return result.updated() + result.unchanged();
+    }
+
+    /**
+     * Feeds the processor and returns what it did: by default with the entries of the input queue, drained by the
+     * workers. A source stage has no input queue, so its task overrides this to hand the processor an empty batch.
+     */
+    protected StageResult run(StageContext<O> ctx) throws InterruptedException {
         logger.info("running stage {} for project {} from queue {} with {} worker(s)", stage, project.name,
                     inputQueue.getName(), nbWorkers);
         AtomicReference<StageResult> total = new AtomicReference<>(StageResult.EMPTY);
-        try (ScopedStageContext<O> ctx = new ScopedStageContext<>() {
+        runWorkers(() -> drainQueue(t -> workerPool.isShutdown() && causedByInterrupt(t), entry -> {
+            total.accumulateAndGet(processor.process(List.of(entry), ctx), StageResult::plus);
+            onEntryProcessed();
+        }));
+        return total.get();
+    }
+
+    protected StageProcessor<I, O> processor() {
+        return processor;
+    }
+
+    private ScopedStageContext<O> newContext() {
+        return new ScopedStageContext<>() {
             public Project project() {return project;}
 
             public Map<String, Object> options() {return options;}
@@ -73,15 +98,7 @@ public class StageTask<I, O> extends PipelineTask<I> {
                 }
                 out.forEach(StageTask.this::offerToNextStage);
             }
-        }) {
-            runWorkers(() -> drainQueue(t -> workerPool.isShutdown() && causedByInterrupt(t), entry -> {
-                total.accumulateAndGet(processor.process(List.of(entry), ctx), StageResult::plus);
-                onEntryProcessed();
-            }));
-        }
-        StageResult result = total.get();
-        logSummary(result);
-        return result.updated() + result.unchanged();
+        };
     }
 
     protected void setTaskId(String taskId) {

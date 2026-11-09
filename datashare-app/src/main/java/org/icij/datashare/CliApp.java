@@ -28,7 +28,7 @@ import org.icij.datashare.tabular.InvalidExtractionMapping;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.asynctasks.PipelineExecutor;
 import org.icij.datashare.asynctasks.TaskManager;
-import org.icij.datashare.tasks.EnqueueFromIndexTask;
+import org.icij.datashare.tasks.EnqueueFromIndexStage;
 import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.admin.UserAdminService;
@@ -212,7 +212,7 @@ class CliApp {
      * <p>
      * Without {@link Stage#ENQUEUEIDX} in the chain, nothing reads --nextStage, so any value is
      * rejected. With it, the stage receiving the enqueued documents is checked to drain the ids
-     * {@link EnqueueFromIndexTask} writes: --nextStage when it is set, the stage following
+     * {@link EnqueueFromIndexStage} emits: --nextStage when it is set, the stage following
      * ENQUEUEIDX in the chain otherwise.
      *
      * @return {@link #EXIT_SUCCESS}, or {@link #EXIT_VALIDATION} once the reason is reported
@@ -226,7 +226,7 @@ class CliApp {
                            Stage.ENQUEUEIDX), "validation", EXIT_VALIDATION, false);
         }
         try {
-            EnqueueFromIndexTask.parseNextStage(
+            EnqueueFromIndexStage.parseNextStage(
                     nextStage.orElseGet(() -> pipeline.getNextStage(Stage.ENQUEUEIDX).name()));
         } catch (IllegalArgumentException e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
