@@ -381,7 +381,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_reports_the_steps_a_failed_db_delete_held_back_as_skipped() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", false, false, false, false, true, true, true, false, false));
+                .thenReturn(deletedExcept("foo", Step.DB));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -396,7 +396,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_reports_the_index_a_failed_tasks_step_held_back_as_skipped() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, false, true, true, true, true, true, false, false));
+                .thenReturn(deletedExcept("foo", Step.TASKS));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -411,7 +411,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_reports_the_grants_a_failed_inventory_step_held_back_as_skipped() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, false, false, true, true, true, true, false));
+                .thenReturn(deletedExcept("foo", Step.INVENTORY));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -426,7 +426,7 @@ public class CliAppProjectDispatchTest {
     public void test_delete_reports_a_failed_artifact_delete_as_a_failure() throws Exception {
         when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
         when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
-                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, true, false, true, false));
+                .thenReturn(deletedExcept("foo", Step.ARTIFACTS));
         Properties props = new Properties();
         props.setProperty(PROJECT_DELETE_OPT, "foo");
         props.setProperty(PROJECT_DELETE_YES_OPT, "true");
@@ -960,10 +960,18 @@ public class CliAppProjectDispatchTest {
         return deleted(name, failedStep, true);
     }
 
+    /** The outcome of a cascade where {@code failedStep} failed and the steps gated on it were held back. */
     private static ProjectDeleted deleted(String name, Step failedStep, boolean noop) {
-        return new ProjectDeleted(name, failedStep != Step.DB, failedStep != Step.INDEX,
-                                  failedStep != Step.CASBIN, failedStep != Step.INVENTORY,
-                                  failedStep != Step.QUEUES, failedStep != Step.REPORT_MAP,
-                                  failedStep != Step.ARTIFACTS, failedStep != Step.TASKS, noop);
+        boolean dbDeleted = failedStep != Step.DB;
+        boolean noRowLeft = noop || dbDeleted;
+        boolean tasksDeleted = noRowLeft && failedStep != Step.TASKS;
+        boolean inventoryDeleted = noRowLeft && failedStep != Step.INVENTORY;
+        boolean indexDeleted = tasksDeleted && failedStep != Step.INDEX;
+        boolean casbinDeleted = inventoryDeleted && failedStep != Step.CASBIN;
+        boolean queuesDeleted = tasksDeleted && failedStep != Step.QUEUES;
+        boolean reportMapDeleted = tasksDeleted && failedStep != Step.REPORT_MAP;
+        boolean artifactsDeleted = tasksDeleted && failedStep != Step.ARTIFACTS;
+        return new ProjectDeleted(name, dbDeleted, indexDeleted, casbinDeleted, inventoryDeleted, queuesDeleted,
+                                  reportMapDeleted, artifactsDeleted, tasksDeleted, noop);
     }
 }
