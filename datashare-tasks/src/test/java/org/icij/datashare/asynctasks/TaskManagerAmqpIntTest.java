@@ -56,20 +56,7 @@ public class TaskManagerAmqpIntTest {
         String taskId = taskManager.startTask("task", User.local(), new HashMap<>());
 
         // WHEN its workers keep dying until it runs out of retries
-        int deliveries = 0;
-        GetResponse delivery;
-        do {
-            try (Connection workerConnection = workerConnectionFactory.newConnection()) {
-                delivery = workerConnection.createChannel().basicGet(AmqpQueue.TASK.name(), false);
-                if (delivery != null) {
-                    deliveries++;
-                    taskSupplier.progress(taskId, 0.5);
-                    assertThat(nextMessage.await(5, TimeUnit.SECONDS)).isTrue();
-                    nextMessage = new CountDownLatch(1);
-                }
-            }
-        } while (delivery != null && deliveries < MAX_DELIVERIES);
-        assertThat(deliveries).isLessThan(MAX_DELIVERIES);
+        workersDieUntilTaskRunsOutOfRetries();
 
         // THEN the task is in error state
         assertThat(nextMessage.await(5, TimeUnit.SECONDS)).isTrue();
@@ -85,6 +72,14 @@ public class TaskManagerAmqpIntTest {
         repository.update(task);
 
         // WHEN its message runs out of retries
+        workersDieUntilTaskRunsOutOfRetries();
+
+        // THEN the task is still in finished state
+        assertThat(nextMessage.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(Task.State.DONE);
+    }
+
+    private void workersDieUntilTaskRunsOutOfRetries() throws Exception {
         int deliveries = 0;
         GetResponse delivery;
         do {
@@ -96,9 +91,5 @@ public class TaskManagerAmqpIntTest {
             }
         } while (delivery != null && deliveries < MAX_DELIVERIES);
         assertThat(deliveries).isLessThan(MAX_DELIVERIES);
-
-        // THEN the task is still in finished state
-        assertThat(nextMessage.await(5, TimeUnit.SECONDS)).isTrue();
-        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(Task.State.DONE);
     }
 }
