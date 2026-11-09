@@ -402,7 +402,6 @@ public class ProjectAdminServiceImplTest {
         Task<?> queuedTask = new Task<>("index-foo", "IndexTask", User.local(), Map.of("projectName", "foo"));
         queuedTask.setState(Task.State.QUEUED);
         doReturn(Stream.of(queuedTask)).when(taskManager).getTasks(any(TaskFilters.class));
-        doReturn(queuedTask).when(taskManager).getTask("index-foo");
         givenNoLeftovers();
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(true));
@@ -436,10 +435,6 @@ public class ProjectAdminServiceImplTest {
         Task<?> stoppedTask = runningTaskOf("index-foo-2", "foo");
         doReturn(Stream.of(stuckTask, stoppedTask)).when(taskManager).getTasks(any(TaskFilters.class));
         doThrow(new IOException("broker down")).when(taskManager).stopTask("index-foo-1");
-        doReturn(stuckTask).when(taskManager).getTask("index-foo-1");
-        Task<?> cancelledTask = runningTaskOf("index-foo-2", "foo");
-        cancelledTask.setState(Task.State.CANCELLED);
-        doReturn(cancelledTask).when(taskManager).getTask("index-foo-2");
         doThrow(new IllegalStateException("running")).when(taskManager).clearTask("index-foo-1");
         givenNoLeftovers();
 
@@ -472,8 +467,6 @@ public class ProjectAdminServiceImplTest {
         Task<?> racingTask = queuedTaskOf("index-foo-1");
         Task<?> queuedTask = queuedTaskOf("index-foo-2");
         doReturn(Stream.of(racingTask, queuedTask)).when(taskManager).getTasks(any(TaskFilters.class));
-        doReturn(racingTask).when(taskManager).getTask("index-foo-1");
-        doReturn(queuedTask).when(taskManager).getTask("index-foo-2");
         doThrow(new IllegalStateException("running")).when(taskManager).clearTask("index-foo-1");
         givenNoLeftovers();
 
@@ -489,7 +482,6 @@ public class ProjectAdminServiceImplTest {
         givenLeftoverIndex("foo");
         Task<?> stuckTask = runningTaskOf("index-foo", "foo");
         doReturn(Stream.of(stuckTask)).when(taskManager).getTasks(any(TaskFilters.class));
-        doReturn(stuckTask).when(taskManager).getTask("index-foo");
         doThrow(new IllegalStateException("running")).when(taskManager).clearTask("index-foo");
         givenNoLeftovers();
 
