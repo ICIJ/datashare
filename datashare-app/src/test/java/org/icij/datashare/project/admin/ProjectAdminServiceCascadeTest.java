@@ -143,6 +143,18 @@ public class ProjectAdminServiceCascadeTest {
     }
 
     @Test
+    public void test_delete_keeps_the_projects_artifact_dir_when_the_db_step_fails() throws Exception {
+        when(repository.getProject("test-datashare")).thenReturn(new Project("test-datashare"));
+        when(repository.deleteAll("test-datashare")).thenReturn(false);
+        artifactDir.newFolder("test-datashare");
+
+        ProjectDeleted deleted = service.delete("test-datashare", new ProjectDeleteOptions(true));
+
+        assertThat(artifactDir.getRoot().toPath().resolve("test-datashare").toFile()).exists();
+        assertThat(deleted.artifactsDeleted()).isFalse();
+    }
+
+    @Test
     public void test_delete_reports_an_artifact_path_that_is_not_a_directory() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         artifactDir.newFile("foo");

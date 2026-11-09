@@ -659,7 +659,7 @@ public class ProjectAdminServiceImplTest {
     }
 
     @Test
-    public void test_delete_continues_cascade_when_db_delete_fails() throws Exception {
+    public void test_delete_keeps_the_queues_and_report_map_when_the_db_step_fails() throws Exception {
         when(repository.getProject("foo")).thenReturn(new Project("foo"));
         givenLeftoverIndex("foo");
         givenLeftoverIndex("foo.entities");
@@ -672,15 +672,35 @@ public class ProjectAdminServiceImplTest {
 
         ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
 
-        // Cascade continues past the DB failure: queues and report-map still run.
+        // the project survives with its tasks, which still read the queues and write the report map
         assertThat(deleted.dbDeleted()).isFalse();
-        assertThat(deleted.queuesDeleted()).isTrue();
-        assertThat(deleted.reportMapDeleted()).isTrue();
-        verify(documentCollectionFactory).createMap(any());
-        // but the index stays: the project row survived, and an index dropped under it cannot be
-        // rebuilt by the --if-exists retry the cascade recommends
+        assertThat(deleted.queuesDeleted()).isFalse();
+        assertThat(deleted.reportMapDeleted()).isFalse();
+        verify(queue, never()).delete();
+        verify(reportMap, never()).delete();
         assertThat(deleted.indexDeleted()).isFalse();
         verify(indexer, never()).deleteIndex(any());
+    }
+
+    @Test
+    public void test_delete_keeps_the_queues_and_report_map_while_a_task_of_the_project_still_runs()
+            throws Exception {
+        givenExistingProject("foo");
+        Task<?> stuckTask = runningTaskOf("index-foo", "foo");
+        doReturn(Stream.of(stuckTask)).when(taskManager).getTasks(any(TaskFilters.class));
+        doThrow(new IllegalStateException("running")).when(taskManager).clearTask("index-foo");
+        DocumentQueue<Path> queue = mock(DocumentQueue.class);
+        givenLeftoverQueue(queue);
+        ReportMap reportMap = mock(ReportMap.class);
+        givenLeftoverReportMap(reportMap);
+        givenNoArtifactDir();
+
+        ProjectDeleted deleted = service.delete("foo", new ProjectDeleteOptions(false));
+
+        verify(queue, never()).delete();
+        verify(reportMap, never()).delete();
+        assertThat(deleted.queuesDeleted()).isFalse();
+        assertThat(deleted.reportMapDeleted()).isFalse();
     }
 
     @Test
