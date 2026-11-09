@@ -46,7 +46,9 @@ public class StageTask<I, O> extends PipelineTask<I> {
         processor = registry.get(stage);
         propertiesProvider.getProperties().forEach((key, value) -> options.put(key.toString(), value));
         project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
-        nextStageQueue = outputFactory == null ? null : outputFactory.createQueue(getOutputQueueName(), outputClass);
+        String outputQueueName = getOutputQueueName();
+        nextStageQueue = outputFactory == null || outputQueueName == null ? null :
+                         outputFactory.createQueue(outputQueueName, outputClass);
     }
 
     @Override
