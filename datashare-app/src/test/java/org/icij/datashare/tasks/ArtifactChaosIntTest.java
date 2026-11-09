@@ -73,7 +73,7 @@ public class ArtifactChaosIntTest {
                 new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH)),
                 new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
-        new EnqueueFromIndexTask(stringQueueFactory, indexer,
+        new EnqueueFromIndexTask(stringQueueFactory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
 
         // --- run 1: let a handful of documents be produced for real, then kill mid-flight on
@@ -132,7 +132,7 @@ public class ArtifactChaosIntTest {
 
         // --- run 2: re-enqueue everything from the index (a fresh EnqueueFromIndexTask, as a
         // real operator would do to resume) and drive a NEW ArtifactTask to completion. ---
-        new EnqueueFromIndexTask(stringQueueFactory, indexer,
+        new EnqueueFromIndexTask(stringQueueFactory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
 
         AtomicInteger reproductions = new AtomicInteger(0);
@@ -184,7 +184,7 @@ public class ArtifactChaosIntTest {
                 new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH)),
                 new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
-        new EnqueueFromIndexTask(stringQueueFactory, indexer,
+        new EnqueueFromIndexTask(stringQueueFactory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
         new ArtifactTask(stringQueueFactory, stageRegistry(indexer, (m) -> new SourceExtractor(new PropertiesProvider(m))),
                          new UpstreamGate.Factory(taskRepository),
@@ -242,7 +242,7 @@ public class ArtifactChaosIntTest {
                 new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH)),
                 new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
-        new EnqueueFromIndexTask(stringQueueFactory, indexer,
+        new EnqueueFromIndexTask(stringQueueFactory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
         new ArtifactTask(stringQueueFactory, stageRegistry(indexer, (m) -> new SourceExtractor(new PropertiesProvider(m))),
                          new UpstreamGate.Factory(taskRepository),

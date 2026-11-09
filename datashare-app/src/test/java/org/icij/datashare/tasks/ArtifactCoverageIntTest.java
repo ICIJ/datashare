@@ -62,7 +62,7 @@ public class ArtifactCoverageIntTest {
                 new UpstreamGate.Factory(taskRepository), new Task<>(IndexTask.class.getName(), User.local(), map), null).call();
 
         // 3. ENQUEUEIDX -> ARTIFACT (queue test:queue:artifact), then the task itself
-        new EnqueueFromIndexTask(stringQueueFactory, indexer,
+        new EnqueueFromIndexTask(stringQueueFactory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), map), null).call();
         new ArtifactTask(stringQueueFactory, stageRegistry, new UpstreamGate.Factory(taskRepository),
                 ArtifactTaskFixture.taskWith(map), null).call();

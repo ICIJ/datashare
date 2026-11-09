@@ -139,7 +139,7 @@ public class CategorizeTaskIntTest {
                 "stages", "ENQUEUEIDX,CATEGORIZE");
 
         // WHEN
-        new EnqueueFromIndexTask(documentCollectionFactory, indexer,
+        new EnqueueFromIndexTask(documentCollectionFactory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), args), null).call();
 
         new CategorizeTask(indexer, documentCollectionFactory, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), stageRegistry,
@@ -166,7 +166,7 @@ public class CategorizeTaskIntTest {
                 "stages", "ENQUEUEIDX,CATEGORIZE");
 
         // WHEN
-        new EnqueueFromIndexTask(documentCollectionFactory, indexer,
+        new EnqueueFromIndexTask(documentCollectionFactory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), args), null).call();
 
         new CategorizeTask(indexer, documentCollectionFactory, documentCollectionFactory, new UpstreamGate.Factory(taskRepository), stageRegistry,
@@ -192,7 +192,7 @@ public class CategorizeTaskIntTest {
                 "stages", "ENQUEUEIDX,CATEGORIZE");
 
         // WHEN
-        new EnqueueFromIndexTask(documentCollectionFactory, indexer,
+        new EnqueueFromIndexTask(documentCollectionFactory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), args), null).call();
 
         assertThat(documentCollectionFactory.queues.get("extract:queue:categorize"))
