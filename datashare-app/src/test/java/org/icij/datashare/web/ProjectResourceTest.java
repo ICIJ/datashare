@@ -33,6 +33,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -673,6 +674,16 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .thenReturn(fullyDeleted("bar"));
         when(taskManager.clearDoneTasks()).thenReturn(List.of(task)).thenReturn(List.of());
         delete("/api/project/").should().respond(204);
+    }
+
+    @Test
+    public void test_delete_all_projects_fails_when_interrupted_while_waiting_for_tasks() throws Exception {
+        when(repository.getProjects(any())).thenReturn(List.of());
+        when(taskManager.awaitTermination(anyInt(), any())).thenThrow(new InterruptedException());
+
+        delete("/api/project/").should().respond(500);
+
+        verify(taskManager, never()).clearDoneTasks();
     }
 
     @Test

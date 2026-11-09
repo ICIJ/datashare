@@ -235,7 +235,7 @@ public class ProjectResource {
     @Operation(description = "Deletes all user's projects from database and elasticsearch index.")
     @ApiResponse(responseCode = "204", description = "if projects are deleted")
     @Delete("/")
-    public Payload deleteProjects(Context context) throws IOException {
+    public Payload deleteProjects(Context context) throws IOException, InterruptedException {
         DatashareUser user = (DatashareUser) context.currentUser();
         Logger logger = LoggerFactory.getLogger(getClass());
         // reduce(), not anyMatch(): every project must be attempted before the status is decided
@@ -247,7 +247,7 @@ public class ProjectResource {
             }
         }).reduce(true, Boolean::logicalAnd);
         logger.info("Stopping tasks : {}", taskManager.stopTasks(user));
-        taskManager.waitTasksToBeDone(taskManager.getTerminationPollingInterval() * 2, MILLISECONDS);
+        taskManager.awaitTermination(taskManager.getTerminationPollingInterval() * 2, MILLISECONDS);
         logger.info("Deleted tasks : {}", !taskManager.clearDoneTasks().isEmpty());
         if (!allDeleted) {
             return PayloadFormatter.error("Unable to delete the projects", HttpStatus.INTERNAL_SERVER_ERROR);
