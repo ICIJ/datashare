@@ -675,8 +675,9 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
 
     private boolean deleteArtifacts(String name) throws IOException {
         Optional<String> dir = propertiesProvider.get(DatashareCliOptions.ARTIFACT_DIR_OPT);
+        // without an artifact dir there is no artifact to delete, which is done rather than skipped
         if (dir.isEmpty()) {
-            return false;
+            return true;
         }
         Path artifactRoot = Path.of(dir.get()).toAbsolutePath().normalize();
         Path projectArtifactDir = artifactRoot.resolve(name).normalize();

@@ -423,6 +423,21 @@ public class CliAppProjectDispatchTest {
     }
 
     @Test
+    public void test_delete_reports_a_failed_artifact_delete_as_a_failure() throws Exception {
+        when(service.stats(eq("foo"), eq(true))).thenReturn(ProjectStats.of("foo", 42L, 3));
+        when(service.delete(eq("foo"), any(ProjectDeleteOptions.class)))
+                .thenReturn(new ProjectDeleted("foo", true, true, true, true, true, true, false, true, false));
+        Properties props = new Properties();
+        props.setProperty(PROJECT_DELETE_OPT, "foo");
+        props.setProperty(PROJECT_DELETE_YES_OPT, "true");
+
+        CliApp.handleProjectDelete(service, props, alwaysConfirming("foo"));
+
+        assertThat(stdout.toString()).contains("artifacts FAILED");
+        assertThat(stderr.toString()).contains("re-run with --if-exists");
+    }
+
+    @Test
     public void test_delete_keep_index_passes_option() throws Exception {
         when(service.stats(eq("foo"), eq(false))).thenReturn(ProjectStats.withSkippedIndex("foo", 3));
         org.mockito.ArgumentCaptor<ProjectDeleteOptions> captor =
