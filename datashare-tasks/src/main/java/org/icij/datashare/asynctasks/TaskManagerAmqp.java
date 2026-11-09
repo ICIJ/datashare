@@ -42,11 +42,9 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
         eventConsumer = new AmqpConsumer<>(amqp, event -> ofNullable(this.handleAck(event)).flatMap(
                 t -> ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.MANAGER_EVENT,
                                            TaskEvent.class).consumeEvents();
-        deadLetterConsumer = new AmqpConsumer<>(amqp, task -> {
-            TaskError error = new TaskError(null, "task " + task.id + " was dead-lettered (worker crashed or rejected it)", null, List.of());
-            ofNullable(this.handleAck(new ErrorEvent(task.id, error))).flatMap(t -> ofNullable(eventCallback))
-                                                                      .ifPresent(Runnable::run);
-        }, AmqpQueue.TASK_DLQ, Task.class).consumeEvents();
+        deadLetterConsumer = new AmqpConsumer<>(amqp, task -> ofNullable(this.handleDeadLetter(task)).flatMap(
+                t -> ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.TASK_DLQ,
+                                                Task.class).consumeEvents();
     }
 
     @Override
@@ -163,5 +161,20 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
             logger.error("error sending monitoring event", e);
             return false;
         }
+    }
+
+    private <V extends Serializable> Task<V> handleDeadLetter(Task<V> deadLetter) {
+        try {
+            Task<V> task = getTask(deadLetter.id);
+            if (task.getState().isFinal()) {
+                return task;
+            }
+        } catch (IOException | UnknownTask e) {
+            throw new TaskEventHandlingException(e);
+        }
+        TaskError error =
+                new TaskError(null, "task " + deadLetter.id + " was dead-lettered (worker crashed or rejected it)",
+                              null, List.of());
+        return handleAck(new ErrorEvent(deadLetter.id, error));
     }
 }
