@@ -791,17 +791,16 @@ class CliApp {
             return;
         }
         // the cascade holds back the steps behind a failed gate, which is not a failure of their own
-        boolean noRowLeft = deleted.noop() || deleted.dbDeleted();
         boolean indexRan = deleted.tasksDeleted() && !options.keepIndex();
-        boolean grantsRan = noRowLeft && deleted.inventoryDeleted();
+        boolean grantsRan = deleted.inventoryDeleted();
         String indexBadge = stepBadge("index", indexRan, deleted.indexDeleted());
         String dbBadge = deleted.dbDeleted() ? (deleted.noop() ? "db already gone" : "db OK") : "db FAILED";
         String queuesBadge = stepBadge("queues", deleted.tasksDeleted(), deleted.queuesDeleted());
         String reportMapBadge = stepBadge("report-map", deleted.tasksDeleted(), deleted.reportMapDeleted());
         String artifactsBadge = stepBadge("artifacts", deleted.tasksDeleted(), deleted.artifactsDeleted());
-        String tasksBadge = stepBadge("tasks", noRowLeft, deleted.tasksDeleted());
+        String tasksBadge = stepBadge("tasks", deleted.dbDeleted(), deleted.tasksDeleted());
         String grantsBadge = stepBadge("grants", grantsRan, deleted.casbinDeleted());
-        String inventoryBadge = stepBadge("inventory", noRowLeft, deleted.inventoryDeleted());
+        String inventoryBadge = stepBadge("inventory", deleted.dbDeleted(), deleted.inventoryDeleted());
         String headline = deleted.noop() ? "cleaned up project '" + deleted.name() + "', whose row was already gone" :
                           "deleted project '" + deleted.name() + "'";
         System.out.println(

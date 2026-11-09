@@ -281,7 +281,8 @@ public class CliAppProjectDispatchTest {
         int exit = CliApp.handleProjectDelete(service, props, alwaysConfirming("ghost"));
 
         assertThat(exit).isEqualTo(0);
-        assertThat(stdout.toString()).contains("db FAILED");
+        assertThat(stdout.toString()).contains("db FAILED, index skipped");
+        assertThat(stdout.toString()).contains("tasks skipped, grants skipped, inventory skipped");
         assertThat(stderr.toString()).contains("re-run with --if-exists");
     }
 
@@ -963,9 +964,8 @@ public class CliAppProjectDispatchTest {
     /** The outcome of a cascade where {@code failedStep} failed and the steps gated on it were held back. */
     private static ProjectDeleted deleted(String name, Step failedStep, boolean noop) {
         boolean dbDeleted = failedStep != Step.DB;
-        boolean noRowLeft = noop || dbDeleted;
-        boolean tasksDeleted = noRowLeft && failedStep != Step.TASKS;
-        boolean inventoryDeleted = noRowLeft && failedStep != Step.INVENTORY;
+        boolean tasksDeleted = dbDeleted && failedStep != Step.TASKS;
+        boolean inventoryDeleted = dbDeleted && failedStep != Step.INVENTORY;
         boolean indexDeleted = tasksDeleted && failedStep != Step.INDEX;
         boolean casbinDeleted = inventoryDeleted && failedStep != Step.CASBIN;
         boolean queuesDeleted = tasksDeleted && failedStep != Step.QUEUES;
