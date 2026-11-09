@@ -163,9 +163,9 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
         }
     }
 
-    private <V extends Serializable> Task<V> handleDeadLetter(Task<V> deadLetter) {
+    private Task<?> handleDeadLetter(Task<?> deadLetter) {
         try {
-            Task<V> task = getTask(deadLetter.id);
+            Task<?> task = getTask(deadLetter.id);
             if (task.getState().isFinal()) {
                 return task;
             }
