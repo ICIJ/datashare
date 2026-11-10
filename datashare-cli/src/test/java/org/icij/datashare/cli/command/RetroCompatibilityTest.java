@@ -168,6 +168,21 @@ public class RetroCompatibilityTest {
     }
 
     @Test
+    public void test_parity_session_store_max_size_default() {
+        Properties legacy = parseLegacy("");
+        Properties picocli = parseNew("app", "start");
+        assertThat(picocli.getProperty("sessionStoreMaxSize")).isEqualTo("10000");
+        assertPropertyEqual(legacy, picocli, "sessionStoreMaxSize");
+    }
+
+    @Test
+    public void test_parity_session_store_max_size_custom() {
+        Properties legacy = parseLegacy("--sessionStoreMaxSize", "50");
+        Properties picocli = parseNew("app", "start", "--sessionStoreMaxSize", "50");
+        assertPropertyEqual(legacy, picocli, "sessionStoreMaxSize");
+    }
+
+    @Test
     public void test_parity_data_dir_default() {
         Properties legacy = parseLegacy("");
         Properties picocli = parseNew("app", "start");

@@ -134,6 +134,7 @@ public final class DatashareCliOptions {
     public static final String SESSION_SIGNING_KEY_OPT = "sessionSigningKey";
     public static final String SESSION_STORE_TYPE_OPT = "sessionStoreType";
     public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
+    public static final String SESSION_STORE_MAX_SIZE_OPT = "sessionStoreMaxSize";
     public static final String STATUS_ALLOWED_NETS_OPT = "statusAllowedNets";
     public static final String MAX_HTTP_BODY_SIZE_OPT = "maxHttpBodySize";
     public static final String SECURE_SESSION_COOKIE_OPT = "secureSessionCookie";
@@ -283,6 +284,7 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_SCROLL_SLICES = 1;
     public static final int DEFAULT_TCP_LISTEN_PORT = 8080;
     public static final int DEFAULT_SESSION_TTL_SECONDS = 43200;
+    public static final int DEFAULT_SESSION_STORE_MAX_SIZE = 10000;
     public static final String DEFAULT_MAX_CONTENT_LENGTH = "20000000";
     public static final RoutingStrategy DEFAULT_TASK_ROUTING_STRATEGY = RoutingStrategy.UNIQUE;
     public static final String DEFAULT_POLLING_INTERVAL_SEC = "60";
@@ -871,6 +873,12 @@ public final class DatashareCliOptions {
     public static void sessionStoreType(OptionParser parser) {
         parser.acceptsAll(singletonList(SESSION_STORE_TYPE_OPT), "Type of session store").withRequiredArg()
               .ofType(QueueType.class).defaultsTo(DEFAULT_SESSION_STORE_TYPE);
+    }
+
+    public static void sessionStoreMaxSize(OptionParser parser) {
+        parser.acceptsAll(singletonList(SESSION_STORE_MAX_SIZE_OPT),
+                          "Maximum number of sessions kept by the in-memory session store").withRequiredArg()
+              .ofType(Integer.class).defaultsTo(DEFAULT_SESSION_STORE_MAX_SIZE);
     }
 
     public static void statusAllowedNets(OptionParser parser) {

@@ -72,6 +72,9 @@ public class ServerOptions {
     int sessionTtlSeconds;
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
     QueueType sessionStoreType;
+    @Option(names = {"--sessionStoreMaxSize"}, defaultValue = "10000",
+            description = "Maximum number of sessions kept by the in-memory session store")
+    Integer sessionStoreMaxSize;
     // Batch / Download
     @Option(names = {"--batchSearchMaxTimeSeconds"}, description = "Max batch search time in seconds")
     Integer batchSearchMaxTimeSeconds;
@@ -140,6 +143,7 @@ public class ServerOptions {
         DatashareOptions.putIfNotNull(props, SESSION_SIGNING_KEY_OPT, sessionSigningKey);
         DatashareOptions.put(props, SESSION_TTL_SECONDS_OPT, sessionTtlSeconds);
         DatashareOptions.putIfNotNull(props, SESSION_STORE_TYPE_OPT, sessionStoreType);
+        DatashareOptions.putIfNotNull(props, SESSION_STORE_MAX_SIZE_OPT, sessionStoreMaxSize);
 
         DatashareOptions.putIfNotNull(props, BATCH_SEARCH_MAX_TIME_OPT, batchSearchMaxTimeSeconds);
         DatashareOptions.putIfNotNull(props, BATCH_THROTTLE_OPT, batchThrottleMilliseconds);
