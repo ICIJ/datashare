@@ -72,7 +72,7 @@ public class ServerOptions {
     int sessionTtlSeconds;
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
     QueueType sessionStoreType;
-    @Option(names = {"--sessionStoreMaxSize"}, defaultValue = "10000",
+    @Option(names = {"--sessionStoreMaxSize"}, defaultValue = "" + DEFAULT_SESSION_STORE_MAX_SIZE,
             description = "Maximum number of sessions kept by the in-memory session store")
     Integer sessionStoreMaxSize;
     // Batch / Download
