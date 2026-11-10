@@ -8,10 +8,13 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.tasks.RoutingStrategy;
+import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +33,7 @@ public class TaskManagerAmqpIntTest {
     private final TaskRepositoryMemory repository = new TaskRepositoryMemory();
     private TaskManagerAmqp taskManager;
     private TaskSupplier taskSupplier;
+    @Rule public LogbackCapturingRule logbackCapturingRule = new LogbackCapturingRule();
 
     @Before
     public void setUp() throws Exception {
@@ -77,6 +81,30 @@ public class TaskManagerAmqpIntTest {
         // THEN the task is still in finished state
         assertThat(nextMessage.await(5, TimeUnit.SECONDS)).isTrue();
         assertThat(taskManager.getTask(taskId).getState()).isEqualTo(Task.State.DONE);
+    }
+
+    @Test
+    public void test_deleted_task_is_dropped_with_a_warning() throws Exception {
+        // GIVEN a deleted task
+        String taskId = taskManager.startTask("task", User.local(), new HashMap<>());
+        repository.delete(taskId);
+
+        // WHEN its message runs out of retries
+        workersDieUntilTaskRunsOutOfRetries();
+
+        // THEN it is dropped with a warning instead of an error
+        assertThat(waitForLog(Level.WARN, taskId)).isTrue();
+        assertThat(logbackCapturingRule.logs(Level.ERROR)).isEmpty();
+    }
+
+    private boolean waitForLog(Level level, String content) throws InterruptedException {
+        for (int i = 0; i < 50; i++) {
+            if (logbackCapturingRule.logs(level).stream().anyMatch(log -> log.contains(content))) {
+                return true;
+            }
+            Thread.sleep(100);
+        }
+        return false;
     }
 
     private void workersDieUntilTaskRunsOutOfRetries() throws Exception {
