@@ -74,6 +74,16 @@ public class MemorySessionIdStoreTest {
         assertThat(store.getLogin("sid9")).isEqualTo("login9");
     }
 
+    @Test
+    public void test_sessions_are_kept_up_to_max_size() {
+        MemorySessionIdStore store = store(60, 1000);
+
+        IntStream.range(0, 1000).forEach(i -> store.put("sid" + i, "login" + i));
+
+        long remaining = IntStream.range(0, 1000).filter(i -> store.getLogin("sid" + i) != null).count();
+        assertThat(remaining).isEqualTo(1000);
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void test_max_size_below_one_is_rejected() {
         store(60, 0);

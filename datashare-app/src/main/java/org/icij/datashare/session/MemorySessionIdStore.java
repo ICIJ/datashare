@@ -29,8 +29,9 @@ public class MemorySessionIdStore implements SessionIdStore {
         checkArgument(ttl >= 1, "%s must be at least 1, got %s", SESSION_TTL_SECONDS_OPT, ttl);
         checkArgument(maxSize >= 1, "%s must be at least 1, got %s", SESSION_STORE_MAX_SIZE_OPT, maxSize);
         Duration ttlDuration = Duration.ofSeconds(ttl);
-        this.sessions =
-                CacheBuilder.newBuilder().expireAfterWrite(ttlDuration).maximumSize(maxSize).ticker(ticker).build();
+        // Guava splits maximumSize across segments, so more than one segment evicts below the cap.
+        this.sessions = CacheBuilder.newBuilder().concurrencyLevel(1).expireAfterWrite(ttlDuration).maximumSize(maxSize)
+                                    .ticker(ticker).build();
     }
 
     @Override

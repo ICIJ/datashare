@@ -87,7 +87,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     // go to a local cache there. Shared stores keep them so any server can handle the callback.
     private final boolean keepStatesLocally;
     private final Cache<String, Boolean> pendingStates =
-            CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(10)).maximumSize(10_000).build();
+            CacheBuilder.newBuilder().concurrencyLevel(1).expireAfterWrite(Duration.ofMinutes(10)).maximumSize(10_000)
+                        .build();
 
     @Inject
     public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersIdProviderCache users, UserStore userStore,
