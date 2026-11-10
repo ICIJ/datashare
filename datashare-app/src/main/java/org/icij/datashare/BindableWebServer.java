@@ -23,8 +23,9 @@ class BindableWebServer extends WebServer {
     }
 
     // Force production mode regardless of the PROD_MODE system property, so running the fat jar
-    // directly cannot leave development mode on: stack-trace error pages, the .source route and the
-    // live-reload server. The official launchers already pass -DPROD_MODE=true; this makes it certain.
+    // directly cannot leave development mode on (error reasons in headers, the .source route).
+    // Env.prod() also turns live reload off, which -DPROD_MODE=true alone does not: fluent-http reads
+    // it from http.livereload.server (default true), so the packaged launchers were serving it too.
     @Override
     protected Env createEnv() {
         return Env.prod();
