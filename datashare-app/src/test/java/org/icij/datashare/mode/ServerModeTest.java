@@ -84,7 +84,15 @@ public class ServerModeTest {
             put("mode", "SERVER");
             put("sessionStoreType", QueueType.MEMORY.name());
         }});
-        assertThat(mode.get(SessionIdStore.class)).isInstanceOf(net.codestory.http.security.SessionIdStore.inMemory().getClass());
+        assertThat(mode.get(SessionIdStore.class)).isInstanceOf(MemorySessionIdStore.class);
+    }
+
+    @Test
+    public void test_session_store_is_bounded_memory_store_by_default() {
+        CommonMode mode = CommonMode.create(new HashMap<>() {{
+            put("mode", "SERVER");
+        }});
+        assertThat(mode.get(SessionIdStore.class)).isInstanceOf(MemorySessionIdStore.class);
     }
 
     @Test

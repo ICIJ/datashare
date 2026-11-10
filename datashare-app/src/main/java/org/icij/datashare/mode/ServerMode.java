@@ -52,7 +52,7 @@ public class ServerMode extends CommonMode {
     SessionIdStore provideSessionIdStore() {
         QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
         if (QueueType.MEMORY == sessionStoreType) {
-            return SessionIdStore.inMemory();
+            return new MemorySessionIdStore(propertiesProvider);
         }
         RedisSessionIdStore sessionIdStore = new RedisSessionIdStore(propertiesProvider);
         addCloseable(sessionIdStore);
