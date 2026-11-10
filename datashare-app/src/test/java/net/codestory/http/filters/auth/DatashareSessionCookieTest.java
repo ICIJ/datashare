@@ -12,8 +12,10 @@ import org.icij.datashare.session.OAuth2CookieFilter;
 import org.icij.datashare.session.UserStore;
 import org.icij.datashare.session.UsersIdProviderCache;
 import org.icij.datashare.session.YesCookieAuthFilter;
+import org.junit.After;
 import org.junit.Test;
 
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -30,11 +32,11 @@ public class DatashareSessionCookieTest {
     private final SessionIdStore sessionIdStore = SessionIdStore.inMemory();
 
     @Test
-    public void test_session_cookie_is_http_only() {
+    public void test_session_cookie_stays_readable_by_the_client() {
         for (CookieAuthFilter filter : filtersWith(Map.of())) {
             Cookie cookie = filter.authCookie("value");
 
-            assertThat(cookie.isHttpOnly()).as(filter.getClass().getSimpleName()).isTrue();
+            assertThat(cookie.isHttpOnly()).as(filter.getClass().getSimpleName()).isFalse();
         }
     }
 
@@ -85,6 +87,12 @@ public class DatashareSessionCookieTest {
         filter.signin(context);
 
         assertThat(sessionIdStore.getLogin(predictedState)).isNull();
+    }
+
+    @After
+    public void tearDown() {
+        long unpredictableSeed = new SecureRandom().nextLong();
+        CookieAuthFilter.RANDOM.setSeed(unpredictableSeed);
     }
 
     private static String seedSharedRandomAndPredictNextId() {

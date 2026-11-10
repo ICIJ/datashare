@@ -99,15 +99,13 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
 
     @Override
     protected String newSessionId(String login) {
-        String sessionId = SessionCookies.newSessionId();
-        sessionIdStore.put(sessionId, login);
-        return sessionId;
+        return SessionCookies.newSessionId(sessionIdStore, login);
     }
 
     @Override
     protected Cookie authCookie(String value) {
         Cookie cookie = super.authCookie(value);
-        return SessionCookies.harden(cookie, isSessionCookieSecure);
+        return SessionCookies.withSecureFlag(cookie, isSessionCookieSecure);
     }
 
     @Override

@@ -2,6 +2,7 @@ package org.icij.datashare.session;
 
 import net.codestory.http.Cookie;
 import net.codestory.http.NewCookie;
+import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import java.security.SecureRandom;
 import java.util.HexFormat;
@@ -9,7 +10,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.SECURE_SESSION_COOKIE_O
 
 /**
  * Session id and cookie flags shared by every filter that issues the session cookie. fluent-http draws ids from a
- * shared java.util.Random, whose state one observed id is enough to recover, and leaves the cookie script-readable.
+ * shared java.util.Random, whose state one observed id is enough to recover. The cookie stays script-readable because
+ * datashare-client reads it to authenticate preview requests and to detect cookie-based sign-in.
  */
 final class SessionCookies {
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -23,12 +25,18 @@ final class SessionCookies {
         return HexFormat.of().formatHex(bytes);
     }
 
+    static String newSessionId(SessionIdStore sessionIdStore, String login) {
+        String sessionId = newSessionId();
+        sessionIdStore.put(sessionId, login);
+        return sessionId;
+    }
+
     static boolean isSecure(PropertiesProvider propertiesProvider) {
         return propertiesProvider.get(SECURE_SESSION_COOKIE_OPT).map(Boolean::parseBoolean).orElse(false);
     }
 
-    static Cookie harden(Cookie cookie, boolean isSecure) {
+    static Cookie withSecureFlag(Cookie cookie, boolean isSecure) {
         NewCookie newCookie = (NewCookie) cookie;
-        return newCookie.setHttpOnly(true).setSecure(isSecure);
+        return newCookie.setSecure(isSecure);
     }
 }
