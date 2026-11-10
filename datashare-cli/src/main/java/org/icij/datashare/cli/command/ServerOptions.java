@@ -37,7 +37,7 @@ public class ServerOptions {
     @Option(names = {"--maxHttpBodySize"}, defaultValue = "104857600",
             description = "Maximum accepted HTTP request body size in bytes (0 disables the check)")
     Long maxHttpBodySize;
-    @Option(names = {"--secureSessionCookie"}, description = "Send the session cookie over HTTPS only")
+    @Option(names = {"--secureSessionCookie"}, arity = "1", description = "Send the session cookie over HTTPS only")
     Boolean secureSessionCookie;
     // OAuth / Authentication
     @Option(names = {"--oauthClientId"}, description = "OAuth2 client id")

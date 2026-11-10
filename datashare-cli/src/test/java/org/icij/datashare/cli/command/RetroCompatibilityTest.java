@@ -154,7 +154,7 @@ public class RetroCompatibilityTest {
     @Test
     public void test_parity_secure_session_cookie() {
         Properties legacy = parseLegacy("--secureSessionCookie", "true");
-        Properties picocli = parseNew("app", "start", "--secureSessionCookie");
+        Properties picocli = parseNew("app", "start", "--secureSessionCookie", "true");
         assertThat(picocli.getProperty("secureSessionCookie")).isEqualTo("true");
         assertPropertyEqual(legacy, picocli, "secureSessionCookie");
     }
