@@ -136,6 +136,7 @@ public final class DatashareCliOptions {
     public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
     public static final String STATUS_ALLOWED_NETS_OPT = "statusAllowedNets";
     public static final String MAX_HTTP_BODY_SIZE_OPT = "maxHttpBodySize";
+    public static final String SECURE_SESSION_COOKIE_OPT = "secureSessionCookie";
     public static final String SETTING_ABBR_OPT = "s";
     public static final String SMTP_URL_OPT = "smtpUrl";
     public static final String TEMPORAL_NAMESPACE_OPT = "temporalNamespace";
@@ -882,6 +883,12 @@ public final class DatashareCliOptions {
         parser.acceptsAll(singletonList(MAX_HTTP_BODY_SIZE_OPT),
                           "Maximum accepted HTTP request body size in bytes (0 disables the check)").withRequiredArg()
               .ofType(Long.class).defaultsTo(DEFAULT_MAX_HTTP_BODY_SIZE);
+    }
+
+    public static void secureSessionCookie(OptionParser parser) {
+        parser.acceptsAll(singletonList(SECURE_SESSION_COOKIE_OPT),
+                          "Send the session cookie over HTTPS only (default false)").withRequiredArg()
+              .ofType(Boolean.class);
     }
 
     public static void digestMethod(OptionParser parser) {

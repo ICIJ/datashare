@@ -225,6 +225,7 @@ public class DatashareCli {
         DatashareCliOptions.temporalAddressOpt(parser);
         DatashareCliOptions.statusAllowedNets(parser);
         DatashareCliOptions.maxHttpBodySize(parser);
+        DatashareCliOptions.secureSessionCookie(parser);
         return parser;
     }
 

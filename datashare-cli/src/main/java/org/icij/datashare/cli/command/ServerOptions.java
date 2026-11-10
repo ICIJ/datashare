@@ -37,6 +37,8 @@ public class ServerOptions {
     @Option(names = {"--maxHttpBodySize"}, defaultValue = "104857600",
             description = "Maximum accepted HTTP request body size in bytes (0 disables the check)")
     Long maxHttpBodySize;
+    @Option(names = {"--secureSessionCookie"}, description = "Send the session cookie over HTTPS only")
+    Boolean secureSessionCookie;
     // OAuth / Authentication
     @Option(names = {"--oauthClientId"}, description = "OAuth2 client id")
     String oauthClientId;
@@ -117,6 +119,7 @@ public class ServerOptions {
         DatashareOptions.putIfNotNull(props, PROTECTED_URI_PREFIX_OPT, protectedUriPrefix);
         DatashareOptions.putIfNotNull(props, STATUS_ALLOWED_NETS_OPT, statusAllowedNets);
         DatashareOptions.putIfNotNull(props, MAX_HTTP_BODY_SIZE_OPT, maxHttpBodySize);
+        DatashareOptions.putIfNotNull(props, SECURE_SESSION_COOKIE_OPT, secureSessionCookie);
 
         DatashareOptions.putIfNotNull(props, OAUTH_CLIENT_ID_OPT, oauthClientId);
         DatashareOptions.putIfNotNull(props, OAUTH_CLIENT_SECRET_OPT, oauthClientSecret);
