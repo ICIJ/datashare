@@ -137,6 +137,20 @@ public class RetroCompatibilityTest {
     }
 
     @Test
+    public void test_parity_max_http_body_size_default() {
+        Properties legacy = parseLegacy("");
+        Properties picocli = parseNew("app", "start");
+        assertPropertyEqual(legacy, picocli, "maxHttpBodySize");
+    }
+
+    @Test
+    public void test_parity_max_http_body_size_custom() {
+        Properties legacy = parseLegacy("--maxHttpBodySize", "0");
+        Properties picocli = parseNew("app", "start", "--maxHttpBodySize", "0");
+        assertPropertyEqual(legacy, picocli, "maxHttpBodySize");
+    }
+
+    @Test
     public void test_parity_data_dir_default() {
         Properties legacy = parseLegacy("");
         Properties picocli = parseNew("app", "start");
