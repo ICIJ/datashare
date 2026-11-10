@@ -81,7 +81,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     @Inject
     public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersIdProviderCache users, UserStore userStore,
                               SessionIdStore sessionIdStore, @Nullable PostLoginEnroller postLoginEnroller) {
-        super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
+        super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore,
+              SessionCookies.isSecure(propertiesProvider));
         this.usersCache = users;
         this.userStore = userStore;
         this.oauthAuthorizeUrl = propertiesProvider.get("oauthAuthorizeUrl").orElse("http://localhost");
@@ -206,7 +207,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     }
 
     private String createState() {
-        String hexState = Long.toHexString(RANDOM.nextLong()) + Long.toHexString(RANDOM.nextLong());
+        String hexState = SessionCookies.newSessionId();
         sessionIdStore.put(hexState, valueOf(new Date().getTime()));
         return hexState;
     }
@@ -216,7 +217,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         // Sign the session ID with HMAC so it cannot be forged from an OAuth state token.
         // The parent generates plain random hex for both state and session IDs in the same
         // store. Signing makes session IDs cryptographically distinct from state tokens.
-        String rawId = Long.toHexString(RANDOM.nextLong()) + Long.toHexString(RANDOM.nextLong());
+        String rawId = SessionCookies.newSessionId();
         String signature = hmacSign(rawId);
         String signedSessionId = rawId + "." + signature;
         sessionIdStore.put(signedSessionId, login);

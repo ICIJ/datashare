@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import net.codestory.http.Context;
+import net.codestory.http.Cookie;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
@@ -18,9 +19,12 @@ import net.codestory.http.constants.HttpStatus;
  */
 public abstract class DatashareAuthFilter extends CookieAuthFilter {
     static final String COOKIE_NAME = "_ds_session_id";
+    private final boolean isSessionCookieSecure;
 
-    protected DatashareAuthFilter(String uriPrefix, Users users, SessionIdStore sessionIdStore) {
+    protected DatashareAuthFilter(String uriPrefix, Users users, SessionIdStore sessionIdStore,
+                                  boolean isSessionCookieSecure) {
         super(uriPrefix, users, sessionIdStore);
+        this.isSessionCookieSecure = isSessionCookieSecure;
     }
 
     @Override
@@ -58,6 +62,19 @@ public abstract class DatashareAuthFilter extends CookieAuthFilter {
         // error page for browsers, so a logged-out deep link now shows JSON. Accepted because every
         // caller reaching here is the SPA or an API client, and a silent empty body was worse.
         return PayloadFormatter.error("authentication required", HttpStatus.UNAUTHORIZED);
+    }
+
+    @Override
+    protected String newSessionId(String login) {
+        String sessionId = SessionCookies.newSessionId();
+        sessionIdStore.put(sessionId, login);
+        return sessionId;
+    }
+
+    @Override
+    protected Cookie authCookie(String value) {
+        Cookie cookie = super.authCookie(value);
+        return SessionCookies.harden(cookie, isSessionCookieSecure);
     }
 
     @Override

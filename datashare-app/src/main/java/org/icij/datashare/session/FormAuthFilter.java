@@ -35,7 +35,8 @@ public class FormAuthFilter extends DatashareAuthFilter {
     @Inject
     public FormAuthFilter(PropertiesProvider propertiesProvider, Users users, SessionIdStore sessionIdStore,
                           @Nullable PostLoginEnroller postLoginEnroller) {
-        super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
+        super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore,
+              SessionCookies.isSecure(propertiesProvider));
         this.sessionTtl = Integer.parseInt(
                 ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
         this.postLoginEnroller = postLoginEnroller;

@@ -3,6 +3,7 @@ package org.icij.datashare.session;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
+import net.codestory.http.Cookie;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
@@ -25,6 +26,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
     private final Integer ttl;
     private final String defaultProject;
     private final Repository repository;
+    private final boolean isSessionCookieSecure;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
 
@@ -38,6 +40,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
         this.repository = repository;
         this.defaultProject = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
         this.postLoginEnroller = postLoginEnroller;
+        this.isSessionCookieSecure = SessionCookies.isSecure(propertiesProvider);
     }
 
     public YesCookieAuthFilter(final PropertiesProvider propertiesProvider,
@@ -92,6 +95,19 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
             return true;
         }
         return super.matches(uri, context);
+    }
+
+    @Override
+    protected String newSessionId(String login) {
+        String sessionId = SessionCookies.newSessionId();
+        sessionIdStore.put(sessionId, login);
+        return sessionId;
+    }
+
+    @Override
+    protected Cookie authCookie(String value) {
+        Cookie cookie = super.authCookie(value);
+        return SessionCookies.harden(cookie, isSessionCookieSecure);
     }
 
     @Override

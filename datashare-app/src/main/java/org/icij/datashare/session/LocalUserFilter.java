@@ -2,6 +2,7 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
+import net.codestory.http.Cookie;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
@@ -14,6 +15,7 @@ import static org.icij.datashare.session.DatashareUser.*;
 public class LocalUserFilter extends CookieAuthFilter {
     private final String userName;
     private final Repository repository;
+    private final boolean isSessionCookieSecure;
 
     @Inject
     public LocalUserFilter(final PropertiesProvider propertiesProvider, final Repository repository) {
@@ -21,6 +23,7 @@ public class LocalUserFilter extends CookieAuthFilter {
               singleUser(propertiesProvider.get("defaultUserName").orElse("local")), SessionIdStore.inMemory());
         this.userName = propertiesProvider.get("defaultUserName").orElse("local");
         this.repository = repository;
+        this.isSessionCookieSecure = SessionCookies.isSecure(propertiesProvider);
     }
 
     //for tests
@@ -31,6 +34,7 @@ public class LocalUserFilter extends CookieAuthFilter {
               SessionIdStore.inMemory());
         this.userName = propertiesProvider.get("defaultUserName").orElse("local");
         this.repository = repository;
+        this.isSessionCookieSecure = SessionCookies.isSecure(propertiesProvider);
     }
 
     @Override
@@ -50,6 +54,19 @@ public class LocalUserFilter extends CookieAuthFilter {
             return true;
         }
         return super.matches(uri, context);
+    }
+
+    @Override
+    protected String newSessionId(String login) {
+        String sessionId = SessionCookies.newSessionId();
+        sessionIdStore.put(sessionId, login);
+        return sessionId;
+    }
+
+    @Override
+    protected Cookie authCookie(String value) {
+        Cookie cookie = super.authCookie(value);
+        return SessionCookies.harden(cookie, isSessionCookieSecure);
     }
 
     @Override
