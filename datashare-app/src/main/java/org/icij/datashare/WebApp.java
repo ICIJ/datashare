@@ -15,11 +15,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_MAX_HTTP_BODY_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.MAX_HTTP_BODY_SIZE_OPT;
 
 public class WebApp {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebApp.class);
@@ -32,7 +35,20 @@ public class WebApp {
         return host;
     }
 
+    static long maxHttpBodySize(Properties properties) {
+        String value = properties.getProperty(MAX_HTTP_BODY_SIZE_OPT);
+        if (value == null) {
+            return DEFAULT_MAX_HTTP_BODY_SIZE;
+        }
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException invalidValue) {
+            throw new InvalidMaxHttpBodySizeException(value, invalidValue);
+        }
+    }
+
     static void start(CommonMode mode) throws Exception {
+        long maxBodyBytes = maxHttpBodySize(mode.properties());
         // Workers start before the HTTP server binds, so a WorkflowRegistrationException aborts startup instead
         // of leaving a server that looks healthy but never requeues pending batch searches.
         if (mode.shouldRunWorker()) {
@@ -46,8 +62,8 @@ public class WebApp {
         String host = resolveBindHost(mode);
         int port = parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT_OPT));
         LOGGER.info("binding HTTP server to {}:{}", host, port);
-        new BindableWebServer(host).withThreadCount(10).withSelectThreads(2).withWebSocketThreads(1)
-                                   .configure(mode.createWebConfiguration()).start(port);
+        new BindableWebServer(host, maxBodyBytes).withThreadCount(10).withSelectThreads(2).withWebSocketThreads(1)
+                                                 .configure(mode.createWebConfiguration()).start(port);
 
         ScheduledExecutorService cleanupScheduler =
                 BatchDownloadApp.scheduleCleanup(mode.get(BatchDownloadCleaner.class));

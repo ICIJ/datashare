@@ -53,7 +53,6 @@ import org.icij.datashare.user.admin.UserAdminServiceImpl;
 import org.icij.datashare.project.admin.ProjectAdminService;
 import org.icij.datashare.project.admin.ProjectAdminServiceImpl;
 import org.icij.datashare.session.StatusCidrFilter;
-import org.icij.datashare.session.MaxContentLengthFilter;
 import org.icij.datashare.cli.AuthMode;
 import org.icij.datashare.cli.AuthUsersProvider;
 import org.icij.datashare.session.UsersInDb;
@@ -657,7 +656,6 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                   }
               });
         addExtensionsConfiguration(routes);
-        routes.filter(MaxContentLengthFilter.class);
         routes.filter(StatusCidrFilter.class);
         addModeConfiguration(routes);
         addPluginsConfiguration(routes);
