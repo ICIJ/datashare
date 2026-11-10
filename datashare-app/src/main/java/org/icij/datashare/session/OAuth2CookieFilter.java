@@ -11,6 +11,8 @@ import com.github.scribejava.core.model.OAuthRequest;
 import com.github.scribejava.core.model.Response;
 import com.github.scribejava.core.model.Verb;
 import com.github.scribejava.core.oauth.OAuth20Service;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
@@ -29,7 +31,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.Date;
+import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Objects;
@@ -38,9 +40,9 @@ import static java.lang.String.format;
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
+import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 
 /**
-import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
  * This class is responsible for OAuth2 authentication.
  * Note that users object provided here are *not* a user database
  * but a session user cache that should be discarded after the session
@@ -80,6 +82,9 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     private final PostLoginEnroller postLoginEnroller;
     private final UsersIdProviderCache usersCache;
     private final UserStore userStore;
+    // Kept out of the session store so anonymous /auth/signin hits cannot evict real sessions.
+    private final Cache<String, Boolean> pendingStates =
+            CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(10)).maximumSize(10_000).build();
 
     @Inject
     public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersIdProviderCache users, UserStore userStore,
@@ -139,12 +144,11 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     private Payload callback(Context context) throws IOException, ExecutionException, InterruptedException {
         logger.info("callback called with {}={} {}={}", REQUEST_CODE_KEY, context.get(REQUEST_CODE_KEY),
                     REQUEST_STATE_KEY, context.get(REQUEST_STATE_KEY));
-        if (context.get(REQUEST_CODE_KEY) == null || context.get(REQUEST_STATE_KEY) == null ||
-            !"GET".equals(context.method()) || sessionIdStore.getLogin(context.get(REQUEST_STATE_KEY)) == null) {
+        String state = context.get(REQUEST_STATE_KEY);
+        if (context.get(REQUEST_CODE_KEY) == null || state == null || !"GET".equals(context.method()) ||
+            pendingStates.asMap().remove(state) == null) {
             return Payload.badRequest();
         }
-        // Consume the state token so it cannot be reused as a session cookie.
-        sessionIdStore.remove(context.get(REQUEST_STATE_KEY));
         OAuth20Service service =
                 new ServiceBuilder(oauthClientId).apiSecret(oauthClientSecret).callback(getCallbackUrl(context))
                                                  .build(defaultOauthApi);
@@ -211,7 +215,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
 
     private String createState() {
         String hexState = SessionCookies.newSessionId();
-        sessionIdStore.put(hexState, valueOf(new Date().getTime()));
+        pendingStates.put(hexState, Boolean.TRUE);
         return hexState;
     }
 

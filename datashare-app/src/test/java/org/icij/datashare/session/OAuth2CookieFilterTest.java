@@ -1,10 +1,12 @@
 package org.icij.datashare.session;
 
 
+import net.codestory.http.Context;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
+import net.codestory.http.security.SessionIdStore;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
 import org.junit.Before;
@@ -18,10 +20,12 @@ import java.util.regex.Pattern;
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class OAuth2CookieFilterTest implements FluentRestTest {
     private static final WebServer identityProvider = new WebServer() {
@@ -75,6 +79,18 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         this.get("/auth/signin").withHeader("x-forwarded-host", "localhost:9009")
                 .withHeader("x-forwarded-proto", "https, http")
                 .should().contain("redirect_uri=https://localhost:9009/auth/callback");
+    }
+
+    @Test
+    public void test_signin_does_not_write_state_into_session_store() {
+        SessionIdStore sessionIdStore = mock(SessionIdStore.class);
+        OAuth2CookieFilter filter = new OAuth2CookieFilter(propertiesProvider,
+                new UsersIdProviderRedisCache(propertiesProvider), userStore, sessionIdStore, null);
+        Context context = mock(Context.class, RETURNS_DEEP_STUBS);
+
+        filter.signin(context);
+
+        verifyNoInteractions(sessionIdStore);
     }
 
     @Test
