@@ -6,6 +6,7 @@ import com.google.common.cache.CacheBuilder;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import java.time.Duration;
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_STORE_MAX_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
 import static org.icij.datashare.cli.DatashareCliOptions.SESSION_STORE_MAX_SIZE_OPT;
@@ -19,13 +20,17 @@ public class MemorySessionIdStore implements SessionIdStore {
     }
 
     MemorySessionIdStore(PropertiesProvider propertiesProvider, Ticker ticker) {
-        String ttl =
-                propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(DEFAULT_SESSION_TTL_SECONDS));
-        String maxSize = propertiesProvider.get(SESSION_STORE_MAX_SIZE_OPT)
-                                           .orElse(String.valueOf(DEFAULT_SESSION_STORE_MAX_SIZE));
-        Duration ttlDuration = Duration.ofSeconds(Long.parseLong(ttl));
-        this.sessions = CacheBuilder.newBuilder().expireAfterWrite(ttlDuration).maximumSize(Long.parseLong(maxSize))
-                                    .ticker(ticker).build();
+        String defaultTtl = String.valueOf(DEFAULT_SESSION_TTL_SECONDS);
+        String defaultMaxSize = String.valueOf(DEFAULT_SESSION_STORE_MAX_SIZE);
+        String ttlValue = propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(defaultTtl);
+        String maxSizeValue = propertiesProvider.get(SESSION_STORE_MAX_SIZE_OPT).orElse(defaultMaxSize);
+        long ttl = Long.parseLong(ttlValue);
+        long maxSize = Long.parseLong(maxSizeValue);
+        checkArgument(ttl >= 1, "%s must be at least 1, got %s", SESSION_TTL_SECONDS_OPT, ttl);
+        checkArgument(maxSize >= 1, "%s must be at least 1, got %s", SESSION_STORE_MAX_SIZE_OPT, maxSize);
+        Duration ttlDuration = Duration.ofSeconds(ttl);
+        this.sessions =
+                CacheBuilder.newBuilder().expireAfterWrite(ttlDuration).maximumSize(maxSize).ticker(ticker).build();
     }
 
     @Override
