@@ -34,6 +34,9 @@ public class ServerOptions {
     @Option(names = {"--statusAllowedNets"}, description = "CIDR list for unauthenticated /api/status",
             defaultValue = "127.0.0.0/8,::1/128")
     String statusAllowedNets;
+    @Option(names = {"--maxHttpBodySize"}, defaultValue = "104857600",
+            description = "Maximum accepted HTTP request body size in bytes (0 disables the check)")
+    Long maxHttpBodySize;
     // OAuth / Authentication
     @Option(names = {"--oauthClientId"}, description = "OAuth2 client id")
     String oauthClientId;
@@ -113,6 +116,7 @@ public class ServerOptions {
         DatashareOptions.put(props, BROWSER_OPEN_LINK_OPT, browserOpenLink);
         DatashareOptions.putIfNotNull(props, PROTECTED_URI_PREFIX_OPT, protectedUriPrefix);
         DatashareOptions.putIfNotNull(props, STATUS_ALLOWED_NETS_OPT, statusAllowedNets);
+        DatashareOptions.putIfNotNull(props, MAX_HTTP_BODY_SIZE_OPT, maxHttpBodySize);
 
         DatashareOptions.putIfNotNull(props, OAUTH_CLIENT_ID_OPT, oauthClientId);
         DatashareOptions.putIfNotNull(props, OAUTH_CLIENT_SECRET_OPT, oauthClientSecret);
