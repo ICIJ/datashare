@@ -127,11 +127,11 @@ public class WorkflowRegistryTest {
     }
 
     @Test
-    public void test_discover_skips_interfaces_without_a_workflow_method() {
+    public void test_discover_skips_workflow_interfaces_that_are_not_generated() {
         registry.discoverWorkflows(FIXTURES_PACKAGE, FakeActivity::new, RoutingStrategy.UNIQUE, JAVA_GROUP);
 
-        // TemporalWorkflow is annotated with @WorkflowInterface but only carries signal and query methods, so
-        // neither its implementation nor the abstract TemporalActivityImpl must be pulled in
+        // TemporalWorkflow is annotated with @WorkflowInterface but not with @DiscoverableWorkflow, so neither its
+        // implementation nor the abstract TemporalActivityImpl must be pulled in
         assertThat(registry.registeredWorkflows(WORKFLOWS_DEFAULT)).hasSize(3).excludes(TemporalWorkflowImpl.class);
     }
 

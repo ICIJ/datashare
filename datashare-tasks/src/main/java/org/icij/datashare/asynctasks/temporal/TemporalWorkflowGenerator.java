@@ -143,7 +143,8 @@ public class TemporalWorkflowGenerator extends AbstractProcessor {
                                    .addParameter(ParameterSpec.builder(ARG_TYPE, "args", Modifier.FINAL).build())
                                    .returns(outputType).addException(Exception.class).build();
         TypeSpec wfInterfaceSpec = TypeSpec.interfaceBuilder(wfInterface).addModifiers(Modifier.PUBLIC)
-                                           .addAnnotation(WorkflowInterface.class).addMethod(run).build();
+                                           .addAnnotation(WorkflowInterface.class)
+                                           .addAnnotation(DiscoverableWorkflow.class).addMethod(run).build();
         return JavaFile.builder(packageName, wfInterfaceSpec).build();
     }
 

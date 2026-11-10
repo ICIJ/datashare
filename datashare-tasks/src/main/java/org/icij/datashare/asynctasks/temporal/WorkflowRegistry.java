@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks.temporal;
 
-import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 import org.icij.datashare.asynctasks.Group;
 import org.icij.datashare.asynctasks.TaskFactory;
@@ -19,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
 import static org.icij.datashare.asynctasks.TaskManagerTemporal.resolveWfTaskQueue;
 
 /**
@@ -97,7 +95,7 @@ public class WorkflowRegistry {
     }
 
     /**
-     * Discover the {@link WorkflowInterface} annotated interfaces of a package and register their implementation
+     * Discover the {@link DiscoverableWorkflow} annotated interfaces of a package and register their implementation
      * along with the single activity implementation serving them, following this naming convention:
      * <ul>
      *     <li>discovered workflow interface: {@code XyzWorkflow}</li>
@@ -115,12 +113,11 @@ public class WorkflowRegistry {
 
         Reflections reflections = new Reflections(packageName);
         // We rely on naming convention rather than on inspection, that's OK as code is generated
-        reflections.getTypesAnnotatedWith(WorkflowInterface.class).stream().filter(workflowInterfaceFilter())
-                   .forEach(c -> {
-                       String taskQueue = resolveWfTaskQueue(routingStrategy, buildWorkflowKeyFrom(c), group);
-                       registerWorkflow(workflowImplementation(c), taskQueue);
-                       registerActivity(activityInstance(c, activityInstantiator), taskQueue);
-                   });
+        reflections.getTypesAnnotatedWith(DiscoverableWorkflow.class).stream().filter(Class::isInterface).forEach(c -> {
+            String taskQueue = resolveWfTaskQueue(routingStrategy, buildWorkflowKeyFrom(c), group);
+            registerWorkflow(workflowImplementation(c), taskQueue);
+            registerActivity(activityInstance(c, activityInstantiator), taskQueue);
+        });
     }
 
     /**
@@ -175,21 +172,7 @@ public class WorkflowRegistry {
         }
     }
 
-    /**
-     * Returns a predicate that filters all the interfaces that can be used as effective Workflow interfaces.
-     * The filter will reject all the interfaces that don't have at least one WorkflowMethod
-     */
-    private static Predicate<Class<?>> workflowInterfaceFilter() {
-        return c -> {
-            if (!c.isInterface()) {
-                return false;
-            }
-            // Skip signal/query-only interfaces (like TemporalWorkflow) that have no @WorkflowMethod
-            return Arrays.stream(c.getDeclaredMethods()).anyMatch(WorkflowRegistry::isWorkflowMethod);
-        };
-    }
-
-    static String buildWorkflowKeyFrom(Class<?> workflowInterface) {
+    public static String buildWorkflowKeyFrom(Class<?> workflowInterface) {
         // We have to get method by name because of the dynamic class loader and proxies... inspection doesn't work
         // properly: m.isAnnotationPresent(WorkflowMethod.class) fails
         List<Method> annotated =
