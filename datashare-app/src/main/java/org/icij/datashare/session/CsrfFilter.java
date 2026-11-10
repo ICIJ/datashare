@@ -18,10 +18,12 @@ public class CsrfFilter implements Filter {
     private static final Pattern LOOPBACK_HOST =
             Pattern.compile("(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d+)?", Pattern.CASE_INSENSITIVE);
     private final boolean localMode;
+    private final boolean isCookieSecure;
 
     @Inject
     public CsrfFilter(PropertiesProvider propertiesProvider) {
         this.localMode = propertiesProvider.get("mode").map(CsrfFilter::isLocal).orElse(false);
+        this.isCookieSecure = SessionCookies.isSecure(propertiesProvider);
     }
 
     @Override
@@ -84,9 +86,10 @@ public class CsrfFilter implements Filter {
         return Long.toHexString(RANDOM.nextLong()) + Long.toHexString(RANDOM.nextLong());
     }
 
-    private static NewCookie csrfCookie(String token) {
+    private NewCookie csrfCookie(String token) {
         NewCookie cookie = new NewCookie(CSRF_COOKIE_NAME, token, "/");
         cookie.setHttpOnly(false);
+        cookie.setSecure(isCookieSecure);
         return cookie;
     }
 }

@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import net.codestory.http.Context;
+import net.codestory.http.Cookie;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.Users;
@@ -10,7 +11,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.HashMap;
+import java.util.Map;
 
+import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -54,5 +57,16 @@ public class BasicAuthAdaptorFilterTest {
         filter.apply("/auth/signout", context, nextFilter);
 
         verify(enroller, never()).enroll(any());
+    }
+
+    @Test
+    public void test_signout_cookie_is_secure_when_the_option_is_set() throws Exception {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("secureSessionCookie", "true"));
+        BasicAuthAdaptorFilter filter = new BasicAuthAdaptorFilter(propertiesProvider, mock(Users.class), null);
+
+        Payload payload = filter.apply("/auth/signout", context, nextFilter);
+
+        Cookie cookie = payload.cookies().get(0);
+        assertThat(cookie.isSecure()).isTrue();
     }
 }

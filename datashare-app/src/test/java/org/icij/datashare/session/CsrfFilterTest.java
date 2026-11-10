@@ -150,6 +150,20 @@ public class CsrfFilterTest {
     }
 
     @Test
+    public void test_csrf_cookie_is_secure_when_the_option_is_set() throws Exception {
+        Map<String, Object> properties = Map.of("mode", "SERVER", "secureSessionCookie", "true");
+        CsrfFilter filter = new CsrfFilter(new PropertiesProvider(properties));
+        when(context.method()).thenReturn("GET");
+        when(context.currentUser()).thenReturn(mock(User.class));
+        when(context.cookies()).thenReturn(new SimpleCookies());
+
+        Payload payload = filter.apply("/api/users", context, nextFilter);
+
+        Cookie csrfCookie = payload.cookies().get(0);
+        assertThat(csrfCookie.isSecure()).isTrue();
+    }
+
+    @Test
     public void test_get_does_not_set_csrf_cookie_when_no_user() throws Exception {
         when(context.method()).thenReturn("GET");
         Payload payload = csrfFilter.apply("/api/users", context, nextFilter);

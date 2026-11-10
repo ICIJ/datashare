@@ -16,12 +16,14 @@ public class BasicAuthAdaptorFilter extends BasicAuthFilter {
     String COOKIE_NAME = "_ds_session_id";
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
+    private final boolean isSessionCookieSecure;
 
     @Inject
     public BasicAuthAdaptorFilter(PropertiesProvider propertiesProvider, Users users,
                                   @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), "datashare", users);
         this.postLoginEnroller = postLoginEnroller;
+        this.isSessionCookieSecure = SessionCookies.isSecure(propertiesProvider);
     }
 
     @Override
@@ -52,7 +54,7 @@ public class BasicAuthAdaptorFilter extends BasicAuthFilter {
         NewCookie cookie = new NewCookie(COOKIE_NAME, "", "/", true);
         cookie.setExpiry(0);
         cookie.setDomain(null);
-        cookie.setSecure(false);
+        cookie.setSecure(isSessionCookieSecure);
         return cookie;
     }
 }
