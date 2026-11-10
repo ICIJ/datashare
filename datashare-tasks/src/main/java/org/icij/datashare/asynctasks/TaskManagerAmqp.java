@@ -165,7 +165,10 @@ public class TaskManagerAmqp extends StoreAndQueueTaskManagerImpl {
             if (task.getState().isFinal()) {
                 return task;
             }
-        } catch (IOException | UnknownTask e) {
+        } catch (UnknownTask e) {
+            logger.warn("task {} was dead-lettered but no longer exists, dropping it", deadLetter.id);
+            return null;
+        } catch (IOException e) {
             throw new TaskEventHandlingException(e);
         }
         TaskError error =
