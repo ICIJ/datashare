@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutionException;
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
 
 /**
  * This class is responsible for OAuth2 authentication.
@@ -96,7 +97,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthSigninPath = propertiesProvider.get("oauthSigninPath").orElse("/auth/signin");
         this.oauthTtl = Integer.valueOf(
-                ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
+                ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse(
+                        valueOf(DEFAULT_SESSION_TTL_SECONDS)));
         this.oauthDefaultProject = propertiesProvider.get("oauthDefaultProject").orElse("");
         this.oauthClaimIdAttribute = propertiesProvider.get("oauthClaimIdAttribute").orElse("");
         this.oauthScope = propertiesProvider.get("oauthScope").orElse("");
