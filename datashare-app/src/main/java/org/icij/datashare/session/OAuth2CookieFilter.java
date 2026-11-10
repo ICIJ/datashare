@@ -32,6 +32,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
+import java.util.Date;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Objects;
@@ -82,7 +83,9 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     private final PostLoginEnroller postLoginEnroller;
     private final UsersIdProviderCache usersCache;
     private final UserStore userStore;
-    // Kept out of the session store so anonymous /auth/signin hits cannot evict real sessions.
+    // The capped memory store would let anonymous /auth/signin hits evict real sessions, so states
+    // go to a local cache there. Shared stores keep them so any server can handle the callback.
+    private final boolean keepStatesLocally;
     private final Cache<String, Boolean> pendingStates =
             CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(10)).maximumSize(10_000).build();
 
@@ -92,6 +95,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore,
               SessionCookies.isSecure(propertiesProvider));
         this.usersCache = users;
+        this.keepStatesLocally = sessionIdStore instanceof MemorySessionIdStore;
         this.userStore = userStore;
         this.oauthAuthorizeUrl = propertiesProvider.get("oauthAuthorizeUrl").orElse("http://localhost");
         this.oauthTokenUrl = propertiesProvider.get("oauthTokenUrl").orElse("http://localhost");
@@ -146,7 +150,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
                     REQUEST_STATE_KEY, context.get(REQUEST_STATE_KEY));
         String state = context.get(REQUEST_STATE_KEY);
         if (context.get(REQUEST_CODE_KEY) == null || state == null || !"GET".equals(context.method()) ||
-            pendingStates.asMap().remove(state) == null) {
+            !consumeState(state)) {
             return Payload.badRequest();
         }
         OAuth20Service service =
@@ -215,8 +219,23 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
 
     private String createState() {
         String hexState = SessionCookies.newSessionId();
-        pendingStates.put(hexState, Boolean.TRUE);
+        if (keepStatesLocally) {
+            pendingStates.put(hexState, Boolean.TRUE);
+        } else {
+            sessionIdStore.put(hexState, valueOf(new Date().getTime()));
+        }
         return hexState;
+    }
+
+    private boolean consumeState(String state) {
+        if (keepStatesLocally) {
+            return pendingStates.asMap().remove(state) != null;
+        }
+        if (sessionIdStore.getLogin(state) == null) {
+            return false;
+        }
+        sessionIdStore.remove(state);
+        return true;
     }
 
     @Override

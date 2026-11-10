@@ -19,10 +19,12 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -82,8 +84,8 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
-    public void test_signin_does_not_write_state_into_session_store() {
-        SessionIdStore sessionIdStore = mock(SessionIdStore.class);
+    public void test_signin_does_not_write_state_into_capped_memory_store() {
+        MemorySessionIdStore sessionIdStore = spy(new MemorySessionIdStore(propertiesProvider));
         OAuth2CookieFilter filter = new OAuth2CookieFilter(propertiesProvider,
                 new UsersIdProviderRedisCache(propertiesProvider), userStore, sessionIdStore, null);
         Context context = mock(Context.class, RETURNS_DEEP_STUBS);
@@ -91,6 +93,31 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         filter.signin(context);
 
         verifyNoInteractions(sessionIdStore);
+    }
+
+    @Test
+    public void test_signin_writes_state_into_shared_session_store() {
+        SessionIdStore sessionIdStore = mock(SessionIdStore.class);
+        OAuth2CookieFilter filter = new OAuth2CookieFilter(propertiesProvider,
+                new UsersIdProviderRedisCache(propertiesProvider), userStore, sessionIdStore, null);
+        Context context = mock(Context.class, RETURNS_DEEP_STUBS);
+
+        filter.signin(context);
+
+        verify(sessionIdStore).put(anyString(), anyString());
+    }
+
+    @Test
+    public void test_callback_consumes_state_kept_in_local_cache() {
+        MemorySessionIdStore sessionIdStore = new MemorySessionIdStore(propertiesProvider);
+        OAuth2CookieFilter filter = new OAuth2CookieFilter(propertiesProvider,
+                new UsersIdProviderRedisCache(propertiesProvider), userStore, sessionIdStore, null);
+        datashare.configure(routes -> routes.filter(filter));
+        String state = getState(this.get("/auth/signin").response().content());
+        String callback = "/auth/callback?code=a0b1c2d3e4f5&state=" + state;
+
+        this.get(callback).withFollowRedirect(false).should().respond(303);
+        this.get(callback).withFollowRedirect(false).should().respond(400);
     }
 
     @Test
