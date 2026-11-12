@@ -31,9 +31,9 @@
       "id": "datashare-extension-asr",
       "name": "ASR",
       "description": "A Datashare extension to transcribe audio and video documents using speech recognition",
-      "url": "https://github.com/ICIJ/datashare-extension-asr/releases/download/1.0.1/datashare-extension-asr-1.0.1-jar-with-dependencies.jar",
+      "url": "https://github.com/ICIJ/datashare-extension-asr/releases/download/1.0.3/datashare-extension-asr-1.0.3-jar-with-dependencies.jar",
       "homepage": "https://github.com/ICIJ/datashare-extension-asr",
-      "version": "1.0.1",
+      "version": "1.0.3",
       "type": "WEB"
     }
   ]
