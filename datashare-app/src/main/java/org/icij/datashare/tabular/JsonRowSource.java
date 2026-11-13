@@ -32,7 +32,7 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
  * A record carries its own column names, so the header rules the other readers share do not reach
  * here: a blank key becomes a column named "", keys are not stripped, a duplicate key is
  * last-write-wins, and {@code {"addr.city":"X","addr":{"city":"Y"}}} collides silently. An array of
- * scalars fills its column with all its members, a null among them reading as a blank value.
+ * scalars fills its column with all its members, a null among them being no value at all.
  */
 public class JsonRowSource implements RowSource {
     /** Tika 3.3.0 has no mimetype for jsonl or ndjson, so this is the de facto type, used only as
