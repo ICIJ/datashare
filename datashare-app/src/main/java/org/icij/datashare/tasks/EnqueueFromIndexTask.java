@@ -18,7 +18,6 @@ import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import static org.icij.datashare.cli.DatashareCliOptions.NEXT_STAGE_OPT;
 
-
 @TemporalSingleActivityWorkflow(name = "enqueue-ner-tasks-from-index", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
 public class EnqueueFromIndexTask extends StageTask<String, String> {
@@ -50,7 +49,8 @@ public class EnqueueFromIndexTask extends StageTask<String, String> {
             return super.getOutputQueueName();
         }
         try {
-            return new PipelineHelper(propertiesProvider).getQueueNameFor(EnqueueFromIndexStage.parseNextStage(nextStage));
+            return new PipelineHelper(propertiesProvider).getQueueNameFor(
+                    EnqueueFromIndexStage.parseNextStage(nextStage));
         } catch (IllegalArgumentException e) {
             return null;
         }
