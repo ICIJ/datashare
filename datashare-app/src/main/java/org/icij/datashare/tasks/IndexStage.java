@@ -5,7 +5,9 @@ import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
@@ -23,11 +25,15 @@ import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.text.indexing.elasticsearch.IndexOptions;
 import org.icij.extract.document.DocumentFactory;
+import org.icij.extract.extractor.ExtractionStatus;
 import org.icij.extract.extractor.Extractor;
+import org.icij.extract.report.ReportMap;
+import org.icij.extract.report.Reporter;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.ARTIFACTS_OPT;
 
 /**
@@ -44,6 +50,7 @@ public class IndexStage implements StageProcessor<Path, String> {
     private final Indexer indexer;
     private final LanguageGuesser languageGuesser;
     private final BiFunction<DocumentFactory, Options<String>, Extractor> extractorFactory;
+    private final Function<String, ReportMap> mapFactory;
 
     /** What the options of a run say, parsed once per context. */
     private record Config(PropertiesProvider properties, IndexOptions indexOptions, ArtifactOptions artifactOptions) {}
@@ -55,9 +62,16 @@ public class IndexStage implements StageProcessor<Path, String> {
     /** @param extractorFactory builds the extractor from the options, a seam for tests */
     public IndexStage(Indexer indexer, LanguageGuesser languageGuesser,
                       BiFunction<DocumentFactory, Options<String>, Extractor> extractorFactory) {
+        this(indexer, languageGuesser, extractorFactory, null);
+    }
+
+    public IndexStage(Indexer indexer, LanguageGuesser languageGuesser,
+                      BiFunction<DocumentFactory, Options<String>, Extractor> extractorFactory,
+                      Function<String, ReportMap> mapFactory) {
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
         this.extractorFactory = extractorFactory;
+        this.mapFactory = mapFactory;
     }
 
     @Override
@@ -74,20 +88,45 @@ public class IndexStage implements StageProcessor<Path, String> {
     public StageResult process(List<Path> batch, StageContext<String> ctx) {
         Extractor extractor = ctx.resource(Extractor.class, () -> newExtractor(ctx));
         ElasticsearchSpewer spewer = ctx.resource(ElasticsearchSpewer.class, () -> newSpewer(extractor, ctx));
+        Reporter reporter = reporter(ctx);
         StageResult result = StageResult.EMPTY;
         for (Path path : batch) {
             if (ctx.isCancelled()) {
                 break;
             }
             try {
-                extractor.extract(path, spewer);
-                result = result.plus(new StageResult(1, 0, 0, 0));
+                ExtractionStatus status =
+                        reporter == null ? extractor.extract(path, spewer) : extractor.extract(path, spewer, reporter);
+                result = result.plus(switch (status) {
+                    case SUCCESS -> new StageResult(1, 0, 0, 0);
+                    case SKIPPED -> new StageResult(0, 1, 0, 0);
+                    default -> {
+                        logger.error("failed to extract/index {}: {}", path, status);
+                        yield new StageResult(0, 0, 0, 1);
+                    }
+                });
             } catch (Exception e) {
                 logger.error("failed to extract/index {}", path, e);
                 result = result.plus(new StageResult(0, 0, 0, 1));
             }
         }
         return result;
+    }
+
+    /** The reporter of the run's report map, or null when the run names none. Closed with the context: it flushes there. */
+    private Reporter reporter(StageContext<String> ctx) {
+        Optional<String> reportName = config(ctx).properties().get(REPORT_NAME_OPT);
+        if (reportName.isEmpty()) {
+            return null;
+        }
+        if (mapFactory == null) {
+            logger.warn("--reportName {} is set but this process has no report map: it is ignored", reportName.get());
+            return null;
+        }
+        return ctx.resource(Reporter.class, () -> {
+            logger.info("report map enabled with name set to {}", reportName.get());
+            return new Reporter(mapFactory.apply(reportName.get()));
+        });
     }
 
     private Config config(StageContext<String> ctx) {
