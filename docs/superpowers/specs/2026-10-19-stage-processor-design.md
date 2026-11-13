@@ -179,9 +179,15 @@ pipeline path.
    replace `IndexWorkflowImpl`. Done.
 4. **Temporal robustness (section 6):** emit batching, per-stage timeout and bounded retries
    (`StageActivityOptions`): done. Activity heartbeat: to do.
-5. **The other stages as processors,** one at a time: NLP first (the easy one), then ARTIFACT
-   (the test of the page-task design, see section 7), then CATEGORIZE, DEDUPLICATE and the
-   index-reading sources. To do; ARTIFACT was tried on `StageTask` and reverted.
+5. **The other stages as processors,** one at a time. NLP: `NlpStage` and a thin `ExtractNlpTask`
+   shell on `StageTask`. Done. ARTIFACT: `ArtifactStage` and a thin `ArtifactTask` on `StageTask`;
+   the source extractor is built once per run through `ctx.resource` (the earlier attempt was about
+   2x slower from per-document setup and was reverted), but the cost is not measured yet. In
+   progress. CATEGORIZE and ENQUEUEIDX:
+   done (`CategorizeStage`, `EnqueueFromIndexStage`). To do: DEDUPLICATE and the other index-reading
+   sources (SCANIDX, SCANQUERY). Processor-level
+   exception handling follows section 4 and is not migrated yet in `IndexStage`, `LanguageStage`,
+   `NlpStage` and `ArtifactStage`.
 6. **Pages as tasks on the queues:** only after step 5 shows that NLP and ARTIFACT fit, and
    after measuring the per-page setup cost on INDEX. The generic page task, the run tag and the
    executor wait replace `PipelineTask`, `StageTask` and `UpstreamGate`, and `TaskResource` uses
@@ -189,10 +195,29 @@ pipeline path.
 
 ### 4. Errors and cancellation
 
-- Per-document failure: counted in `StageResult`, never thrown (current behavior).
-- Infrastructure failure: thrown. The queue executor fails the task (as `WorkersFailed` does);
-  Temporal retries the activity.
-- Cancellation: `ctx.isCancelled()` covers interrupt-based cancel and the Temporal heartbeat.
+Throw early, catch late: a processor cannot repair a failure, so it does not handle it. It lets the
+exception flow to the executor, the highest level, which owns the policy.
+
+- **Processor:** returns only outcomes that are not failures (`updated`, `unchanged`, `skipped`: a
+  missing document, a pipeline that does not initialize). It catches an exception only to fix or
+  translate it, never to log it and carry on. `process` may throw (`throws Exception`), so
+  `InterruptedException` flows out. `StageResult.failed` is produced by the executor.
+- **Queue executor (`StageTask`):** one catch around `process` per entry (the batch is one entry).
+  It rethrows `Error`, a cancellation and a broken configuration (they fail the run, as
+  `WorkersFailed` does), and for any other exception logs it with the document reference, counts
+  `failed` and continues.
+- **Temporal (`StageActivityImpl`):** letting Temporal retry a whole batch would not work, since
+  one poison document in 1000 fails every attempt. On an exception from a multi-item batch the
+  activity splits it and retries each half, until a single failing item is counted `failed`. The
+  `EmitBuffer` is discarded for a failed attempt, so the next stage gets no duplicates. The split
+  logic is written once and shared with the queue executor.
+- **Cancellation:** `ctx.isCancelled()` covers interrupt-based cancel and, later, the Temporal
+  heartbeat. An interrupt counts as a cancellation only when the task itself was cancelled (the
+  worker pool is shut down): a client wrapping an `InterruptedException` in a `RuntimeException`
+  is an infrastructure failure and fails the run.
+- **Consequences:** processors must be idempotent, because a split reprocesses part of a batch
+  (they already are: a re-run redoes failed documents). The executor cannot tell a bad document
+  from infrastructure that is down, so it needs a guard (see Open).
 
 ### 5. Testing
 
@@ -328,6 +353,9 @@ alternatives in section 2).
 
 ## Open
 
+- Failure guard (section 4): an Elasticsearch outage would be counted as thousands of failed
+  documents. After how many consecutive failures does the executor treat it as infrastructure and
+  fail the run, or should infrastructure exceptions be typed instead?
 - Name of the composition concept: `Pipeline` already means the NLP engine in `text.nlp`.
   `PipelineHelper` stays until this is decided.
 - Whether the extraction threads are a second explicit setting or only derived from the CPU

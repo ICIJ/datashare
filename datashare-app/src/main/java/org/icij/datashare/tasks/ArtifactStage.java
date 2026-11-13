@@ -45,17 +45,10 @@ public class ArtifactStage implements StageProcessor<String, Void> {
 
     @Override
     public StageResult process(List<String> docRefs, StageContext<Void> ctx) {
-        SourceExtractor extractor = ctx.resource(SourceExtractor.class, () -> extractorFactory.apply(ctx.options()));
-        ArtifactOptions artifactOptions = mapToRecord(ArtifactOptions.class, ctx.options());
-        ofNullable(artifactOptions.artifactDir()).orElseThrow(() -> new IllegalArgumentException(
-                String.format("cannot process artifact task with empty %s", ARTIFACT_DIR_OPT)));
-
-        Path projectRoot = ArtifactPath.projectRoot(artifactOptions.artifactDir(), artifactOptions.projectName());
-        ArtifactRegistry registry = ArtifactRegistry.withDefaults(mapToRecord(ExtractorOptions.class, ctx.options()));
-        List<Artifact> selected = artifactOptions.artifacts().isEmpty() ? registry.select((String) null) :
-                                  registry.select(artifactOptions.artifacts());
-        String taskId = ctx.options().get("taskId").toString();
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), ctx::isCancelled, taskId);
+        // everything that depends on the options only is built once per run, not once per queue entry
+        RunSetup setup = ctx.resource(RunSetup.class, () -> setup(ctx));
+        ArtifactOptions artifactOptions = setup.options();
+        ArtifactProducer producer = setup.producer();
 
         long nbSkipped = 0;
         long nbFailed = 0;
@@ -64,9 +57,9 @@ public class ArtifactStage implements StageProcessor<String, Void> {
             try {
                 Document doc = indexer.get(artifactOptions.projectName(), DocReference.parse(docRef), SOURCE_EXCLUDES);
                 if (doc != null) {
-                    Path docArtifactDir = ArtifactPath.dir(projectRoot, doc.getId());
-                    if (producer.run(selected, new ArtifactContext(Project.project(artifactOptions.projectName()), doc,
-                                                                   docArtifactDir, extractor),
+                    Path docArtifactDir = ArtifactPath.dir(setup.projectRoot(), doc.getId());
+                    if (producer.run(setup.selected(),
+                                     new ArtifactContext(setup.project(), doc, docArtifactDir, setup.extractor()),
                                      artifactOptions.force())) {
                         nbDocs++;
                     } else {
@@ -87,6 +80,23 @@ public class ArtifactStage implements StageProcessor<String, Void> {
             }
         }
         return new StageResult(nbDocs, 0, nbSkipped, nbFailed);
+    }
+
+    private record RunSetup(ArtifactOptions options, Project project, Path projectRoot, List<Artifact> selected, ArtifactProducer producer, SourceExtractor extractor) {}
+
+    private RunSetup setup(StageContext<Void> ctx) {
+        ArtifactOptions artifactOptions = mapToRecord(ArtifactOptions.class, ctx.options());
+        ofNullable(artifactOptions.artifactDir()).orElseThrow(() -> new IllegalArgumentException(
+                String.format("cannot process artifact task with empty %s", ARTIFACT_DIR_OPT)));
+        ArtifactRegistry registry = ArtifactRegistry.withDefaults(mapToRecord(ExtractorOptions.class, ctx.options()));
+        List<Artifact> selected = artifactOptions.artifacts().isEmpty() ? registry.select((String) null) :
+                                  registry.select(artifactOptions.artifacts());
+        // isCancelled reads the calling thread, so the one producer shared by the workers stays correct
+        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), ctx::isCancelled,
+                                                         ctx.options().get("taskId").toString());
+        return new RunSetup(artifactOptions, Project.project(artifactOptions.projectName()),
+                            ArtifactPath.projectRoot(artifactOptions.artifactDir(), artifactOptions.projectName()),
+                            selected, producer, extractorFactory.apply(ctx.options()));
     }
 
     @Override
