@@ -99,7 +99,8 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
 
     protected DocumentQueue<T> getOutputQueue(Class<T> clazz) {
         String queueName = getOutputQueueName();
-        if (queueName != null) {
+        // a source stage task has no input factory: it writes through the output factory of StageTask
+        if (queueName != null && factory != null) {
             return factory.createQueue(queueName, clazz);
         }
         return null;

@@ -22,6 +22,7 @@ import org.icij.datashare.asyncsearch.AsyncSearchStore;
 import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
 import org.icij.datashare.asyncsearch.RedisAsyncSearchStore;
 import org.icij.datashare.asynctasks.*;
+import org.icij.datashare.asynctasks.pipeline.PipelineWorkflowImpl;
 import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkerOptions;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkers;

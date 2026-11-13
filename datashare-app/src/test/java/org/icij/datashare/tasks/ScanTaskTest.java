@@ -1,19 +1,17 @@
 package org.icij.datashare.tasks;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
 import junit.framework.TestCase;
-import org.icij.datashare.PropertiesProvider;
+import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
+import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-
-import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
-import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPT;
 
 public class ScanTaskTest extends TestCase {
     private static final Path DOCS = Paths.get(ClassLoader.getSystemResource("docs").getPath());
@@ -61,7 +59,7 @@ public class ScanTaskTest extends TestCase {
     }
 
     private ScanTask scanTask(Map<String, Object> serverProperties, Map<String, Object> taskArgs) {
-        return new ScanTask(documentCollectionFactory, new PropertiesProvider(serverProperties),
+        return new ScanTask(documentCollectionFactory, new StageRegistry().register(new ScanStage()),
                 new Task<>("org.icij.datashare.tasks.ScanTask", User.local(), taskArgs), null);
     }
 

@@ -6,6 +6,7 @@ import java.io.Closeable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -86,29 +87,13 @@ public class PipelineWorkflowIntTest {
         return new ElasticsearchIndexer(es.client, new PropertiesProvider());
     }
 
-    private Map<Stage, StageResult> runPipeline(Path dataDir, String workflowId, String project) throws Exception {
-        WorkflowRegistry registry = new WorkflowRegistry();
-        registry.registerWorkflow(PipelineWorkflowImpl.class, WORKFLOWS_DEFAULT);
-        registry.registerWorkflow(IndexationWorkflowImpl.class, WORKFLOWS_DEFAULT);
-        PropertiesProvider serverProperties = new PropertiesProvider(Map.of("dataDir", tmp.getRoot().toString()));
-        registry.registerActivity(new ScanActivityImpl(temporal.interlocutor(), serverProperties), WORKFLOWS_DEFAULT);
-        ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, propertiesProvider);
-        registry.registerActivity(new StageActivityImpl(new StageRegistry().register(new ScanStage()).register(
-                new IndexStage(indexer().withRefresh(Refresh.True), text -> Language.ENGLISH)),
-                temporal.interlocutor()), WORKFLOWS_DEFAULT);
-        try (Closeable ignored = new TemporalWorkers(temporal.interlocutor()).start(registry, List.of(WORKFLOWS_DEFAULT),
-                                                                                    new TemporalWorkerOptions(1))) {
-            return temporal.interlocutor().newWorkflowStub(PipelineWorkflow.class,
-                                                           WorkflowOptions.newBuilder().setTaskQueue(WORKFLOWS_DEFAULT)
-                                                                          .setWorkflowId(workflowId).build())
-                           .run(List.of(Stage.SCAN, Stage.INDEX),
-                                Map.of("defaultProject", project, "dataDir", dataDir.toString()), Map.of());
-        }
-    }
-
     @Test
     public void test_scan_honors_the_scan_options() throws Exception {
-        assertThat(scan(ScanOptions.builder().excludePattern("**").build(), "excluded")).isEqualTo(0L);
+        Map<Stage, StageResult> results = runPipeline(List.of(Stage.SCAN), tmp.getRoot().toPath(),
+                                                      es.getIndexName() + "-excluded", es.getIndexName(),
+                                                      Map.of("excludePattern", "**"));
+
+        assertThat(results.get(Stage.SCAN).updated()).isEqualTo(0L);
     }
 
     @Test
@@ -116,27 +101,33 @@ public class PipelineWorkflowIntTest {
         Files.writeString(outside.getRoot().toPath().resolve("secret.txt"), "outside the data dir");
         Files.createSymbolicLink(tmp.getRoot().toPath().resolve("link"), outside.getRoot().toPath());
 
-        assertThat(scan(ScanOptions.builder().followSymlinks(true).build(), "links")).isEqualTo(1L);
+        Map<Stage, StageResult> results = runPipeline(List.of(Stage.SCAN), tmp.getRoot().toPath(),
+                                                      es.getIndexName() + "-links", es.getIndexName(),
+                                                      Map.of("followSymlinks", true));
+
+        assertThat(results.get(Stage.SCAN).updated()).isEqualTo(1L);
     }
 
-    private Long scan(ScanOptions scanOptions, String workflowIdSuffix) throws Exception {
-        PropertiesProvider propertiesProvider = new PropertiesProvider();
-        WorkflowRegistry registry = new WorkflowRegistry();
-        registry.registerWorkflow(IndexationWorkflowImpl.class, WORKFLOWS_DEFAULT);
-        PropertiesProvider serverProperties = new PropertiesProvider(Map.of("dataDir", tmp.getRoot().toString()));
-        registry.registerActivity(new ScanActivityImpl(temporal.interlocutor(), serverProperties), WORKFLOWS_DEFAULT);
-        registry.registerActivity(new IndexActivityImpl(
-                new ElasticsearchIndexer(es.client, propertiesProvider), text -> Language.ENGLISH), WORKFLOWS_DEFAULT);
+    private Map<Stage, StageResult> runPipeline(Path dataDir, String workflowId, String project) throws Exception {
+        return runPipeline(List.of(Stage.SCAN, Stage.INDEX), dataDir, workflowId, project, Map.of());
+    }
 
+    private Map<Stage, StageResult> runPipeline(List<Stage> stages, Path dataDir, String workflowId, String project,
+                                                Map<String, Object> extraOptions) throws Exception {
+        WorkflowRegistry registry = new WorkflowRegistry();
+        registry.registerWorkflow(PipelineWorkflowImpl.class, WORKFLOWS_DEFAULT);
+        registry.registerActivity(new StageActivityImpl(new StageRegistry().register(new ScanStage()).register(
+                new IndexStage(indexer().withRefresh(Refresh.True), text -> Language.ENGLISH)),
+                temporal.interlocutor()), WORKFLOWS_DEFAULT);
+        Map<String, Object> options = new HashMap<>(extraOptions);
+        options.put("defaultProject", project);
+        options.put("dataDir", dataDir.toString());
         try (Closeable ignored = new TemporalWorkers(temporal.interlocutor()).start(registry, List.of(WORKFLOWS_DEFAULT),
-                                                       new TemporalWorkerOptions(1))) {
-            return temporal.interlocutor().newWorkflowStub(IndexationWorkflow.class,
-                                                 WorkflowOptions.newBuilder().setTaskQueue(WORKFLOWS_DEFAULT)
-                                                                .setWorkflowId(es.getIndexName() + "-" + workflowIdSuffix)
-                                                                .build())
-                    .run(scanOptions, tmp.getRoot().toPath(), es.getIndexName(),
-                         IndexOptions.fromPropertiesProvider(propertiesProvider),
-                         propertiesProvider.toRecord(ArtifactOptions.class));
+                                                                                    new TemporalWorkerOptions(1))) {
+            return temporal.interlocutor().newWorkflowStub(PipelineWorkflow.class,
+                                                           WorkflowOptions.newBuilder().setTaskQueue(WORKFLOWS_DEFAULT)
+                                                                          .setWorkflowId(workflowId).build())
+                           .run(stages, options, Map.of());
         }
     }
 
