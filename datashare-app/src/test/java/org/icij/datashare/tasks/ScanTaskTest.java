@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import junit.framework.TestCase;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.user.User;
@@ -18,14 +19,14 @@ public class ScanTaskTest extends TestCase {
     private final MemoryDocumentCollectionFactory<Path> documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
 
     public void test_scan() throws Exception {
-        assertThat(new ScanTask(documentCollectionFactory, new Task<>("org.icij.datashare.tasks.ScanTask", User.local(),
+        assertThat(new ScanTask(documentCollectionFactory, new StageRegistry().register(new ScanStage()), new Task<>("org.icij.datashare.tasks.ScanTask", User.local(),
                 Map.of(DATA_DIR_OPT, Paths.get(ClassLoader.getSystemResource("docs").getPath()).toString())), null).call()).isEqualTo(3);
         DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:index", Path.class);
         assertThat(queue.size()).isEqualTo(3);
     }
 
     public void test_scan_with_queue_name() throws Exception {
-        assertThat(new ScanTask(documentCollectionFactory, new Task<>("org.icij.datashare.tasks.ScanTask", User.local(),
+        assertThat(new ScanTask(documentCollectionFactory, new StageRegistry().register(new ScanStage()), new Task<>("org.icij.datashare.tasks.ScanTask", User.local(),
                 Map.of(DATA_DIR_OPT, Paths.get(ClassLoader.getSystemResource("docs").getPath()).toString(),
                         QUEUE_NAME_OPT, "foo")), null).call()).isEqualTo(3);
         DocumentQueue<Path> queue = documentCollectionFactory.createQueue("foo:index", Path.class);

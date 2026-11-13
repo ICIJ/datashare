@@ -62,11 +62,15 @@ public class StageTask<I, O> extends PipelineTask<I> {
         return result.updated() + result.unchanged();
     }
 
-    /**
-     * Feeds the processor and returns what it did: by default with the entries of the input queue, drained by the
-     * workers. A source stage has no input queue, so its task overrides this to hand the processor an empty batch.
-     */
-    protected StageResult run(StageContext<O> ctx) throws InterruptedException {
+    private StageResult run(StageContext<O> ctx) throws InterruptedException {
+        if (processor.itemType() == Void.class) {
+            logger.info("running source stage {} for project {}", stage, project.name);
+            StageResult result = processor.process(List.of(), ctx);
+            if (Thread.interrupted()) {
+                throw new InterruptedException("cancelled while running " + stage);
+            }
+            return result;
+        }
         logger.info("running stage {} for project {} from queue {} with {} worker(s)", stage, project.name,
                     inputQueue.getName(), nbWorkers);
         AtomicReference<StageResult> total = new AtomicReference<>(StageResult.EMPTY);
@@ -75,10 +79,6 @@ public class StageTask<I, O> extends PipelineTask<I> {
             onEntryProcessed();
         }));
         return total.get();
-    }
-
-    protected StageProcessor<I, O> processor() {
-        return processor;
     }
 
     private ScopedStageContext<O> newContext() {
