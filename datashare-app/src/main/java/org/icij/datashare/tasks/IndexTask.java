@@ -23,7 +23,6 @@ import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.OCR_MIN_CONFIDENCE_OPT;
 
 /**
@@ -54,8 +53,6 @@ public class IndexTask extends StageTask<Path, String> implements Monitorable {
               gateFactory.forTask(taskView), registry, outputFactory, String.class);
         this.progressCallback = progressCallback;
         setTaskId(taskView.id);
-        propertiesProvider.get(REPORT_NAME_OPT).ifPresent(name -> logger.warn(
-                "--reportName {} is set but the INDEX stage no longer records what it extracts there", name));
     }
 
     @Override

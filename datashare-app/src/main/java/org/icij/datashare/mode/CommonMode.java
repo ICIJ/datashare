@@ -66,6 +66,7 @@ import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
 import org.icij.datashare.asynctasks.PipelineExecutor;
 import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.tasks.ArtifactStage;
+import org.icij.extract.extractor.Extractor;
 import org.icij.datashare.tasks.CategorizeStage;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.EnqueueFromIndexStage;
@@ -530,10 +531,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @Provides
     @Singleton
     StageRegistry provideStageRegistry(Indexer indexer, LanguageGuesser languageGuesser,
-                                       PipelineRegistry pipelineRegistry) {
-        return new StageRegistry().register(new LanguageStage(indexer, languageGuesser))
-                                  .register(new IndexStage(indexer, languageGuesser)).register(new ScanStage())
-                                  .register(new NlpStage(indexer, pipelineRegistry))
+                                       PipelineRegistry pipelineRegistry,
+                                       DocumentCollectionFactory<Path> collectionFactory) {
+        return new StageRegistry().register(new LanguageStage(indexer, languageGuesser)).register(
+                                          new IndexStage(indexer, languageGuesser, Extractor::new, collectionFactory::createMap))
+                                  .register(new ScanStage()).register(new NlpStage(indexer, pipelineRegistry))
                                   .register(new CategorizeStage(indexer)).register(new EnqueueFromIndexStage(indexer))
                                   .register(new ArtifactStage(indexer));
     }

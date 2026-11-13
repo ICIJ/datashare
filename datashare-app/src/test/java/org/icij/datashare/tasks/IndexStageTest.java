@@ -6,13 +6,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.icij.datashare.asynctasks.ScopedStageContext;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
+import org.icij.extract.extractor.ExtractionStatus;
+import org.icij.extract.report.Report;
+import org.icij.extract.report.Reporter;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
+import org.junit.Before;
 import org.junit.Test;
 import org.icij.extract.extractor.Extractor;
 import static org.fest.assertions.Assertions.assertThat;
@@ -24,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class IndexStageTest {
     private final Indexer indexer = mock(Indexer.class);
@@ -34,6 +41,13 @@ public class IndexStageTest {
         return extractor;
     });
     private boolean cancelled;
+
+    @Before
+    public void succeedByDefault() throws Exception {
+        when(extractor.extract(any(Path.class), any(ElasticsearchSpewer.class))).thenReturn(ExtractionStatus.SUCCESS);
+        when(extractor.extract(any(Path.class), any(ElasticsearchSpewer.class), any(Reporter.class)))
+                .thenReturn(ExtractionStatus.SUCCESS);
+    }
     private final ScopedStageContext<String> ctx = new ScopedStageContext<>() {
         public Project project() {return Project.project("prj");}
 
@@ -105,5 +119,85 @@ public class IndexStageTest {
 
         assertThat(extractorsBuilt.get()).isEqualTo(2);
         verify(extractor, times(2)).close();
+    }
+
+    private ScopedStageContext<String> ctxWithReport(String reportName) {
+        return new ScopedStageContext<>() {
+            public Project project() {return Project.project("prj");}
+
+            public Map<String, Object> options() {return Map.of("defaultProject", "prj", "reportName", reportName);}
+
+            public boolean isCancelled() {return false;}
+
+            public void emit(List<String> out) {}
+        };
+    }
+
+    private IndexStage stageWithMap(MemoryDocumentCollectionFactory<Path> maps) {
+        return new IndexStage(indexer, text -> Language.ENGLISH, (documentFactory, options) -> extractor,
+                              maps::createMap);
+    }
+
+    @Test
+    public void test_a_path_recorded_in_the_report_map_is_skipped_and_counted_unchanged() throws Exception {
+        MemoryDocumentCollectionFactory<Path> maps = new MemoryDocumentCollectionFactory<>();
+        Path done = Paths.get("done.txt");
+        maps.createMap("report").putAll(Map.of(done, new Report(ExtractionStatus.SUCCESS)));
+
+        when(extractor.extract(eq(done), any(ElasticsearchSpewer.class), any(Reporter.class)))
+                .thenReturn(ExtractionStatus.SKIPPED);
+
+        StageResult result = stageWithMap(maps).process(List.of(done, Paths.get("new.txt")), ctxWithReport("report"));
+
+        assertThat(result).isEqualTo(new StageResult(1, 1, 0, 0));
+        assertThat(maps.createMap("report").get(done)).isEqualTo(new Report(ExtractionStatus.SUCCESS));
+    }
+
+    @Test
+    public void test_without_a_report_name_the_report_map_is_not_used() throws Exception {
+        MemoryDocumentCollectionFactory<Path> maps = new MemoryDocumentCollectionFactory<>();
+
+        stageWithMap(maps).process(List.of(Paths.get("a.txt")), ctx);
+
+        verify(extractor).extract(eq(Paths.get("a.txt")), any(ElasticsearchSpewer.class));
+    }
+
+    @Test
+    public void test_a_report_name_without_a_map_source_is_ignored() throws Exception {
+        StageResult result = stage.process(List.of(Paths.get("a.txt")), ctxWithReport("report"));
+
+        assertThat(result).isEqualTo(new StageResult(1, 0, 0, 0));
+        verify(extractor).extract(eq(Paths.get("a.txt")), any(ElasticsearchSpewer.class));
+    }
+
+    @Test
+    public void test_what_is_extracted_is_recorded_in_the_report_map_and_skipped_on_the_next_run() throws Exception {
+        MemoryDocumentCollectionFactory<Path> maps = new MemoryDocumentCollectionFactory<>();
+        IndexStage realExtraction = new IndexStage(indexer, text -> Language.ENGLISH, Extractor::new, maps::createMap);
+        Path file = Paths.get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).toURI());
+
+        ScopedStageContext<String> firstRun = ctxWithReport("report");
+        StageResult first = realExtraction.process(List.of(file), firstRun);
+        firstRun.close();
+        StageResult second = realExtraction.process(List.of(file), ctxWithReport("report"));
+
+        assertThat(first).isEqualTo(new StageResult(1, 0, 0, 0));
+        assertThat(maps.createMap("report").get(file).getStatus()).isEqualTo(ExtractionStatus.SUCCESS);
+        assertThat(second).isEqualTo(new StageResult(0, 1, 0, 0));
+    }
+
+    @Test
+    public void test_a_failed_extraction_is_recorded_in_the_report_map_and_not_thrown() throws Exception {
+        MemoryDocumentCollectionFactory<Path> maps = new MemoryDocumentCollectionFactory<>();
+        IndexStage realExtraction = new IndexStage(indexer, text -> Language.ENGLISH, Extractor::new, maps::createMap);
+        Path missing = Paths.get("/does/not/exist.txt");
+
+        ScopedStageContext<String> run = ctxWithReport("report");
+        StageResult result = realExtraction.process(List.of(missing), run);
+        run.close();
+
+        // extract-lib records the failure in the map instead of throwing it, and returns its status
+        assertThat(maps.createMap("report").get(missing).getStatus()).isNotEqualTo(ExtractionStatus.SUCCESS);
+        assertThat(result).isEqualTo(new StageResult(0, 0, 0, 1));
     }
 }
