@@ -62,7 +62,7 @@ public class ExtractionMappingTest {
     @Test
     public void test_validate_refuses_a_key_literal_holding_a_nul() {
         ExtractionMapping.EntityMapping member = new ExtractionMapping.EntityMapping("Person", "sup\u0000plier",
-                List.of("id"), Map.of("name", column("full_name")));
+                List.of("id"), null, Map.of(), Map.of("name", column("full_name")));
 
         assertThat(mapping("ftm", Map.of("member", member)).validate().toString())
                 .contains("the key literal of entity 'member' holds a NUL");
@@ -71,7 +71,7 @@ public class ExtractionMappingTest {
     @Test
     public void test_validate_refuses_a_key_literal_on_a_keyless_entity() {
         ExtractionMapping.EntityMapping member = new ExtractionMapping.EntityMapping("Person", "supplier",
-                List.of(), Map.of("name", column("full_name")));
+                List.of(), null, Map.of(), Map.of("name", column("full_name")));
 
         assertThat(mapping("ftm", Map.of("member", member)).validate().toString())
                 .contains("key literal but no key");
@@ -341,8 +341,11 @@ public class ExtractionMappingTest {
 
     @Test
     public void test_an_id_column_and_a_key_literal_together_are_refused() {
-        assertThat(mapping("ftm", Map.of("member", identified("registry", List.of(), "id"))).validate().toString())
-                .contains("entity 'member' has a key literal but no key, and a row-scoped id carries no literal");
+        String violations = mapping("ftm", Map.of("member", identified("registry", List.of(), "id"))).validate().toString();
+
+        assertThat(violations)
+                .contains("entity 'member' has both an id column and a key literal, and a verbatim id carries no literal");
+        assertThat(violations).excludes("row-scoped");
     }
 
     @Test

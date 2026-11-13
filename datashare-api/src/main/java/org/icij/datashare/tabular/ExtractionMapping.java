@@ -51,11 +51,6 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             this(type, null, keys, null, Map.of(), properties);
         }
 
-        public EntityMapping(String type, String keyLiteral, List<String> keys,
-                             Map<String, PropertyMapping> properties) {
-            this(type, keyLiteral, keys, null, Map.of(), properties);
-        }
-
         public EntityMapping {
             Objects.requireNonNull(type, "type");
             // Keys name header columns, so they get the cleaning headers get: a key pasted with a
@@ -82,11 +77,17 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             // columns, and two values for it are a mapping no row can honour rather than a Java
             // collector's business.
             filters = (filters == null ? Map.<String, String>of() : filters).entrySet().stream().collect(
-                    toUnmodifiableMap(entry -> Row.clean(entry.getKey()), entry -> Row.clean(
-                                              Objects.requireNonNull(entry.getValue(), "filters." + entry.getKey())),
+                    toUnmodifiableMap(entry -> Row.clean(entry.getKey()), ExtractionMapping::filterValue,
                                       ExtractionMapping::oneValuePerColumn));
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));
         }
+    }
+
+    private static String filterValue(Map.Entry<String, String> filter) {
+        if (filter.getValue() == null) {
+            throw new MalformedExtractionMapping("field 'filters.%s' holds a null".formatted(filter.getKey()));
+        }
+        return Row.clean(filter.getValue());
     }
 
     private static String oneValuePerColumn(String first, String second) {
@@ -152,7 +153,11 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             if (entity.keyLiteral() != null && entity.keyLiteral().isBlank()) {
                 violations.add("entity '" + alias + "' has a blank key literal, which hashes like no literal at all");
             }
-            if (entity.keyLiteral() != null && entity.keys().isEmpty()) {
+            if (entity.keyLiteral() != null && entity.idColumn() != null) {
+                violations.add("entity '" + alias +
+                               "' has both an id column and a key literal, and a verbatim id carries no literal");
+            }
+            if (entity.keyLiteral() != null && entity.keys().isEmpty() && entity.idColumn() == null) {
                 violations.add(
                         "entity '" + alias + "' has a key literal but no key, and a row-scoped id carries no literal");
             }

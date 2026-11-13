@@ -118,6 +118,19 @@ public class ExtractionMappingReaderTest {
     }
 
     @Test
+    public void test_read_names_the_filter_holding_a_null() {
+        assertRefused(MAPPING.replace("\"keys\": [\"id\"]", "\"idColumn\": \"id\", \"filters\": {\"schema\": null}"),
+                      "entities.c: field 'filters.schema' holds a null");
+    }
+
+    @Test
+    public void test_read_names_the_filter_holding_a_null_whose_column_has_a_space() {
+        assertRefused(MAPPING.replace("\"keys\": [\"id\"]",
+                                      "\"idColumn\": \"id\", \"filters\": {\"entity type\": null}"),
+                      "entities.c: field 'filters.entity type' holds a null");
+    }
+
+    @Test
     public void test_read_names_the_field_holding_a_null_property() {
         assertRefused(MAPPING.replace("{\"columns\": [\"name\"]}", "null"), "field 'entities.c' holds a null");
     }
