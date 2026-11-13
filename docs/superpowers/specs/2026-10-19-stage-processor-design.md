@@ -363,9 +363,13 @@ alternatives in section 2).
 - Whether a huge document (a multi-GB PST) needs its own queue or stage settings.
 - Whether structure and page artifacts can be produced during the INDEX streaming parse
   (an extract library question) instead of a second pass.
-- `--reportName`: the thin `IndexTask` ignores it (it only warns), so the skip of already
-  extracted documents and the re-queue of failures of the SCANIDX flow are gone. Either drop the
-  option, or pass an optional reporter into `IndexStage` from the queue side only.
+- `--reportName` (queue side, people who do not use Temporal): `IndexStage` takes an optional report map
+  source, `CommonMode` gives it the collection factory. With the option, extract-lib (9.23) skips the paths
+  the map records as extracted and records what it extracts, and returns an `ExtractionStatus` that the stage
+  maps to `updated` (`SUCCESS`), `unchanged` (`SKIPPED`) and `failed` (`FAILURE_*`). Left: the re-queue of
+  failures of the old flow is not re-checked; SCANIDX, which fills the map, is still a `PipelineTask`; on
+  Temporal the map is only shared if the worker has the Redis collection factory, and the option may go
+  away there.
 - Temporal with no worker running: the CLI waits forever. Check for a poller on the task queue
   at start and fail fast, and log the task queue name on both sides.
 - `TemporalWorkflowGenerator` reads `call()` only on the annotated class, hence the delegating
