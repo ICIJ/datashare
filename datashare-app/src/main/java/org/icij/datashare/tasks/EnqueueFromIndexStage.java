@@ -60,7 +60,8 @@ public class EnqueueFromIndexStage implements StageProcessor<Void, String> {
         PropertiesProvider properties = new PropertiesProvider(ctx.options());
         Stage nextStage = nextStage(properties);
         String projectName = ctx.project().getName();
-        Pipeline.Type nlpPipeline = Pipeline.Type.parse(properties.get(NLP_PIPELINE_OPT).orElse(Pipeline.Type.CORENLP.name()));
+        Pipeline.Type nlpPipeline =
+                Pipeline.Type.parse(properties.get(NLP_PIPELINE_OPT).orElse(Pipeline.Type.CORENLP.name()));
         String scrollDuration = properties.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         int scrollSize = parseInt(properties.get(SCROLL_SIZE_OPT).orElse(String.valueOf(DEFAULT_SCROLL_SIZE)));
         String searchQuery = properties.get(SEARCH_QUERY_OPT).orElse(null);
@@ -84,8 +85,9 @@ public class EnqueueFromIndexStage implements StageProcessor<Void, String> {
             List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).toList();
             totalHits = searcher.totalHits();
             String pipelineInfo = (nextStage == Stage.NLP) ? " excluding already processed by " + nlpPipeline : "";
-            logger.info("enqueuing doc ids for index {} targeting {}{} with {} scroll and size of {} : {} documents found",
-                        projectName, nextStage, pipelineInfo, scrollDuration, scrollSize, totalHits);
+            logger.info(
+                    "enqueuing doc ids for index {} targeting {}{} with {} scroll and size of {} : {} documents found",
+                    projectName, nextStage, pipelineInfo, scrollDuration, scrollSize, totalHits);
             while (!docsToProcess.isEmpty() && !ctx.isCancelled()) {
                 ctx.emit(docsToProcess.stream().map(doc -> DocReference.fromDocument((Document) doc).toQueueEntry())
                                       .toList());
@@ -111,9 +113,8 @@ public class EnqueueFromIndexStage implements StageProcessor<Void, String> {
      * constructed task becomes a requeue-forever NackException instead of a clean task error.
      */
     private Stage nextStage(PropertiesProvider properties) {
-        return parseNextStage(properties.get(NEXT_STAGE_OPT)
-                                        .orElseGet(() -> new PipelineHelper(properties).getNextStage(Stage.ENQUEUEIDX)
-                                                                                       .name()));
+        return parseNextStage(properties.get(NEXT_STAGE_OPT).orElseGet(
+                () -> new PipelineHelper(properties).getNextStage(Stage.ENQUEUEIDX).name()));
     }
 
     public static Stage parseNextStage(String value) {

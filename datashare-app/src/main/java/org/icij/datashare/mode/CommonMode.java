@@ -533,8 +533,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         return new StageRegistry().register(new LanguageStage(indexer, languageGuesser))
                                   .register(new IndexStage(indexer, languageGuesser)).register(new ScanStage())
                                   .register(new NlpStage(indexer, pipelineRegistry))
-                                  .register(new CategorizeStage(indexer))
-                                  .register(new EnqueueFromIndexStage(indexer));
+                                  .register(new CategorizeStage(indexer)).register(new EnqueueFromIndexStage(indexer));
     }
 
     @Provides
