@@ -219,6 +219,7 @@ public class DatashareCli {
         DatashareCliOptions.taskRepositoryType(parser);
         DatashareCliOptions.taskManagerPollingInterval(parser);
         DatashareCliOptions.taskProgressUpdateInterval(parser);
+        DatashareCliOptions.taskWorkerShutdownTimeout(parser);
         DatashareCliOptions.taskWorkers(parser);
         DatashareCliOptions.temporalNamespaceOpt(parser);
         DatashareCliOptions.temporalAddressOpt(parser);

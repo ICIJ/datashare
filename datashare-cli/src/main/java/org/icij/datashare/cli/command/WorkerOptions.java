@@ -28,6 +28,11 @@ public class WorkerOptions {
     @Option(names = {"--taskProgressUpdateIntervalSeconds"}, description = "Task progress update interval seconds",
             defaultValue = "10.0")
     double taskProgressUpdateIntervalSeconds;
+    @Option(names = {"--taskWorkerShutdownTimeoutSeconds"},
+            description = "On SIGTERM, seconds the task workers wait for their running task to finish before " +
+                          "cancelling it and requeueing it. Must be lower than the orchestrator termination grace period",
+            defaultValue = "300")
+    long taskWorkerShutdownTimeoutSeconds;
 
     /** Converts the parsed worker option fields into a Properties map for the rest of the application. */
     public Properties toProperties() {
@@ -39,6 +44,7 @@ public class WorkerOptions {
         DatashareOptions.putIfNotNull(props, TASK_REPOSITORY_OPT, taskRepositoryType);
         DatashareOptions.put(props, TASK_MANAGER_POLLING_INTERVAL_OPT, taskManagerPollingIntervalMilliseconds);
         DatashareOptions.put(props, TASK_PROGRESS_INTERVAL_OPT, taskProgressUpdateIntervalSeconds);
+        DatashareOptions.put(props, TASK_WORKER_SHUTDOWN_TIMEOUT_OPT, taskWorkerShutdownTimeoutSeconds);
         return props;
     }
 

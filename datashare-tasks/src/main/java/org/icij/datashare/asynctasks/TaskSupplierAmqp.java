@@ -57,6 +57,15 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
+    public void stopConsumingTasks() {
+        try {
+            consumer.cancel();
+        } catch (IOException | RuntimeException e) {
+            LoggerFactory.getLogger(getClass()).warn("cannot cancel the task consumer", e);
+        }
+    }
+
+    @Override
     public <V extends Serializable> void result(String taskId, TaskResult<V> result) {
         try {
             amqp.publish(AmqpQueue.MANAGER_EVENT, new ResultEvent<>(taskId, result));
