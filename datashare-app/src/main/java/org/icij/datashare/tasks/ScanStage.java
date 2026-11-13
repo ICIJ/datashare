@@ -14,10 +14,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
+import static org.icij.datashare.PropertiesProvider.mapToRecord;
 
 /**
  * The source stage: it is handed an empty batch and emits the paths it finds under {@code dataDir}, in groups. The
- * scan options are the defaults: the options of the run are not mapped to them yet.
+ * scan is configured by the options of the run: {@code includeOSFiles}, {@code includeHiddenFiles},
+ * {@code includePattern}, {@code excludePattern}, {@code followSymlinks} and {@code maxDepth} (see
+ * {@link ScanOptions}). An absent option keeps the default of the scanner.
  */
 public class ScanStage implements StageProcessor<Void, Path> {
     // Each batch costs the workflow ~4 history events (signal + activity scheduled/started/completed).
@@ -40,7 +43,7 @@ public class ScanStage implements StageProcessor<Void, Path> {
         Path dataDir = Paths.get((String) ctx.options().get(DATA_DIR_OPT));
         PathGrouper grouper = new PathGrouper(ctx);
         try {
-            long scanned = new Scanner(ScanOptions.defaultValues(), grouper).scan(dataDir);
+            long scanned = new Scanner(mapToRecord(ScanOptions.class, ctx.options()), grouper).scan(dataDir);
             grouper.purge(); // the trailing batch, smaller than BATCH_SIZE, that scan() never triggered
             return new StageResult(scanned, 0, 0, 0);
         } catch (IOException e) {

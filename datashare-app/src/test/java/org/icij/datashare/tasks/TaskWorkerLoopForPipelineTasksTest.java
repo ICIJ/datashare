@@ -38,7 +38,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_scan_task() throws Exception {
         Task<Long> task = new Task<>(ScanTask.class.getName(), User.local(), Map.of("dataDir", "/path/to/files"));
-        ScanTask taskRunner = new ScanTask(mock(DocumentCollectionFactory.class), task, updateCallback);
+        ScanTask taskRunner = new ScanTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new ScanStage()), task, updateCallback);
         when(taskFactory.createScanTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
