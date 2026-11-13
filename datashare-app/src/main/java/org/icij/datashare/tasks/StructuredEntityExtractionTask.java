@@ -11,6 +11,7 @@ import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.model.EntitiesIndexRebuilder;
+import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingService;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
@@ -103,12 +105,21 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
             // The builder's sheet, not the reader's: the builder cleans it and every statement's
             // provenance carries the cleaned one, so a retraction keyed on the raw name would name a
             // sheet nothing was written under.
-            replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(),
-                                          rows.rows().flatMap(row -> {
-                                              throwIfCancelled();
-                                              read.incrementAndGet();
-                                              return builder.statements(row).stream();
-                                          }));
+            // The column check rides the end of the stream rather than the end of call(): replace()
+            // consumes the stream inside its transaction, so a typo rolls the retraction back with
+            // everything the run wrote, which a check after replace() returned could not do. A source
+            // with no data row has no column to have seen, so it stays a clean empty run.
+            Stream<Statement> written = Stream.concat(rows.rows().flatMap(row -> {
+                throwIfCancelled();
+                read.incrementAndGet();
+                return builder.statements(row).stream();
+            }), Stream.of(builder).flatMap(checked -> {
+                if (read.get() > 0) {
+                    checked.requireEveryColumnSeen();
+                }
+                return Stream.empty();
+            }));
+            replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(), written);
         }
         updateCallback.apply(0.5);
         // Checked again here because the row lambda is the only other cancellation point, and a
