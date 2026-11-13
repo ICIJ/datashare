@@ -27,6 +27,13 @@ public interface TaskSupplier extends TaskModifier, Closeable {
     void consumeTasks(Consumer<Task> taskCallback);
 
     /**
+     * Stops the broker from delivering new tasks to the callbacks given to {@link #consumeTasks}, the ones
+     * being handled are left untouched. Suppliers that poll with {@link #get(int, TimeUnit)} have nothing to stop.
+     */
+    default void stopConsumingTasks() {
+    }
+
+    /**
      * method called to send a result into the databus.
      * @param taskId: id of the task
      * @param result: result of the task

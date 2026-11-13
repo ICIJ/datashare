@@ -103,6 +103,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -215,6 +216,12 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     double getProgressMinIntervalS() {
         return ofNullable(properties().getProperty(TASK_PROGRESS_INTERVAL_OPT)).map(Double::parseDouble)
                                                                                .orElse(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
+    }
+
+    Duration getTaskWorkerShutdownTimeout() {
+        long seconds = ofNullable(properties().getProperty(TASK_WORKER_SHUTDOWN_TIMEOUT_OPT)).map(Long::parseLong)
+                                                                                             .orElse(DEFAULT_TASK_WORKER_SHUTDOWN_TIMEOUT_SECONDS);
+        return Duration.ofSeconds(seconds);
     }
 
     public void runWorkers() {
@@ -630,8 +637,32 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
             List<TaskWorkerLoop> workers = IntStream.range(0, getTaskWorkersNb()).mapToObj(
                     i -> new TaskWorkerLoop(get(DatashareTaskFactory.class), get(TaskSupplier.class),
                                             getProgressMinIntervalS())).toList();
-            workers.forEach(this::addCloseable);
+            addCloseable(() -> closeWorkersGracefully(workers));
             workers.forEach(executorService::submit);
+        }
+    }
+
+    /**
+     * On SIGTERM the running tasks must not be interrupted: every worker stops taking new tasks, then
+     * we wait for the running ones (up to the shutdown timeout, after which they are requeued) before
+     * closing the task supplier shared by the workers.
+     */
+    private void closeWorkersGracefully(List<TaskWorkerLoop> workers) throws IOException {
+        Duration timeout = getTaskWorkerShutdownTimeout();
+        logger.info("stopping {} task worker(s), waiting up to {} for running tasks", workers.size(), timeout);
+        workers.forEach(TaskWorkerLoop::stopAcceptingTasks);
+        List<Thread> waiters = workers.stream().map(w -> new Thread(() -> w.awaitCurrentTask(timeout))).toList();
+        waiters.forEach(Thread::start);
+        for (Thread waiter : waiters) {
+            try {
+                waiter.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        for (TaskWorkerLoop worker : workers) {
+            worker.close();
         }
     }
 
@@ -656,7 +687,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                                       indexationQueue);
             // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
             addCloseable(new TemporalWorkers(temporal).start(registry, registry.registeredQueues(),
-                                                             TemporalWorkerOptions.defaultValues()));
+                                                             TemporalWorkerOptions.defaultValues().withShutdownTimeout(
+                                                                     getTaskWorkerShutdownTimeout())));
         }
     }
 
