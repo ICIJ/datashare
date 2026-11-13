@@ -163,6 +163,7 @@ public final class DatashareCliOptions {
     public static final String TASK_MANAGER_POLLING_INTERVAL_OPT = "taskManagerPollingIntervalMilliseconds";
     public static final String TASK_WORKERS_OPT = "taskWorkers";
     public static final String TASK_PROGRESS_INTERVAL_OPT = "taskProgressUpdateIntervalSeconds";
+    public static final String TASK_WORKER_SHUTDOWN_TIMEOUT_OPT = "taskWorkerShutdownTimeoutSeconds";
     public static final String POLICY_RELOAD_INTERVAL_OPT = "policyReloadInterval";
     // Internal property keys for the CLI -> CliApp dispatch of the user
     // commands. USER_CREATE_OPT and USER_DELETE_OPT carry the login; the
@@ -287,6 +288,7 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_TASK_MANAGER_POLLING_INTERVAL = 5000;
     public static final String DEFAULT_TASK_WORKERS = "1";
     public static final double DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS = 10;
+    public static final long DEFAULT_TASK_WORKER_SHUTDOWN_TIMEOUT_SECONDS = 300;
     public static final String DEFAULT_TEMPORAL_NAMESPACE = "datashare-default";
     public static final String DEFAULT_TEMPORAL_ADDRESS = EnvUtils.resolveUri("temporal", "temporal:7233");
     public static final int DEFAULT_POLICY_RELOAD_INTERVAL = 30_000;
@@ -958,6 +960,14 @@ public final class DatashareCliOptions {
         parser.acceptsAll(singletonList(TASK_PROGRESS_INTERVAL_OPT),
                           "Minimum interval between progress updates for the same task in seconds.").withRequiredArg()
               .ofType(Double.class).defaultsTo(DEFAULT_TASK_PROGRESS_INTERVAL_SECONDS);
+    }
+
+    static void taskWorkerShutdownTimeout(OptionParser parser) {
+        parser.acceptsAll(singletonList(TASK_WORKER_SHUTDOWN_TIMEOUT_OPT),
+                          "On SIGTERM, time in seconds the task workers wait for their running task to finish before " +
+                          "cancelling it and requeueing it. Must be lower than the termination grace period of the " +
+                          "orchestrator (e.g. terminationGracePeriodSeconds on Kubernetes).").withRequiredArg()
+              .ofType(Long.class).defaultsTo(DEFAULT_TASK_WORKER_SHUTDOWN_TIMEOUT_SECONDS);
     }
 
     static void taskWorkers(OptionParser parser) {

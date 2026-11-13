@@ -12,12 +12,14 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import static java.util.Optional.ofNullable;
@@ -39,6 +41,8 @@ public class AmqpChannel {
     final AmqpQueue queue;
     private final int randomQueueNumber;
     private final String key;
+    private final Object deliveriesLock = new Object();
+    private int deliveriesInProgress = 0; // guarded by deliveriesLock
     private final ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
         if (multiple) {
             ConcurrentNavigableMap<Long, byte[]> confirmed = outstandingConfirms.headMap(sequenceNumber, true);
@@ -81,28 +85,71 @@ public class AmqpChannel {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
                                        byte[] body) throws IOException {
+                deliveryStarted();
                 try {
-                    bodyHandler.accept(body);
-                    rabbitMqChannel.basicAck(envelope.getDeliveryTag(), false);
-                } catch (Deserializer.DeserializeException jsonException) {
-                    logger.warn("exception while deserializing json. Sending nack without requeue", jsonException);
-                    rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
-                } catch (NackException nackEx) {
-                    logger.warn("exception while accepting event. Sending nack with requeue={}", nackEx.requeue,
-                                nackEx);
-                    rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, nackEx.requeue);
-                } catch (Exception ex) {
-                    logger.error(
-                            "consumer ({}) can't process message {} for channel {}, rejecting the message due to unhandled exception",
-                            consumerTag, envelope.getDeliveryTag(), rabbitMqChannel, ex);
-                    rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
-                }
-                criteria.newEvent();
-                if (!criteria.isValid()) {
-                    cancelCallback.cancel();
+                    try {
+                        bodyHandler.accept(body);
+                        rabbitMqChannel.basicAck(envelope.getDeliveryTag(), false);
+                    } catch (Deserializer.DeserializeException jsonException) {
+                        logger.warn("exception while deserializing json. Sending nack without requeue", jsonException);
+                        rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
+                    } catch (NackException nackEx) {
+                        logger.warn("exception while accepting event. Sending nack with requeue={}", nackEx.requeue,
+                                    nackEx);
+                        rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, nackEx.requeue);
+                    } catch (Exception ex) {
+                        logger.error(
+                                "consumer ({}) can't process message {} for channel {}, rejecting the message due to unhandled exception",
+                                consumerTag, envelope.getDeliveryTag(), rabbitMqChannel, ex);
+                        rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
+                    }
+                    criteria.newEvent();
+                    if (!criteria.isValid()) {
+                        cancelCallback.cancel();
+                    }
+                } finally {
+                    deliveryEnded();
                 }
             }
         });
+    }
+
+    private void deliveryStarted() {
+        synchronized (deliveriesLock) {
+            deliveriesInProgress++;
+        }
+    }
+
+    private void deliveryEnded() {
+        synchronized (deliveriesLock) {
+            deliveriesInProgress--;
+            deliveriesLock.notifyAll();
+        }
+    }
+
+    /**
+     * Waits for the deliveries being handled to be acked or nacked. Closing the channel before would
+     * make the broker redeliver a message whose handling is actually done.
+     *
+     * @return false if some deliveries were still in progress after the timeout
+     */
+    boolean awaitDeliveries(Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        synchronized (deliveriesLock) {
+            while (deliveriesInProgress > 0) {
+                long remaining = deadline - System.nanoTime();
+                if (remaining <= 0) {
+                    return false;
+                }
+                try {
+                    TimeUnit.NANOSECONDS.timedWait(deliveriesLock, remaining);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     void cancel(String consumerTag) throws IOException {

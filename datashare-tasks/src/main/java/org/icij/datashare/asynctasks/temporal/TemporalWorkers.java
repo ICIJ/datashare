@@ -6,13 +6,18 @@ import io.temporal.worker.WorkerFactoryOptions;
 import io.temporal.worker.WorkerOptions;
 import io.temporal.worker.WorkflowImplementationOptions;
 import java.io.Closeable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Starts the Temporal workers serving what a {@link WorkflowRegistry} holds.
@@ -70,20 +75,34 @@ public class TemporalWorkers {
             }
         });
 
-        return new CloseableWorkerFactoryHandle(workerFactory);
+        return new CloseableWorkerFactoryHandle(workerFactory, options.shutdownTimeout());
     }
 
-    private record CloseableWorkerFactoryHandle(WorkerFactory factory) implements Closeable {
-        public CloseableWorkerFactoryHandle(WorkerFactory factory) {
+    /**
+     * Closing stops the polling, then waits for the running activities up to the shutdown timeout. The ones still
+     * running after that are interrupted: Temporal then retries them on another worker.
+     */
+    private record CloseableWorkerFactoryHandle(WorkerFactory factory, Duration shutdownTimeout) implements Closeable {
+        private static final Logger logger = LoggerFactory.getLogger(CloseableWorkerFactoryHandle.class);
+
+        public CloseableWorkerFactoryHandle(WorkerFactory factory, Duration shutdownTimeout) {
             this.factory = factory;
+            this.shutdownTimeout = shutdownTimeout;
             this.factory.start();
         }
 
         @Override
         public void close() throws IOException {
             synchronized (factory) {
-                if (!this.factory.isShutdown()) {
-                    this.factory.shutdown();
+                if (this.factory.isShutdown()) {
+                    return;
+                }
+                logger.info("stopping temporal workers, waiting up to {} for running activities", shutdownTimeout);
+                this.factory.shutdown();
+                this.factory.awaitTermination(shutdownTimeout.toNanos(), TimeUnit.NANOSECONDS);
+                if (!this.factory.isTerminated()) {
+                    logger.warn("temporal workers still running after {}, interrupting them", shutdownTimeout);
+                    this.factory.shutdownNow();
                 }
             }
         }

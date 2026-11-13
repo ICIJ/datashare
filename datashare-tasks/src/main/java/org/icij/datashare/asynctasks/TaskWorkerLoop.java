@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static java.util.Optional.ofNullable;
 
 public class TaskWorkerLoop implements Callable<Integer>, Closeable {
+    private static final Duration CANCEL_GRACE_PERIOD = Duration.ofSeconds(5);
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final TaskFactory factory;
     private final TaskSupplier taskSupplier;
@@ -28,6 +30,8 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     private final double progressMinIntervalS;
     private final ConcurrentHashMap<String, Boolean> cancelledTasks;
     private volatile boolean exitAsked = false;
+    private volatile boolean draining = false;
+    private final Object stateLock = new Object(); // guards currentTask claim/release against stopAcceptingTasks
     private volatile Thread loopThread;
     private int nbTasks = 0;
 
@@ -102,53 +106,136 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
 
     void handle(Task<?> task) {
         loopThread = Thread.currentThread();
-        currentTask.set(task);
-        if (cancelledTasks.get(currentTask.get().id) != null) {
-            logger.info("cancelled task {} not executed", currentTask.get().id);
-            taskSupplier.canceled(currentTask.get(), cancelledTasks.remove(currentTask.get().id));
-        } else {
-            try {
-                ProgressSmoother smoothedProgress = new ProgressSmoother(taskSupplier::progress, progressMinIntervalS);
-                Callable<?> taskFn =
-                        TaskFactoryHelper.createTaskCallable(factory, currentTask.get().name, currentTask.get(),
-                                                             currentTask.get().progress(smoothedProgress));
-                currentTaskReference.set(taskFn);
-                Boolean requeue = cancelledTasks.remove(currentTask.get().id);
-                if (requeue != null) {
-                    throw new CancelException(requeue);
+        if (!claim(task)) {
+            // the task was already taken from the queue when the shutdown started: give it back
+            Thread.interrupted(); // clears the flag possibly set by stopAcceptingTasks while we were polling
+            logger.info("worker is shutting down, requeueing task {}", task.id);
+            taskSupplier.canceled(task, true);
+            return;
+        }
+        try {
+            if (cancelledTasks.get(currentTask.get().id) != null) {
+                logger.info("cancelled task {} not executed", currentTask.get().id);
+                taskSupplier.canceled(currentTask.get(), cancelledTasks.remove(currentTask.get().id));
+            } else {
+                try {
+                    ProgressSmoother smoothedProgress = new ProgressSmoother(taskSupplier::progress, progressMinIntervalS);
+                    Callable<?> taskFn =
+                            TaskFactoryHelper.createTaskCallable(factory, currentTask.get().name, currentTask.get(),
+                                                                 currentTask.get().progress(smoothedProgress));
+                    currentTaskReference.set(taskFn);
+                    Boolean requeue = cancelledTasks.remove(currentTask.get().id);
+                    if (requeue != null) {
+                        throw new CancelException(requeue);
+                    }
+                    logger.info("running task {}", currentTask.get());
+                    taskSupplier.progress(currentTask.get().id, 0);
+                    Serializable result = (Serializable) taskFn.call();
+                    taskSupplier.result(currentTask.get().id, new TaskResult<>(result));
+                    nbTasks++;
+                } catch (CancelException cex) {
+                    // TODO: this has to be improved/simplified. The cancellation mechanism relies on
+                    //  the fact that the CancellableTask code will properly handle the cancellation.
+                    //  However while some task correctly throw a CancelException and correctly forward
+                    //  the requeue arg. However some tasks like the PipelineTask simple throw an
+                    //  InterruptedException and without rethrowing a new CancelException(requeue) with
+                    //  the requeue attribute correctly set. This will lead to unexpected behavior,
+                    //  such asking for cancel with requeue argument which is actually ignored.
+                    logger.error("task {} cancelled with requeue = {}", currentTask, cex.requeue);
+                    taskSupplier.canceled(currentTask.get(), cex.requeue);
+                } catch (InterruptedException iex) {
+                    logger.error("task {} interrupted, cancelling it", currentTask.get(), iex);
+                    ofNullable(currentTask.get()).ifPresent(t -> taskSupplier.canceled(t, false));
+                } catch (RuntimeException ex) {
+                    logger.error("error running task {}", currentTask.get(), ex);
+                    if (currentTask.get() != null && !currentTask.get().isNull()) {
+                        taskSupplier.error(currentTask.get().id, new TaskError(ex));
+                    }
+                } catch (ReflectiveOperationException unknownTask) {
+                    throw new NackException(unknownTask, true);
+                } catch (Error | Exception ex) {
+                    throw new NackException(ex, false);
+                } finally {
+                    cancelledTasks.remove(task.id);
+                    currentTaskReference.set(null);
                 }
-                logger.info("running task {}", currentTask.get());
-                taskSupplier.progress(currentTask.get().id, 0);
-                Serializable result = (Serializable) taskFn.call();
-                taskSupplier.result(currentTask.get().id, new TaskResult<>(result));
-                nbTasks++;
-            } catch (CancelException cex) {
-                // TODO: this has to be improved/simplified. The cancellation mechanism relies on
-                //  the fact that the CancellableTask code will properly handle the cancellation.
-                //  However while some task correctly throw a CancelException and correctly forward
-                //  the requeue arg. However some tasks like the PipelineTask simple throw an
-                //  InterruptedException and without rethrowing a new CancelException(requeue) with
-                //  the requeue attribute correctly set. This will lead to unexpected behavior,
-                //  such asking for cancel with requeue argument which is actually ignored.
-                logger.error("task {} cancelled with requeue = {}", currentTask, cex.requeue);
-                taskSupplier.canceled(currentTask.get(), cex.requeue);
-            } catch (InterruptedException iex) {
-                logger.error("task {} interrupted, cancelling it", currentTask.get(), iex);
-                ofNullable(currentTask.get()).ifPresent(t -> taskSupplier.canceled(t, false));
-            } catch (RuntimeException ex) {
-                logger.error("error running task {}", currentTask.get(), ex);
-                if (currentTask.get() != null && !currentTask.get().isNull()) {
-                    taskSupplier.error(currentTask.get().id, new TaskError(ex));
-                }
-            } catch (ReflectiveOperationException unknownTask) {
-                throw new NackException(unknownTask, true);
-            } catch (Error | Exception ex) {
-                throw new NackException(ex, false);
-            } finally {
-                cancelledTasks.remove(task.id);
-                currentTaskReference.set(null);
-                currentTask.set(null);
             }
+        } finally {
+            release();
+        }
+    }
+
+    private boolean claim(Task<?> task) {
+        synchronized (stateLock) {
+            if (draining) {
+                return false;
+            }
+            currentTask.set(task);
+            return true;
+        }
+    }
+
+    private void release() {
+        synchronized (stateLock) {
+            currentTask.set(null);
+            stateLock.notifyAll();
+        }
+    }
+
+    /**
+     * First step of a graceful shutdown (SIGTERM): the worker does not start any new task, the one
+     * that is running (if any) is left untouched. A task that was already polled but not started is
+     * requeued.
+     */
+    public void stopAcceptingTasks() {
+        synchronized (stateLock) {
+            draining = true;
+            exit();
+            if (currentTask.get() == null) {
+                ofNullable(loopThread).ifPresent(Thread::interrupt); // wakes up the poll
+            }
+        }
+        // outside the lock: this talks to the broker. A delivery already in flight is requeued by handle()
+        taskSupplier.stopConsumingTasks();
+    }
+
+    /**
+     * Second step of a graceful shutdown: waits for the running task to finish. If it is still
+     * running after the timeout, it is cancelled with requeue=true so that another worker can take
+     * it over, and as a last resort (the task ignores the cancellation) the worker thread is
+     * interrupted.
+     */
+    public void awaitCurrentTask(Duration timeout) {
+        if (waitForRelease(timeout)) {
+            return;
+        }
+        Task<?> running = currentTask.get();
+        if (running != null) {
+            logger.warn("task {} still running after {}, cancelling it with requeue", running.id, timeout);
+            cancel(running.id, true);
+            if (!waitForRelease(CANCEL_GRACE_PERIOD)) {
+                logger.warn("task {} did not stop after cancellation, interrupting it", running.id);
+                ofNullable(loopThread).ifPresent(Thread::interrupt);
+            }
+        }
+    }
+
+    private boolean waitForRelease(Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        synchronized (stateLock) {
+            while (currentTask.get() != null) {
+                long remaining = deadline - System.nanoTime();
+                if (remaining <= 0) {
+                    return false;
+                }
+                try {
+                    TimeUnit.NANOSECONDS.timedWait(stateLock, remaining);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+            return true;
         }
     }
 

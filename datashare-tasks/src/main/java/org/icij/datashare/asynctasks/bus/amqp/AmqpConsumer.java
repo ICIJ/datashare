@@ -5,6 +5,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,6 +21,7 @@ import static java.util.Optional.ofNullable;
  */
 public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> implements Deserializer<Evt> {
     private static final int WAIT_CLOSED_CHANNEL_DELAY_MS = 1000;
+    private static final Duration SHUTDOWN_DELIVERIES_TIMEOUT = Duration.ofSeconds(5);
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     protected final AmqpInterlocutor amqpInterlocutor;
     public final EvtConsumer eventConsumer;
@@ -126,6 +128,10 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
         try {
             if (!isCanceled()) {
                 cancel();
+            }
+            if (!channel.awaitDeliveries(SHUTDOWN_DELIVERIES_TIMEOUT)) {
+                logger.warn("closing the channel with deliveries still in progress after {}",
+                            SHUTDOWN_DELIVERIES_TIMEOUT);
             }
             channel.close();
         } catch (IOException | AlreadyClosedException ioe) {
