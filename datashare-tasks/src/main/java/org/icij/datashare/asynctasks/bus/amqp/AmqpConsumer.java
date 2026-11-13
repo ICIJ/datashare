@@ -5,8 +5,10 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import static java.util.Optional.ofNullable;
 
@@ -22,7 +24,8 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
     protected final AmqpInterlocutor amqpInterlocutor;
     public final EvtConsumer eventConsumer;
     private final AmqpChannel channel;
-    private final AtomicReference<String> consumerTag = new AtomicReference<>();
+    // several consumers can be started on the same AmqpConsumer (one per worker sharing a task supplier)
+    private final Set<String> consumerTags = ConcurrentHashMap.newKeySet();
     private final Class<Evt> evtClass;
 
     public AmqpConsumer(AmqpInterlocutor amqpInterlocutor, EvtConsumer eventConsumer, AmqpQueue queue,
@@ -92,7 +95,7 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
     private void launchConsumer(AmqpChannel channel, Consumer<Evt> eventHandler, ConsumerCriteria criteria) {
         try {
             logger.info("starting consuming events for {}", channel);
-            consumerTag.set(
+            consumerTags.add(
                     channel.consume((body) -> eventHandler.accept(this.deserialize(body)), criteria, this::cancel));
         } catch (IOException ioe) {
             logger.error("exception during basicConsume", ioe);
@@ -101,14 +104,15 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
 
     public void cancel() throws IOException {
         synchronized (channel) {
-            if (consumerTag.get() != null) {
-                channel.cancel(consumerTag.getAndSet(null));
+            for (String tag : List.copyOf(consumerTags)) {
+                consumerTags.remove(tag);
+                channel.cancel(tag);
             }
         }
     }
 
     public boolean isCanceled() {
-        return consumerTag.get() == null;
+        return consumerTags.isEmpty();
     }
 
     void handle(Evt receivedEvent) {
