@@ -32,7 +32,9 @@ public class StatementBuilder {
 
     /** What a run dropped, and why. ENTITY_ counts one entity of one row, CELL_UNREADABLE one cell,
      *  and CELL_MISSING one column, once: a column the source stops carrying is one structural fact,
-     *  not one per row of a file that may hold millions. */
+     *  not one per row of a file that may hold millions. A column is missing only from a row one of
+     *  the entities reading it applies to, so a mixed source does not report every other schema's
+     *  columns. */
     public enum Skip {ENTITY_UNIDENTIFIED, ENTITY_EMPTY, CELL_UNREADABLE, CELL_MISSING}
 
     private final ExtractionMapping mapping;
@@ -40,6 +42,7 @@ public class StatementBuilder {
     private final String sheet;
     private final DateFormats formats = new DateFormats();
     private final Set<String> columns = new TreeSet<>();
+    private final Map<String, Set<String>> columnsOf = new HashMap<>();
     private final Map<Skip, Long> skipped = new EnumMap<>(Skip.class);
     private final Set<String> absent = new TreeSet<>();
     private final Set<String> seen = new TreeSet<>();
@@ -80,10 +83,10 @@ public class StatementBuilder {
     }
 
     public List<Statement> statements(Row row) {
-        requireColumns(row);
+        see(row);
         Map<String, List<String>> cells = new HashMap<>();
         columns.forEach(column -> cells.put(column, cell(row, column)));
-        Map<String, String> ids = entityIds(cells, row.number());
+        Map<String, String> ids = entityIds(cells, row);
         Set<String> stored = storing(ids, cells);
         ids.keySet().stream().filter(alias -> !stored.contains(alias))
            .forEach(alias -> count(Skip.ENTITY_EMPTY, alias, row.number()));
@@ -99,33 +102,41 @@ public class StatementBuilder {
     // Formats compile without a guard: validate() already refused every pattern this mapping could
     // not run.
     private void declare(String alias, ExtractionMapping.EntityMapping entity) {
-        columns.addAll(entity.keys());
-        columns.addAll(entity.filters().keySet());
+        Set<String> own = new TreeSet<>(entity.keys());
+        own.addAll(entity.filters().keySet());
         if (!entity.filters().isEmpty()) {
             unmatched.add(alias);
         }
         if (entity.idColumn() != null) {
-            columns.add(entity.idColumn());
+            own.add(entity.idColumn());
         }
         entity.properties().values().forEach(property -> {
-            columns.addAll(property.columns());
+            own.addAll(property.columns());
             if (property.dateFormat() != null) {
                 formats.declare(property.dateFormat());
             }
         });
+        columnsOf.put(alias, own);
+        columns.addAll(own);
     }
 
     // Row.values pads a short row with empty strings, so a column the file does not have reads like
     // a blank cell: without this, one typo imports every row as nothing and reports it as a success.
     // A reader whose records carry their own names legitimately omits a column on any row, the first
-    // one included, so the check is what the whole run saw rather than what row 1 had. A column
-    // missing from a row is counted once, since a field a file omits is one fact, not one per row.
-    private void requireColumns(Row row) {
+    // one included, so the check is what the whole run saw rather than what row 1 had.
+    private void see(Row row) {
         if (seen.size() < columns.size()) {
             row.values().keySet().stream().filter(columns::contains).forEach(seen::add);
         }
-        columns.stream().filter(column -> !row.values().containsKey(column)).filter(absent::add)
-               .forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
+    }
+
+    // A column missing from a row is counted once, since a field a file omits is one fact, not one
+    // per row, and only for an entity whose filters matched the row: a Person row was never meant to
+    // carry a Company's columns.
+    private void countMissing(String alias, Row row) {
+        Set<String> carried = row.values().keySet();
+        List<String> missing = columnsOf.get(alias).stream().filter(column -> !carried.contains(column)).toList();
+        missing.stream().filter(absent::add).forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
     }
 
     /** The mapping typo this guard exists for, reported once the whole source has been read: a
@@ -146,19 +157,35 @@ public class StatementBuilder {
         }
     }
 
-    private Map<String, String> entityIds(Map<String, List<String>> cells, long rowNumber) {
+    private Map<String, String> entityIds(Map<String, List<String>> cells, Row row) {
         Map<String, String> ids = new TreeMap<>();
         for (String alias : aliases) {
-            String id = idOf(mapping.entities().get(alias), cells, alias, rowNumber);
+            String id = idOf(mapping.entities().get(alias), cells, alias, row);
             if (id != null) {
                 ids.put(alias, id);
             }
         }
+        refuseTypeClashes(ids, row.number());
         return ids;
     }
 
+    // Only an id read verbatim can land under two types, since every hashed id carries its type. An
+    // entity has one type, and rebuilding the index refuses the whole project over one that has two,
+    // after the statements are committed, so neither side of the clash is written.
+    private void refuseTypeClashes(Map<String, String> ids, long rowNumber) {
+        Map<String, Set<String>> typesOf = new HashMap<>();
+        for (Map.Entry<String, String> identified : ids.entrySet()) {
+            String type = mapping.entities().get(identified.getKey()).type();
+            typesOf.computeIfAbsent(identified.getValue(), id -> new HashSet<>()).add(type);
+        }
+        List<String> clashing = ids.keySet().stream().filter(alias -> typesOf.get(ids.get(alias)).size() > 1).toList();
+        clashing.forEach(alias -> count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber));
+        ids.keySet().removeAll(clashing);
+    }
+
     private String idOf(ExtractionMapping.EntityMapping entity, Map<String, List<String>> cells, String alias,
-                        long rowNumber) {
+                        Row row) {
+        long rowNumber = row.number();
         // Not a skip: an alias whose filters do not match was never meant to apply to this row, and
         // counting it would report every row of one schema as a loss for every other schema. A cell
         // holding several values matches on any of them: an ftm record carries its whole type
@@ -169,6 +196,7 @@ public class StatementBuilder {
             }
         }
         unmatched.remove(alias);
+        countMissing(alias, row);
         if (entity.idColumn() != null) {
             String given = single(cells.get(entity.idColumn()));
             // Elasticsearch caps the _id at bytes, not characters, and the _id is the model-prefixed id.

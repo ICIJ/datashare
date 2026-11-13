@@ -30,7 +30,7 @@ public class StatementBuilderTest {
 
     private static ExtractionMapping.EntityMapping keyed(String type, String keyLiteral, List<String> keys,
                                                          Map<String, ExtractionMapping.PropertyMapping> properties) {
-        return new ExtractionMapping.EntityMapping(type, keyLiteral, keys, properties);
+        return new ExtractionMapping.EntityMapping(type, keyLiteral, keys, null, Map.of(), properties);
     }
 
     private static ExtractionMapping.PropertyMapping column(String name) {
@@ -1219,5 +1219,37 @@ public class StatementBuilderTest {
                                                    "name", List.of("x"))))).isEmpty();
         assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
         assertThat(builder.skipped().get(CELL_UNREADABLE)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_two_aliases_reading_one_id_under_two_types_are_both_refused() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", identified("Person", "id", Map.of("name", column("name"))),
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "e1", "name", "Jane")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(2L);
+    }
+
+    @Test
+    public void test_two_aliases_reading_one_id_under_one_type_still_merge() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "first", identified("Person", "id", Map.of("name", column("name"))),
+                "second", identified("Person", "id", Map.of("name", column("nickname"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", "e1", "name", "Jane", "nickname", "JD")))).hasSize(2);
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_a_column_of_a_filtered_out_alias_is_not_counted_missing() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))),
+                "company", filtered("Company", "id", Map.of("schema", "Company"),
+                                    Map.of("name", column("legal_name"))))), "");
+
+        builder.statements(row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
+
+        assertThat(builder.skipped().get(CELL_MISSING)).isEqualTo(0L);
     }
 }
