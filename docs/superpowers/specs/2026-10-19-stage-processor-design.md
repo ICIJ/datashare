@@ -184,10 +184,18 @@ pipeline path.
    the source extractor is built once per run through `ctx.resource` (the earlier attempt was about
    2x slower from per-document setup and was reverted), but the cost is not measured yet. In
    progress. CATEGORIZE and ENQUEUEIDX:
-   done (`CategorizeStage`, `EnqueueFromIndexStage`). To do: DEDUPLICATE and the other index-reading
-   sources (SCANIDX, SCANQUERY). Processor-level
+   done (`CategorizeStage`, `EnqueueFromIndexStage`). DEDUPLICATE: `DeduplicateStage` and a thin
+   `DeduplicateTask`, queue side only (see below). To do: the other index-reading sources (SCANIDX,
+   SCANQUERY). Processor-level
    exception handling follows section 4 and is not migrated yet in `IndexStage`, `LanguageStage`,
    `NlpStage` and `ArtifactStage`.
+   DEDUPLICATE is queue-only on purpose. The stage keeps the paths seen in the stage context, which spans the
+   whole run on the queues, so it drops a duplicate wherever it comes from. A Temporal activity gets a context
+   per batch, so the same stage would only deduplicate inside one batch, which protects almost nothing: it is
+   not registered there, and a run that names it fails. Duplicates come from a producer (a container matched
+   by several embedded documents in SCANQUERY), and a source stage is one activity that sees the whole run: it
+   should deduplicate its own emits (a set of what it emitted) when it is migrated. The result counts the
+   dropped paths as `updated`, the number the old task returned.
 6. **Pages as tasks on the queues:** only after step 5 shows that NLP and ARTIFACT fit, and
    after measuring the per-page setup cost on INDEX. The generic page task, the run tag and the
    executor wait replace `PipelineTask`, `StageTask` and `UpstreamGate`, and `TaskResource` uses
@@ -383,5 +391,5 @@ alternatives in section 2).
   the `TaskManager` can be injected into a stage context in a `TASK_WORKER` process (it is in
   `CreateNlpBatchesFromIndex`); how a run's tasks are tagged and queried; when finished tasks
   are purged and what a task row costs in Redis and in the database; which other code reads the
-  document queues; whether ARTIFACT, DEDUPLICATE and the index-reading sources fit a processor.
+  document queues; whether ARTIFACT and the index-reading sources fit a processor.
   If ARTIFACT does not fit, `PipelineTask` stays for it and most of the gain is lost.
