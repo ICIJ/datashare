@@ -3,127 +3,34 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import java.util.function.Function;
-import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
+import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
-import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.indexing.Indexer;
-import org.icij.extract.extractor.ExtractionStatus;
-import org.icij.extract.report.Report;
-import org.icij.extract.report.ReportMap;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.IntStream;
-import static java.lang.Integer.parseInt;
-import static java.lang.String.valueOf;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_DURATION;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SIZE;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SLICES;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_DURATION_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SLICES_OPT;
-import org.icij.datashare.asynctasks.TaskGroupType;
-import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
 
 @TemporalSingleActivityWorkflow(name = "scan-index", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
-public class ScanIndexTask extends PipelineTask<Path> {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final Indexer indexer;
-    private final String projectName;
-    private final ReportMap reportMap;
-    private final String scrollDuration;
-    private final int scrollSize;
-    private final int scrollSlices;
-    private final int reportMapBatchSize;
-
+public class ScanIndexTask extends StageTask<Void, Void> {
     @Inject
-    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, @Assisted Task<Long> taskView,
+    public ScanIndexTask(final StageRegistry registry, @Assisted Task<Long> taskView,
                          @Assisted Function<Double, Void> ignored) {
-        super(Stage.SCANIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class);
-        this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
-        this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE)));
-        this.scrollSlices = parseInt(propertiesProvider.get(SCROLL_SLICES_OPT).orElse(valueOf(DEFAULT_SCROLL_SLICES)));
-        this.projectName = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
-        this.reportMap = factory.createMap(getMapName());
-        this.indexer = indexer;
-        // Batch size matches scroll size for optimal performance (one putAll per scroll iteration)
-        this.reportMapBatchSize = scrollSize;
+        super(Stage.SCANIDX, taskView.getUser(), null, new PropertiesProvider(taskView.args), Void.class,
+              UpstreamGate.NONE, registry);
     }
 
+    /** A source stage has no input queue. */
+    @Override
+    protected String getInputQueueName() {
+        return null;
+    }
+
+    /** Declared here, not only inherited: TemporalWorkflowGenerator reads the output type from the annotated class. */
     @Override
     public Long call() throws Exception {
-        super.call();
-        logger.info("scanning index {} with {} scroll, scroll size {}, {} slice(s) in parallel, batch size {}",
-                    projectName, scrollDuration, scrollSize, scrollSlices, reportMapBatchSize);
-        Optional<Long> nb = IntStream.range(0, scrollSlices).parallel().mapToObj(this::slicedScroll).reduce(Long::sum);
-        logger.info("imported {} paths into map {}", nb.get(), getMapName());
-        return nb.get();
-    }
-
-    private Long slicedScroll(int sliceNum) {
-        Indexer.Searcher search =
-                indexer.search(singletonList(projectName), Document.class).withDocValues("path").limit(scrollSize)
-                       .sort("_doc", Indexer.Searcher.SortOrder.ASC);
-        List<? extends Entity> docsToProcess = new ArrayList<>();
-        long nbProcessed = 0;
-        do {
-            try {
-                docsToProcess = search.scroll(
-                                              createScrollQuery().withDuration(scrollDuration).withSlices(sliceNum, scrollSlices).build())
-                                      .collect(toList());
-                addToReportMap(docsToProcess);
-                nbProcessed += docsToProcess.size();
-            } catch (IOException e) {
-                // the previous page is still in docsToProcess, so logging and carrying on re-enters
-                // the loop with the same non-empty list and scrolls forever on a broken scroll
-                throw new UncheckedIOException("scroll failed in slice %d".formatted(sliceNum), e);
-            }
-        } while (!docsToProcess.isEmpty());
-        return nbProcessed;
-    }
-
-    /**
-     * Batches putAll calls for better performance with large document sets.
-     * Batch size is set to scrollSize for optimal performance (one putAll per scroll iteration).
-     */
-    private void addToReportMap(List<? extends Entity> docs) {
-        Report successReport = new Report(ExtractionStatus.SUCCESS);
-        Map<Path, Report> batch = new HashMap<>();
-        for (Entity entity : docs) {
-            Path path = ((Document) entity).getPath();
-            batch.put(path, successReport);
-            if (batch.size() >= reportMapBatchSize) {
-                reportMap.putAll(batch);
-                batch.clear();
-            }
-        }
-        if (!batch.isEmpty()) {
-            reportMap.putAll(batch);
-        }
-    }
-
-    @NotNull
-    private String getMapName() {
-        return propertiesProvider.get(REPORT_NAME_OPT).orElse("extract:report");
+        return super.call();
     }
 }
