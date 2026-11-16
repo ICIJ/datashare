@@ -1089,6 +1089,69 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 .should().respond(400);
     }
 
+    private void configureServerMode() {
+        configure(routes -> {
+            PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("mode", Mode.SERVER.name()));
+            TaskResource taskResource = new TaskResource(taskFactory, taskManager, propertiesProvider, batchSearchRepository, taskFinder);
+            routes.filter(new BasicAuthFilter("/", "icij", singleUser(local()))).add(taskResource);
+        });
+    }
+
+    private static String taskJson(String id, String name, Map<String, Object> args) throws Exception {
+        return JsonObjectMapper.writeValueAsString(new Task<>(id, name, local(), args));
+    }
+
+    @Test
+    public void test_task_names_lists_the_pipeline_tasks() {
+        assertThat(DatashareTaskFactory.taskNames()).contains(
+                ScanTask.class.getName(), IndexTask.class.getName(), ScanIndexTask.class.getName(),
+                ExtractNlpTask.class.getName(), EnqueueFromIndexTask.class.getName(), ArtifactTask.class.getName());
+        assertThat(DatashareTaskFactory.taskNames().contains(null)).isFalse();
+    }
+
+    @Test
+    public void test_create_scan_task_forbidden_in_server_mode() throws Exception {
+        configureServerMode();
+        put("/api/task/scan_id", taskJson("scan_id", ScanTask.class.getName(),
+                Map.of("dataDir", "/", "defaultProject", "victimproject")))
+                .withPreemptiveAuthentication("local", "pass").should().respond(403);
+        assertThat(taskManager.getTasks().toList()).isEmpty();
+    }
+
+    @Test
+    public void test_create_any_pipeline_task_forbidden_in_server_mode() throws Exception {
+        configureServerMode();
+        int i = 0;
+        for (String name : DatashareTaskFactory.taskNames()) {
+            String id = "pipeline_task_" + i++;
+            put("/api/task/" + id, taskJson(id, name, Map.of("defaultProject", "victimproject")))
+                    .withPreemptiveAuthentication("local", "pass").should().respond(403);
+        }
+        assertThat(taskManager.getTasks().toList()).isEmpty();
+    }
+
+    @Test
+    public void test_create_batch_task_still_returns_400_in_server_mode() throws Exception {
+        configureServerMode();
+        BatchDownload batchDownload = new BatchDownload(List.of(project("local-datashare")), local(), "*");
+        put("/api/task/my_batch_download_id", taskJson("my_batch_download_id", BatchDownloadRunner.class.getName(),
+                Map.of("batchDownload", batchDownload)))
+                .withPreemptiveAuthentication("local", "pass").should().respond(400);
+    }
+
+    @Test
+    public void test_create_non_pipeline_task_allowed_in_server_mode() throws Exception {
+        configureServerMode();
+        put("/api/task/python_id?group=Python", taskJson("python_id", "my.python.task", Map.of("key", "val")))
+                .withPreemptiveAuthentication("local", "pass").should().respond(201);
+    }
+
+    @Test
+    public void test_create_scan_task_allowed_in_local_mode() throws Exception {
+        put("/api/task/scan_id", taskJson("scan_id", ScanTask.class.getName(), Map.of("dataDir", "/default/data/dir")))
+                .should().respond(201);
+    }
+
     @Test
     public void test_task_list_by_unsupported_filter_should_return_400() {
         get("/api/task/all?filter=foo").should().respond(400);

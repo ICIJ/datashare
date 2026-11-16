@@ -167,6 +167,8 @@ public class TaskResource {
     @ApiResponse(responseCode = "400",
             description = "bad request, for example the task payload id is not the same as the url id",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "403",
+            description = "the task is a Datashare pipeline task and the server is not in LOCAL or EMBEDDED mode")
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Put("/:id")
     public <V extends Serializable> Payload createTask(
@@ -180,6 +182,9 @@ public class TaskResource {
         if (taskView.args.containsKey("batchDownload") || taskView.args.containsKey("batchRecord")) {
             return new JsonPayload(400, new ErrorResponse(
                     "batch downloads and batch searches must be created with their dedicated endpoints"));
+        }
+        if (DatashareTaskFactory.taskNames().contains(taskView.name)) {
+            modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         }
         Task<V> task = new Task<>(taskView.id, taskView.name, (User) context.currentUser(), taskView.args);
         try {

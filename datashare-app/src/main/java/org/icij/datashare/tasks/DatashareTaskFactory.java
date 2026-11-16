@@ -2,10 +2,20 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.user.User;
+import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.TaskFactory {
+    /** The task names TaskFactoryHelper can resolve to a factory method of this interface. */
+    static Set<String> taskNames() {
+        return Arrays.stream(DatashareTaskFactory.class.getDeclaredMethods())
+                     .filter(m -> Arrays.equals(m.getParameterTypes(), new Class<?>[] {Task.class, Function.class}))
+                     .map(m -> m.getReturnType().getName()).collect(Collectors.toSet());
+    }
+
     BatchSearchRunner createBatchSearchRunner(Task<?> taskView, Function<Double, Void> updateCallback);
 
     BatchDownloadRunner createBatchDownloadRunner(Task<?> taskView, Function<Double, Void> updateCallback);
