@@ -79,6 +79,7 @@ import org.icij.datashare.tasks.NlpStage;
 import org.icij.datashare.tasks.QueuePipelineExecutor;
 import org.icij.datashare.tasks.TemporalPipelineExecutor;
 import org.icij.datashare.tasks.temporal.StageActivityImpl;
+import org.icij.datashare.tasks.ScanQueryStage;
 import org.icij.datashare.tasks.ScanStage;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.Utils;
@@ -549,7 +550,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                                                     .register(new NlpStage(indexer, pipelineRegistry))
                                                     .register(new CategorizeStage(indexer))
                                                     .register(new EnqueueFromIndexStage(indexer))
-                                                    .register(new ArtifactStage(indexer));
+                                                    .register(new ArtifactStage(indexer))
+                                                    .register(new ScanQueryStage(indexer));
         // queue side only: a context per batch (the Temporal activity) could only deduplicate inside one batch, so a
         // run that names the stage fails there instead of passing duplicates on in silence
         if (getCurrentBatchQueueType() != TEMPORAL) {

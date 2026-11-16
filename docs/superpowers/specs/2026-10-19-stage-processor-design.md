@@ -185,17 +185,24 @@ pipeline path.
    2x slower from per-document setup and was reverted), but the cost is not measured yet. In
    progress. CATEGORIZE and ENQUEUEIDX:
    done (`CategorizeStage`, `EnqueueFromIndexStage`). DEDUPLICATE: `DeduplicateStage` and a thin
-   `DeduplicateTask`, queue side only (see below). To do: the other index-reading sources (SCANIDX,
-   SCANQUERY). Processor-level
+   `DeduplicateTask`, queue side only (see below). SCANQUERY: `ScanQueryStage` (a `Void` to `Path` source that
+   emits one batch of paths per scroll page) and a thin `ScanQueryTask`, registered in every mode. To do: SCANIDX.
+   Processor-level
    exception handling follows section 4 and is not migrated yet in `IndexStage`, `LanguageStage`,
    `NlpStage` and `ArtifactStage`.
    DEDUPLICATE is queue-only on purpose. The stage keeps the paths seen in the stage context, which spans the
    whole run on the queues, so it drops a duplicate wherever it comes from. A Temporal activity gets a context
    per batch, so the same stage would only deduplicate inside one batch, which protects almost nothing: it is
-   not registered there, and a run that names it fails. Duplicates come from a producer (a container matched
-   by several embedded documents in SCANQUERY), and a source stage is one activity that sees the whole run: it
-   should deduplicate its own emits (a set of what it emitted) when it is migrated. The result counts the
-   dropped paths as `updated`, the number the old task returned.
+   not registered there, and a run that names it fails. The result counts the dropped paths as `updated`, the
+   number the old task returned.
+   SCANQUERY does not deduplicate its own emits: a container matched by several embedded documents is emitted once
+   per match, and a test pins it (collapsing is DEDUPLICATE's job, so a chain without it still re-extracts
+   everything it matched). On Temporal, where DEDUPLICATE is not available, that container is extracted once per
+   match: wasteful, not wrong, since indexing is idempotent. Whether a source should dedupe its own emits (it is one
+   activity and sees the whole run) is open.
+   Every stage that emits goes through `StageTask`, which waits for room in the queue of the next stage (`put`).
+   An `offer` dropped the item, with a log line, when a bounded in-memory queue was full (1,000,000 by default),
+   which a source emitting everything it finds on a large corpus reaches.
 6. **Pages as tasks on the queues:** only after step 5 shows that NLP and ARTIFACT fit, and
    after measuring the per-page setup cost on INDEX. The generic page task, the run tag and the
    executor wait replace `PipelineTask`, `StageTask` and `UpstreamGate`, and `TaskResource` uses
@@ -361,6 +368,8 @@ alternatives in section 2).
 
 ## Open
 
+- Should a source stage deduplicate its own emits (SCANQUERY: a container matched by several embedded documents)?
+  Today only the queue-only DEDUPLICATE stage does, and SCANQUERY keeps one emit per match.
 - Failure guard (section 4): an Elasticsearch outage would be counted as thousands of failed
   documents. After how many consecutive failures does the executor treat it as infrastructure and
   fail the run, or should infrastructure exceptions be typed instead?

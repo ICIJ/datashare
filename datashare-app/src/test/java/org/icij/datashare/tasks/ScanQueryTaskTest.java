@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
@@ -127,7 +128,7 @@ public class ScanQueryTaskTest {
     private ScanQueryTask scanQueryTask(Indexer scanIndexer, Map<String, Object> extraArgs) {
         Map<String, Object> args = propertiesToMap(propertiesProvider.getProperties());
         args.putAll(extraArgs);
-        return new ScanQueryTask(documentCollectionFactory, scanIndexer,
+        return new ScanQueryTask(documentCollectionFactory, new StageRegistry().register(new ScanQueryStage(scanIndexer)),
                 new Task<>(ScanQueryTask.class.getName(), User.nullUser(), args), null);
     }
 
