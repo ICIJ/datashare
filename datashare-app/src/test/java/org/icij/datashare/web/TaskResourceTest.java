@@ -1147,6 +1147,17 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_create_task_without_name_returns_400_in_server_mode() throws Exception {
+        configureServerMode();
+        String body = taskJson("no_name_id", "placeholder", Map.of("key", "val"))
+                .replace("\"name\":\"placeholder\"", "\"name\":null");
+        assertThat(body).contains("\"name\":null");
+        put("/api/task/no_name_id", body)
+                .withPreemptiveAuthentication("local", "pass").should().respond(400);
+        assertThat(taskManager.getTasks().toList()).isEmpty();
+    }
+
+    @Test
     public void test_create_scan_task_allowed_in_local_mode() throws Exception {
         put("/api/task/scan_id", taskJson("scan_id", ScanTask.class.getName(), Map.of("dataDir", "/default/data/dir")))
                 .should().respond(201);

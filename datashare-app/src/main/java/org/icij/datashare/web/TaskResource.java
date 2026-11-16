@@ -179,6 +179,9 @@ public class TaskResource {
             return new JsonPayload(400, new ErrorResponse(
                     "body should contain a taskView, URL id should be present and equal to body id"));
         }
+        if (taskView.name == null) {
+            return new JsonPayload(400, new ErrorResponse("body should contain a task name"));
+        }
         if (taskView.args.containsKey("batchDownload") || taskView.args.containsKey("batchRecord")) {
             return new JsonPayload(400, new ErrorResponse(
                     "batch downloads and batch searches must be created with their dedicated endpoints"));
