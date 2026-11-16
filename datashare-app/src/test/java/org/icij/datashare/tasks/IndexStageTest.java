@@ -149,7 +149,7 @@ public class IndexStageTest {
 
         StageResult result = stageWithMap(maps).process(List.of(done, Paths.get("new.txt")), ctxWithReport("report"));
 
-        assertThat(result).isEqualTo(new StageResult(1, 1, 0, 0));
+        assertThat(result).isEqualTo(new StageResult(1, 0, 1, 0));
         assertThat(maps.createMap("report").get(done)).isEqualTo(new Report(ExtractionStatus.SUCCESS));
     }
 
@@ -183,7 +183,7 @@ public class IndexStageTest {
 
         assertThat(first).isEqualTo(new StageResult(1, 0, 0, 0));
         assertThat(maps.createMap("report").get(file).getStatus()).isEqualTo(ExtractionStatus.SUCCESS);
-        assertThat(second).isEqualTo(new StageResult(0, 1, 0, 0));
+        assertThat(second).isEqualTo(new StageResult(0, 0, 1, 0));
     }
 
     @Test
