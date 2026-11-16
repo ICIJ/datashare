@@ -186,8 +186,9 @@ pipeline path.
    progress. CATEGORIZE and ENQUEUEIDX:
    done (`CategorizeStage`, `EnqueueFromIndexStage`). DEDUPLICATE: `DeduplicateStage` and a thin
    `DeduplicateTask`, queue side only (see below). SCANQUERY: `ScanQueryStage` (a `Void` to `Path` source that
-   emits one batch of paths per scroll page) and a thin `ScanQueryTask`, registered in every mode. To do: SCANIDX.
-   Processor-level
+   emits one batch of paths per scroll page) and a thin `ScanQueryTask`, registered in every mode. SCANIDX:
+   `ScanIndexStage` and a thin `ScanIndexTask`, for the queues (see below). With it, no task extends
+   `PipelineTask` directly any more: only `StageTask` does. Processor-level
    exception handling follows section 4 and is not migrated yet in `IndexStage`, `LanguageStage`,
    `NlpStage` and `ArtifactStage`.
    DEDUPLICATE is queue-only on purpose. The stage keeps the paths seen in the stage context, which spans the
@@ -200,6 +201,12 @@ pipeline path.
    everything it matched). On Temporal, where DEDUPLICATE is not available, that container is extracted once per
    match: wasteful, not wrong, since indexing is idempotent. Whether a source should dedupe its own emits (it is one
    activity and sees the whole run) is open.
+   SCANIDX fills the report map with the paths already in the index, so that INDEX skips them: it emits nothing.
+   A workflow starts a single source and chains the others by what they emit, so on Temporal a chain that
+   starts with SCANIDX would run it and stop. The stage is registered in every mode all the same, because the
+   deprecated endpoint `/batchUpdate/index/:path:` with `"filter": true` builds a `ScanIndexTask` in the server
+   process (an unregistered stage makes `StageRegistry.get` throw, so the endpoint would fail on Temporal where
+   it only wrote a map nobody reads). A guard in `TemporalPipelineExecutor` is not written.
    Every stage that emits goes through `StageTask`, which waits for room in the queue of the next stage (`put`).
    An `offer` dropped the item, with a log line, when a bounded in-memory queue was full (1,000,000 by default),
    which a source emitting everything it finds on a large corpus reaches.
@@ -386,8 +393,8 @@ alternatives in section 2).
   what it extracts, and returns an `ExtractionStatus` that the stage maps to `updated` (`SUCCESS`), skipped
   (`SKIPPED`) and `failed` (`FAILURE_*`). On Temporal the option is ignored with a warning: the map is state
   outside the workflow, shared only by workers with the same (Redis) collection factory. Left: the re-queue
-  of failures of the old flow is not re-checked; SCANIDX, which fills the map, is still a `PipelineTask` and
-  is queue-only too (the workflow starts a single source, and SCANIDX emits nothing); what replaces the map
+  of failures of the old flow is not re-checked; SCANIDX, which fills the map, is a stage for the queues only
+  (the workflow starts a single source, and SCANIDX emits nothing), see step 5; what replaces the map
   on Temporal is not decided: skipping what a previous run extracted (a check against the index, by path, per
   batch) and resuming a failed batch (activity heartbeat).
 - Temporal with no worker running: the CLI waits forever. Check for a poller on the task queue
