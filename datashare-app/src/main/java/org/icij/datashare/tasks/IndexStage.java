@@ -99,7 +99,7 @@ public class IndexStage implements StageProcessor<Path, String> {
                         reporter == null ? extractor.extract(path, spewer) : extractor.extract(path, spewer, reporter);
                 result = result.plus(switch (status) {
                     case SUCCESS -> new StageResult(1, 0, 0, 0);
-                    case SKIPPED -> new StageResult(0, 1, 0, 0);
+                    case SKIPPED -> new StageResult(0, 0, 1, 0);
                     default -> {
                         logger.error("failed to extract/index {}: {}", path, status);
                         yield new StageResult(0, 0, 0, 1);
