@@ -559,8 +559,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                                                     .register(new CategorizeStage(indexer))
                                                     .register(new EnqueueFromIndexStage(indexer))
                                                     .register(new ArtifactStage(indexer))
-                                                    .register(new ScanQueryStage(indexer))
-                                  .register(new ScanIndexStage(indexer, collectionFactory::createMap));
+                                                    .register(new ScanQueryStage(indexer)).register(
+                        new ScanIndexStage(indexer, collectionFactory::createMap));
         // queue side only: a context per batch (the Temporal activity) could only deduplicate inside one batch, so a
         // run that names the stage fails there instead of passing duplicates on in silence
         if (getCurrentBatchQueueType() != TEMPORAL) {

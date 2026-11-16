@@ -73,7 +73,7 @@ public class LanguageStage implements StageProcessor<String, Void> {
             }
             return updateLanguage(project, document, ref, minOcrConfidence);
         } catch (IOException | RuntimeException e) {
-            if (PipelineTask.causedByInterrupt(e)) {
+            if (StageTask.causedByInterrupt(e)) {
                 // a cancelled worker ends its drain: the flag is set back, ctx.isCancelled() reads it
                 Thread.currentThread().interrupt();
                 return StageResult.EMPTY;
