@@ -22,6 +22,6 @@ public class DataDirVerifier {
     }
 
     public boolean allowed(Path path) {
-        return path.equals(this.path()) || path.startsWith(this.path());
+        return path.toAbsolutePath().normalize().startsWith(this.path().toAbsolutePath().normalize());
     }
 }

@@ -58,4 +58,16 @@ public class DataDirVerifierTest {
         Path path = Paths.get("/different/path");
         assertFalse(dataDirVerifier.allowed(path));
     }
+
+    @Test
+    public void test_not_allowed_with_parent_traversal() {
+        when(propertiesProvider.get("dataDir")).thenReturn(Optional.of("/path/to/data"));
+        assertFalse(dataDirVerifier.allowed(Paths.get("/path/to/data/../../etc")));
+    }
+
+    @Test
+    public void test_allowed_with_traversal_staying_inside() {
+        when(propertiesProvider.get("dataDir")).thenReturn(Optional.of("/path/to/data"));
+        assertTrue(dataDirVerifier.allowed(Paths.get("/path/to/data/a/../b")));
+    }
 }
