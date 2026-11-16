@@ -68,8 +68,10 @@ public class PipelineOptions {
     @Option(names = {"--ocrStrategy"},
             description = "PDF OCR strategy: NO_OCR (default), AUTO, OCR_AND_TEXT_EXTRACTION, OCR_ONLY. Rendering strategies OCR whole pages for scanned/MRC PDFs; only applies when OCR is enabled.")
     OcrStrategy ocrStrategy;
-    @Option(names = {"--parallelism"}, description = "Number of task management threads")
-    Integer parallelism;
+    // The same default as the legacy CLI (the number of processors): a stage without it would run one worker. It is
+    // computed at run time, so it is the initial value of the field, not a (constant) defaultValue.
+    @Option(names = {"--parallelism"}, description = "Number of task management threads (default: ${DEFAULT-VALUE})")
+    Integer parallelism = DEFAULT_PARALLELISM;
     @Option(names = {"--parserParallelism"}, description = "Number of file parser threads", defaultValue = "1")
     int parserParallelism;
     @Option(names = {"--maxEmbedDepth"}, description = MAX_EMBED_DEPTH_DESC, defaultValue = "20")
