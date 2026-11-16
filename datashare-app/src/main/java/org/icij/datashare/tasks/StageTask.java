@@ -96,7 +96,11 @@ public class StageTask<I, O> extends PipelineTask<I> {
                 if (nextStageQueue == null) {
                     throw new IllegalStateException("stage " + stage + " emits but has no output queue");
                 }
-                out.forEach(StageTask.this::offerToNextStage);
+                for (O item : out) {
+                    if (!putInNextStage(item)) {
+                        return;
+                    }
+                }
             }
         };
     }
@@ -107,9 +111,18 @@ public class StageTask<I, O> extends PipelineTask<I> {
 
     protected void onEntryProcessed() {}
 
-    private void offerToNextStage(O item) {
-        if (!nextStageQueue.offer(item)) {
-            logger.warn("cannot offer {} to queue {}", item, nextStageQueue.getName());
+    /**
+     * Waits for room in the queue of the next stage: a bounded queue that is full slows the emitter down, where an
+     * offer would drop the item. False when the wait was interrupted (a cancellation): the flag is set back, and
+     * what is left is not emitted.
+     */
+    private boolean putInNextStage(O item) {
+        try {
+            nextStageQueue.put(item);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
         }
     }
 
