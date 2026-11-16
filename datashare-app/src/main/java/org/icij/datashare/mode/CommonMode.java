@@ -71,6 +71,7 @@ import org.icij.extract.report.ReportMap;
 import org.icij.datashare.tasks.CategorizeStage;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.RoutingStrategy;
+import org.icij.datashare.tasks.DeduplicateStage;
 import org.icij.datashare.tasks.EnqueueFromIndexStage;
 import org.icij.datashare.tasks.IndexStage;
 import org.icij.datashare.tasks.LanguageStage;
@@ -541,12 +542,20 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     StageRegistry provideStageRegistry(Indexer indexer, LanguageGuesser languageGuesser,
                                        PipelineRegistry pipelineRegistry,
                                        DocumentCollectionFactory<Path> collectionFactory) {
-        return new StageRegistry().register(new LanguageStage(indexer, languageGuesser)).register(
-                                          new IndexStage(indexer, languageGuesser, Extractor::new,
-                                                         reportMapFactory(getCurrentBatchQueueType(), collectionFactory)))
-                                  .register(new ScanStage()).register(new NlpStage(indexer, pipelineRegistry))
-                                  .register(new CategorizeStage(indexer)).register(new EnqueueFromIndexStage(indexer))
-                                  .register(new ArtifactStage(indexer));
+        StageRegistry registry = new StageRegistry().register(new LanguageStage(indexer, languageGuesser)).register(
+                                                            new IndexStage(indexer, languageGuesser, Extractor::new,
+                                                                           reportMapFactory(getCurrentBatchQueueType(), collectionFactory)))
+                                                    .register(new ScanStage())
+                                                    .register(new NlpStage(indexer, pipelineRegistry))
+                                                    .register(new CategorizeStage(indexer))
+                                                    .register(new EnqueueFromIndexStage(indexer))
+                                                    .register(new ArtifactStage(indexer));
+        // queue side only: a context per batch (the Temporal activity) could only deduplicate inside one batch, so a
+        // run that names the stage fails there instead of passing duplicates on in silence
+        if (getCurrentBatchQueueType() != TEMPORAL) {
+            registry.register(new DeduplicateStage());
+        }
+        return registry;
     }
 
     @Provides

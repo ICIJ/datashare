@@ -85,7 +85,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_deduplicate_task() throws Exception {
         Task<Long> task = new Task<>(DeduplicateTask.class.getName(), User.local(), new HashMap<>());
-        DeduplicateTask taskRunner = new DeduplicateTask(mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
+        DeduplicateTask taskRunner = new DeduplicateTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new DeduplicateStage()), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
         when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
