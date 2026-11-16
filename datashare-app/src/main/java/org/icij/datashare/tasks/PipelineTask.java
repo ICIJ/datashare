@@ -27,6 +27,10 @@ import java.util.stream.IntStream;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
 
+/**
+ * bit used anymore, just kept here till the end of the whole stage refactoring for documentation (authors of lines...)
+ * @param <T>
+ */
 public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableTask {
     /**
      * How long a drain waits before re-polling a queue whose producer is still running. Fixed, not
