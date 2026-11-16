@@ -67,6 +67,7 @@ import org.icij.datashare.asynctasks.PipelineExecutor;
 import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.tasks.ArtifactStage;
 import org.icij.extract.extractor.Extractor;
+import org.icij.extract.report.ReportMap;
 import org.icij.datashare.tasks.CategorizeStage;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.RoutingStrategy;
@@ -112,6 +113,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.function.Function;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -540,7 +542,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                                        PipelineRegistry pipelineRegistry,
                                        DocumentCollectionFactory<Path> collectionFactory) {
         return new StageRegistry().register(new LanguageStage(indexer, languageGuesser)).register(
-                                          new IndexStage(indexer, languageGuesser, Extractor::new, collectionFactory::createMap))
+                                          new IndexStage(indexer, languageGuesser, Extractor::new,
+                                                         reportMapFactory(getCurrentBatchQueueType(), collectionFactory)))
                                   .register(new ScanStage()).register(new NlpStage(indexer, pipelineRegistry))
                                   .register(new CategorizeStage(indexer)).register(new EnqueueFromIndexStage(indexer))
                                   .register(new ArtifactStage(indexer));
@@ -716,6 +719,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @NotNull
     public static Mode getMode(Properties properties) {
         return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty(MODE_OPT));
+    }
+
+    static Function<String, ReportMap> reportMapFactory(QueueType batchQueueType,
+                                                        DocumentCollectionFactory<?> collectionFactory) {
+        return batchQueueType == TEMPORAL ? null : collectionFactory::createMap;
     }
 
     public boolean waitForWorkers(long value, TimeUnit timeUnit) throws InterruptedException {
