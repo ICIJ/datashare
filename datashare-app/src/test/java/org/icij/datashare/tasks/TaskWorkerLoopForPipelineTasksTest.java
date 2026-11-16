@@ -67,7 +67,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_scan_index_task() throws Exception {
         Task<Long> task = new Task<>(ScanIndexTask.class.getName(), User.local(), new HashMap<>());
-        ScanIndexTask taskRunner = new ScanIndexTask(mock(DocumentCollectionFactory.class), mock(Indexer.class), task, updateCallback);
+        ScanIndexTask taskRunner = new ScanIndexTask(new StageRegistry().register(new ScanIndexStage(mock(Indexer.class), name -> null)), task, updateCallback);
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);

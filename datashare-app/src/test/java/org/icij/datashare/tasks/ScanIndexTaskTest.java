@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -39,7 +40,7 @@ public class ScanIndexTaskTest {
 
     @Test
     public void test_empty_index() throws Exception {
-        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, new Task<>(
+        assertThat(new ScanIndexTask(registry(indexer), new Task<>(
                 ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call()).isEqualTo(0);
     }
 
@@ -48,7 +49,7 @@ public class ScanIndexTaskTest {
         indexer.add(es.getIndexName(), DocumentBuilder.createDoc("id1").build());
         indexer.add(es.getIndexName(), DocumentBuilder.createDoc("id2").build());
 
-        assertThat(new ScanIndexTask(documentCollectionFactory, indexer,  new Task<>(
+        assertThat(new ScanIndexTask(registry(indexer), new Task<>(
                 ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call()).isEqualTo(2);
 
         ReportMap actualReportMap = documentCollectionFactory.createMap("test:report");
@@ -63,11 +64,15 @@ public class ScanIndexTaskTest {
         indexer.add(es.getIndexName(), DocumentBuilder.createDoc("id1").build());
         SearcherRecorder recorder = new SearcherRecorder();
 
-        new ScanIndexTask(documentCollectionFactory, recorder.recording(indexer), new Task<>(
+        new ScanIndexTask(registry(recorder.recording(indexer)), new Task<>(
                 ScanIndexTask.class.getName(), User.nullUser(), propertiesToMap(propertiesProvider.getProperties())), null).call();
 
         recorder.verifyReadsOnlyDocValues("path");
         verify(recorder.searchers.get(0)).sort("_doc", Indexer.Searcher.SortOrder.ASC);
+    }
+
+    private StageRegistry registry(Indexer scanIndexer) {
+        return new StageRegistry().register(new ScanIndexStage(scanIndexer, documentCollectionFactory::createMap));
     }
 
     @After
