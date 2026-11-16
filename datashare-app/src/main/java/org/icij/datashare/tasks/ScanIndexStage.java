@@ -96,8 +96,8 @@ public class ScanIndexStage implements StageProcessor<Void, Void> {
         long nbProcessed = 0;
         do {
             try {
-                docsToProcess = search.scroll(createScrollQuery().withDuration(scrollDuration)
-                                                                 .withSlices(sliceNum, scrollSlices).build())
+                docsToProcess = search.scroll(
+                                              createScrollQuery().withDuration(scrollDuration).withSlices(sliceNum, scrollSlices).build())
                                       .collect(toList());
                 addToReportMap(reportMap, docsToProcess, scrollSize);
                 nbProcessed += docsToProcess.size();
