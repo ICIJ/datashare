@@ -9,6 +9,7 @@ import picocli.CommandLine;
 import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PARALLELISM;
 
 /**
  * These tests verify that the new picocli subcommand path produces
@@ -458,6 +459,15 @@ public class RetroCompatibilityTest {
         Properties legacy = parseLegacy("--authFilter", "org.icij.datashare.session.YesCookieAuthFilter", "--mode", "SERVER");
         Properties picocli = parseNew("app", "start", "--authFilter", "org.icij.datashare.session.YesCookieAuthFilter");
         assertPropertyEqual(legacy, picocli, "authFilter");
+    }
+
+    @Test
+    public void test_parity_parallelism_default() {
+        // a stage that gets no parallelism runs one worker: both CLIs must emit the same default
+        Properties legacy = parseLegacy("--stages", "SCAN,INDEX");
+        Properties picocli = parseNew("stage", "run", "--stages", "SCAN,INDEX");
+        assertPropertyEqual(legacy, picocli, "parallelism");
+        assertThat(picocli.getProperty("parallelism")).isEqualTo(String.valueOf(DEFAULT_PARALLELISM));
     }
 
     @Test
