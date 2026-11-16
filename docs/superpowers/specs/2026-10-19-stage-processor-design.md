@@ -363,13 +363,16 @@ alternatives in section 2).
 - Whether a huge document (a multi-GB PST) needs its own queue or stage settings.
 - Whether structure and page artifacts can be produced during the INDEX streaming parse
   (an extract library question) instead of a second pass.
-- `--reportName` (queue side, people who do not use Temporal): `IndexStage` takes an optional report map
-  source, `CommonMode` gives it the collection factory. With the option, extract-lib (9.23) skips the paths
-  the map records as extracted and records what it extracts, and returns an `ExtractionStatus` that the stage
-  maps to `updated` (`SUCCESS`), `unchanged` (`SKIPPED`) and `failed` (`FAILURE_*`). Left: the re-queue of
-  failures of the old flow is not re-checked; SCANIDX, which fills the map, is still a `PipelineTask`; on
-  Temporal the map is only shared if the worker has the Redis collection factory, and the option may go
-  away there.
+- `--reportName`, a queue-side feature (people who do not use Temporal): `IndexStage` takes an optional
+  report map source, and `CommonMode` gives it the collection factory only when the batch queue type is not
+  `TEMPORAL`. With the option, extract-lib (9.23) skips the paths the map records as extracted and records
+  what it extracts, and returns an `ExtractionStatus` that the stage maps to `updated` (`SUCCESS`), skipped
+  (`SKIPPED`) and `failed` (`FAILURE_*`). On Temporal the option is ignored with a warning: the map is state
+  outside the workflow, shared only by workers with the same (Redis) collection factory. Left: the re-queue
+  of failures of the old flow is not re-checked; SCANIDX, which fills the map, is still a `PipelineTask` and
+  is queue-only too (the workflow starts a single source, and SCANIDX emits nothing); what replaces the map
+  on Temporal is not decided: skipping what a previous run extracted (a check against the index, by path, per
+  batch) and resuming a failed batch (activity heartbeat).
 - Temporal with no worker running: the CLI waits forever. Check for a poller on the task queue
   at start and fail fast, and log the task queue name on both sides.
 - `TemporalWorkflowGenerator` reads `call()` only on the annotated class, hence the delegating

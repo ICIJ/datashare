@@ -21,6 +21,8 @@ import org.icij.datashare.session.UsersInRedis;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -253,5 +255,17 @@ public class CommonModeTest {
         Authorizer authorizer = injector.getInstance(Authorizer.class);
         assertThat(authorizer).isNotNull();
         assertThat(injector.getInstance(Authorizer.class)).isSameAs(authorizer);
+    }
+
+    @Test
+    public void test_the_report_map_is_for_the_queue_side_only() {
+        MemoryDocumentCollectionFactory<Path> factory = new MemoryDocumentCollectionFactory<>();
+
+        assertThat(CommonMode.reportMapFactory(QueueType.TEMPORAL, factory)).isNull();
+        for (QueueType queueType : QueueType.values()) {
+            if (queueType != QueueType.TEMPORAL) {
+                assertThat(CommonMode.reportMapFactory(queueType, factory)).isNotNull();
+            }
+        }
     }
 }
