@@ -186,7 +186,7 @@ public class TaskResource {
             return new JsonPayload(400, new ErrorResponse(
                     "batch downloads and batch searches must be created with their dedicated endpoints"));
         }
-        if (DatashareTaskFactory.taskNames().contains(taskView.name)) {
+        if (DatashareTaskFactory.TASK_NAMES.contains(taskView.name)) {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         }
         Task<V> task = new Task<>(taskView.id, taskView.name, (User) context.currentUser(), taskView.args);

@@ -1103,10 +1103,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_task_names_lists_the_pipeline_tasks() {
-        assertThat(DatashareTaskFactory.taskNames()).contains(
+        assertThat(DatashareTaskFactory.TASK_NAMES).contains(
                 ScanTask.class.getName(), IndexTask.class.getName(), ScanIndexTask.class.getName(),
                 ExtractNlpTask.class.getName(), EnqueueFromIndexTask.class.getName(), ArtifactTask.class.getName());
-        assertThat(DatashareTaskFactory.taskNames().contains(null)).isFalse();
+        assertThat(DatashareTaskFactory.TASK_NAMES.contains(null)).isFalse();
     }
 
     @Test
@@ -1122,7 +1122,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_create_any_pipeline_task_forbidden_in_server_mode() throws Exception {
         configureServerMode();
         int i = 0;
-        for (String name : DatashareTaskFactory.taskNames()) {
+        for (String name : DatashareTaskFactory.TASK_NAMES) {
             String id = "pipeline_task_" + i++;
             put("/api/task/" + id, taskJson(id, name, Map.of("defaultProject", "victimproject")))
                     .withPreemptiveAuthentication("local", "pass").should().respond(403);
