@@ -126,7 +126,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
                                           builder.identifiesVerbatim(), requireColumnsSeen);
         }
         if (!builder.unmatchedFilters().isEmpty()) {
-            logger.warn("mapping '{}': no row matched the filters of {}, so what they wrote before is retracted",
+            logger.warn("mapping '{}': no row matched the filters of {}, so they hold nothing from this document now",
                         mappingId, builder.unmatchedFilters());
         }
         updateCallback.apply(0.5);
