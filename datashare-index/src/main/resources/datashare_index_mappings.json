@@ -22,6 +22,9 @@
         "emailHeaderField": {
           "enabled": false
         },
+        "tika_metadata_qr_codes": {
+          "type": "keyword"
+        },
         "tika_metadata_resourcename": {
           "type": "text",
           "analyzer": "folding",

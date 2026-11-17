@@ -108,6 +108,7 @@ public final class DatashareCliOptions {
     public static final String OCR_TYPE_OPT = "ocrType";
     public static final String OCR_TIMEOUT = "ocrTimeout";
     public static final String OCR_STRATEGY_OPT = "ocrStrategy";
+    public static final String QR_CODES_OPT = "qrCodes";
     public static final String MAX_EMBED_DEPTH_OPT = "maxEmbedDepth";
     public static final String MAX_EMBED_DEPTH_DESC =
             "Maximum nesting depth of embedded documents to extract before deeper embeds " +
@@ -697,6 +698,14 @@ public final class DatashareCliOptions {
                           "Wall-clock timeout for a single document's parse and output, e.g. \"30m\" or \"24h\". " +
                           "Set to 0 to disable. Defaults to 24h.").withRequiredArg().ofType(String.class)
               .defaultsTo(DEFAULT_PARSE_TIMEOUT);
+    }
+
+    static void qrCodes(OptionParser parser) {
+        parser.acceptsAll(List.of(QR_CODES_OPT),
+                          "Decode QR codes, Data Matrix, Aztec and PDF417 codes in images and add their values " +
+                          "to the document text. Off by default. Images inside PDFs are read even with OCR off.")
+              // No defaultsTo: it would clobber a qrCodes=true set in the settings file (see artifactsForce).
+              .withRequiredArg().ofType(Boolean.class);
     }
 
     static void ocrStrategy(OptionParser parser) {
