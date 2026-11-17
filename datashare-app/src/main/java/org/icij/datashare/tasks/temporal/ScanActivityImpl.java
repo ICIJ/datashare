@@ -1,10 +1,13 @@
 package org.icij.datashare.tasks.temporal;
 
 import io.temporal.activity.Activity;
+import io.temporal.failure.ApplicationFailure;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.extract.ScanCallback;
 import org.icij.datashare.extract.ScanOptions;
 import org.icij.datashare.extract.Scanner;
+import org.icij.datashare.utils.DataDirVerifier;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -16,13 +19,20 @@ public class ScanActivityImpl implements ScanActivity {
     // while still splitting the work into enough batches for horizontal scaling across index workers.
     private static final int BATCH_SIZE = 1000;
     final TemporalInterlocutor temporal;
+    private final DataDirVerifier dataDirVerifier;
 
-    public ScanActivityImpl(final TemporalInterlocutor temporal) {
+    public ScanActivityImpl(final TemporalInterlocutor temporal, final PropertiesProvider serverProperties) {
         this.temporal = temporal;
+        this.dataDirVerifier = new DataDirVerifier(serverProperties);
     }
 
     @Override
     public Long run(final ScanOptions options, final Path path) throws IOException {
+        if (!dataDirVerifier.allowed(path)) {
+            // non retryable: Temporal would otherwise retry a refusal that can never succeed
+            throw ApplicationFailure.newNonRetryableFailure("path must be inside " + dataDirVerifier.value(),
+                                                            IllegalArgumentException.class.getName());
+        }
         String workflowId = Activity.getExecutionContext().getInfo().getWorkflowId();
         PathBatchReceiver self = temporal.newWorkflowStub(PathBatchReceiver.class, workflowId);
 

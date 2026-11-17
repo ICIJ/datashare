@@ -5,6 +5,7 @@ import io.temporal.client.WorkflowOptions;
 import java.io.Closeable;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import static org.fest.assertions.Assertions.assertThat;
@@ -41,7 +42,8 @@ public class IndexActivityImplIntTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider();
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(IndexationWorkflowImpl.class, WORKFLOWS_DEFAULT);
-        registry.registerActivity(new ScanActivityImpl(temporal.interlocutor()), WORKFLOWS_DEFAULT);
+        PropertiesProvider serverProperties = new PropertiesProvider(Map.of("dataDir", tmp.getRoot().toString()));
+        registry.registerActivity(new ScanActivityImpl(temporal.interlocutor(), serverProperties), WORKFLOWS_DEFAULT);
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, propertiesProvider);
         registry.registerActivity(new IndexActivityImpl(indexer.withRefresh(
                 Refresh.True), text -> Language.ENGLISH), WORKFLOWS_DEFAULT);
