@@ -42,7 +42,16 @@ public interface StatementRepository {
      *  is cancelled part way leaves the sheet as the previous run wrote it. Refuses a statement whose provenance is not the document and sheet being
      *  replaced, since the delete keys on the arguments and the rows key on themselves. The rows
      *  written here are new, so the conditional upsert a plain save leans on cannot spare any. */
-    Replaced replace(String projectId, String runId, String documentId, String sheet, Stream<Statement> statements);
+    default Replaced replace(String projectId, String runId, String documentId, String sheet,
+                             Stream<Statement> statements) {
+        return replace(projectId, runId, documentId, sheet, statements, () -> {});
+    }
+
+    /** {@link #replace(String, String, String, String, Stream)}, running {@code beforeCommit} once
+     *  every statement is written and before the transaction commits: a check that throws there
+     *  rolls the retraction back with the whole write. */
+    Replaced replace(String projectId, String runId, String documentId, String sheet, Stream<Statement> statements,
+                     Runnable beforeCommit);
 
     /** The entity a project holds under this id. An id shared by two models yields the first model in
      *  natural order, since an entity belongs to one model, and the entity names the model it came

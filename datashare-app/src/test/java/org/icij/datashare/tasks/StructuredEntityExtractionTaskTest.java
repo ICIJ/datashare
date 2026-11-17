@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -234,9 +235,9 @@ public class StructuredEntityExtractionTaskTest {
         InMemoryStatementRepository cancelling = new InMemoryStatementRepository() {
             @Override
             public Replaced replace(String projectId, String runId, String documentId, String sheet,
-                                    Stream<Statement> rows) {
+                                    Stream<Statement> rows, Runnable beforeCommit) {
                 running.get().cancel(false);
-                return super.replace(projectId, runId, documentId, sheet, rows);
+                return super.replace(projectId, runId, documentId, sheet, rows, beforeCommit);
             }
         };
         running.set(task("m1", cancelling));
@@ -257,9 +258,9 @@ public class StructuredEntityExtractionTaskTest {
         InMemoryStatementRepository cancelling = new InMemoryStatementRepository() {
             @Override
             public Replaced replace(String projectId, String runId, String documentId, String sheet,
-                                    Stream<Statement> rows) {
+                                    Stream<Statement> rows, Runnable beforeCommit) {
                 return super.replace(projectId, runId, documentId, sheet,
-                                     rows.peek(statement -> running.get().cancel(false)));
+                                     rows.peek(statement -> running.get().cancel(false)), beforeCommit);
             }
         };
         cancelling.stored.putAll(before);
@@ -366,6 +367,25 @@ public class StructuredEntityExtractionTaskTest {
         assertThrows(InvalidExtractionMapping.class, () -> task("m1").call());
 
         assertThat(statements.stored).isEmpty();
+    }
+
+    @Test
+    public void test_a_csv_mapping_naming_a_column_its_header_lacks_fails_before_reading_any_row() throws Exception {
+        source("companies.csv", "text/csv", "id,name\n1,ACME\n");
+        stored(mappingWithColumn("m1", "mispelled"));
+        AtomicBoolean replaced = new AtomicBoolean();
+        InMemoryStatementRepository watching = new InMemoryStatementRepository() {
+            @Override
+            public Replaced replace(String projectId, String runId, String documentId, String sheet,
+                                    Stream<Statement> rows, Runnable beforeCommit) {
+                replaced.set(true);
+                return super.replace(projectId, runId, documentId, sheet, rows, beforeCommit);
+            }
+        };
+
+        assertThrows(InvalidExtractionMapping.class, () -> task("m1", watching).call());
+
+        assertThat(replaced.get()).isFalse();
     }
 
     @Test

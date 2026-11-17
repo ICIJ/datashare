@@ -42,12 +42,14 @@ public class StatementBuilder {
     private final String sheet;
     private final DateFormats formats = new DateFormats();
     private final Set<String> columns = new TreeSet<>();
-    private final Map<String, Set<String>> columnsOf = new HashMap<>();
     private final Map<Skip, Long> skipped = new EnumMap<>(Skip.class);
     private final Set<String> absent = new TreeSet<>();
     private final Set<String> seen = new TreeSet<>();
     private final Set<String> unmatched = new TreeSet<>();
+    private final Map<String, Set<String>> unreported = new HashMap<>();
     private final List<String> aliases;
+    private final boolean identifiesVerbatim;
+    private boolean headerChecked = false;
 
     /** {@code sheet} is the section of the document these rows come from, as the reader resolved it:
      *  a workbook's sheet name, the Tika fallback's table index, or empty for a format with one
@@ -69,6 +71,7 @@ public class StatementBuilder {
         mapping.requireValid();
         mapping.entities().forEach(this::declare);
         this.aliases = List.copyOf(new TreeSet<>(mapping.entities().keySet()));
+        this.identifiesVerbatim = mapping.entities().values().stream().anyMatch(entity -> entity.idColumn() != null);
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
 
@@ -116,7 +119,7 @@ public class StatementBuilder {
                 formats.declare(property.dateFormat());
             }
         });
-        columnsOf.put(alias, own);
+        unreported.put(alias, new HashSet<>(own));
         columns.addAll(own);
     }
 
@@ -132,29 +135,45 @@ public class StatementBuilder {
 
     // A column missing from a row is counted once, since a field a file omits is one fact, not one
     // per row, and only for an entity whose filters matched the row: a Person row was never meant to
-    // carry a Company's columns.
+    // carry a Company's columns. A row read under a checked header carries every column, padded.
     private void countMissing(String alias, Row row) {
+        Set<String> pending = unreported.get(alias);
+        if (headerChecked || pending.isEmpty()) {
+            return;
+        }
         Set<String> carried = row.values().keySet();
-        List<String> missing = columnsOf.get(alias).stream().filter(column -> !carried.contains(column)).toList();
+        List<String> missing = pending.stream().filter(column -> !carried.contains(column)).toList();
+        pending.removeAll(missing);
         missing.stream().filter(absent::add).forEach(column -> count(Skip.CELL_MISSING, column, row.number()));
     }
 
-    /** The mapping typo this guard exists for, reported once the whole source has been read: a
-     *  column no row carried is named here rather than on row 1, because row 1 of a mixed source is
-     *  one record shape among several. The caller runs this inside the write transaction, so the
-     *  retraction rolls back with it, exactly as a failure on row 1 did. */
+    /** The mapping typo this guard exists for, caught before a row is read when the source declares
+     *  its columns up front, so a misspelled column costs nothing but the header. */
+    public void requireColumns(List<String> header) {
+        Set<String> declared = Set.copyOf(header);
+        List<String> missing = columns.stream().filter(column -> !declared.contains(column)).toList();
+        refuseMissing(missing);
+        headerChecked = true;
+    }
+
+    /** The same guard for a source whose records carry their own names: a column no row carried is
+     *  named once the whole source has been read, because row 1 of a mixed source is one record
+     *  shape among several. */
     public void requireEveryColumnSeen() {
         List<String> never = columns.stream().filter(column -> !seen.contains(column)).toList();
-        List<String> problems = new ArrayList<>();
-        if (!never.isEmpty()) {
-            problems.add("the source has no column " + never);
+        refuseMissing(never);
+    }
+
+    private void refuseMissing(List<String> missing) {
+        if (!missing.isEmpty()) {
+            throw new InvalidExtractionMapping(mapping.id(), List.of("the source has no column " + missing));
         }
-        if (!unmatched.isEmpty()) {
-            problems.add("no row matched the filters of " + unmatched);
-        }
-        if (!problems.isEmpty()) {
-            throw new InvalidExtractionMapping(mapping.id(), problems);
-        }
+    }
+
+    /** The filtered aliases no row matched. Not a failure: a document whose records of one schema
+     *  went away has to retract what they wrote, so the caller only reports these. */
+    public Set<String> unmatchedFilters() {
+        return Set.copyOf(unmatched);
     }
 
     private Map<String, String> entityIds(Map<String, List<String>> cells, Row row) {
@@ -165,13 +184,15 @@ public class StatementBuilder {
                 ids.put(alias, id);
             }
         }
-        refuseTypeClashes(ids, row.number());
+        if (identifiesVerbatim) {
+            refuseTypeClashes(ids, row.number());
+        }
         return ids;
     }
 
     // Only an id read verbatim can land under two types, since every hashed id carries its type. An
-    // entity has one type, and rebuilding the index refuses the whole project over one that has two,
-    // after the statements are committed, so neither side of the clash is written.
+    // entity has one type, so neither side of a clash on one row is written. A clash across rows,
+    // mappings or documents is the store's to refuse, since only the store sees them all.
     private void refuseTypeClashes(Map<String, String> ids, long rowNumber) {
         Map<String, Set<String>> typesOf = new HashMap<>();
         for (Map.Entry<String, String> identified : ids.entrySet()) {
@@ -188,21 +209,19 @@ public class StatementBuilder {
         long rowNumber = row.number();
         // Not a skip: an alias whose filters do not match was never meant to apply to this row, and
         // counting it would report every row of one schema as a loss for every other schema. A cell
-        // holding several values matches on any of them: an ftm record carries its whole type
-        // hierarchy in 'schema', so a Person row reads as ["LegalEntity", "Person"].
+        // holding several values matches none: an ftm record names its one schema, and matching on
+        // any value would let an ancestor's alias and a leaf's both claim one row.
         for (Map.Entry<String, String> filter : entity.filters().entrySet()) {
-            if (!cells.get(filter.getKey()).contains(filter.getValue())) {
+            String value = single(cells.get(filter.getKey()));
+            if (!filter.getValue().equals(value)) {
                 return null;
             }
         }
         unmatched.remove(alias);
         countMissing(alias, row);
         if (entity.idColumn() != null) {
-            String given = single(cells.get(entity.idColumn()));
-            // Elasticsearch caps the _id at bytes, not characters, and the _id is the model-prefixed id.
-            if (given == null ||
-                StructuredEntity.documentId(mapping.model(), given).getBytes(StandardCharsets.UTF_8).length >
-                StructuredEntity.MAX_ID_BYTES) {
+            String given = verbatim(row.values().get(entity.idColumn()));
+            if (given == null || tooLongForIndex(given)) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
                 return null;
             }
@@ -219,6 +238,27 @@ public class StatementBuilder {
             return null;
         }
         return id(entity.type(), entity.keyLiteral(), values);
+    }
+
+    // The id the source gave, uncleaned: an external consumer looks an entity up by the id in its
+    // dump, and cleaning would merge two ids that differ by a soft hyphen. A NUL cannot reach a
+    // statement, and a blank id is no id, so both read as none, as several values do.
+    private static String verbatim(List<String> raw) {
+        if (raw == null || raw.size() != 1) {
+            return null;
+        }
+        String given = raw.get(0);
+        if (Row.blank(given) || given.indexOf('\u0000') >= 0) {
+            return null;
+        }
+        return given;
+    }
+
+    // Elasticsearch caps the _id at bytes, not characters, and the _id is the model-prefixed id.
+    private boolean tooLongForIndex(String id) {
+        String documentId = StructuredEntity.documentId(mapping.model(), id);
+        byte[] bytes = documentId.getBytes(StandardCharsets.UTF_8);
+        return bytes.length > StructuredEntity.MAX_ID_BYTES;
     }
 
     // A keyless entity is row-scoped, each row its own record, so its id carries what locates the
@@ -254,9 +294,9 @@ public class StatementBuilder {
                 String given = mapped.literal() != null ? mapped.literal() : ids.get(mapped.entity());
                 filling.fill(property, given, null, provenance(row, ""));
             } else if (mapped.join() != null) {
-                filling.fill(property, mapped.columns().stream().flatMap(column -> cells.get(column).stream())
-                                             .filter(value -> !value.isEmpty()).collect(joining(mapped.join())),
-                             mapped.dateFormat(), provenance(row, String.join(",", mapped.columns())));
+                String joined = joined(mapped, cells);
+                String columnNames = String.join(",", mapped.columns());
+                filling.fill(property, joined, mapped.dateFormat(), provenance(row, columnNames));
             } else {
                 for (String column : mapped.columns()) {
                     for (String value : cells.get(column)) {
@@ -266,6 +306,11 @@ public class StatementBuilder {
             }
         }
         return filling.statements;
+    }
+
+    private static String joined(ExtractionMapping.PropertyMapping mapped, Map<String, List<String>> cells) {
+        Stream<String> values = mapped.columns().stream().flatMap(column -> cells.get(column).stream());
+        return values.filter(value -> !value.isEmpty()).collect(joining(mapped.join()));
     }
 
     // An entity produces a statement when a literal or a filled cell fills one of its properties, or
@@ -338,12 +383,24 @@ public class StatementBuilder {
     // The one place a cell enters, keys and values alike. A NUL would abort the run from inside
     // Statement's constructor, so the value holding it reads as no value and is counted on its own:
     // a column whose other values are readable keeps them, and a cell of several values keeps its
-    // count, so what is left cannot pass for the one value an id is read from.
+    // count, so what is left cannot pass for the one value an id is read from. A cell needing no
+    // cleaning, which is nearly every cell, is passed on as it came.
     private List<String> cell(Row row, String column) {
         List<String> raw = row.values().get(column);
         if (raw == null) {
             return List.of();
         }
+        if (raw.stream().allMatch(StatementBuilder::isClean)) {
+            return raw;
+        }
+        return cleaned(raw, row, column);
+    }
+
+    private static boolean isClean(String value) {
+        return value.indexOf('\u0000') < 0 && Row.clean(value).equals(value);
+    }
+
+    private List<String> cleaned(List<String> raw, Row row, String column) {
         List<String> cleaned = new ArrayList<>(raw.size());
         for (String value : raw) {
             if (value.indexOf('\u0000') >= 0) {

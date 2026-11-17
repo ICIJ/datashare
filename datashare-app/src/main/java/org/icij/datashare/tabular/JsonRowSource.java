@@ -70,7 +70,7 @@ public class JsonRowSource implements RowSource {
             if (first == JsonToken.START_ARRAY && parser.nextToken() == JsonToken.END_ARRAY) {
                 refuseTrailingContent(parser);
                 close(parser);
-                return new Rows(null, Stream.empty());
+                return new Rows(null, null, Stream.empty());
             }
             records = mapper.readerFor(JsonNode.class).readValues(parser);
         } catch (IOException | RuntimeException failure) {
@@ -115,23 +115,20 @@ public class JsonRowSource implements RowSource {
                             "row " + number + " is not a json object but a " + record.getNodeType());
                 }
                 Map<String, List<String>> values = new LinkedHashMap<>();
-                try {
-                    flatten("", record, values);
-                } catch (IllegalArgumentException notTabular) {
-                    throw new IllegalArgumentException("row " + number + ": " + notTabular.getMessage(), notTabular);
-                }
+                flatten("", record, values);
                 return new Row(number, Collections.unmodifiableMap(values));
             }
         };
-        return new Rows(null, StreamSupport.stream(
-                                                   Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL), false)
-                                           .onClose(() -> close(parser)));
+        Spliterator<Row> ordered = Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL);
+        Stream<Row> stream = StreamSupport.stream(ordered, false).onClose(() -> close(parser));
+        return new Rows(null, null, stream);
     }
 
     // An array's members are the column's values: that is what the ftm dumps this reader exists for
-    // put in every property. A member that is itself an object or an array has no column name to be
-    // mapped under, so it is refused rather than flattened into one the mapping cannot address. A
-    // null member is no value at all rather than a blank one, so it does not make a column of one
+    // put in every property. An array holding an object or an array has no column name for its
+    // members, so its column is left out of the row: a nested-format dump puts such arrays in fields
+    // a mapping never reads, and a mapping that does read one sees a missing column, counted as one.
+    // A null member is no value at all rather than a blank one, so it does not make a column of one
     // value read as a column of two, which is the difference between an id and no id.
     private static void flatten(String prefix, JsonNode node, Map<String, List<String>> values) {
         node.properties().forEach(field -> {
@@ -139,21 +136,26 @@ public class JsonRowSource implements RowSource {
             JsonNode value = field.getValue();
             if (value.isObject()) {
                 flatten(column, value, values);
-            } else if (value.isArray()) {
-                values.put(column, members(column, value));
-            } else {
+            } else if (!value.isArray()) {
                 values.put(column, List.of(value.isNull() ? "" : value.asText()));
+            } else if (!holdsContainers(value)) {
+                values.put(column, members(value));
             }
         });
     }
 
-    private static List<String> members(String column, JsonNode array) {
-        List<String> members = new ArrayList<>(array.size());
+    private static boolean holdsContainers(JsonNode array) {
         for (JsonNode member : array) {
             if (member.isContainerNode()) {
-                throw new IllegalArgumentException("column " + column + " holds an array of " + member.getNodeType() +
-                                                   ", whose members have no column name to be mapped under");
+                return true;
             }
+        }
+        return false;
+    }
+
+    private static List<String> members(JsonNode array) {
+        List<String> members = new ArrayList<>(array.size());
+        for (JsonNode member : array) {
             if (!member.isNull()) {
                 members.add(member.asText());
             }

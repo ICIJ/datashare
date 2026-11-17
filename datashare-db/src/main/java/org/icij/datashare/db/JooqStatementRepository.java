@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 import org.icij.datashare.db.tables.records.StatementRecord;
+import org.icij.datashare.model.EntityTypeClash;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.StatementRepository;
@@ -70,7 +71,7 @@ public class JooqStatementRepository implements StatementRepository {
 
     @Override
     public Replaced replace(String projectId, String runId, String documentId, String sheet,
-                            Stream<Statement> statements) {
+                            Stream<Statement> statements, Runnable beforeCommit) {
         String section = Statement.Provenance.sheetOrEmpty(sheet);
         Write write = new Write(projectId, runId, now());
         Stream<Statement> checked = statements.peek(statement -> requireWrittenBy(statement, documentId, section));
@@ -78,7 +79,11 @@ public class JooqStatementRepository implements StatementRepository {
         // One transaction around every chunk: a run that fails or is cancelled part way rolls the
         // retraction back with what it wrote, so the sheet is either the previous run's or this one's,
         // never half of each.
-        return create().transactionResult(configuration -> write(DSL.using(configuration), write, checked, retract));
+        return create().transactionResult(configuration -> {
+            Replaced replaced = write(DSL.using(configuration), write, checked, retract);
+            beforeCommit.run();
+            return replaced;
+        });
     }
 
     // The retraction rides the first chunk, which is read before it runs, so an extraction that fails
@@ -100,6 +105,7 @@ public class JooqStatementRepository implements StatementRepository {
                 pending = false;
                 Replaced round =
                         new Replaced(retracting ? retract.applyAsInt(create) : 0, saveChunk(create, write, chunk));
+                refuseTypeClashes(create, write.projectId(), chunk);
                 retracted += round.retracted();
                 written += round.written();
             }
@@ -108,6 +114,23 @@ public class JooqStatementRepository implements StatementRepository {
             }
         }
         return new Replaced(retracted, written);
+    }
+
+    // Rebuilding the entities index refuses the whole project over one id under two types, and only
+    // after the write committed, so the write that would create it is refused instead. An id taken
+    // verbatim from a column is the one way in: a hashed id carries its type. The check reads what
+    // the chunk just wrote along with everything already stored, so it sees a clash across rows,
+    // mappings and documents alike, through the (prj_id, entity_id) index.
+    private static void refuseTypeClashes(DSLContext create, String projectId, List<Statement> chunk) {
+        Set<String> entityIds = chunk.stream().map(Statement::entityId).collect(toCollection(TreeSet::new));
+        List<String> clashing = create.select(STATEMENT.ENTITY_ID).from(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId))
+                                      .and(STATEMENT.ENTITY_ID.in(entityIds))
+                                      .groupBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL)
+                                      .having(DSL.countDistinct(STATEMENT.ENTITY_TYPE).gt(1))
+                                      .fetch(STATEMENT.ENTITY_ID);
+        if (!clashing.isEmpty()) {
+            throw new EntityTypeClash(projectId, clashing);
+        }
     }
 
     // The delete keys on the caller's document and sheet while each row keys on its own provenance:

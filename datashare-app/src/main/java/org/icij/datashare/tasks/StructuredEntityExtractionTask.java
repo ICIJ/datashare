@@ -102,24 +102,32 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         StatementBuilder builder;
         try (Rows rows = reader.rows(project, document, mapping.options())) {
             builder = new StatementBuilder(mapping, rows.sheet());
-            // The builder's sheet, not the reader's: the builder cleans it and every statement's
-            // provenance carries the cleaned one, so a retraction keyed on the raw name would name a
-            // sheet nothing was written under.
-            // The column check rides the end of the stream rather than the end of call(): replace()
-            // consumes the stream inside its transaction, so a typo rolls the retraction back with
-            // everything the run wrote, which a check after replace() returned could not do. A source
-            // with no data row has no column to have seen, so it stays a clean empty run.
-            Stream<Statement> written = Stream.concat(rows.rows().flatMap(row -> {
+            // A source declaring its columns up front is checked before anything is read or retracted.
+            // One whose records carry their own names is checked once every row went by, inside the
+            // write transaction, so a typo rolls the retraction back with what the run wrote. A
+            // source with no data row has no column to have seen, so it stays a clean empty run.
+            if (rows.header() != null) {
+                builder.requireColumns(rows.header());
+            }
+            Runnable requireColumnsSeen = () -> {
+                if (rows.header() == null && read.get() > 0) {
+                    builder.requireEveryColumnSeen();
+                }
+            };
+            Stream<Statement> written = rows.rows().flatMap(row -> {
                 throwIfCancelled();
                 read.incrementAndGet();
                 return builder.statements(row).stream();
-            }), Stream.of(builder).flatMap(checked -> {
-                if (read.get() > 0) {
-                    checked.requireEveryColumnSeen();
-                }
-                return Stream.empty();
-            }));
-            replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(), written);
+            });
+            // The builder's sheet, not the reader's: the builder cleans it and every statement's
+            // provenance carries the cleaned one, so a retraction keyed on the raw name would name a
+            // sheet nothing was written under.
+            replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(), written,
+                                          requireColumnsSeen);
+        }
+        if (!builder.unmatchedFilters().isEmpty()) {
+            logger.warn("mapping '{}': no row matched the filters of {}, so what they wrote before is retracted",
+                        mappingId, builder.unmatchedFilters());
         }
         updateCallback.apply(0.5);
         // Checked again here because the row lambda is the only other cancellation point, and a

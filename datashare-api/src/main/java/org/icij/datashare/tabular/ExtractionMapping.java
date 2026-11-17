@@ -76,7 +76,8 @@ public record ExtractionMapping(String id, String projectId, String userId, Stri
             // Two names for one column are one column, as they are for keys and for a property's
             // columns, and two values for it are a mapping no row can honour rather than a Java
             // collector's business.
-            filters = (filters == null ? Map.<String, String>of() : filters).entrySet().stream().collect(
+            Map<String, String> given = filters == null ? Map.of() : filters;
+            filters = given.entrySet().stream().collect(
                     toUnmodifiableMap(entry -> Row.clean(entry.getKey()), ExtractionMapping::filterValue,
                                       ExtractionMapping::oneValuePerColumn));
             properties = Map.copyOf(Objects.requireNonNull(properties, "properties"));

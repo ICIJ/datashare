@@ -211,7 +211,7 @@ public class EntitiesIndexRebuilderTest {
 
         @Override
         public Replaced replace(String projectId, String runId, String documentId, String sheet,
-                                Stream<Statement> statements) {
+                                Stream<Statement> statements, Runnable beforeCommit) {
             throw new UnsupportedOperationException();
         }
 

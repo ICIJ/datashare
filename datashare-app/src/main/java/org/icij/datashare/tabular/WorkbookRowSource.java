@@ -54,7 +54,10 @@ public class WorkbookRowSource implements RowSource {
         try {
             Sheet sheet = selectSheet(workbook, options.sheet());
             FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-            return new Rows(sheet.getSheetName(), read(sheet, evaluator).stream().onClose(() -> close(workbook)));
+            java.util.Iterator<org.apache.poi.ss.usermodel.Row> sheetRows = sheet.iterator();
+            List<String> headers = headers(sheetRows, evaluator);
+            List<Row> rows = read(sheet.getSheetName(), sheetRows, headers, evaluator);
+            return new Rows(sheet.getSheetName(), Row.declared(headers), rows.stream().onClose(() -> close(workbook)));
         } catch (RuntimeException failure) {
             close(workbook);
             throw failure;
@@ -82,13 +85,17 @@ public class WorkbookRowSource implements RowSource {
 
     // Materialized rather than lazily streamed: the workbook is already fully in memory, so a lazy
     // spliterator over it would buy nothing and would keep the workbook open for the caller to leak.
-    private static List<Row> read(Sheet sheet, FormulaEvaluator evaluator) {
-        java.util.Iterator<org.apache.poi.ss.usermodel.Row> sheetRows = sheet.iterator();
+    private static List<String> headers(java.util.Iterator<org.apache.poi.ss.usermodel.Row> sheetRows,
+                                        FormulaEvaluator evaluator) {
         if (!sheetRows.hasNext()) {
             throw new IllegalArgumentException("no header row: the sheet is empty");
         }
-        List<String> headers = Row.headers(cells(sheetRows.next(), evaluator));
+        List<String> names = cells(sheetRows.next(), evaluator);
+        return Row.headers(names);
+    }
 
+    private static List<Row> read(String sheetName, java.util.Iterator<org.apache.poi.ss.usermodel.Row> sheetRows,
+                                  List<String> headers, FormulaEvaluator evaluator) {
         List<Row> rows = new ArrayList<>();
         long blank = 0;
         while (sheetRows.hasNext()) {
@@ -101,7 +108,7 @@ public class WorkbookRowSource implements RowSource {
             rows.add(new Row(number, Row.values(headers, values, number)));
         }
         if (blank > 0) {
-            LOGGER.info("skipped {} blank rows in sheet {}", blank, sheet.getSheetName());
+            LOGGER.info("skipped {} blank rows in sheet {}", blank, sheetName);
         }
         return rows;
     }

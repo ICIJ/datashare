@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -87,6 +88,11 @@ public record Row(long number, Map<String, List<String>> values) {
                                                "so the row above the data is a title or a spacer rather than a header");
         }
         return headers;
+    }
+
+    /** The names {@link #headers} kept, without the null standing for each dropped column. */
+    public static List<String> declared(List<String> headers) {
+        return headers.stream().filter(Objects::nonNull).toList();
     }
 
     /**

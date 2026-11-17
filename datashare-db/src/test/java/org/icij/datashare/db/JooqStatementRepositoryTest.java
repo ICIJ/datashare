@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 import com.zaxxer.hikari.HikariDataSource;
+import org.icij.datashare.model.EntityTypeClash;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.StatementRepository;
@@ -200,9 +201,9 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_two_types_under_one_entity_id_are_refused() {
-        repository.save("prj", "run-1", Stream.of(
-                statement("e-1", "Person", "name", "Ada"),
-                statement("e-1", "LegalEntity", "name", "Ada")));
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+        assertThrows(EntityTypeClash.class, () -> repository.save("prj", "run-2", Stream.of(
+                statement("e-1", "LegalEntity", "name", "Ada"))));
 
         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
                 () -> repository.entity("prj", "e-1"));
@@ -318,6 +319,36 @@ public class JooqStatementRepositoryTest {
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
         assertThat(chunked.entity("prj", "e-1").orElseThrow().properties())
                 .isEqualTo(Map.of("name", List.of("Ada")));
+    }
+
+    @Test
+    public void test_replace_refuses_an_id_another_document_holds_under_another_type() {
+        repository.save("prj", "run-1", Stream.of(Statement.of("ftm", "e-1", "Person", "name", "Ada",
+                new Statement.Provenance("doc-2", "", 2, "name"))));
+
+        EntityTypeClash clash = assertThrows(EntityTypeClash.class, () -> repository.replace("prj", "run-2",
+                "doc-1", "", Stream.of(statement("e-1", "Company", "name", "ACME"))));
+
+        assertThat(clash.entityIds).containsOnly("e-1");
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
+    }
+
+    @Test
+    public void test_replace_refuses_one_id_under_two_types_across_rows() {
+        EntityTypeClash clash = assertThrows(EntityTypeClash.class, () -> repository.replace("prj", "run-1",
+                "doc-1", "", Stream.of(statement("e-1", "Person", "name", "Ada"),
+                                       statement("e-1", "Company", "name", "ACME"))));
+
+        assertThat(clash.entityIds).containsOnly("e-1");
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(0);
+    }
+
+    @Test
+    public void test_one_id_under_one_type_in_two_projects_and_two_models_is_not_a_clash() {
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+        repository.save("other", "run-1", Stream.of(statement("e-1", "Company", "name", "ACME")));
+
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
     }
 
     @Test

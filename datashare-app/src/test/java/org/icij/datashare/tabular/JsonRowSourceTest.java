@@ -100,19 +100,15 @@ public class JsonRowSourceTest {
     }
 
     @Test
-    public void test_an_array_of_objects_is_still_refused_naming_its_row_and_column() throws Exception {
+    public void test_an_array_of_containers_leaves_its_column_out_of_the_row() throws Exception {
         Map<String, String> columnByContent = Map.of(
                 "[{\"id\":1,\"kids\":[{\"n\":1}]}]", "kids",
                 "[{\"id\":1,\"pairs\":[[1,2]]}]", "pairs",
                 "[{\"id\":1,\"addr\":{\"kids\":[{\"n\":1}]}}]", "addr.kids");
         for (Map.Entry<String, String> arrayValue : columnByContent.entrySet()) {
-            try {
-                read(arrayValue.getKey());
-                fail("a member with no column name of its own cannot be mapped");
-            } catch (IllegalArgumentException failure) {
-                assertThat(failure.getMessage()).contains("row 1");
-                assertThat(failure.getMessage()).contains(arrayValue.getValue());
-            }
+            Map<String, List<String>> values = read(arrayValue.getKey()).get(0).values();
+
+            assertThat(values.keySet()).containsOnly("id");
         }
     }
 

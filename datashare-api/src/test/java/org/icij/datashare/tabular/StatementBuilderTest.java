@@ -1038,6 +1038,41 @@ public class StatementBuilderTest {
     }
 
     @Test
+    public void test_an_id_column_is_taken_without_cleaning() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        List<Statement> statements = builder.statements(row(Map.of("id", " ab\u00ADc ", "name", "ACME")));
+
+        assertThat(statements.get(0).entityId()).isEqualTo(" ab\u00ADc ");
+    }
+
+    @Test
+    public void test_a_whitespace_only_id_column_refuses_the_entity() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+
+        assertThat(builder.statements(row(Map.of("id", " \u00A0", "name", "ACME")))).isEmpty();
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_a_header_lacking_a_mapped_column_fails_before_any_row() {
+        StatementBuilder builder = person(List.of("passport"), Map.of("name", column("fullname")));
+
+        InvalidExtractionMapping refusal = assertThrows(InvalidExtractionMapping.class,
+                                                        () -> builder.requireColumns(List.of("passport", "full_name")));
+        assertThat(refusal.getMessage()).contains("fullname");
+    }
+
+    @Test
+    public void test_a_header_carrying_every_mapped_column_passes() {
+        StatementBuilder builder = person(List.of("passport"), Map.of("name", column("full_name")));
+
+        builder.requireColumns(List.of("passport", "full_name", "extra"));
+    }
+
+    @Test
     public void test_a_blank_id_column_refuses_the_entity() {
         StatementBuilder builder = new StatementBuilder(mapping(Map.of(
                 "company", identified("Company", "id", Map.of("name", column("name"))))), "");
@@ -1139,14 +1174,26 @@ public class StatementBuilderTest {
     }
 
     @Test
-    public void test_a_multi_valued_filter_column_matches_on_any_value() {
+    public void test_a_multi_valued_filter_column_matches_nothing() {
         StatementBuilder builder = new StatementBuilder(mapping(Map.of(
                 "person", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
 
         List<Statement> statements = builder.statements(multi(Map.of(
                 "id", List.of("e1"), "schema", List.of("LegalEntity", "Person"), "name", List.of("Jane"))));
 
-        assertThat(statements).hasSize(1);
+        assertThat(statements).isEmpty();
+    }
+
+    @Test
+    public void test_an_ancestor_and_a_leaf_filter_do_not_both_claim_a_multi_valued_row() {
+        StatementBuilder builder = new StatementBuilder(mapping(Map.of(
+                "le", filtered("LegalEntity", "id", Map.of("schema", "LegalEntity"), Map.of("name", column("name"))),
+                "p", filtered("Person", "id", Map.of("schema", "Person"), Map.of("name", column("name"))))), "");
+
+        builder.statements(multi(Map.of(
+                "id", List.of("e1"), "schema", List.of("LegalEntity", "Person"), "name", List.of("Jane"))));
+
+        assertThat(builder.skipped().get(ENTITY_UNIDENTIFIED)).isEqualTo(0L);
     }
 
     @Test
@@ -1179,15 +1226,14 @@ public class StatementBuilderTest {
     }
 
     @Test
-    public void test_a_filter_value_matching_no_row_fails_at_end_of_run() {
+    public void test_a_filter_value_matching_no_row_does_not_fail_the_run() {
         StatementBuilder builder = new StatementBuilder(mapping(Map.of(
                 "person", filtered("Person", "id", Map.of("schema", "Persn"), Map.of("name", column("name"))))), "");
 
         builder.statements(row(Map.of("id", "e1", "schema", "Person", "name", "Jane")));
 
-        InvalidExtractionMapping refusal =
-                assertThrows(InvalidExtractionMapping.class, builder::requireEveryColumnSeen);
-        assertThat(refusal.getMessage()).contains("person");
+        builder.requireEveryColumnSeen();
+        assertThat(builder.unmatchedFilters()).containsOnly("person");
     }
 
     @Test
