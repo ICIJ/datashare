@@ -8,7 +8,7 @@ import java.time.Duration;
  * @param maxAttempts attempts before the activity fails, 0 for unbounded
  */
 public record StageActivityOptions(Duration startToCloseTimeout, int maxAttempts) {
-    public static final StageActivityOptions DEFAULT = new StageActivityOptions(Duration.ofMinutes(1), 0);
+    public static final StageActivityOptions DEFAULT = new StageActivityOptions(Duration.ofDays(1), 0);
 
     public StageActivityOptions {
         if (startToCloseTimeout == null || startToCloseTimeout.isZero() || startToCloseTimeout.isNegative()) {
