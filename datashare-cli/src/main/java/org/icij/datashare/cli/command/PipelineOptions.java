@@ -68,9 +68,8 @@ public class PipelineOptions {
     @Option(names = {"--ocrStrategy"},
             description = "PDF OCR strategy: NO_OCR (default), AUTO, OCR_AND_TEXT_EXTRACTION, OCR_ONLY. Rendering strategies OCR whole pages for scanned/MRC PDFs; only applies when OCR is enabled.")
     OcrStrategy ocrStrategy;
-    // Nullable, no defaultValue, explicit true/false: same reasons as --artifactsForce.
-    @Option(names = {"--qrCodes"}, arity = "1",
-            description = "Decode QR codes, Data Matrix, Aztec and PDF417 codes in images and add their values to the document text. Off by default. Images inside PDFs are read even with OCR off.")
+    // No defaultValue: it would clobber a qrCodes=true set in the settings file (see --artifactsForce).
+    @Option(names = {"--qrCodes"}, arity = "1", description = QR_CODES_DESC)
     Boolean qrCodes;
     // The same default as the legacy CLI (the number of processors): a stage without it would run one worker. It is
     // computed at run time, so it is the initial value of the field, not a (constant) defaultValue.
