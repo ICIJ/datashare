@@ -11,12 +11,13 @@ import static java.util.stream.Collectors.toCollection;
 public enum Stage {
     SCAN(true, Payload.NONE), SCANIDX(false, Payload.NONE), SCANQUERY(false, Payload.NONE),
     DEDUPLICATE(false, Payload.PATH), INDEX(true, Payload.PATH), ENQUEUEIDX(false, Payload.NONE),
-    CATEGORIZE(false, Payload.ID), NLP(true, Payload.ID), CREATENLPBATCHESFROMIDX(false, Payload.NONE),
-    BATCHNLP(false, Payload.NONE), ARTIFACT(false, Payload.ID), LANGUAGE(false, Payload.ID),
-    ENTITIES(false, Payload.NONE);
+    CATEGORIZE(false, Payload.ID), NLP(true, Payload.ID), CREATENLPBATCHESFROMIDX(false, Payload.NONE, true),
+    BATCHNLP(false, Payload.NONE, true), ARTIFACT(false, Payload.ID), LANGUAGE(false, Payload.ID),
+    ENTITIES(false, Payload.NONE, true);
     public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
     private final boolean isMainStage;
     private final Payload consumed;
+    private final boolean runOnce;
 
     /** What a stage's task takes off the queue named after it. NONE for a stage reading the
      *  filesystem or the index, so enqueuing for it strands everything it is handed. */
@@ -25,8 +26,21 @@ public enum Stage {
     }
 
     Stage(boolean isMain, Payload consumed) {
+        this(isMain, consumed, false);
+    }
+
+    /**
+     * @param runOnce a stage that is one unit of work run as a task of its own, with its own result: it neither drains
+     *                a queue nor emits to a next stage, so it has no stage processor and the executors run it as a task
+     */
+    Stage(boolean isMain, Payload consumed, boolean runOnce) {
         isMainStage = isMain;
         this.consumed = consumed;
+        this.runOnce = runOnce;
+    }
+
+    public boolean runsOnce() {
+        return runOnce;
     }
 
     public static Set<Stage> consuming(Payload payload) {
