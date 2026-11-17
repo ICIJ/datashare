@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.Codec;
 
 import org.mockito.ArgumentCaptor;
 
@@ -21,7 +22,7 @@ public class PolicyWatcherTest {
     public void setUp() {
         RedissonClient redisson = mock(RedissonClient.class);
         topic = mock(RTopic.class);
-        when(redisson.getTopic("datashare:policy-updated")).thenReturn(topic);
+        when(redisson.getTopic(eq("datashare:policy-updated"), any(Codec.class))).thenReturn(topic);
         watcher = new PolicyWatcher(redisson);
     }
 

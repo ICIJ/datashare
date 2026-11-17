@@ -9,6 +9,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -80,5 +81,15 @@ public class AuthorizerRedisSyncIntTest {
         assertThat(selfCallCount.get())
                 .as("instance1 watcher must not be triggered by its own publish")
                 .isEqualTo(0);
+    }
+
+    @Test(timeout = 10000)
+    public void test_watcher_receives_json_policy_update() throws Exception {
+        CountDownLatch received = new CountDownLatch(1);
+        watcher1.setUpdateCallback(received::countDown);
+        String payload = "{\"callerId\":\"other-node\",\"message\":\"reload\"}";
+        client2.getTopic("datashare:policy-updated", StringCodec.INSTANCE).publish(payload);
+        boolean notified = received.await(5, TimeUnit.SECONDS);
+        assertThat(notified).isTrue();
     }
 }
