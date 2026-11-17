@@ -121,4 +121,15 @@ public class ElasticsearchConfigurationTest {
         assertThat(body.get("settings").isObject()).isTrue();
         assertThat(body.get("mappings").isObject()).isTrue();
     }
+
+    @Test
+    public void test_create_index_body_maps_qr_codes_as_text_with_a_keyword_subfield() throws Exception {
+        String settingsResource = IS_OS_WINDOWS ? SETTINGS_RESOURCE_NAME_WINDOWS : SETTINGS_RESOURCE_NAME;
+        String body = ElasticsearchConfiguration.createIndexBody(MAPPING_RESOURCE_NAME, settingsResource);
+        JsonNode json = JsonObjectMapper.getMapper().readTree(body);
+
+        JsonNode qrCodes = json.at("/mappings/properties/metadata/properties/tika_metadata_qr_codes");
+        assertThat(qrCodes.at("/type").asText()).isEqualTo("text");
+        assertThat(qrCodes.at("/fields/keyword/type").asText()).isEqualTo("keyword");
+    }
 }
