@@ -16,6 +16,7 @@ import org.icij.datashare.asynctasks.StageActivityOptions;
 import org.icij.datashare.asynctasks.StageContext;
 import org.icij.datashare.asynctasks.StageProcessor;
 import org.icij.datashare.asynctasks.StageRegistry;
+import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.asynctasks.pipeline.PipelineWorkflowImpl;
 import org.icij.datashare.asynctasks.temporal.TemporalRule;
@@ -31,6 +32,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import static org.mockito.Mockito.mock;
 import org.junit.rules.TemporaryFolder;
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -53,7 +55,8 @@ public class TemporalPipelineExecutorIntTest {
         boolean completed;
         try (Closeable ignored = new TemporalWorkers(temporal.interlocutor()).start(registry, List.of(queue),
                                                                                     new TemporalWorkerOptions(1))) {
-            completed = new TemporalPipelineExecutor(temporal.interlocutor(), propertiesProvider, stages).run(
+            completed = new TemporalPipelineExecutor(temporal.interlocutor(), propertiesProvider, stages,
+                                         mock(TaskManager.class)).run(
                     List.of(Stage.SCAN, Stage.INDEX),
                     Map.of("defaultProject", es.getIndexName(), "dataDir", tmp.getRoot().getPath()));
         }
@@ -91,7 +94,8 @@ public class TemporalPipelineExecutorIntTest {
         boolean completed;
         try (Closeable ignored = new TemporalWorkers(temporal.interlocutor()).start(registry, List.of(queue),
                                                                                     new TemporalWorkerOptions(1))) {
-            completed = new TemporalPipelineExecutor(temporal.interlocutor(), propertiesProvider, stages).run(
+            completed = new TemporalPipelineExecutor(temporal.interlocutor(), propertiesProvider, stages,
+                                         mock(TaskManager.class)).run(
                     List.of(Stage.INDEX), Map.of());
         }
 
