@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import org.icij.datashare.PipelineHelper;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.StageActivityOptions;
 import org.icij.datashare.asynctasks.StageResult;
@@ -54,13 +56,14 @@ public class PipelineWorkflowImpl implements PipelineWorkflow, StageEmitReceiver
     }
 
     private void start(Stage stage, List<?> batch) {
+        PipelineHelper pipelineHelper = new PipelineHelper(stages, new PropertiesProvider(options));
         StageActivity activity = stageActivities.computeIfAbsent(stage,
                                                                  s -> Workflow.newActivityStub(StageActivity.class,
                                                                                                toActivityOptions(
                                                                                                        activityOptions.getOrDefault(
                                                                                                                s,
                                                                                                                StageActivityOptions.DEFAULT))));
-        boolean hasNextStage = stages.indexOf(stage) + 1 < stages.size();
+        boolean hasNextStage = !pipelineHelper.isLastStage(stage);
         pending.add(new Started(stage, Async.function(activity::run, stage, options, batch, hasNextStage)));
     }
 

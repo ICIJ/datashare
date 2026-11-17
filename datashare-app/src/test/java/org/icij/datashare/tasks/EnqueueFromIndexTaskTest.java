@@ -39,7 +39,7 @@ public class EnqueueFromIndexTaskTest {
         }
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
@@ -54,7 +54,7 @@ public class EnqueueFromIndexTaskTest {
                 .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build()); // because default is CORENLP so it should fail as of now
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "queueName", "test:queue",
                 "searchQuery", """
                         {
@@ -76,7 +76,7 @@ public class EnqueueFromIndexTaskTest {
                 .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build()); // because default is CORENLP so it should fail as of now
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "queueName", "test:queue",
                 "searchQuery", "extractionLevel:0");
 
@@ -112,7 +112,7 @@ public class EnqueueFromIndexTaskTest {
         }
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "nextStage", "ARTIFACT",
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name());
@@ -238,7 +238,7 @@ public class EnqueueFromIndexTaskTest {
         indexer.add(es.getIndexName(), embedded);
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();

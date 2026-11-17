@@ -189,7 +189,7 @@ public class CategorizeTaskIntTest {
 
         Map<String, Object> args = Map.of(
                 DEFAULT_PROJECT_OPT, es.getIndexName(),
-                "stages", "ENQUEUEIDX,CATEGORIZE");
+                "stages", "ENQUEUEIDX,CATEGORIZE,NLP");
 
         // WHEN
         new EnqueueFromIndexTask(documentCollectionFactory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
