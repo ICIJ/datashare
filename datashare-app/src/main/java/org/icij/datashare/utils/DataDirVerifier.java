@@ -1,6 +1,7 @@
 package org.icij.datashare.utils;
 
 import org.icij.datashare.PropertiesProvider;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
@@ -22,6 +23,23 @@ public class DataDirVerifier {
     }
 
     public boolean allowed(Path path) {
-        return path.toAbsolutePath().normalize().startsWith(this.path().toAbsolutePath().normalize());
+        return real(path).startsWith(real(this.path()));
+    }
+
+    // Links are resolved on the longest part of the path that exists, so a path that is not created yet can
+    // still be checked. The rest is appended and normalized.
+    private static Path real(Path path) {
+        Path absolute = path.toAbsolutePath();
+        for (Path existing = absolute; existing != null; existing = existing.getParent()) {
+            try {
+                Path real = existing.toRealPath();
+                int count = existing.getNameCount();
+                return count == absolute.getNameCount() ? real :
+                       real.resolve(absolute.subpath(count, absolute.getNameCount())).normalize();
+            } catch (IOException notThere) {
+                // try the parent
+            }
+        }
+        return absolute.normalize();
     }
 }
