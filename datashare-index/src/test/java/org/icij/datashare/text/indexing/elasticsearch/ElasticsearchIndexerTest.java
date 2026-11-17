@@ -1036,7 +1036,7 @@ public class ElasticsearchIndexerTest {
             Request request = new Request("GET", "/" + index + "/_mapping");
             String mapping = EntityUtils.toString(restClient.performRequest(request).getEntity());
 
-            assertThat(mapping).contains("\"tika_metadata_qr_codes\":{\"type\":\"keyword\"}");
+            assertThat(mapping).contains("\"tika_metadata_qr_codes\":{\"type\":\"keyword\",\"ignore_above\":8191}");
         } finally {
             es.delete(index);
         }
