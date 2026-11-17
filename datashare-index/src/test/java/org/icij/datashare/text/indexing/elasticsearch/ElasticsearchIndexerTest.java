@@ -1028,6 +1028,21 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_qr_codes_metadata_is_mapped_as_keyword() throws Exception {
+        String index = ElasticsearchRule.generateIndexName();
+        indexer.createIndex(index);
+        try {
+            RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+            Request request = new Request("GET", "/" + index + "/_mapping");
+            String mapping = EntityUtils.toString(restClient.performRequest(request).getEntity());
+
+            assertThat(mapping).contains("\"tika_metadata_qr_codes\":{\"type\":\"keyword\"}");
+        } finally {
+            es.delete(index);
+        }
+    }
+
+    @Test
     public void test_create_entities_index_twice_is_a_no_op() throws Exception {
         assertThat(indexer.createEntitiesIndex("prj-entities")).isTrue();
 
