@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,16 +44,23 @@ public class TaskWorkerLoopTest {
     }
 
     @Test(timeout = 2000)
-    public void test_unknown_task() throws Exception {
+    public void test_unknown_task_fails_at_once_without_requeue() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
         Task<Serializable> taskView = new Task<>("unknown_task", User.local(), Map.of());
 
-        try {
-            app.handle(taskView);
-            fail("NackException should be raised");
-        } catch (NackException ne) {
-            assertThat(ne.requeue).isTrue();
-        }
+        app.handle(taskView);
+
+        Mockito.verify(supplier).error(eq(taskView.id), ArgumentMatchers.any(TaskError.class));
+    }
+
+    @Test(timeout = 2000)
+    public void test_class_that_the_factory_does_not_build_fails_at_once_without_requeue() throws Exception {
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
+        Task<Serializable> taskView = new Task<>(String.class.getName(), User.local(), Map.of());
+
+        app.handle(taskView);
+
+        Mockito.verify(supplier).error(eq(taskView.id), ArgumentMatchers.any(TaskError.class));
     }
 
     @Test(timeout = 2000)

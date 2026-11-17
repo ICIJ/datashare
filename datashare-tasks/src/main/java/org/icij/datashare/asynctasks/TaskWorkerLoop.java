@@ -140,8 +140,12 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 if (currentTask.get() != null && !currentTask.get().isNull()) {
                     taskSupplier.error(currentTask.get().id, new TaskError(ex));
                 }
-            } catch (ReflectiveOperationException unknownTask) {
-                throw new NackException(unknownTask, true);
+            } catch (ClassNotFoundException | NoSuchMethodException unknownTask) {
+                // no worker of this kind can ever build it: fail it at once instead of asking for a redelivery
+                logger.error("unknown task {}", currentTask.get(), unknownTask);
+                taskSupplier.error(currentTask.get().id, new TaskError(unknownTask));
+            } catch (ReflectiveOperationException taskCreationFailed) {
+                throw new NackException(taskCreationFailed, true);
             } catch (Error | Exception ex) {
                 throw new NackException(ex, false);
             } finally {
