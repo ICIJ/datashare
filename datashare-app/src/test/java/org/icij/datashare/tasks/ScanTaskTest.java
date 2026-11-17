@@ -26,9 +26,8 @@ public class ScanTaskTest extends TestCase {
     }
 
     public void test_scan_with_queue_name() throws Exception {
-        assertThat(new ScanTask(documentCollectionFactory, new PropertiesProvider(Map.of(DATA_DIR_OPT, DOCS.toString())),
-                new Task<>("org.icij.datashare.tasks.ScanTask", User.local(),
-                Map.of(DATA_DIR_OPT, DOCS.toString(), QUEUE_NAME_OPT, "foo")), null).call()).isEqualTo(3);
+        assertThat(scanTask(Map.of(DATA_DIR_OPT, DOCS.toString()),
+                Map.of(DATA_DIR_OPT, DOCS.toString(), QUEUE_NAME_OPT, "foo")).call()).isEqualTo(3);
         DocumentQueue<Path> queue = documentCollectionFactory.createQueue("foo:index", Path.class);
         assertThat(queue.size()).isEqualTo(3);
     }
@@ -54,15 +53,16 @@ public class ScanTaskTest extends TestCase {
     }
 
     public void test_scan_refuses_a_task_without_data_dir_when_called_not_when_built() throws Exception {
-        ScanTask task = new ScanTask(documentCollectionFactory,
-                new PropertiesProvider(Map.of(DATA_DIR_OPT, DOCS.toString())),
-                new Task<>("org.icij.datashare.tasks.ScanTask", User.local(), Map.of()), null);
-        assertRefused(task);
+        assertRefused(scanTask(Map.of(DATA_DIR_OPT, DOCS.toString()), Map.of()));
     }
 
     private ScanTask scanTask(Map<String, Object> serverProperties, String dataDirArg) {
+        return scanTask(serverProperties, Map.of(DATA_DIR_OPT, dataDirArg));
+    }
+
+    private ScanTask scanTask(Map<String, Object> serverProperties, Map<String, Object> taskArgs) {
         return new ScanTask(documentCollectionFactory, new PropertiesProvider(serverProperties),
-                new Task<>("org.icij.datashare.tasks.ScanTask", User.local(), Map.of(DATA_DIR_OPT, dataDirArg)), null);
+                new Task<>("org.icij.datashare.tasks.ScanTask", User.local(), taskArgs), null);
     }
 
     private void assertRefused(ScanTask task) throws Exception {

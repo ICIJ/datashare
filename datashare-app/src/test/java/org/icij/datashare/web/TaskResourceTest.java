@@ -1147,13 +1147,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_create_task_without_name_returns_400_in_server_mode() throws Exception {
-        configureServerMode();
-        String body = taskJson("no_name_id", "placeholder", Map.of("key", "val"))
-                .replace("\"name\":\"placeholder\"", "\"name\":null");
-        assertThat(body).contains("\"name\":null");
-        put("/api/task/no_name_id", body)
-                .withPreemptiveAuthentication("local", "pass").should().respond(400);
+    public void test_create_task_without_name_returns_400() throws Exception {
+        Map<String, Object> body =
+                new HashMap<>(JsonObjectMapper.deserialize(taskJson("no_name_id", "placeholder", Map.of("key", "val"))));
+        body.remove("name");
+        put("/api/task/no_name_id", JsonObjectMapper.serialize(body)).should().respond(400)
+                .contain("body should contain a task name");
         assertThat(taskManager.getTasks().toList()).isEmpty();
     }
 
