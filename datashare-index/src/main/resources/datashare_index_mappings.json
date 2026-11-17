@@ -23,8 +23,14 @@
           "enabled": false
         },
         "tika_metadata_qr_codes": {
-          "type": "keyword",
-          "ignore_above": 8191
+          "type": "text",
+          "analyzer": "folding",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 8191
+            }
+          }
         },
         "tika_metadata_resourcename": {
           "type": "text",
