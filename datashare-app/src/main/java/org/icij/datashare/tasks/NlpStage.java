@@ -92,7 +92,7 @@ public class NlpStage implements StageProcessor<String, Void> {
                 }
             } catch (InterruptedException e) {
                 return new StageResult(nbProcessedDocs, 0, docRefs.size() - nbProcessedDocs - 1, 1);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 logger.error("cannot extract entities of doc {}", docRef, e);
             }
         }
