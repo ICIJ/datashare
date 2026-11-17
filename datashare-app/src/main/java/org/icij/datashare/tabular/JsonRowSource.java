@@ -11,8 +11,10 @@ import org.icij.datashare.json.JsonObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +31,8 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
  *
  * A record carries its own column names, so the header rules the other readers share do not reach
  * here: a blank key becomes a column named "", keys are not stripped, a duplicate key is
- * last-write-wins, and {@code {"addr.city":"X","addr":{"city":"Y"}}} collides silently.
+ * last-write-wins, and {@code {"addr.city":"X","addr":{"city":"Y"}}} collides silently. An array of
+ * scalars fills its column with all its members, a null among them being no value at all.
  */
 public class JsonRowSource implements RowSource {
     /** Tika 3.3.0 has no mimetype for jsonl or ndjson, so this is the de facto type, used only as
@@ -67,7 +70,7 @@ public class JsonRowSource implements RowSource {
             if (first == JsonToken.START_ARRAY && parser.nextToken() == JsonToken.END_ARRAY) {
                 refuseTrailingContent(parser);
                 close(parser);
-                return new Rows(null, Stream.empty());
+                return new Rows(null, null, Stream.empty());
             }
             records = mapper.readerFor(JsonNode.class).readValues(parser);
         } catch (IOException | RuntimeException failure) {
@@ -111,36 +114,53 @@ public class JsonRowSource implements RowSource {
                     throw new IllegalArgumentException(
                             "row " + number + " is not a json object but a " + record.getNodeType());
                 }
-                Map<String, String> values = new LinkedHashMap<>();
-                try {
-                    flatten("", record, values);
-                } catch (IllegalArgumentException notTabular) {
-                    throw new IllegalArgumentException("row " + number + ": " + notTabular.getMessage(), notTabular);
-                }
+                Map<String, List<String>> values = new LinkedHashMap<>();
+                flatten("", record, values);
                 return new Row(number, Collections.unmodifiableMap(values));
             }
         };
-        return new Rows(null, StreamSupport.stream(
-                                                   Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL), false)
-                                           .onClose(() -> close(parser)));
+        Spliterator<Row> ordered = Spliterators.spliteratorUnknownSize(rows, Spliterator.ORDERED | Spliterator.NONNULL);
+        Stream<Row> stream = StreamSupport.stream(ordered, false).onClose(() -> close(parser));
+        return new Rows(null, null, stream);
     }
 
-    // An array is refused rather than joined or skipped: a joined array is a delimited file inside a
-    // cell, whose separator can collide with the data, and a skipped one loses values in silence. If
-    // multi-valued properties turn out to matter, the fix is a multi-value seam in Row.
-    private static void flatten(String prefix, JsonNode node, Map<String, String> values) {
+    // An array's members are the column's values: that is what the ftm dumps this reader exists for
+    // put in every property. An array holding an object or an array has no column name for its
+    // members, so its column is left out of the row: a nested-format dump puts such arrays in fields
+    // a mapping never reads, and a mapping that does read one sees a missing column, counted as one.
+    // A null member is no value at all rather than a blank one, so it does not make a column of one
+    // value read as a column of two, which is the difference between an id and no id.
+    private static void flatten(String prefix, JsonNode node, Map<String, List<String>> values) {
         node.properties().forEach(field -> {
             String column = prefix.isEmpty() ? field.getKey() : prefix + "." + field.getKey();
             JsonNode value = field.getValue();
             if (value.isObject()) {
                 flatten(column, value, values);
-            } else if (value.isArray()) {
-                throw new IllegalArgumentException(
-                        "column " + column + " holds an array, which no table cell can carry");
-            } else {
-                values.put(column, value.isNull() ? "" : value.asText());
+            } else if (!value.isArray()) {
+                values.put(column, List.of(value.isNull() ? "" : value.asText()));
+            } else if (!holdsContainers(value)) {
+                values.put(column, members(value));
             }
         });
+    }
+
+    private static boolean holdsContainers(JsonNode array) {
+        for (JsonNode member : array) {
+            if (member.isContainerNode()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<String> members(JsonNode array) {
+        List<String> members = new ArrayList<>(array.size());
+        for (JsonNode member : array) {
+            if (!member.isNull()) {
+                members.add(member.asText());
+            }
+        }
+        return List.copyOf(members);
     }
 
     private static void refuseTrailingContent(JsonParser parser) {

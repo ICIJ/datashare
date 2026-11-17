@@ -11,6 +11,7 @@ import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.model.EntitiesIndexRebuilder;
+import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.StatementRepository;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingService;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
@@ -100,15 +102,32 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
         StatementBuilder builder;
         try (Rows rows = reader.rows(project, document, mapping.options())) {
             builder = new StatementBuilder(mapping, rows.sheet());
+            // A source declaring its columns up front is checked before anything is read or retracted.
+            // One whose records carry their own names is checked once every row went by, inside the
+            // write transaction, so a typo rolls the retraction back with what the run wrote. A
+            // source with no data row has no column to have seen, so it stays a clean empty run.
+            if (rows.header() != null) {
+                builder.requireColumns(rows.header());
+            }
+            Runnable requireColumnsSeen = () -> {
+                if (rows.header() == null && read.get() > 0) {
+                    builder.requireEveryColumnSeen();
+                }
+            };
+            Stream<Statement> written = rows.rows().flatMap(row -> {
+                throwIfCancelled();
+                read.incrementAndGet();
+                return builder.statements(row).stream();
+            });
             // The builder's sheet, not the reader's: the builder cleans it and every statement's
             // provenance carries the cleaned one, so a retraction keyed on the raw name would name a
             // sheet nothing was written under.
-            replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(),
-                                          rows.rows().flatMap(row -> {
-                                              throwIfCancelled();
-                                              read.incrementAndGet();
-                                              return builder.statements(row).stream();
-                                          }));
+            replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(), written,
+                                          builder.identifiesVerbatim(), requireColumnsSeen);
+        }
+        if (!builder.unmatchedFilters().isEmpty()) {
+            logger.warn("mapping '{}': no row matched the filters of {}, so they hold nothing from this document now",
+                        mappingId, builder.unmatchedFilters());
         }
         updateCallback.apply(0.5);
         // Checked again here because the row lambda is the only other cancellation point, and a

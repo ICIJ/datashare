@@ -75,21 +75,26 @@ public class TikaTableRowSource implements RowSource {
                         "this format is read by table index, not by sheet name: drop the sheet '" + options.sheet() +
                         "' from the mapping and name a table instead");
             }
-            return new Rows(String.valueOf(requireNonNullElse(options.table(), DEFAULT_TABLE)),
-                            read(source, options).stream());
+            Element table = selectTable(tables(source, options), options.table());
+            List<Element> tableRows = tableRows(table);
+            List<String> headers = headers(tableRows);
+            List<Row> rows = read(tableRows, headers);
+            String tableNumber = String.valueOf(requireNonNullElse(options.table(), DEFAULT_TABLE));
+            return new Rows(tableNumber, Row.declared(headers), rows.stream());
         } finally {
             close(source);
         }
     }
 
-    private List<Row> read(InputStream source, RowSourceOptions options) throws IOException {
-        Element table = selectTable(tables(source, options), options.table());
-        List<Element> tableRows = tableRows(table);
+    private static List<String> headers(List<Element> tableRows) {
         if (tableRows.isEmpty()) {
             throw new IllegalArgumentException("no header row: the table is empty");
         }
-        List<String> headers = Row.headers(cells(tableRows.get(0)));
+        List<String> names = cells(tableRows.get(0));
+        return Row.headers(names);
+    }
 
+    private static List<Row> read(List<Element> tableRows, List<String> headers) {
         List<Row> rows = new ArrayList<>();
         long surplus = 0;
         for (int index = 1; index < tableRows.size(); index++) {

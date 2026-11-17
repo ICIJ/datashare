@@ -18,6 +18,15 @@ public class ExtractionMappingReaderTest {
     }
 
     @Test
+    public void test_read_loads_an_id_column_mapping_that_names_no_keys() throws Exception {
+        ExtractionMapping mapping = read(MAPPING.replace("\"keys\": [\"id\"]", "\"idColumn\": \"id\""));
+
+        assertThat(mapping.entities().get("c").idColumn()).isEqualTo("id");
+        assertThat(mapping.entities().get("c").keys()).isEmpty();
+        assertThat(mapping.validate()).isEmpty();
+    }
+
+    @Test
     public void test_read_stamps_the_project_and_owner_its_caller_imposes() throws Exception {
         ExtractionMapping mapping = read(MAPPING.replace("\"projectId\": \"prj\", ", ""), "prj", "alice");
 
@@ -106,6 +115,19 @@ public class ExtractionMappingReaderTest {
     public void test_read_names_the_field_holding_a_null_entity_whose_alias_has_a_space() {
         assertRefused(MAPPING.replaceFirst("\"entities\": \\{.*}", "\"entities\": {\"my company\": null}}"),
                       "field 'entities.my company' holds a null");
+    }
+
+    @Test
+    public void test_read_names_the_filter_holding_a_null() {
+        assertRefused(MAPPING.replace("\"keys\": [\"id\"]", "\"idColumn\": \"id\", \"filters\": {\"schema\": null}"),
+                      "entities.c: field 'filters.schema' holds a null");
+    }
+
+    @Test
+    public void test_read_names_the_filter_holding_a_null_whose_column_has_a_space() {
+        assertRefused(MAPPING.replace("\"keys\": [\"id\"]",
+                                      "\"idColumn\": \"id\", \"filters\": {\"entity type\": null}"),
+                      "entities.c: field 'filters.entity type' holds a null");
     }
 
     @Test

@@ -49,7 +49,8 @@ public class DelimitedRowSource implements RowSource {
                 throw new IllegalArgumentException("no header row: the source is empty");
             }
             List<String> headers = Row.headers(records.next().toList());
-            return new Rows(null, stream(records, headers).onClose(() -> close(parser)));
+            Stream<Row> rows = stream(records, headers).onClose(() -> close(parser));
+            return new Rows(null, Row.declared(headers), rows);
         } catch (RuntimeException failure) {
             closeQuietly(parser);
             throw failure;

@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 import com.zaxxer.hikari.HikariDataSource;
+import org.icij.datashare.model.EntityTypeClash;
 import org.icij.datashare.model.ModelEntity;
 import org.icij.datashare.model.Statement;
 import org.icij.datashare.model.StatementRepository;
@@ -162,7 +163,7 @@ public class JooqStatementRepositoryTest {
                 "ftm", "doc-1", null, RowSourceOptions.defaults(), Map.of("member",
                 new ExtractionMapping.EntityMapping("Person", List.of("passport"), Map.of("name",
                         new ExtractionMapping.PropertyMapping(List.of("full_name"), null, null, null, null)))));
-        Map<String, String> cells = Map.of("passport", "AB123", "full_name", "Jane Doe");
+        Map<String, List<String>> cells = Map.of("passport", List.of("AB123"), "full_name", List.of("Jane Doe"));
         List<Statement> first = new StatementBuilder(mapping, "").statements(new Row(1L, cells));
         List<Statement> second = new StatementBuilder(mapping, "").statements(new Row(1L, cells));
 
@@ -200,9 +201,8 @@ public class JooqStatementRepositoryTest {
 
     @Test
     public void test_two_types_under_one_entity_id_are_refused() {
-        repository.save("prj", "run-1", Stream.of(
-                statement("e-1", "Person", "name", "Ada"),
-                statement("e-1", "LegalEntity", "name", "Ada")));
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+        repository.save("prj", "run-2", Stream.of(statement("e-1", "LegalEntity", "name", "Ada")));
 
         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
                 () -> repository.entity("prj", "e-1"));
@@ -318,6 +318,39 @@ public class JooqStatementRepositoryTest {
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
         assertThat(chunked.entity("prj", "e-1").orElseThrow().properties())
                 .isEqualTo(Map.of("name", List.of("Ada")));
+    }
+
+    @Test
+    public void test_replace_lets_another_document_hold_an_id_under_another_type() {
+        repository.save("prj", "run-1", Stream.of(Statement.of("ftm", "e-1", "Person", "name", "Ada",
+                new Statement.Provenance("doc-2", "", 2, "name"))));
+
+        StatementRepository.Replaced replaced = repository.replace("prj", "run-2", "doc-1", "",
+                Stream.of(statement("e-1", "Company", "name", "ACME")), true, () -> {});
+
+        assertThat(replaced.written()).isEqualTo(1);
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
+    }
+
+    @Test
+    public void test_replace_refuses_one_id_under_two_types_across_rows() {
+        SQLDialect dialect = RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl);
+        JooqStatementRepository chunked = new JooqStatementRepository(dbRule.dataSource, dialect, 1);
+        Stream<Statement> clashing = Stream.of(statement("e-1", "Person", "name", "Ada"),
+                                               statement("e-1", "Company", "name", "ACME"));
+        EntityTypeClash clash = assertThrows(EntityTypeClash.class,
+                () -> chunked.replace("prj", "run-1", "doc-1", "", clashing, true, () -> {}));
+
+        assertThat(clash.entityIds).containsOnly("e-1");
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(0);
+    }
+
+    @Test
+    public void test_one_id_under_one_type_in_two_projects_and_two_models_is_not_a_clash() {
+        repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
+        repository.save("other", "run-1", Stream.of(statement("e-1", "Company", "name", "ACME")));
+
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
     }
 
     @Test

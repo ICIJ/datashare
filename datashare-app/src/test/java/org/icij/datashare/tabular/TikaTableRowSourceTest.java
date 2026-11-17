@@ -57,8 +57,8 @@ public class TikaTableRowSourceTest {
 
         assertThat(rows).hasSize(2);
         assertThat(rows.get(0).number()).isEqualTo(1L);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
-        assertThat(rows.get(1).values().get("id")).isEqualTo("2");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
+        assertThat(rows.get(1).values().get("id")).isEqualTo(List.of("2"));
     }
 
     @Test
@@ -70,7 +70,7 @@ public class TikaTableRowSourceTest {
                         + "</body></html>",
                 RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("id")).isEqualTo("first");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("first"));
     }
 
     @Test
@@ -82,7 +82,7 @@ public class TikaTableRowSourceTest {
                         + "</body></html>",
                 new RowSourceOptions(null, null, null, null, null, 2));
 
-        assertThat(rows.get(0).values().get("id")).isEqualTo("second");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("second"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -112,7 +112,7 @@ public class TikaTableRowSourceTest {
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).values()).hasSize(2);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -129,8 +129,8 @@ public class TikaTableRowSourceTest {
 
         assertThat(rows).hasSize(2);
         assertThat(rows.get(0).values()).hasSize(2);
-        assertThat(rows.get(0).values().get("id")).isEqualTo("1");
-        assertThat(rows.get(1).values().get("name")).isEqualTo("Globex");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("1"));
+        assertThat(rows.get(1).values().get("name")).isEqualTo(List.of("Globex"));
     }
 
     @Test
@@ -165,7 +165,7 @@ public class TikaTableRowSourceTest {
                         + "</body></html>").getBytes(StandardCharsets.UTF_8)),
                 new RowSourceOptions("text/html", null, null, null, null, 2))) {
             assertThat(rows.sheet()).isEqualTo("2");
-            assertThat(rows.rows().toList().get(0).values().get("id")).isEqualTo("second");
+            assertThat(rows.rows().toList().get(0).values().get("id")).isEqualTo(List.of("second"));
         }
     }
 
@@ -186,7 +186,7 @@ public class TikaTableRowSourceTest {
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
 
         assertThat(rows).hasSize(1);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     private static byte[] docxWithTable() throws Exception {
@@ -215,7 +215,7 @@ public class TikaTableRowSourceTest {
                 + "<tr><td>1</td><td>ACME<table><tr><th>inner</th></tr><tr><td>nested</td></tr></table></td></tr>"
                 + "</table></body></html>", RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     /**
@@ -228,7 +228,7 @@ public class TikaTableRowSourceTest {
                 + "<tr><th colspan=\"1\">id</th><th rowspan=\"1\">name</th></tr>"
                 + "<tr><td>1</td><td>ACME</td></tr></table></body></html>", RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     /**
@@ -243,7 +243,7 @@ public class TikaTableRowSourceTest {
                 + "<tr><td>1</td><td colspan=\"2\"></td><td>ACME</td></tr></table></body></html>",
                 RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -264,8 +264,8 @@ public class TikaTableRowSourceTest {
                 + "<tfoot><tr><td>total</td></tr></tfoot>"
                 + "<tbody><tr><td>b1</td></tr></tbody></table></body></html>", RowSourceOptions.defaults());
 
-        assertThat(rows.get(0).values().get("id")).isEqualTo("b1");
-        assertThat(rows.get(1).values().get("id")).isEqualTo("total");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("b1"));
+        assertThat(rows.get(1).values().get("id")).isEqualTo(List.of("total"));
     }
 
     @Test
@@ -280,6 +280,6 @@ public class TikaTableRowSourceTest {
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).number()).isEqualTo(1L);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 }
