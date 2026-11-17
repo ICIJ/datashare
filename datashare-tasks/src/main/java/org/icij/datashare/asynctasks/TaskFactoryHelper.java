@@ -14,6 +14,10 @@ public class TaskFactoryHelper {
         // be to use a registry
         Method method =
                 factory.getClass().getMethod(format("create%s", taskClass.getSimpleName()), Task.class, Function.class);
+        // the method is found by simple name only: refuse a class of another package that shares that name
+        if (!method.getReturnType().isAssignableFrom(taskClass)) {
+            throw new NoSuchMethodException(format("%s does not create %s", method.getName(), name));
+        }
         taskFn = (Callable<?>) method.invoke(factory, taskView, progress);
 
         if (taskFn == null) {
