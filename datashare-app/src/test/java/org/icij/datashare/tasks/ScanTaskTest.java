@@ -53,6 +53,13 @@ public class ScanTaskTest extends TestCase {
         assertRefused(scanTask(Map.of(), DOCS.toString()));
     }
 
+    public void test_scan_refuses_a_task_without_data_dir_when_called_not_when_built() throws Exception {
+        ScanTask task = new ScanTask(documentCollectionFactory,
+                new PropertiesProvider(Map.of(DATA_DIR_OPT, DOCS.toString())),
+                new Task<>("org.icij.datashare.tasks.ScanTask", User.local(), Map.of()), null);
+        assertRefused(task);
+    }
+
     private ScanTask scanTask(Map<String, Object> serverProperties, String dataDirArg) {
         return new ScanTask(documentCollectionFactory, new PropertiesProvider(serverProperties),
                 new Task<>("org.icij.datashare.tasks.ScanTask", User.local(), Map.of(DATA_DIR_OPT, dataDirArg)), null);
@@ -63,7 +70,7 @@ public class ScanTaskTest extends TestCase {
             task.call();
             fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException expected) {
-            assertThat(expected.getMessage()).contains("dataDir must be inside");
+            assertThat(expected.getMessage()).contains("dataDir must be");
         }
         assertThat(documentCollectionFactory.createQueue("extract:queue:index", Path.class).size()).isEqualTo(0);
     }

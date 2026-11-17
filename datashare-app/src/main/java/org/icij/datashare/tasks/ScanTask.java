@@ -25,7 +25,7 @@ import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 @TaskGroup(TaskGroupType.Java)
 public class ScanTask extends PipelineTask<Path> {
     private final Scanner scanner;
-    private final Path path;
+    private final Object dataDirArg;
     private final DataDirVerifier dataDirVerifier;
 
     @Inject
@@ -33,13 +33,17 @@ public class ScanTask extends PipelineTask<Path> {
                     @Assisted Task<Long> task, @Assisted Function<Double, Void> updateCallback) {
         super(Stage.SCAN, task.getUser(), factory, new PropertiesProvider(task.args), Path.class);
         scanner = new Scanner(outputQueue).configure(options().createFrom(Options.from(task.args)));
-        path = Paths.get((String) task.args.get(DATA_DIR_OPT));
+        dataDirArg = task.args.get(DATA_DIR_OPT);
         dataDirVerifier = new DataDirVerifier(serverProperties);
     }
 
     @Override
     public Long call() throws Exception {
         // checked here and not in the constructor: a throw from a reflectively constructed task is requeued forever
+        if (!(dataDirArg instanceof String dataDir)) {
+            throw new IllegalArgumentException("dataDir must be a path");
+        }
+        Path path = Paths.get(dataDir);
         if (!dataDirVerifier.allowed(path)) {
             throw new IllegalArgumentException("dataDir must be inside " + dataDirVerifier.value());
         }
