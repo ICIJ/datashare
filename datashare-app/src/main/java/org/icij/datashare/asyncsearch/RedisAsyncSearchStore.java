@@ -1,8 +1,8 @@
 package org.icij.datashare.asyncsearch;
 
+import org.icij.datashare.asynctasks.TaskManagerRedis;
 import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
-import org.redisson.codec.JsonJacksonCodec;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -18,7 +18,8 @@ public class RedisAsyncSearchStore implements AsyncSearchStore {
 
     public RedisAsyncSearchStore(RedissonClient redissonClient) {
         java.util.Objects.requireNonNull(redissonClient, "redissonClient must not be null");
-        this.map = redissonClient.getMapCache(MAP_NAME, new JsonJacksonCodec());
+        TaskManagerRedis.RedisCodec<AsyncSearchOwner> codec = new TaskManagerRedis.RedisCodec<>(AsyncSearchOwner.class);
+        this.map = redissonClient.getMapCache(MAP_NAME, codec);
     }
 
     @Override

@@ -6,6 +6,7 @@ import org.icij.task.Options;
 import org.junit.After;
 import org.junit.Test;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 
 import java.time.Duration;
 import java.util.List;
@@ -56,12 +57,21 @@ public class RedisAsyncSearchStoreTest {
         assertThat(store.get("id-redis-4").isPresent()).isTrue();
     }
 
+    @Test
+    public void test_stored_value_is_plain_json_without_class_names() {
+        store.put("id-redis-json", owner, Duration.ofMinutes(5));
+        String raw = (String) client.getMapCache("datashare:async-search", StringCodec.INSTANCE).get("id-redis-json");
+        assertThat(raw).contains("\"userId\":\"alice\"");
+        assertThat(raw).excludes("@class");
+    }
+
     @After
     public void tearDown() {
         store.remove("id-redis-1");
         store.remove("id-redis-2");
         store.remove("id-redis-3");
         store.remove("id-redis-4");
+        store.remove("id-redis-json");
         client.shutdown();
     }
 }
