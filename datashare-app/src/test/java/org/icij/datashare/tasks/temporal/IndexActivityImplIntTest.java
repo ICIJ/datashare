@@ -63,6 +63,30 @@ public class IndexActivityImplIntTest {
         assertThat(((Document)doc.get()).getContent()).isEqualTo("this is the content of downloadDoc");
     }
 
+    @Test
+    public void test_scan_honors_the_scan_options() throws Exception {
+        PropertiesProvider propertiesProvider = new PropertiesProvider();
+        WorkflowRegistry registry = new WorkflowRegistry();
+        registry.registerWorkflow(IndexationWorkflowImpl.class, WORKFLOWS_DEFAULT);
+        PropertiesProvider serverProperties = new PropertiesProvider(Map.of("dataDir", tmp.getRoot().toString()));
+        registry.registerActivity(new ScanActivityImpl(temporal.interlocutor(), serverProperties), WORKFLOWS_DEFAULT);
+        registry.registerActivity(new IndexActivityImpl(
+                new ElasticsearchIndexer(es.client, propertiesProvider), text -> Language.ENGLISH), WORKFLOWS_DEFAULT);
+
+        Long scanned;
+        try (Closeable ignored = new TemporalWorkers(temporal.interlocutor()).start(registry, List.of(WORKFLOWS_DEFAULT),
+                                                       new TemporalWorkerOptions(1))) {
+            scanned = temporal.interlocutor().newWorkflowStub(IndexationWorkflow.class,
+                                                 WorkflowOptions.newBuilder().setTaskQueue(WORKFLOWS_DEFAULT)
+                                                                .setWorkflowId(es.getIndexName() + "-excluded").build())
+                    .run(ScanOptions.builder().excludePattern("**").build(), tmp.getRoot().toPath(), es.getIndexName(),
+                         IndexOptions.fromPropertiesProvider(propertiesProvider),
+                         propertiesProvider.toRecord(ArtifactOptions.class));
+        }
+
+        assertThat(scanned).isEqualTo(0L);
+    }
+
     @Before
     public void setUp() throws Exception {
         FileUtils.copyDirectory(Paths.get(getClass().getResource("/data").toURI()).toFile(), tmp.getRoot());

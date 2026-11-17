@@ -37,7 +37,7 @@ public class ScanActivityImpl implements ScanActivity {
         PathBatchReceiver self = temporal.newWorkflowStub(PathBatchReceiver.class, workflowId);
 
         PathGrouper grouper = new PathGrouper(BATCH_SIZE, self);
-        Scanner scanner = new Scanner(ScanOptions.defaultValues(), grouper);
+        Scanner scanner = new Scanner(options, grouper);
         Long total = scanner.scan(path);
         grouper.purge(); // flush the trailing batch, smaller than groupSize, that scan() never triggered
         return total;
