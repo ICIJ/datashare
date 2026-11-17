@@ -24,6 +24,7 @@ A journalist should be able to:
 - QR codes on PDF pages rendered for OCR (`--ocrStrategy` `AUTO`, `OCR_AND_TEXT_EXTRACTION` or `OCR_ONLY`). Those strategies render whole pages and turn off inline image extraction (`Extractor.java:647`), so no image document exists to decode. Follow-up if needed.
 - Any client (UI) change, and any ES mapping change beyond the one field below.
 - WebP images (Claude's call): Java's `ImageIO` has no WebP reader, and adding one registers it JVM-wide, changing indexing for projects with the option off.
+- Placing the `QR code:` line at the code's position within an image's OCR text (via hOCR line boxes). Considered and deferred by Pierre: it moves decoding inside the OCR parser, forces hOCR, and shifts stored page offsets. Follow-up if users ask.
 - Parsing or following the decoded values (no URL fetching, no vCard/Wi-Fi parsing).
 
 ## Anti-goals
