@@ -98,4 +98,18 @@ public class DataDirVerifierTest {
         assertTrue(dataDirVerifier.allowed(link.resolve("not-created-yet")));
         assertTrue(dataDirVerifier.allowed(real.resolve("project")));
     }
+
+    @Test
+    public void test_check_passes_inside_the_data_dir() {
+        when(propertiesProvider.get("dataDir")).thenReturn(Optional.of("/path/to/data"));
+        dataDirVerifier.check(Paths.get("/path/to/data/subdirectory"));
+    }
+
+    @Test
+    public void test_check_names_the_path_and_the_data_dir_when_it_refuses() {
+        when(propertiesProvider.get("dataDir")).thenReturn(Optional.of("/path/to/data"));
+        IllegalArgumentException refusal =
+                assertThrows(IllegalArgumentException.class, () -> dataDirVerifier.check(Paths.get("/different/path")));
+        assertEquals("/different/path must be inside the data directory /path/to/data", refusal.getMessage());
+    }
 }

@@ -44,9 +44,8 @@ public class ScanTask extends PipelineTask<Path> {
             throw new IllegalArgumentException("dataDir must be a path");
         }
         Path path = Paths.get(dataDir);
-        if (!dataDirVerifier.allowed(path)) {
-            throw new IllegalArgumentException("dataDir must be inside " + dataDirVerifier.value());
-        }
+        // the worker loop logs this refusal at ERROR; its message names the path and this worker's dataDir
+        dataDirVerifier.check(path);
         super.call();
         ScannerVisitor scannerVisitor = scanner.createScannerVisitor(path);
         return scannerVisitor.call();

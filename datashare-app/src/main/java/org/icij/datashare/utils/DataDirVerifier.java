@@ -26,6 +26,13 @@ public class DataDirVerifier {
         return real(path).startsWith(real(this.path()));
     }
 
+    /** Throws when the path is outside the data directory; the message names both. */
+    public void check(Path path) {
+        if (!allowed(path)) {
+            throw new IllegalArgumentException(path + " must be inside the data directory " + value());
+        }
+    }
+
     // Links are resolved on the longest part of the path that exists, so a path that is not created yet can
     // still be checked. The rest is appended and normalized.
     private static Path real(Path path) {

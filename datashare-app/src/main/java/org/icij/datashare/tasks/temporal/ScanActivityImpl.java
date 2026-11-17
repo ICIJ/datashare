@@ -28,10 +28,12 @@ public class ScanActivityImpl implements ScanActivity {
 
     @Override
     public Long run(final ScanOptions options, final Path path) throws IOException {
-        if (!dataDirVerifier.allowed(path)) {
+        try {
+            dataDirVerifier.check(path);
+        } catch (IllegalArgumentException refusal) {
             // non retryable: Temporal would otherwise retry a refusal that can never succeed
-            throw ApplicationFailure.newNonRetryableFailure("path must be inside " + dataDirVerifier.value(),
-                                                            IllegalArgumentException.class.getName());
+            throw ApplicationFailure.newNonRetryableFailureWithCause(refusal.getMessage(), refusal.getClass().getName(),
+                                                                     refusal);
         }
         String workflowId = Activity.getExecutionContext().getInfo().getWorkflowId();
         PathBatchReceiver self = temporal.newWorkflowStub(PathBatchReceiver.class, workflowId);

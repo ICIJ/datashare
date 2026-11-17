@@ -31,7 +31,7 @@ public class ScanActivityImplTest {
             fail("expected a non retryable ApplicationFailure");
         } catch (ApplicationFailure expected) {
             assertThat(expected.isNonRetryable()).isTrue();
-            assertThat(expected.getMessage()).contains("path must be inside");
+            assertThat(expected.getMessage()).contains("must be inside the data directory /path/to/data");
         }
     }
 }

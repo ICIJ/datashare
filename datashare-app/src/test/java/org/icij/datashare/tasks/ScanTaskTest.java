@@ -70,7 +70,7 @@ public class ScanTaskTest extends TestCase {
             task.call();
             fail("expected IllegalArgumentException");
         } catch (IllegalArgumentException expected) {
-            assertThat(expected.getMessage()).contains("dataDir must be");
+            assertThat(expected.getMessage()).contains("must be");
         }
         assertThat(documentCollectionFactory.createQueue("extract:queue:index", Path.class).size()).isEqualTo(0);
     }
