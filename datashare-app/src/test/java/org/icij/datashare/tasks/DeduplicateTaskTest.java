@@ -26,7 +26,7 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_QUEUE_CAPACITY;
 public class DeduplicateTaskTest {
     private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
     MemoryDocumentCollectionFactory<Path> docCollectionFactory = new MemoryDocumentCollectionFactory<>();
-    Map<String, Object> defaultOpts = Map.of("queueName", "test:queue", "stages", "DEDUPLICATE");
+    Map<String, Object> defaultOpts = Map.of("queueName", "test:queue", "stages", "DEDUPLICATE,INDEX");
     StageRegistry registry = new StageRegistry().register(new DeduplicateStage());
 
     @Test(timeout = 2000)
@@ -65,7 +65,7 @@ public class DeduplicateTaskTest {
         // pre-seed the factory: the task resolves its input queue by name in its constructor
         docCollectionFactory.queues.put("test:queue:deduplicate", queue);
         queue.put(get("/path/to/doc"));
-        Map<String, Object> args = Map.of("queueName", "test:queue", "stages", "DEDUPLICATE",
+        Map<String, Object> args = Map.of("queueName", "test:queue", "stages", "DEDUPLICATE,INDEX",
                 UpstreamGate.UPSTREAM_TASK_ID, scan.id);
         DeduplicateTask task = new DeduplicateTask(docCollectionFactory, registry, new UpstreamGate.Factory(taskRepository),
                 new Task<>(DeduplicateTask.class.getName(), User.local(), args), null);

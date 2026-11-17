@@ -15,7 +15,10 @@ import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.user.UserTask;
 import org.icij.task.DefaultTask;
 import static java.util.Optional.ofNullable;
+import org.icij.datashare.cli.QueueType;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_QUEUE_TYPE;
 import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.QUEUE_TYPE_OPT;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -62,6 +65,7 @@ public class StageTask<I, O> extends DefaultTask<Long> implements UserTask, Canc
     private final Map<String, Object> options = new HashMap<>();
     private final Project project;
     private final DocumentQueue<O> nextStageQueue;
+    private final boolean dropsEmits;
 
     public StageTask(Stage stage, User user, DocumentCollectionFactory<I> factory,
                      PropertiesProvider propertiesProvider, Class<I> clazz, UpstreamGate gate, StageRegistry registry) {
@@ -85,8 +89,20 @@ public class StageTask<I, O> extends DefaultTask<Long> implements UserTask, Canc
         propertiesProvider.getProperties().forEach((key, value) -> options.put(key.toString(), value));
         project = Project.project(propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT));
         String outputQueueName = getOutputQueueName();
-        nextStageQueue = outputFactory == null || outputQueueName == null ? null :
+        dropsEmits = nothingDrainsTheOutput(propertiesProvider, stage);
+        nextStageQueue = outputFactory == null || outputQueueName == null || dropsEmits ? null :
                          outputFactory.createQueue(outputQueueName, outputClass);
+    }
+
+    /**
+     * True when the stage is the last of the run and its output queue is in memory: nothing can ever drain it, so an
+     * emit into it only fills it (a bounded queue then blocks the stage). A Redis or AMQP queue outlives the run and may
+     * be drained by a later one, or on another machine, so it keeps being filled.
+     */
+    private static boolean nothingDrainsTheOutput(PropertiesProvider properties, Stage stage) {
+        QueueType queueType =
+                QueueType.valueOf(properties.get(QUEUE_TYPE_OPT).orElse(DEFAULT_QUEUE_TYPE.name()).toUpperCase());
+        return queueType == QueueType.MEMORY && new PipelineHelper(properties).isLastStage(stage);
     }
 
     @Override
@@ -142,7 +158,7 @@ public class StageTask<I, O> extends DefaultTask<Long> implements UserTask, Canc
             public boolean isCancelled() {return Thread.currentThread().isInterrupted();}
 
             public void emit(List<O> out) {
-                if (out.isEmpty()) {
+                if (out.isEmpty() || dropsEmits) {
                     return;
                 }
                 if (nextStageQueue == null) {
