@@ -202,8 +202,7 @@ public class JooqStatementRepositoryTest {
     @Test
     public void test_two_types_under_one_entity_id_are_refused() {
         repository.save("prj", "run-1", Stream.of(statement("e-1", "Person", "name", "Ada")));
-        assertThrows(EntityTypeClash.class, () -> repository.save("prj", "run-2", Stream.of(
-                statement("e-1", "LegalEntity", "name", "Ada"))));
+        repository.save("prj", "run-2", Stream.of(statement("e-1", "LegalEntity", "name", "Ada")));
 
         IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
                 () -> repository.entity("prj", "e-1"));
@@ -322,22 +321,25 @@ public class JooqStatementRepositoryTest {
     }
 
     @Test
-    public void test_replace_refuses_an_id_another_document_holds_under_another_type() {
+    public void test_replace_lets_another_document_hold_an_id_under_another_type() {
         repository.save("prj", "run-1", Stream.of(Statement.of("ftm", "e-1", "Person", "name", "Ada",
                 new Statement.Provenance("doc-2", "", 2, "name"))));
 
-        EntityTypeClash clash = assertThrows(EntityTypeClash.class, () -> repository.replace("prj", "run-2",
-                "doc-1", "", Stream.of(statement("e-1", "Company", "name", "ACME"))));
+        StatementRepository.Replaced replaced = repository.replace("prj", "run-2", "doc-1", "",
+                Stream.of(statement("e-1", "Company", "name", "ACME")), true, () -> {});
 
-        assertThat(clash.entityIds).containsOnly("e-1");
-        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(1);
+        assertThat(replaced.written()).isEqualTo(1);
+        assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(2);
     }
 
     @Test
     public void test_replace_refuses_one_id_under_two_types_across_rows() {
-        EntityTypeClash clash = assertThrows(EntityTypeClash.class, () -> repository.replace("prj", "run-1",
-                "doc-1", "", Stream.of(statement("e-1", "Person", "name", "Ada"),
-                                       statement("e-1", "Company", "name", "ACME"))));
+        SQLDialect dialect = RepositoryFactoryImpl.guessSqlDialectFrom(dbRule.dataSourceUrl);
+        JooqStatementRepository chunked = new JooqStatementRepository(dbRule.dataSource, dialect, 1);
+        Stream<Statement> clashing = Stream.of(statement("e-1", "Person", "name", "Ada"),
+                                               statement("e-1", "Company", "name", "ACME"));
+        EntityTypeClash clash = assertThrows(EntityTypeClash.class,
+                () -> chunked.replace("prj", "run-1", "doc-1", "", clashing, true, () -> {}));
 
         assertThat(clash.entityIds).containsOnly("e-1");
         assertThat(dbRule.dsl().fetchCount(STATEMENT)).isEqualTo(0);

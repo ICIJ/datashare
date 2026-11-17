@@ -235,9 +235,9 @@ public class StructuredEntityExtractionTaskTest {
         InMemoryStatementRepository cancelling = new InMemoryStatementRepository() {
             @Override
             public Replaced replace(String projectId, String runId, String documentId, String sheet,
-                                    Stream<Statement> rows, Runnable beforeCommit) {
+                                    Stream<Statement> rows, boolean verbatimIds, Runnable beforeCommit) {
                 running.get().cancel(false);
-                return super.replace(projectId, runId, documentId, sheet, rows, beforeCommit);
+                return super.replace(projectId, runId, documentId, sheet, rows, verbatimIds, beforeCommit);
             }
         };
         running.set(task("m1", cancelling));
@@ -258,9 +258,10 @@ public class StructuredEntityExtractionTaskTest {
         InMemoryStatementRepository cancelling = new InMemoryStatementRepository() {
             @Override
             public Replaced replace(String projectId, String runId, String documentId, String sheet,
-                                    Stream<Statement> rows, Runnable beforeCommit) {
+                                    Stream<Statement> rows, boolean verbatimIds, Runnable beforeCommit) {
                 return super.replace(projectId, runId, documentId, sheet,
-                                     rows.peek(statement -> running.get().cancel(false)), beforeCommit);
+                                     rows.peek(statement -> running.get().cancel(false)), verbatimIds,
+                                     beforeCommit);
             }
         };
         cancelling.stored.putAll(before);
@@ -377,9 +378,9 @@ public class StructuredEntityExtractionTaskTest {
         InMemoryStatementRepository watching = new InMemoryStatementRepository() {
             @Override
             public Replaced replace(String projectId, String runId, String documentId, String sheet,
-                                    Stream<Statement> rows, Runnable beforeCommit) {
+                                    Stream<Statement> rows, boolean verbatimIds, Runnable beforeCommit) {
                 replaced.set(true);
-                return super.replace(projectId, runId, documentId, sheet, rows, beforeCommit);
+                return super.replace(projectId, runId, documentId, sheet, rows, verbatimIds, beforeCommit);
             }
         };
 

@@ -123,7 +123,7 @@ public class StructuredEntityExtractionTask extends DefaultTask<StructuredEntity
             // provenance carries the cleaned one, so a retraction keyed on the raw name would name a
             // sheet nothing was written under.
             replaced = statements.replace(projectId, taskView.getId(), mapping.documentId(), builder.sheet(), written,
-                                          requireColumnsSeen);
+                                          builder.identifiesVerbatim(), requireColumnsSeen);
         }
         if (!builder.unmatchedFilters().isEmpty()) {
             logger.warn("mapping '{}': no row matched the filters of {}, so what they wrote before is retracted",

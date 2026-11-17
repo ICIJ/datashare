@@ -66,12 +66,12 @@ public class JooqStatementRepository implements StatementRepository {
 
     @Override
     public int save(String projectId, String runId, Stream<Statement> statements) {
-        return write(create(), new Write(projectId, runId, now()), statements, create -> 0).written();
+        return write(create(), new Write(projectId, runId, now()), statements, create -> 0, false).written();
     }
 
     @Override
     public Replaced replace(String projectId, String runId, String documentId, String sheet,
-                            Stream<Statement> statements, Runnable beforeCommit) {
+                            Stream<Statement> statements, boolean verbatimIds, Runnable beforeCommit) {
         String section = Statement.Provenance.sheetOrEmpty(sheet);
         Write write = new Write(projectId, runId, now());
         Stream<Statement> checked = statements.peek(statement -> requireWrittenBy(statement, documentId, section));
@@ -80,7 +80,7 @@ public class JooqStatementRepository implements StatementRepository {
         // retraction back with what it wrote, so the sheet is either the previous run's or this one's,
         // never half of each.
         return create().transactionResult(configuration -> {
-            Replaced replaced = write(DSL.using(configuration), write, checked, retract);
+            Replaced replaced = write(DSL.using(configuration), write, checked, retract, verbatimIds);
             beforeCommit.run();
             return replaced;
         });
@@ -90,7 +90,7 @@ public class JooqStatementRepository implements StatementRepository {
     // on its first row throws before anything was deleted. A stream that yields nothing retracts on its
     // own, since a mapping that stopped matching has to take what it wrote with it.
     private Replaced write(DSLContext create, Write write, Stream<Statement> statements,
-                           ToIntFunction<DSLContext> retract) {
+                           ToIntFunction<DSLContext> retract, boolean verbatimIds) {
         int retracted = 0;
         int written = 0;
         try (statements) {
@@ -105,7 +105,9 @@ public class JooqStatementRepository implements StatementRepository {
                 pending = false;
                 Replaced round =
                         new Replaced(retracting ? retract.applyAsInt(create) : 0, saveChunk(create, write, chunk));
-                refuseTypeClashes(create, write.projectId(), chunk);
+                if (verbatimIds) {
+                    refuseTypeClashes(create, write, chunk);
+                }
                 retracted += round.retracted();
                 written += round.written();
             }
@@ -117,19 +119,20 @@ public class JooqStatementRepository implements StatementRepository {
     }
 
     // Rebuilding the entities index refuses the whole project over one id under two types, and only
-    // after the write committed, so the write that would create it is refused instead. An id taken
-    // verbatim from a column is the one way in: a hashed id carries its type. The check reads what
-    // the chunk just wrote along with everything already stored, so it sees a clash across rows,
-    // mappings and documents alike, through the (prj_id, entity_id) index.
-    private static void refuseTypeClashes(DSLContext create, String projectId, List<Statement> chunk) {
+    // after the write committed, so a run that would create one on its own is refused instead. An id
+    // taken verbatim from a column is the one way in: a hashed id carries its type. Only this run's
+    // rows are read: a clash with another document has to stay writable, or a type change for an id
+    // several documents hold could never be rolled out, each re-run refused over the others' rows.
+    // That clash is the rebuild's to refuse, until every document holding the id has been re-run.
+    private static void refuseTypeClashes(DSLContext create, Write write, List<Statement> chunk) {
         Set<String> entityIds = chunk.stream().map(Statement::entityId).collect(toCollection(TreeSet::new));
-        List<String> clashing = create.select(STATEMENT.ENTITY_ID).from(STATEMENT).where(STATEMENT.PRJ_ID.eq(projectId))
-                                      .and(STATEMENT.ENTITY_ID.in(entityIds))
-                                      .groupBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL)
-                                      .having(DSL.countDistinct(STATEMENT.ENTITY_TYPE).gt(1))
-                                      .fetch(STATEMENT.ENTITY_ID);
+        List<String> clashing =
+                create.select(STATEMENT.ENTITY_ID).from(STATEMENT).where(STATEMENT.PRJ_ID.eq(write.projectId()))
+                      .and(STATEMENT.ENTITY_ID.in(entityIds)).and(STATEMENT.RUN_ID.eq(write.runId()))
+                      .groupBy(STATEMENT.ENTITY_ID, STATEMENT.MODEL)
+                      .having(DSL.countDistinct(STATEMENT.ENTITY_TYPE).gt(1)).fetch(STATEMENT.ENTITY_ID);
         if (!clashing.isEmpty()) {
-            throw new EntityTypeClash(projectId, clashing);
+            throw new EntityTypeClash(write.projectId(), clashing);
         }
     }
 

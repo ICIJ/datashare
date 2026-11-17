@@ -44,14 +44,16 @@ public interface StatementRepository {
      *  written here are new, so the conditional upsert a plain save leans on cannot spare any. */
     default Replaced replace(String projectId, String runId, String documentId, String sheet,
                              Stream<Statement> statements) {
-        return replace(projectId, runId, documentId, sheet, statements, () -> {});
+        return replace(projectId, runId, documentId, sheet, statements, false, () -> {});
     }
 
     /** {@link #replace(String, String, String, String, Stream)}, running {@code beforeCommit} once
      *  every statement is written and before the transaction commits: a check that throws there
-     *  rolls the retraction back with the whole write. */
+     *  rolls the retraction back with the whole write. {@code verbatimIds} says some entity id was
+     *  read from a column rather than hashed: only such an id can land under two types, so only
+     *  then is one id written under two types by this write refused with {@link EntityTypeClash}. */
     Replaced replace(String projectId, String runId, String documentId, String sheet, Stream<Statement> statements,
-                     Runnable beforeCommit);
+                     boolean verbatimIds, Runnable beforeCommit);
 
     /** The entity a project holds under this id. An id shared by two models yields the first model in
      *  natural order, since an entity belongs to one model, and the entity names the model it came

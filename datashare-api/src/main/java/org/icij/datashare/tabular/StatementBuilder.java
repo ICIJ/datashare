@@ -80,6 +80,11 @@ public class StatementBuilder {
         return sheet;
     }
 
+    /** Whether some entity of the mapping takes its id from a column rather than a hash. */
+    public boolean identifiesVerbatim() {
+        return identifiesVerbatim;
+    }
+
     /** What the run dropped, by reason, every reason present. */
     public Map<Skip, Long> skipped() {
         return Map.copyOf(skipped);
@@ -191,8 +196,8 @@ public class StatementBuilder {
     }
 
     // Only an id read verbatim can land under two types, since every hashed id carries its type. An
-    // entity has one type, so neither side of a clash on one row is written. A clash across rows,
-    // mappings or documents is the store's to refuse, since only the store sees them all.
+    // entity has one type, so neither side of a clash on one row is written. A clash across rows is
+    // the store's to refuse, since only the store sees them all.
     private void refuseTypeClashes(Map<String, String> ids, long rowNumber) {
         Map<String, Set<String>> typesOf = new HashMap<>();
         for (Map.Entry<String, String> identified : ids.entrySet()) {
