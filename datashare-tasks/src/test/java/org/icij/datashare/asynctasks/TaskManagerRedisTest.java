@@ -3,6 +3,10 @@ package org.icij.datashare.asynctasks;
 import java.util.List;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
+import org.icij.datashare.asynctasks.bus.amqp.Event;
+import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.RoutingStrategy;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
@@ -13,6 +17,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -20,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -172,6 +178,32 @@ public class TaskManagerRedisTest {
         redissonClientKO.shutdown();
 
         assertThat(taskManager.getHealth()).isFalse();
+    }
+
+    @Test(timeout = 10000)
+    public void test_manager_receives_json_progress_event() throws Exception {
+        String taskId = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        publishRawJson(new ProgressEvent(taskId, 0.5));
+        assertThat(waitForEvent.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.getTask(taskId).getProgress()).isEqualTo(0.5);
+    }
+
+    @Test(timeout = 10000)
+    public void test_supplier_receives_json_cancel_event() throws Exception {
+        CountDownLatch received = new CountDownLatch(1);
+        AtomicReference<Event> event = new AtomicReference<>();
+        taskSupplier.addEventListener(e -> {
+            event.set(e);
+            received.countDown();
+        });
+        publishRawJson(new CancelEvent("task-id", false));
+        assertThat(received.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(((CancelEvent) event.get()).taskId).isEqualTo("task-id");
+    }
+
+    private void publishRawJson(Event event) throws Exception {
+        String json = JsonObjectMapper.writeValueAsStringTyped(event);
+        redissonClient.getTopic(TaskManagerRedis.EVENT_CHANNEL_NAME, StringCodec.INSTANCE).publish(json);
     }
 
     private void callback() {

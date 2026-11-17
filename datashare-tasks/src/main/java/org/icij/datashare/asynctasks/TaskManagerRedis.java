@@ -8,6 +8,7 @@ import io.netty.buffer.ByteBufOutputStream;
 import java.util.List;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
+import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -60,7 +61,8 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
         this.redissonClient = redissonClient;
         this.routingStrategy = routingStrategy;
         this.tasks = tasks;
-        this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
+        RedisCodec<Event> eventCodec = new RedisCodec<>(Event.class, JsonObjectMapper.getTypedMapper());
+        this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME, eventCodec);
         this.eventCallback = eventCallback;
         this.taskPollingIntervalMs = taskPollingIntervalMs;
         eventTopic.addListener(TaskEvent.class, (channelString, message) -> handleEvent(message));

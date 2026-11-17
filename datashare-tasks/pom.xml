@@ -231,6 +231,7 @@
                             <includes>
                                 <include>JacksonSubTypesTest</include>
                                 <include>TaskManagerAmqpTest</include>
+                                <include>RedisEventCodecTest</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
                             <argLine>-Djava.awt.headless=true
@@ -259,6 +260,7 @@
                             <excludes>
                                 <exclude>JacksonSubTypesTest</exclude>
                                 <exclude>TaskManagerAmqpTest</exclude>
+                                <exclude>RedisEventCodecTest</exclude>
                                 <exclude>**/*IntTest.java</exclude>
                             </excludes>
                             <argLine>-Djava.awt.headless=true

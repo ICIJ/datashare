@@ -319,6 +319,10 @@ public class JsonObjectMapper {
         return MAPPER.writeValueAsString(obj);
     }
 
+    public static ObjectMapper getTypedMapper() {
+        return TYPE_INCLUSION_MAPPER;
+    }
+
     public static String writeValueAsStringTyped(Object obj) throws JsonProcessingException {
         return TYPE_INCLUSION_MAPPER.writeValueAsString(obj);
     }

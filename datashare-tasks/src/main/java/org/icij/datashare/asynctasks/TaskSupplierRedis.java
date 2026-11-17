@@ -7,6 +7,7 @@ import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
@@ -31,7 +32,9 @@ public class TaskSupplierRedis implements TaskSupplier {
     }
 
     public TaskSupplierRedis(RedissonClient redissonClient, String taskQueueKey) {
-        this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
+        TaskManagerRedis.RedisCodec<Event> eventCodec =
+                new TaskManagerRedis.RedisCodec<>(Event.class, JsonObjectMapper.getTypedMapper());
+        this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME, eventCodec);
         this.redissonClient = redissonClient;
         this.taskQueueKey = taskQueueKey;
     }
