@@ -22,14 +22,11 @@ import org.icij.datashare.asyncsearch.AsyncSearchStore;
 import org.icij.datashare.asyncsearch.MemoryAsyncSearchStore;
 import org.icij.datashare.asyncsearch.RedisAsyncSearchStore;
 import org.icij.datashare.asynctasks.*;
+import org.icij.datashare.asynctasks.pipeline.PipelineWorkflowImpl;
 import org.icij.datashare.asynctasks.temporal.TemporalInterlocutor;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkerOptions;
 import org.icij.datashare.asynctasks.temporal.TemporalWorkers;
 import org.icij.datashare.asynctasks.temporal.WorkflowRegistry;
-import org.icij.datashare.tasks.temporal.IndexActivityImpl;
-import org.icij.datashare.tasks.temporal.IndexationWorkflow;
-import org.icij.datashare.tasks.temporal.IndexationWorkflowImpl;
-import org.icij.datashare.tasks.temporal.ScanActivityImpl;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -66,8 +63,25 @@ import org.icij.datashare.session.UsersIdProviderRedisCache;
 import org.icij.datashare.tabular.ExtractionMappingRepository;
 import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
+import org.icij.datashare.asynctasks.PipelineExecutor;
+import org.icij.datashare.asynctasks.StageRegistry;
+import org.icij.datashare.tasks.ArtifactStage;
+import org.icij.extract.extractor.Extractor;
+import org.icij.extract.report.ReportMap;
+import org.icij.datashare.tasks.CategorizeStage;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.RoutingStrategy;
+import org.icij.datashare.tasks.DeduplicateStage;
+import org.icij.datashare.tasks.EnqueueFromIndexStage;
+import org.icij.datashare.tasks.IndexStage;
+import org.icij.datashare.tasks.LanguageStage;
+import org.icij.datashare.tasks.NlpStage;
+import org.icij.datashare.tasks.QueuePipelineExecutor;
+import org.icij.datashare.tasks.TemporalPipelineExecutor;
+import org.icij.datashare.tasks.temporal.StageActivityImpl;
+import org.icij.datashare.tasks.ScanIndexStage;
+import org.icij.datashare.tasks.ScanQueryStage;
+import org.icij.datashare.tasks.ScanStage;
 import org.icij.datashare.tasks.TaskResultSubtypes;
 import org.icij.datashare.tasks.Utils;
 import org.icij.datashare.text.indexing.Indexer;
@@ -102,6 +116,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.function.Function;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -113,7 +128,6 @@ import java.util.concurrent.CountDownLatch;
 import java.io.Serializable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.lang.Integer.parseInt;
@@ -252,6 +266,8 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                 bind(TaskModifier.class).to(TaskManagerMemory.class);
                 bind(TaskSupplier.class).to(TaskManagerMemory.class);
         }
+        bind(PipelineExecutor.class).to(
+                batchQueueType == TEMPORAL ? TemporalPipelineExecutor.class : QueuePipelineExecutor.class);
     }
 
     @Provides
@@ -525,6 +541,29 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
 
     @Provides
     @Singleton
+    StageRegistry provideStageRegistry(Indexer indexer, LanguageGuesser languageGuesser,
+                                       PipelineRegistry pipelineRegistry,
+                                       DocumentCollectionFactory<Path> collectionFactory) {
+        StageRegistry registry = new StageRegistry().register(new LanguageStage(indexer, languageGuesser)).register(
+                                                            new IndexStage(indexer, languageGuesser, Extractor::new,
+                                                                           reportMapFactory(getCurrentBatchQueueType(), collectionFactory)))
+                                                    .register(new ScanStage())
+                                                    .register(new NlpStage(indexer, pipelineRegistry))
+                                                    .register(new CategorizeStage(indexer))
+                                                    .register(new EnqueueFromIndexStage(indexer))
+                                                    .register(new ArtifactStage(indexer))
+                                                    .register(new ScanQueryStage(indexer)).register(
+                        new ScanIndexStage(indexer, collectionFactory::createMap));
+        // queue side only: a context per batch (the Temporal activity) could only deduplicate inside one batch, so a
+        // run that names the stage fails there instead of passing duplicates on in silence
+        if (getCurrentBatchQueueType() != TEMPORAL) {
+            registry.register(new DeduplicateStage());
+        }
+        return registry;
+    }
+
+    @Provides
+    @Singleton
     LanguageGuesser provideLanguageGuesser() {
         return new LinguaLanguageGuesser();
     }
@@ -647,13 +686,9 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                                        activityClass -> WorkflowRegistry.activityFactoryForSingleActivitiesWorkflow(
                                                activityClass, taskFactory, temporal, taskRepository, 1d).getThrows(),
                                        routingStrategy, group);
-            String indexationQueue =
-                    resolveWfTaskQueue(routingStrategy, WorkflowRegistry.buildWorkflowKeyFrom(IndexationWorkflow.class),
-                                       group);
-            registry.registerWorkflow(IndexationWorkflowImpl.class, indexationQueue);
-            registry.registerActivity(new ScanActivityImpl(temporal), indexationQueue);
-            registry.registerActivity(new IndexActivityImpl(get(Indexer.class), get(LanguageGuesser.class)),
-                                      indexationQueue);
+            String pipelineQueue = TemporalPipelineExecutor.taskQueue(propertiesProvider);
+            registry.registerWorkflow(PipelineWorkflowImpl.class, pipelineQueue);
+            registry.registerActivity(new StageActivityImpl(get(StageRegistry.class), temporal), pipelineQueue);
             // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
             addCloseable(new TemporalWorkers(temporal).start(registry, registry.registeredQueues(),
                                                              TemporalWorkerOptions.defaultValues()));
@@ -697,6 +732,11 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
     @NotNull
     public static Mode getMode(Properties properties) {
         return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty(MODE_OPT));
+    }
+
+    static Function<String, ReportMap> reportMapFactory(QueueType batchQueueType,
+                                                        DocumentCollectionFactory<?> collectionFactory) {
+        return batchQueueType == TEMPORAL ? null : collectionFactory::createMap;
     }
 
     public boolean waitForWorkers(long value, TimeUnit timeUnit) throws InterruptedException {

@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -38,11 +39,11 @@ public class EnqueueFromIndexTaskTest {
         }
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)), new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(20);
     }
@@ -53,7 +54,7 @@ public class EnqueueFromIndexTaskTest {
                 .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build()); // because default is CORENLP so it should fail as of now
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "queueName", "test:queue",
                 "searchQuery", """
                         {
@@ -64,7 +65,7 @@ public class EnqueueFromIndexTaskTest {
                         """);
 
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)), new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(1);
     }
@@ -75,12 +76,12 @@ public class EnqueueFromIndexTaskTest {
                 .with(Pipeline.Type.CORENLP).with(project(es.getIndexName())).build()); // because default is CORENLP so it should fail as of now
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "queueName", "test:queue",
                 "searchQuery", "extractionLevel:0");
 
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)), new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(1);
     }
@@ -97,7 +98,7 @@ public class EnqueueFromIndexTaskTest {
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:artifact")).hasSize(5);
@@ -111,12 +112,12 @@ public class EnqueueFromIndexTaskTest {
         }
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "nextStage", "ARTIFACT",
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         // without the override the chain falls back to NLP: docs land on test:queue:nlp and the
@@ -133,7 +134,7 @@ public class EnqueueFromIndexTaskTest {
                 "queueName", "test:queue");
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
         // a constructor throw would become a requeue-forever NackException, so it must not throw here
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         try {
             enqueueFromIndex.call();
@@ -151,7 +152,7 @@ public class EnqueueFromIndexTaskTest {
                 "nextStage", "CREATENLPBATCHESFROMIDX",
                 "queueName", "test:queue");
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         try {
             enqueueFromIndex.call();
@@ -170,7 +171,7 @@ public class EnqueueFromIndexTaskTest {
                 "nextStage", "ARTIFACT",
                 "queueName", "test:queue");
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        new EnqueueFromIndexTask(factory, indexer,
+        new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
         assertThat(factory.queues.keySet()).excludes("test:queue:nlp");
     }
@@ -183,7 +184,7 @@ public class EnqueueFromIndexTaskTest {
                 "nextStage", "INDEX",
                 "queueName", "test:queue");
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         try {
             enqueueFromIndex.call();
@@ -206,7 +207,7 @@ public class EnqueueFromIndexTaskTest {
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, indexer,
+        EnqueueFromIndexTask enqueueFromIndex = new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         enqueueFromIndex.call();
         assertThat(factory.queues.get("test:queue:nlp")).isNullOrEmpty();
@@ -224,7 +225,7 @@ public class EnqueueFromIndexTaskTest {
                 "queueName", "test:queue",
                 "searchQuery", "{\"match_all\":{}}");
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        new EnqueueFromIndexTask(factory, indexer, new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
+        new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)), new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
         assertThat(logWrapper.logs().stream().anyMatch(log -> log.contains("3 documents found"))).isTrue();
     }
 
@@ -237,12 +238,12 @@ public class EnqueueFromIndexTaskTest {
         indexer.add(es.getIndexName(), embedded);
         Map<String, Object> properties = Map.of(
                 "defaultProject", es.getIndexName(),
-                "stages", "ENQUEUEIDX",
+                "stages", "ENQUEUEIDX,NLP",
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
 
-        new EnqueueFromIndexTask(factory, indexer,
+        new EnqueueFromIndexTask(factory, new StageRegistry().register(new EnqueueFromIndexStage(indexer)),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
 
         assertThat(factory.queues.get("test:queue:nlp"))
@@ -259,7 +260,7 @@ public class EnqueueFromIndexTaskTest {
                 "queueName", "test:queue",
                 NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
 
-        new EnqueueFromIndexTask(new MemoryDocumentCollectionFactory<>(), recorder.recording(indexer),
+        new EnqueueFromIndexTask(new MemoryDocumentCollectionFactory<>(), new StageRegistry().register(new EnqueueFromIndexStage(recorder.recording(indexer))),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
 
         recorder.verifyReadsOnlyDocValues("rootDocument");
@@ -275,7 +276,7 @@ public class EnqueueFromIndexTaskTest {
                 "queueName", "test:queue",
                 "searchQuery", "{\"match_all\":{}}");
 
-        new EnqueueFromIndexTask(new MemoryDocumentCollectionFactory<>(), recorder.recording(indexer),
+        new EnqueueFromIndexTask(new MemoryDocumentCollectionFactory<>(), new StageRegistry().register(new EnqueueFromIndexStage(recorder.recording(indexer))),
                 new Task<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null).call();
 
         recorder.verifyReadsOnlyDocValues("rootDocument");

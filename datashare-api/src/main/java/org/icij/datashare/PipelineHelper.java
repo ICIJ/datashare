@@ -42,12 +42,23 @@ public class PipelineHelper {
         }
     }
 
+    public PipelineHelper(List<Stage> stages, PropertiesProvider propertiesProvider) {
+        this.stages = stages;
+        this.propertiesProvider = propertiesProvider;
+    }
+
     public String getQueueNameFor(Stage stage) {
         return stage.isFirstEnum() ? null : getQueueName(propertiesProvider, stage);
     }
 
     public String getOutputQueueNameFor(Stage stage) {
         return stage.isLastEnum() ? null : getQueueName(propertiesProvider, getNextStage(stage));
+    }
+
+    /** True when the stage is the last of the configured stages: no stage of this run follows it. A stage that is not
+     *  in the list is not known to be last. */
+    public boolean isLastStage(Stage stage) {
+        return stages.contains(stage) && stages.getLast() == stage;
     }
 
     public Stage getNextStage(Stage stage) {

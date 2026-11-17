@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import java.util.List;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
@@ -10,7 +11,7 @@ import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
+import org.icij.datashare.text.Language;
 import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,14 +32,13 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Mock
     DatashareTaskFactory taskFactory;
     @Mock Function<Double, Void> updateCallback;
-    @Mock ElasticsearchSpewerFactory spewerFactory;
     private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskFactory, new TaskRepositoryMemory(), new PropertiesProvider(
             Map.of(TASK_MANAGER_POLLING_INTERVAL_OPT, "1000")), new CountDownLatch(1));
 
     @Test
     public void test_scan_task() throws Exception {
         Task<Long> task = new Task<>(ScanTask.class.getName(), User.local(), Map.of("dataDir", "/path/to/files"));
-        ScanTask taskRunner = new ScanTask(mock(DocumentCollectionFactory.class), task, updateCallback);
+        ScanTask taskRunner = new ScanTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new ScanStage()), task, updateCallback);
         when(taskFactory.createScanTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
@@ -47,7 +47,9 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_index_task() throws Exception {
         Task<Long> task = new Task<>(IndexTask.class.getName(), User.local(), new HashMap<>());
-        IndexTask taskRunner = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
+        IndexTask taskRunner = new IndexTask(mock(DocumentCollectionFactory.class), mock(DocumentCollectionFactory.class),
+                new StageRegistry().register(new IndexStage(mock(Indexer.class), text -> Language.ENGLISH)),
+                new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
@@ -56,7 +58,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_extract_nlp_task() throws Exception {
         Task<Long> task = new Task<>(ExtractNlpTask.class.getName(), User.local(), Map.of("nlpPipeline", "EMAIL"));
-        ExtractNlpTask taskRunner = new ExtractNlpTask(mock(Indexer.class), new PipelineRegistry(new PropertiesProvider()), mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
+        ExtractNlpTask taskRunner = new ExtractNlpTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new NlpStage(mock(Indexer.class), new PipelineRegistry(new PropertiesProvider()))), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
         when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
@@ -65,7 +67,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_scan_index_task() throws Exception {
         Task<Long> task = new Task<>(ScanIndexTask.class.getName(), User.local(), new HashMap<>());
-        ScanIndexTask taskRunner = new ScanIndexTask(mock(DocumentCollectionFactory.class), mock(Indexer.class), task, updateCallback);
+        ScanIndexTask taskRunner = new ScanIndexTask(new StageRegistry().register(new ScanIndexStage(mock(Indexer.class), name -> null)), task, updateCallback);
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
@@ -74,7 +76,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_enqueue_from_index_task() throws Exception {
         Task<Long> task = new Task<>(EnqueueFromIndexTask.class.getName(), User.local(), Map.of("nlpPipeline", "EMAIL"));
-        EnqueueFromIndexTask taskRunner = new EnqueueFromIndexTask(mock(DocumentCollectionFactory.class), mock(Indexer.class), task, updateCallback);
+        EnqueueFromIndexTask taskRunner = new EnqueueFromIndexTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new EnqueueFromIndexStage(mock(Indexer.class))), task, updateCallback);
         when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
@@ -83,7 +85,7 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_deduplicate_task() throws Exception {
         Task<Long> task = new Task<>(DeduplicateTask.class.getName(), User.local(), new HashMap<>());
-        DeduplicateTask taskRunner = new DeduplicateTask(mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
+        DeduplicateTask taskRunner = new DeduplicateTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new DeduplicateStage()), new UpstreamGate.Factory(new TaskRepositoryMemory()), task, updateCallback);
         when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);

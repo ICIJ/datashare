@@ -278,7 +278,11 @@ public class PropertiesProvider {
     public <T extends Record> T toRecord(Class<T> recordClass) {
         String[] recordKeys =
                 stream(recordClass.getRecordComponents()).map(RecordComponent::getName).toArray(String[]::new);
-        return JsonObjectMapper.getMapper().convertValue(getIncludedProperties(recordKeys), recordClass);
+        return mapToRecord(recordClass, getIncludedProperties(recordKeys));
+    }
+
+    public static <T extends Record> T mapToRecord(Class<T> recordClass, Map<String, Object> map) {
+        return JsonObjectMapper.getMapper().convertValue(map, recordClass);
     }
 
     public static class SettingsNotFound extends RuntimeException {

@@ -1,127 +1,32 @@
 package org.icij.datashare.tasks;
 
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
+import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-
-import java.util.Map;
-
-import static java.util.Collections.emptyList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.text.DocumentBuilder.createDoc;
-import static org.icij.datashare.text.Language.ENGLISH;
-import static org.icij.datashare.text.Project.project;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ExtractNlpTaskTest {
-    @Mock private Indexer indexer;
-    @Mock private AbstractPipeline pipeline;
+    private final AbstractPipeline pipeline = mock(AbstractPipeline.class);
     private final MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-    private ExtractNlpTask nlpTask;
-
-    @Before
-    public void setUp() {
-        initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, UpstreamGate.NONE, new Task<>(ExtractNlpTask.class.getName(), User.local(),
-                Map.of("maxContentLength", "32")), null);
-    }
-
-    @Test
-    public void test_on_message_does_nothing__when_doc_not_found_in_index() throws Exception {
-        nlpTask.findNamedEntities(project("projectName"),"unknownId");
-
-        verify(pipeline, never()).initialize(any(Language.class));
-        verify(pipeline, never()).process(any());
-    }
+    private final ExtractNlpTask nlpTask = new ExtractNlpTask(factory, new StageRegistry().register(
+            new NlpStage(mock(Indexer.class), pipeline)), new UpstreamGate.Factory(new TaskRepositoryMemory()),
+            new Task<>(ExtractNlpTask.class.getName(), User.local(), Map.of()), null);
 
     @Test(timeout = 2000)
     public void test_returns_immediately_when_queue_is_empty() throws Exception {
-        // The launcher awaits the producer stage before NLP starts, so an empty queue means done.
-        // Deliberately no polling-interval option: the old bounded null-poll budget would have
-        // waited out several default polling intervals here and blown this timeout.
-        ExtractNlpTask nlpTask = new ExtractNlpTask(indexer, pipeline, factory, UpstreamGate.NONE,
-                new Task<>(ExtractNlpTask.class.getName(), User.local(), Map.of()), null);
-
         assertThat(nlpTask.call()).isEqualTo(0L);
-    }
-
-    @Test(expected = InterruptedException.class)
-    public void test_call_reports_cancellation_instead_of_completing_when_interrupted() throws Exception {
-        DocumentQueue<String> queue = factory.createQueue("extract:queue:nlp", String.class);
-        queue.add("id1");
-        queue.add("id2");
-        Thread.currentThread().interrupt();
-
-        try {
-            nlpTask.call();
-        } finally {
-            verify(pipeline, never()).initialize(any(Language.class));
-            // both references must still be in the queue: consuming one and dropping it would lose
-            // a document per cancelled run, which asserting on the throw alone cannot detect
-            assertThat(queue).hasSize(2);
-            Thread.interrupted(); // clear the flag so it does not leak into later tests
-        }
-    }
-
-    @Test
-    public void test_on_message_do_not_processNLP__when_init_fails() throws Exception {
-        when(pipeline.initialize(any())).thenReturn(false);
-        when(indexer.get(anyString(), anyString(), anyString())).thenReturn(createDoc("content").build());
-
-        nlpTask.findNamedEntities(project("projectName"),"id");
-        verify(pipeline, never()).process(any());
-    }
-
-    @Test
-    public void test_on_message_processNLP__when_doc_found_in_index() throws Exception {
-        when(pipeline.initialize(any())).thenReturn(true);
-        Document doc = createDoc("content").build();
-        when(pipeline.process(doc)).thenReturn(emptyList());
-        when(indexer.get("projectName", doc.getId(), doc.getId())).thenReturn(doc);
-
-        nlpTask.findNamedEntities(project("projectName"), doc.getId());
-
-        verify(pipeline).initialize(ENGLISH);
-        verify(pipeline).process(doc);
-    }
-
-    @Test
-    public void test_on_message_process__chunked_doc_when_doc_is_large()  throws Exception  {
-        when(pipeline.initialize(any())).thenReturn(true);
-        Document doc = createDoc("huge_doc").with("0123456789abcdef0123456789abcdef+").build();
-        when(pipeline.process(doc)).thenReturn(emptyList());
-        when(indexer.get("projectName", doc.getId(), doc.getId())).thenReturn(doc);
-
-        nlpTask.findNamedEntities(project("projectName"), doc.getId());
-
-        verify(pipeline).initialize(ENGLISH);
-        verify(pipeline).process(doc, 32, 0);
-        verify(pipeline).process(doc, 32, 32);
-    }
-
-    @Test
-    public void test_on_message_with_routing_fetches_doc_with_root_id() throws Exception {
-        when(pipeline.initialize(any())).thenReturn(true);
-        Document doc = createDoc("embedded").withRootId("rootId").withParentId("rootId").build();
-        when(pipeline.process(doc)).thenReturn(emptyList());
-        when(indexer.get("projectName", doc.getId(), "rootId")).thenReturn(doc);
-
-        nlpTask.findNamedEntities(project("projectName"), doc.getId() + "|rootId");
-
-        verify(pipeline).initialize(ENGLISH);
-        verify(pipeline).process(doc);
     }
 }

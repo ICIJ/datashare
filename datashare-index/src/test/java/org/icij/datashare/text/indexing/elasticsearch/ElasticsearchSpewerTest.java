@@ -16,7 +16,6 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.artifact.*;
@@ -42,6 +41,7 @@ import java.io.StringReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -61,11 +61,17 @@ import static org.junit.Assert.assertTrue;
 public class ElasticsearchSpewerTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private final MemoryDocumentCollectionFactory<String> documentQueueFactory = new MemoryDocumentCollectionFactory<>();
-    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
-            documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
+    // what a stage hands to the next one: the queue entry of each indexed document
+    private final List<String> handedOver = new CopyOnWriteArrayList<>();
+    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new FieldNames(),
+            new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
+            text -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider(new HashMap<>() {{
                 put("defaultProject", es.getIndexName());
-    }}), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+    }})), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+
+    {
+        spewer.onIndexed(document -> handedOver.add(DocReference.fromDocument(document).toQueueEntry()));
+    }
 
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
 
@@ -87,6 +93,19 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
+    public void test_on_indexed_listener_replaces_the_hand_off_to_the_next_stage() throws Exception {
+        List<String> indexed = new ArrayList<>();
+        spewer.onIndexed(document -> indexed.add(document.getId()));
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("listened-file.txt"));
+        document.setReader(new ParsingReader(new ByteArrayInputStream("test".getBytes())));
+
+        spewer.write(document);
+
+        assertThat(indexed).containsOnly(document.getId());
+        assertThat(handedOver).isEmpty();
+    }
+
+    @Test
     public void test_simple_write() throws Exception {
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("test-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
@@ -100,7 +119,7 @@ public class ElasticsearchSpewerTest {
         assertEquals(new HashMap<String, String>() {{
             put("name", "Document");
         }}, nodeToMap(documentFields.source()).get("join"));
-        assertThat(documentQueueFactory.createQueue("extract:queue:nlp", String.class).size()).isEqualTo(1);
+        assertThat(handedOver).hasSize(1);
     }
 
     @Test
@@ -258,9 +277,7 @@ public class ElasticsearchSpewerTest {
     public void test_write_should_support_multiple_ocr_languages() throws Exception {
         // Given
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
-        try (ElasticsearchSpewer zhoSpewer = new ElasticsearchSpewer(indexer,
-            documentQueueFactory, text -> Language.CHINESE, new FieldNames(),
-            new PropertiesProvider(Map.of("defaultProject", es.getIndexName())), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null)) {
+        try (ElasticsearchSpewer zhoSpewer = new ElasticsearchSpewer(new FieldNames(), indexer, text -> Language.CHINESE, IndexOptions.of(new PropertiesProvider(Map.of("defaultProject", es.getIndexName()))), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null)) {
             Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
             Options<String> options = Options.from(Map.of("ocrLanguage", "eng+zho"));
             Extractor extractor = new Extractor(options);
@@ -361,15 +378,11 @@ public class ElasticsearchSpewerTest {
 
     // ENGLISH for any text, UNKNOWN for none: the language only depends on whether the content was kept.
     private ElasticsearchSpewer textOnlySpewer(int minOcrConfidence) {
-        return new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
-                documentQueueFactory, text -> text == null || text.isBlank() ? Language.UNKNOWN : Language.ENGLISH,
-                new FieldNames(), new PropertiesProvider(), es.getIndexName(), minOcrConfidence, null);
+        return new ElasticsearchSpewer(new FieldNames(), new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True), text -> text == null || text.isBlank() ? Language.UNKNOWN : Language.ENGLISH, IndexOptions.of(new PropertiesProvider()), es.getIndexName(), minOcrConfidence, null);
     }
 
     private ElasticsearchSpewer spewerOn(String indexName, int minOcrConfidence, ManifestRecorder manifestRecorder) {
-        return new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
-                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(), indexName,
-                minOcrConfidence, manifestRecorder);
+        return new ElasticsearchSpewer(new FieldNames(), new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True), text -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider()), indexName, minOcrConfidence, manifestRecorder);
     }
 
     private Map<String, Object> writeOcrImage(ElasticsearchSpewer ocrSpewer, String fileName, double confidence) throws Exception {
@@ -550,10 +563,8 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document);
 
-        List<String> queueEntries = new ArrayList<>();
-        documentQueueFactory.createQueue("extract:queue:nlp", String.class).drainTo(queueEntries);
-        assertThat(queueEntries).contains(document.getId());
-        assertThat(queueEntries.stream().anyMatch(entry -> entry.endsWith("|" + document.getId()))).isTrue();
+        assertThat(handedOver).contains(document.getId());
+        assertThat(handedOver.stream().anyMatch(entry -> entry.endsWith("|" + document.getId()))).isTrue();
     }
 
     @Test
@@ -585,8 +596,7 @@ public class ElasticsearchSpewerTest {
             put("digestProjectName", "project");
             put("defaultProject", es.getIndexName());
         }};
-        ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+        ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new FieldNames(), new ElasticsearchIndexer(es.client, new PropertiesProvider()), text -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider(properties)), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
         Options<String> from = Options.from(properties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
         Extractor extractor = new Extractor(tikaFactory, from);
@@ -611,8 +621,7 @@ public class ElasticsearchSpewerTest {
             put("digestProjectName", "project");
             put("defaultProject", es.getIndexName());
         }};
-        ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+        ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new FieldNames(), new ElasticsearchIndexer(es.client, new PropertiesProvider()), text -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider(properties)), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
         Options<String> from = Options.from(properties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
         Extractor extractor = new Extractor(tikaFactory, from);
@@ -657,11 +666,10 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_truncated_content() throws Exception {
-        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
+        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new FieldNames(), new ElasticsearchIndexer(es.client, new PropertiesProvider()), text -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
             put("defaultProject", es.getIndexName());
-        }}), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+        }})), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("fake-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content should be truncated".getBytes()));
         document.setReader(reader);
@@ -674,11 +682,10 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_truncated_content_if_document_is_smaller_than_limit() throws Exception {
-        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
+        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new FieldNames(), new ElasticsearchIndexer(es.client, new PropertiesProvider()), text -> Language.ENGLISH, IndexOptions.of(new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
             put("defaultProject", es.getIndexName());
-        }}), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
+        }})), es.getIndexName(), DEFAULT_OCR_MIN_CONFIDENCE, null);
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("ok-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content is ok".getBytes()));
         document.setReader(reader);
@@ -692,8 +699,7 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_creates_the_index_it_was_built_for() throws Exception {
         Indexer indexer = Mockito.mock(Indexer.class);
-        new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class),
-                new FieldNames(), new PropertiesProvider(), "foo", DEFAULT_OCR_MIN_CONFIDENCE, null).createIndexIfNotExists();
+        new ElasticsearchSpewer(new FieldNames(), indexer, Mockito.mock(LanguageGuesser.class), IndexOptions.of(new PropertiesProvider()), "foo", DEFAULT_OCR_MIN_CONFIDENCE, null).createIndexIfNotExists();
         Mockito.verify(indexer).createIndex("foo");
     }
 

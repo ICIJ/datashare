@@ -2,12 +2,12 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
+import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
@@ -15,38 +15,21 @@ import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
-import org.icij.datashare.text.artifact.Artifact;
-import org.icij.datashare.text.artifact.ArtifactRegistry;
-import org.icij.extract.extractor.ExtractorOptions;
-import org.icij.datashare.text.artifact.ArtifactType;
-import org.icij.datashare.text.artifact.FilesystemManifestRepository;
-import org.icij.datashare.text.artifact.ManifestRecorder;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.extract.document.DocumentFactory;
-import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.queue.DocumentQueueDrainer;
-import org.icij.extract.report.Reporter;
-import org.icij.task.Options;
 import org.icij.task.annotation.Option;
 import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.util.List;
-import org.icij.time.HumanDuration;
-import static java.lang.Math.max;
-import static java.lang.String.valueOf;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.OCR_MIN_CONFIDENCE_OPT;
 
+/**
+ * The INDEX stage on the queues: it drains the queue of paths with the workers of {@link StageTask}, and the
+ * {@link IndexStage} registered for it does the work, the same one the Temporal activity runs. What this task adds is
+ * the progress reporting.
+ */
 @TemporalSingleActivityWorkflow(name = "index-documents", activityOptions = @ActivityOpts(timeout = "P30D"))
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentFactory.class)
@@ -56,170 +39,37 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 @Option(name = OCR_MIN_CONFIDENCE_OPT,
         description = "OCR confidence, from 0 to 100, under which an image's text is not used to detect its language. Only applies when the OCR records a confidence: the language is chosen per image, or the OCR type is TESS4J")
 @TaskGroup(TaskGroupType.Java)
-public class IndexTask extends PipelineTask<Path> implements Monitorable {
-    private static final Path PATH_POISON = Paths.get("POISON");
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final ElasticsearchSpewerFactory spewerFactory;
-    private final DocumentCollectionFactory<Path> collectionFactory;
-    private final Options<String> allTaskOptions;
-    private final int minOcrConfidence;
+public class IndexTask extends StageTask<Path, String> implements Monitorable {
+    private static final Logger logger = LoggerFactory.getLogger(IndexTask.class);
     private final Function<Double, Void> progressCallback;
-    private long totalToProcess;
-    private final AtomicInteger processed = new AtomicInteger(0);
-    // entries the drainer counted as consumed but that were not documents (legacy sentinel)
-    private final AtomicInteger skipped = new AtomicInteger(0);
-    private final Integer parallelism;
-    private final Integer indexTimeout;
-    private final String taskId;
+    private final AtomicLong totalToProcess = new AtomicLong();
 
     @Inject
-    public IndexTask(final ElasticsearchSpewerFactory spewerFactory, final DocumentCollectionFactory<Path> factory,
+    public IndexTask(final DocumentCollectionFactory<Path> factory,
+                     final DocumentCollectionFactory<String> outputFactory, final StageRegistry registry,
                      final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
-                     @Assisted final Function<Double, Void> progressCallback) throws IOException {
+                     @Assisted final Function<Double, Void> progressCallback) {
         super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class,
-              gateFactory.forTask(taskView));
-        this.spewerFactory = spewerFactory;
-        this.collectionFactory = factory;
+              gateFactory.forTask(taskView), registry, outputFactory, String.class);
         this.progressCallback = progressCallback;
-        taskId = taskView.id;
-        parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt)
-                                        .orElse(Runtime.getRuntime().availableProcessors());
-        indexTimeout = getIndexTimeout();
-        warnIfParseTimeoutDisabled();
-
-        allTaskOptions = options().createFrom(Options.from(taskView.args));
-        minOcrConfidence = allTaskOptions.valueIfPresent(OCR_MIN_CONFIDENCE_OPT).map(Integer::parseInt)
-                                         .orElse(DEFAULT_OCR_MIN_CONFIDENCE);
+        setTaskId(taskView.id);
     }
 
     @Override
     public Long call() throws Exception {
-        super.call();
-        try (Extractor extractor = createExtractor(new DocumentFactory().configure(allTaskOptions), allTaskOptions)) {
-            // Opt-in artifact generation is wired here (not in the constructor) so a bad --artifacts
-            // config surfaces as a clean task error rather than a reflective-construction NackException
-            // that requeues forever. When set, extract-lib writes embed bytes to the same project root the
-            // ManifestRecorder writes manifests to.
-            ArtifactOptions artifactOptions = propertiesProvider.toRecord(ArtifactOptions.class);
-            ManifestRecorder manifestRecorder = artifactOptions.artifactProjectRoot().map(projectRoot -> {
-                List<Artifact> selected =
-                        ArtifactRegistry.withDefaults(propertiesProvider.toRecord(ExtractorOptions.class))
-                                        .select(propertiesProvider.get(ARTIFACTS_OPT).orElse(null));
-                boolean rawSelected = selected.stream().anyMatch(artifact -> artifact.type() == ArtifactType.RAW);
-                boolean artifactStageRuns = new PipelineHelper(propertiesProvider).stages.contains(Stage.ARTIFACT);
-                // Only raw falls out of the streaming parse (see ManifestRecorder): a selection naming any
-                // other type reads as a promise this stage does not keep, so say so rather than drop it in
-                // silence. Silent when ARTIFACT is coming, since the run does produce them then: a warning
-                // that fires on a correct run is one nobody reads. Once per run, not per document.
-                List<String> notAtIndexTime =
-                        selected.stream().map(Artifact::type).filter(type -> type != ArtifactType.RAW)
-                                .map(ArtifactType::token).toList();
-                if (!notAtIndexTime.isEmpty() && !artifactStageRuns) {
-                    logger.warn(
-                            "--artifacts selects {}, which the INDEX stage does not produce, and ARTIFACT is not in " +
-                            "--stages: {}", notAtIndexTime, rawSelected ? "only the 'raw' entry will be recorded." :
-                                                            "this stage records nothing and writes no embedded payload; add 'raw' to --artifacts " +
-                                                            "to keep the embedded-download cache.");
-                }
-                // extract-lib spools every embedded document's bytes here during the parse. This payload is
-                // not manifest-only: SourceExtractor.hasCachedEmbeddedSource also reads it straight off disk
-                // to let DocumentVerifier serve an oversized embed past embeddedDocumentDownloadMaxSize. A
-                // selection that skips it here trades that cache away, and a large embed 413s instead.
-                if (rawSelected || artifactStageRuns) {
-                    extractor.setEmbedOutputPath(projectRoot);
-                }
-                return new ManifestRecorder(new FilesystemManifestRepository(), projectRoot, selected,
-                                            artifactOptions.force(), taskId);
-            }).orElse(null);
-            ElasticsearchSpewer spewer =
-                    spewerFactory.create(artifactOptions.projectName(), minOcrConfidence, manifestRecorder);
-            spewer.createIndexIfNotExists();
-            DocumentConsumer consumer = new DocumentConsumer(spewer, extractor, parallelism);
-            DocumentQueueDrainer<Path> drainer = createDrainer(consumer);
-            logger.info("Processing up to {} file(s) in parallel", parallelism);
-            totalToProcess = drainer.drain().get() - skipped.get();
-            drainer.shutdown();
-            drainer.awaitTermination(10, SECONDS); // drain is finished
-            logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
+        return super.call();
+    }
 
-            consumer.shutdown();
-            // documents could be currently processed
-            while (!consumer.awaitTermination(indexTimeout, MINUTES)) {
-                logger.info("Consumer has not terminated yet.");
-            }
-
-            if (consumer.getReporter() != null)
-                consumer.getReporter().close();
-            logger.info("exiting");
-            return totalToProcess;
+    @Override
+    protected void onEntryProcessed() {
+        if (progressCallback != null) {
+            progressCallback.apply(getProgressRate());
         }
-    }
-
-    private DocumentQueueDrainer<Path> createDrainer(DocumentConsumer consumer) {
-        Consumer<Path> progressTrackConsumer = path -> {
-            // Transitional. Redis queue keys survive upgrades, so a pre-21.16 run can leave a
-            // "POISON" path in this queue. Skip it instead of trying to extract a file named POISON.
-            if (PATH_POISON.equals(path)) {
-                logger.warn("skipping legacy POISON entry in queue {}", inputQueue.getName());
-                // DocumentQueueDrainer counts every entry it hands us, so discount this one
-                // to keep the returned total and the progress rate about real documents only
-                skipped.incrementAndGet();
-                return;
-            }
-            consumer.accept(path);
-            processed.incrementAndGet();
-            if (progressCallback != null) {
-                progressCallback.apply(getProgressRate());
-            }
-        };
-        if (propertiesProvider.getProperties().get(REPORT_NAME_OPT) != null) {
-            logger.info("report map enabled with name set to {}",
-                        propertiesProvider.getProperties().get(REPORT_NAME_OPT));
-            consumer.setReporter(new Reporter(
-                    collectionFactory.createMap(propertiesProvider.getProperties().get(REPORT_NAME_OPT).toString())));
-        }
-        DocumentQueueDrainer<Path> drainer =
-                new DocumentQueueDrainer<>(inputQueue, progressTrackConsumer).configure(allTaskOptions);
-        // The drainer has no notion of an upstream stage: without a latch it stops on its first
-        // empty poll, which is only right when the producer has already finished.
-        if (gate != UpstreamGate.NONE) {
-            drainer.setLatch(new UpstreamSealableLatch(this::drained, UPSTREAM_POLL_INTERVAL_MS));
-        }
-        return drainer;
-    }
-
-    protected Extractor createExtractor(DocumentFactory documentFactory, Options<String> options) {
-        return new Extractor(documentFactory, options);
-    }
-
-    /**
-     * Retrieves the index timeout option in minutes based on app properties.
-     *
-     * @return The number of minutes.
-     */
-    private int getIndexTimeout() {
-        return Integer.parseInt(propertiesProvider.get(INDEX_TIMEOUT_OPT).orElse(valueOf(DEFAULT_INDEX_TIMEOUT)));
-    }
-
-    private void warnIfParseTimeoutDisabled() {
-        propertiesProvider.get(PARSE_TIMEOUT_OPT).ifPresent(value -> {
-            try {
-                Duration parseTimeout = HumanDuration.parse(value);
-                if (parseTimeout.isZero() || parseTimeout.isNegative()) {
-                    logger.warn("parseTimeout is set to {}: the parse timeout is DISABLED. " +
-                                "A pathological document can hang a worker indefinitely.", value);
-                }
-            } catch (RuntimeException e) {
-                // Any parse failure (DateTimeParseException, NumberFormatException, ...) is intentionally
-                // ignored here: this is a diagnostic-only check and must never fail task construction.
-                // Leave duration validation to the extractor.
-            }
-        });
     }
 
     @Override
     public double getProgressRate() {
-        totalToProcess = max(inputQueue.size(), totalToProcess);
-        return totalToProcess == 0 ? 0 : (double) (totalToProcess - inputQueue.size()) / totalToProcess;
+        long total = totalToProcess.accumulateAndGet(inputQueue.size(), Math::max);
+        return total == 0 ? 0 : (double) (total - inputQueue.size()) / total;
     }
 }
