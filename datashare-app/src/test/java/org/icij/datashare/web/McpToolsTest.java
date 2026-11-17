@@ -606,7 +606,59 @@ public class McpToolsTest extends AbstractProdWebServerTest {
 
         JsonNode page = payload(call("local", "list_tasks", "{\"from\":25,\"size\":100}"));
         assertThat(page.size()).isEqualTo(5);
-        assertThat(page.at("/0/id").asText()).isEqualTo(tasks.get(25).id);
+    }
+
+    private static Task<?> taskCreatedAt(String id, long createdAt) {
+        return new Task<>(id, "org.icij.datashare.tasks.ScanTask", new java.util.Date(createdAt), localUser("local"),
+                          Map.of("defaultProject", "foo"));
+    }
+
+    private static List<String> ids(JsonNode tasks) {
+        List<String> ids = new java.util.ArrayList<>();
+        tasks.forEach(task -> ids.add(task.get("id").asText()));
+        return ids;
+    }
+
+    @Test
+    public void test_list_tasks_pages_are_stable_when_the_source_order_changes() throws Exception {
+        serveAs("local", "foo");
+        List<Task<?>> tasks = new java.util.ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            tasks.add(taskCreatedAt("task" + i, 1000L * i));
+        }
+        when(taskManager.getTasks(any(TaskFilters.class))).thenAnswer(invocation -> {
+            java.util.Collections.rotate(tasks, 2);
+            return new java.util.ArrayList<>(tasks).stream();
+        });
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(List.of());
+
+        List<String> firstPage = ids(payload(call("local", "list_tasks", "{\"size\":3}")));
+        List<String> secondPage = ids(payload(call("local", "list_tasks", "{\"from\":3,\"size\":3}")));
+
+        assertThat(firstPage).containsExactly("task4", "task3", "task2");
+        assertThat(secondPage).containsExactly("task1", "task0");
+    }
+
+    @Test
+    public void test_list_tasks_breaks_a_creation_date_tie_on_the_id() throws Exception {
+        serveAs("local", "foo");
+        List<Task<?>> tasks = new java.util.ArrayList<>(
+                List.of(taskCreatedAt("b", 1000L), taskCreatedAt("c", 1000L), taskCreatedAt("a", 1000L)));
+        when(taskManager.getTasks(any(TaskFilters.class))).thenAnswer(invocation -> {
+            java.util.Collections.rotate(tasks, 1);
+            return new java.util.ArrayList<>(tasks).stream();
+        });
+        when(batchSearchRepository.getRecords(any(), any())).thenReturn(List.of());
+
+        assertThat(ids(payload(call("local", "list_tasks", "{}")))).containsExactly("a", "b", "c");
+        assertThat(ids(payload(call("local", "list_tasks", "{}")))).containsExactly("a", "b", "c");
+    }
+
+    @Test
+    public void test_list_tasks_says_what_order_its_pages_are_in() {
+        TaskResource taskResource = mock(TaskResource.class);
+
+        assertThat(new McpListTasksTool(taskResource).description()).contains("newest first");
     }
 
     @Test
