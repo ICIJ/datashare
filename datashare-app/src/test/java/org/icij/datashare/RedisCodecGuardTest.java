@@ -20,20 +20,35 @@ public class RedisCodecGuardTest {
     @Test
     public void main_sources_have_no_violations() throws IOException {
         List<String> found = new ArrayList<>();
-        Path modulesRoot = Paths.get("..").toAbsolutePath().normalize();
-        List<Path> javaFiles;
-        try (Stream<Path> walk = Files.walk(modulesRoot)) {
-            javaFiles = walk.filter(p -> p.toString().contains("/src/main/java/") && p.toString().endsWith(".java")).collect(Collectors.toList());
-        }
-        for (Path file : javaFiles) {
-            List<String> lines = Files.readAllLines(file);
-            for (int i = 0; i < lines.size(); i++) {
-                if (FORBIDDEN.matcher(lines.get(i)).find()) {
-                    Path relative = modulesRoot.relativize(file);
-                    found.add(relative + ":" + (i + 1) + ": " + lines.get(i).trim());
+        List<String> scanned = new ArrayList<>();
+        Path root = Paths.get("..").toAbsolutePath().normalize();
+        List<Path> sourceDirs = new ArrayList<>();
+        try (Stream<Path> children = Files.list(root)) {
+            List<Path> modules = children.collect(Collectors.toList());
+            for (Path module : modules) {
+                Path sourceDir = module.resolve("src/main/java");
+                if (Files.isDirectory(sourceDir)) {
+                    sourceDirs.add(sourceDir);
                 }
             }
         }
+        for (Path sourceDir : sourceDirs) {
+            List<Path> javaFiles;
+            try (Stream<Path> walk = Files.walk(sourceDir)) {
+                javaFiles = walk.filter(p -> p.toString().endsWith(".java")).collect(Collectors.toList());
+            }
+            for (Path file : javaFiles) {
+                Path relative = root.relativize(file);
+                scanned.add(relative.toString());
+                List<String> lines = Files.readAllLines(file);
+                for (int i = 0; i < lines.size(); i++) {
+                    if (FORBIDDEN.matcher(lines.get(i)).find()) {
+                        found.add(relative + ":" + (i + 1) + ": " + lines.get(i).trim());
+                    }
+                }
+            }
+        }
+        assertThat(scanned).contains("datashare-tasks/src/main/java/org/icij/datashare/asynctasks/TaskManagerRedis.java");
         assertThat(found).isEmpty();
     }
 }
