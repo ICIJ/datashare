@@ -220,7 +220,7 @@ public class StatementBuilder {
         unmatched.remove(alias);
         countMissing(alias, row);
         if (entity.idColumn() != null) {
-            String given = verbatim(row.values().get(entity.idColumn()));
+            String given = single(cells.get(entity.idColumn()));
             if (given == null || tooLongForIndex(given)) {
                 count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber);
                 return null;
@@ -238,20 +238,6 @@ public class StatementBuilder {
             return null;
         }
         return id(entity.type(), entity.keyLiteral(), values);
-    }
-
-    // The id the source gave, uncleaned: an external consumer looks an entity up by the id in its
-    // dump, and cleaning would merge two ids that differ by a soft hyphen. A NUL cannot reach a
-    // statement, and a blank id is no id, so both read as none, as several values do.
-    private static String verbatim(List<String> raw) {
-        if (raw == null || raw.size() != 1) {
-            return null;
-        }
-        String given = raw.get(0);
-        if (Row.blank(given) || given.indexOf('\u0000') >= 0) {
-            return null;
-        }
-        return given;
     }
 
     // Elasticsearch caps the _id at bytes, not characters, and the _id is the model-prefixed id.

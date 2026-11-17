@@ -1038,13 +1038,18 @@ public class StatementBuilderTest {
     }
 
     @Test
-    public void test_an_id_column_is_taken_without_cleaning() {
+    public void test_an_id_column_is_cleaned_like_a_column_pointing_at_that_id() {
         StatementBuilder builder = new StatementBuilder(mapping(Map.of(
-                "company", identified("Company", "id", Map.of("name", column("name"))))), "");
+                "person", identified("Person", "id", Map.of("name", column("name"))),
+                "ownership", identified("Ownership", "edge", Map.of("owner", column("owner"), "asset", column("asset"))))), "");
 
-        List<Statement> statements = builder.statements(row(Map.of("id", " ab\u00ADc ", "name", "ACME")));
+        List<Statement> statements = builder.statements(row(Map.of(
+                "id", " p\u00AD1 ", "name", "Ada", "edge", "o1", "owner", " p\u00AD1 ", "asset", "c1")));
 
-        assertThat(statements.get(0).entityId()).isEqualTo(" ab\u00ADc ");
+        Statement owner = statements.stream().filter(statement -> statement.property().equals("owner")).findFirst().get();
+        Statement person = statements.stream().filter(statement -> statement.entityType().equals("Person")).findFirst().get();
+        assertThat(person.entityId()).isEqualTo("p1");
+        assertThat(owner.value()).isEqualTo(person.entityId());
     }
 
     @Test
