@@ -420,6 +420,13 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_qr_codes_rejects_a_non_boolean_value() {
+        exit.expectSystemExitWithStatus(1);
+
+        cli.parseArguments(new String[] {"--qrCodes=yes"});
+    }
+
+    @Test
     public void test_qr_codes_absent_by_default() {
         cli.parseArguments(new String[] {"--stages", "INDEX"});
 

@@ -2,6 +2,7 @@ package org.icij.datashare.cli;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
+import joptsimple.ValueConversionException;
 import joptsimple.ValueConverter;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PipelineHelper;
@@ -730,7 +731,7 @@ public final class DatashareCliOptions {
     static void qrCodes(OptionParser parser) {
         parser.acceptsAll(List.of(QR_CODES_OPT), QR_CODES_DESC)
               // No defaultsTo: it would clobber a qrCodes=true set in the settings file (see artifactsForce).
-              .withRequiredArg().ofType(Boolean.class);
+              .withRequiredArg().withValuesConvertedBy(strictBoolean());
     }
 
     static void ocrStrategy(OptionParser parser) {
@@ -1027,6 +1028,29 @@ public final class DatashareCliOptions {
     static void temporalAddressOpt(OptionParser parser) {
         parser.acceptsAll(List.of(TEMPORAL_ADDRESS_OPT), "Temporal address").withRequiredArg().ofType(String.class)
               .defaultsTo(DEFAULT_TEMPORAL_ADDRESS);
+    }
+
+    /** Rejects anything but true or false, as picocli does, where Boolean.valueOf reads any typo as false. */
+    static ValueConverter<Boolean> strictBoolean() {
+        return new ValueConverter<>() {
+            @Override
+            public Boolean convert(String value) {
+                if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
+                    throw new ValueConversionException("expected true or false, got " + value);
+                }
+                return Boolean.valueOf(value);
+            }
+
+            @Override
+            public Class<? extends Boolean> valueType() {
+                return Boolean.class;
+            }
+
+            @Override
+            public String valuePattern() {
+                return "true|false";
+            }
+        };
     }
 
     public static ValueConverter<String> toAbsolute() {
