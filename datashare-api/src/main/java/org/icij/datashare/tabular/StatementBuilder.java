@@ -49,6 +49,7 @@ public class StatementBuilder {
     private final Map<String, Set<String>> unreported = new HashMap<>();
     private final List<String> aliases;
     private final boolean identifiesVerbatim;
+    private final int idPrefixLength;
     private boolean headerChecked = false;
 
     /** {@code sheet} is the section of the document these rows come from, as the reader resolved it:
@@ -72,6 +73,7 @@ public class StatementBuilder {
         mapping.entities().forEach(this::declare);
         this.aliases = List.copyOf(new TreeSet<>(mapping.entities().keySet()));
         this.identifiesVerbatim = mapping.entities().values().stream().anyMatch(entity -> entity.idColumn() != null);
+        this.idPrefixLength = StructuredEntity.documentId(mapping.model(), "").length();
         Stream.of(Skip.values()).forEach(reason -> skipped.put(reason, 0L));
     }
 
@@ -204,7 +206,13 @@ public class StatementBuilder {
             String type = mapping.entities().get(identified.getKey()).type();
             typesOf.computeIfAbsent(identified.getValue(), id -> new HashSet<>()).add(type);
         }
-        List<String> clashing = ids.keySet().stream().filter(alias -> typesOf.get(ids.get(alias)).size() > 1).toList();
+        List<String> clashing = new ArrayList<>();
+        for (Map.Entry<String, String> identified : ids.entrySet()) {
+            Set<String> types = typesOf.get(identified.getValue());
+            if (types.size() > 1) {
+                clashing.add(identified.getKey());
+            }
+        }
         clashing.forEach(alias -> count(Skip.ENTITY_UNIDENTIFIED, alias, rowNumber));
         ids.keySet().removeAll(clashing);
     }
@@ -245,8 +253,13 @@ public class StatementBuilder {
         return id(entity.type(), entity.keyLiteral(), values);
     }
 
-    // Elasticsearch caps the _id at bytes, not characters, and the _id is the model-prefixed id.
+    // Elasticsearch caps the _id at bytes, not characters, and the _id is the model-prefixed id. A
+    // char encodes to at most three UTF-8 bytes, so nearly every id is cleared without encoding it.
     private boolean tooLongForIndex(String id) {
+        int worstCase = (idPrefixLength + id.length()) * 3;
+        if (worstCase <= StructuredEntity.MAX_ID_BYTES) {
+            return false;
+        }
         String documentId = StructuredEntity.documentId(mapping.model(), id);
         byte[] bytes = documentId.getBytes(StandardCharsets.UTF_8);
         return bytes.length > StructuredEntity.MAX_ID_BYTES;
