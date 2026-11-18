@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 90
+      author: pirhoo
+      dbms: postgresql
+      changes:
+        - addColumn:
+            tableName: api_key
+            columns:
+              - column:
+                  name: expiration_date
+                  type: datetime
+  - changeSet:
+      id: 91
+      author: pirhoo
+      dbms: sqlite
+      comment: >
+        Liquibase adds a SQLite column by recreating the table, which drops the unique constraint on
+        user_id that the key upsert relies on.
+      changes:
+        - sql:
+            sql: ALTER TABLE api_key ADD COLUMN expiration_date datetime
