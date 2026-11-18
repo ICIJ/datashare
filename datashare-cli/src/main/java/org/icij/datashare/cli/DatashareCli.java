@@ -197,6 +197,7 @@ public class DatashareCli {
         DatashareCliOptions.policyReloadInterval(parser);
         DatashareCliOptions.sessionSigningKey(parser);
         DatashareCliOptions.sessionTtlSeconds(parser);
+        DatashareCliOptions.apiKeyMaxLifetime(parser);
         DatashareCliOptions.protectedUriPrefix(parser);
         DatashareCliOptions.authUsersProvider(parser);
         DatashareCliOptions.oauthSecret(parser);
