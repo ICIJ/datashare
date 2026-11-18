@@ -88,11 +88,7 @@ Today `disableOcr()` and `setOcrStrategy()` turn off `extractInlineImages` when 
 
 `extractInlineImages = (!ocrDisabled || qrCodes) && strategy == NO_OCR`
 
-Consequence, to be stated in the option's help text: turning `--qrCodes` on for an OCR-off project adds every PDF inline image to the index as a child document.
-
-### On-demand embedded extraction of PDF images
-
-`EmbeddedDocumentExtractor` (used by datashare's `SourceExtractor` to read an embedded document from its root) builds its own `ParseContext` without a `PDFParserConfig` (`EmbeddedDocumentExtractor.java:62-86`), and Tika's default leaves `extractInlineImages` off. So PDF inline images cannot be re-extracted today. Part B needs them: set a `PDFParserConfig` with `extractInlineImages=true` there, in the same extract-lib release. Side effect: opening or downloading a PDF inline-image child document without an artifact cache starts working too.
+Correction found while building (2026-11-17): PDF inline images are never child documents. `EmbedSpawner` concatenates `INLINE` embeds into the parent's text (`EmbedSpawner.java:358`), so their `QR code:` lines land in the PDF's own text, where the image sits, and their values go to the PDF's own `qr_codes` metadata. Turning `--qrCodes` on for an OCR-off project adds no documents.
 
 ### Release
 
@@ -100,14 +96,14 @@ Release extract-lib with a minor version bump, then bump `extract.version` in da
 
 ## Part B: datashare catch-up stage (ships second)
 
-A new pipeline `Stage` (suggested `QRCODES`, not a main stage) running over the project's image documents. Covers standalone images and images embedded in other files, including PDF inline images (Pierre's decision).
+A new pipeline `Stage` (suggested `QRCODES`, not a main stage) running over the project's image documents. Covers standalone images and images attached to other files (zips, emails, office files). Not PDF inline images: they are not documents of their own (see Part A), and catching them up would mean re-parsing every PDF, close to a reindex. Projects that need them reindex with `--qrCodes` (Pierre's decision, 2026-11-18).
 
 1. Select image documents: `contentType` starts with `image/`. The stage applies this filter itself; it does not rely on a user-supplied `--searchQuery` like the ENQUEUEIDX-fed stages (`EnqueueFromIndexTask.java:63-79`).
 2. Skip any document whose `_source` already has `metadata.tika_metadata_qr_codes`. This per-document check, not the query, is what guarantees no duplicate lines.
 3. Read the image bytes:
    - Standalone image: read the file.
    - Embedded image with an artifact cache (`--artifactDir`): read from the cache.
-   - Embedded image without a cache: group the remaining images by root document and re-parse each root once, decoding every image embed it yields. Never one root parse per image: `SourceExtractor.getEmbeddedSource` re-parses the whole root per call (`SourceExtractor.java:95-140`), which on a mailbox with thousands of images is thousands of full parses.
+   - Embedded image without a cache: group the remaining images by root document and re-parse each root once, decoding every image embed it yields. Never one root parse per image: `SourceExtractor.getEmbeddedSource` re-parses the whole root per call (`SourceExtractor.java:95-140`), which on a mailbox with thousands of images is thousands of full parses. Walking a root once without an artifact cache needs a small new extract-lib method: `EmbeddedDocumentExtractor.extractAll` refuses to run without an artifact directory (`EmbeddedDocumentExtractor.java:99`).
 4. Decode with the extract-lib decoder.
 5. When values are found: append the `QR code:` lines to `content`, set `contentTextLength` to the new `content.length()` (`Document.java:226`; leave `contentLength`, which is the file size), and set `metadata.tika_metadata_qr_codes`, in one partial update.
 
@@ -128,6 +124,5 @@ B does not need `--qrCodes`; running the stage is the opt-in.
 
 - Decoder: images with zero, one and several codes, a rotated code, a non-image or truncated input (returns empty, no exception).
 - extract-lib: a standalone QR PNG and a PDF holding a QR inline image, each with OCR on and OCR off, with `qrCodes` on and off. With `qrCodes` off, output matches today's.
-- extract-lib: `EmbeddedDocumentExtractor` returns a PDF inline image by id.
-- datashare: option wiring on both CLI surfaces; B-stage tests proving it appends once, is a no-op on a second run, and parses a root holding several QR images only once (standalone, cached embed, uncached embed in a PDF).
+- datashare: option wiring on both CLI surfaces; B-stage tests proving it appends once, is a no-op on a second run, and parses a root holding several QR images only once (standalone, cached embed, uncached email attachment).
 - Test fixtures must be generated QR images, never real corpus files.
