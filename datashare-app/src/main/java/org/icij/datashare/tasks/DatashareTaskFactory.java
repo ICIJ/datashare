@@ -2,8 +2,10 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.user.User;
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.function.Function;
@@ -50,7 +52,7 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
     StructuredEntityExtractionTask createStructuredEntityExtractionTask(Task<StructuredEntityExtractionResult> taskView,
                                                                         Function<Double, Void> updateCallback);
 
-    GenApiKeyTask createGenApiKey(User user);
+    GenApiKeyTask createGenApiKey(User user, @Nullable Date expirationDate);
 
     DelApiKeyTask createDelApiKey(User user);
 

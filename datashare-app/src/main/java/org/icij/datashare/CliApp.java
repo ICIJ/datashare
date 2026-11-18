@@ -1021,7 +1021,7 @@ class CliApp {
     static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName) throws Exception {
         // GenApiKeyTask logs the generation itself, so nothing is logged here: two near-identical
         // lines per invocation is noise, and the key belongs on stdout, not in the log
-        String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
+        String secretKey = taskFactory.createGenApiKey(localUser(userName), null).call();
         System.out.println(secretKey);
         return EXIT_SUCCESS;
     }
