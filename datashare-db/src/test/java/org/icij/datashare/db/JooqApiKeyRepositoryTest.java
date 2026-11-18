@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Date;
+import java.util.TimeZone;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -71,6 +72,18 @@ public class JooqApiKeyRepositoryTest {
         repository.save(new DatashareApiKey(User.local()));
 
         assertThat(repository.get(User.local()).getExpirationDate()).isNull();
+    }
+
+    @Test
+    public void test_creation_date_round_trips_outside_utc() throws NoSuchAlgorithmException {
+        TimeZone defaultZone = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"));
+        try {
+            repository.save(new DatashareApiKey(User.local()));
+            assertThat(repository.get(User.local()).getCreationDate()).isEqualTo(time.now());
+        } finally {
+            TimeZone.setDefault(defaultZone);
+        }
     }
 
     @Test

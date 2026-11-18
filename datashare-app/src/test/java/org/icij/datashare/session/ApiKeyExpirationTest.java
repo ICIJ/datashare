@@ -86,6 +86,16 @@ public class ApiKeyExpirationTest {
         new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "90d")));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_negative_max_lifetime_throws() {
+        new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "-P90D")));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_zero_max_lifetime_throws() {
+        new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "PT0S")));
+    }
+
     private static ApiKey apiKey(String creationDate, String expirationDate) {
         Date expiration = expirationDate == null ? null : date(expirationDate);
         return new DatashareApiKey("hash", User.local(), date(creationDate), expiration);
