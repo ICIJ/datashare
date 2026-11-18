@@ -51,6 +51,7 @@ public final class DatashareCliOptions {
     public static final String CREATE_INDEX_OPT = "createIndex";
     public static final String CRE_API_KEY_ABBR_OPT = "k";
     public static final String CRE_API_KEY_OPT = "createApiKey";
+    public static final String API_KEY_EXPIRATION_DATE_OPT = "apiKeyExpirationDate";
     public static final String DATA_DIR_ABBR_OPT = "d";
     public static final String DATA_SOURCE_URL_OPT = "dataSourceUrl";
     public static final String DEFAULT_OCR_TYPE = "TESSERACT";
@@ -405,6 +406,12 @@ public final class DatashareCliOptions {
     static void sessionTtlSeconds(OptionParser parser) {
         parser.acceptsAll(singletonList(SESSION_TTL_SECONDS_OPT), "Time to live for a HTTP session in seconds")
               .withRequiredArg().ofType(Integer.class).defaultsTo(DEFAULT_SESSION_TTL_SECONDS);
+    }
+
+    static void apiKeyMaxLifetime(OptionParser parser) {
+        parser.acceptsAll(singletonList(API_KEY_MAX_LIFETIME_OPT),
+                          "Maximum lifetime of API keys as an ISO-8601 duration (e.g. P90D). Unset means no limit.")
+              .withRequiredArg().ofType(String.class);
     }
 
     static void protectedUriPrefix(OptionParser parser) {

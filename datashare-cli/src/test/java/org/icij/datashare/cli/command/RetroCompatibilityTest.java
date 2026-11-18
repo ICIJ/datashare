@@ -129,6 +129,7 @@ public class RetroCompatibilityTest {
         assertPropertyEqual(legacy, picocli, "followSymlinks");
         assertPropertyEqual(legacy, picocli, "browserOpenLink");
         assertPropertyEqual(legacy, picocli, "sessionTtlSeconds");
+        assertPropertyEqual(legacy, picocli, "apiKeyMaxLifetime");
         assertPropertyEqual(legacy, picocli, "redisPoolSize");
         assertPropertyEqual(legacy, picocli, "scrollSize");
         assertPropertyEqual(legacy, picocli, "scrollSlices");
