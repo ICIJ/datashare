@@ -12,7 +12,6 @@ import org.icij.datashare.user.User;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import javax.sql.DataSource;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
@@ -53,7 +52,7 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
     @Override
     public boolean save(ApiKey apiKey) {
         DSLContext ctx = using(connectionProvider, dialect);
-        LocalDateTime now = new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime();
+        LocalDateTime now = toUtcLocalDateTime(DatashareTime.getInstance().now());
         LocalDateTime expirationDate = toUtcLocalDateTime(apiKey.getExpirationDate());
         return ctx.insertInto(API_KEY, API_KEY.ID, API_KEY.USER_ID, API_KEY.CREATION_DATE, API_KEY.EXPIRATION_DATE)
                   .values(apiKey.getId(), apiKey.getUser().id, now, expirationDate).onConflict(API_KEY.USER_ID)

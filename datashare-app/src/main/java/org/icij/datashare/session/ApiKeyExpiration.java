@@ -62,10 +62,15 @@ public class ApiKeyExpiration {
     }
 
     private static Duration parse(String maxLifetime) {
+        Duration duration;
         try {
-            return Duration.parse(maxLifetime);
+            duration = Duration.parse(maxLifetime);
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("invalid " + API_KEY_MAX_LIFETIME_OPT + ": " + maxLifetime, e);
         }
+        if (duration.isNegative() || duration.isZero()) {
+            throw new IllegalArgumentException(API_KEY_MAX_LIFETIME_OPT + " must be positive: " + maxLifetime);
+        }
+        return duration;
     }
 }
