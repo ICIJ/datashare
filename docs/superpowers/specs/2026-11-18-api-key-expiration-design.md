@@ -42,7 +42,7 @@ API keys never expire today. A leaked key works forever. Add an expiration date 
 - **Check:** `ApiKeyStoreAdapter.getLogin` returns `null` when `now > effectiveExpiry`, using `DatashareTime` so tests can freeze time.
 - **Create:**
   - REST `PUT /api/key/:userId` accepts an optional JSON body `{"expirationDate": "<ISO-8601 instant>"}`. Empty body still works.
-  - CLI `datashare api-key create alice --expiration-date 2027-02-01` (picocli `ApiKeyCreateCommand`, plus the JOpt equivalent).
+  - CLI `datashare api-key create alice --expiration-date 2027-02-01` (picocli `ApiKeyCreateCommand` only; legacy `-k` stays non-expiring).
   - No expiration given and cap set: expiration = now + cap. Requested expiration beyond now + cap, or in the past: 400 (CLI: non-zero exit with message).
 - **Read:** `GET /api/key/:userId` returns `{"hashedKey": ..., "expirationDate": <effective expiry or null>}`. Adding a field is backward compatible for the client.
 
