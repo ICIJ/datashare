@@ -651,7 +651,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
                     resolveWfTaskQueue(routingStrategy, WorkflowRegistry.buildWorkflowKeyFrom(IndexationWorkflow.class),
                                        group);
             registry.registerWorkflow(IndexationWorkflowImpl.class, indexationQueue);
-            registry.registerActivity(new ScanActivityImpl(temporal), indexationQueue);
+            registry.registerActivity(new ScanActivityImpl(temporal, propertiesProvider), indexationQueue);
             registry.registerActivity(new IndexActivityImpl(get(Indexer.class), get(LanguageGuesser.class)),
                                       indexationQueue);
             // this process serves everything it discovered; a distributed deployment would pass a subset of the queues
