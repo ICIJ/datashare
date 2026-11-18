@@ -56,7 +56,8 @@ public class ApiKeyResource {
             description = "Creates a new private key and saves its SHA384 hash into database for current user. Accepts an optional JSON body with an ISO-8601 expiration date, e.g. {\"expirationDate\":\"2027-02-01T00:00:00Z\"}. Only available in SERVER mode.")
     @ApiResponse(responseCode = "201", description = "returns the api key JSON", content = {@Content(
             examples = {@ExampleObject(value = "{\"apiKey\":\"SrcasvUmaAD6NsZ3+VmUkFFWVfRggIRNmWR5aHx7Kfc=\"}")})})
-    @ApiResponse(responseCode = "400", description = "if the expiration date is invalid, in the past or beyond the maximum lifetime")
+    @ApiResponse(responseCode = "400",
+            description = "if the expiration date is invalid, in the past or beyond the maximum lifetime")
     @Put("/:userId")
     public Payload createKey(
             @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,

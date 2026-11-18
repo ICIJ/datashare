@@ -5,12 +5,10 @@ import com.google.inject.Singleton;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.ApiKey;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
-
 import static org.icij.datashare.cli.DatashareCliOptions.API_KEY_MAX_LIFETIME_OPT;
 
 @Singleton
