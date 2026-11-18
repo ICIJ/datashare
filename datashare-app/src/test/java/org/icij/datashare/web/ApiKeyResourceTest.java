@@ -25,7 +25,7 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     public void test_generate_key() throws Exception {
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("privateKey");
-        when(taskFactory.createGenApiKey(User.local())).thenReturn(task);
+        when(taskFactory.createGenApiKey(User.local(), null)).thenReturn(task);
 
         put("/api/key/" + User.local().id).should().respond(201).haveType("application/json").contain("privateKey");
         put("/api/key/" + User.local().id).should().respond(201).haveType("application/json").contain("privateKey");

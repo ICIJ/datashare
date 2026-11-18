@@ -54,7 +54,7 @@ public class CliAppTaskDispatchTest {
         // `datashare --createApiKey alice | read KEY` must keep working
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("the-generated-key");
-        when(taskFactory.createGenApiKey(any())).thenReturn(task);
+        when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
 
         assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice")).isEqualTo(CliApp.EXIT_SUCCESS);
 
@@ -67,7 +67,7 @@ public class CliAppTaskDispatchTest {
         // stdout-only assertion would pass even if the secret were logged
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("the-generated-key");
-        when(taskFactory.createGenApiKey(any())).thenReturn(task);
+        when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
 
         CliApp.handleApiKeyCreate(taskFactory, "alice");
 
