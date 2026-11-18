@@ -67,6 +67,9 @@ public class ServerOptions {
     String sessionSigningKey;
     @Option(names = {"--sessionTtlSeconds"}, description = "Session TTL in seconds", defaultValue = "43200")
     int sessionTtlSeconds;
+    @Option(names = {"--apiKeyMaxLifetime"},
+            description = "Maximum lifetime of API keys as an ISO-8601 duration (e.g. P90D). Unset means no limit.")
+    String apiKeyMaxLifetime;
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
     QueueType sessionStoreType;
     // Batch / Download
@@ -135,6 +138,7 @@ public class ServerOptions {
         DatashareOptions.putIfNotNull(props, AUTH_FILTER_OPT, authFilter);
         DatashareOptions.putIfNotNull(props, SESSION_SIGNING_KEY_OPT, sessionSigningKey);
         DatashareOptions.put(props, SESSION_TTL_SECONDS_OPT, sessionTtlSeconds);
+        DatashareOptions.putIfNotNull(props, API_KEY_MAX_LIFETIME_OPT, apiKeyMaxLifetime);
         DatashareOptions.putIfNotNull(props, SESSION_STORE_TYPE_OPT, sessionStoreType);
 
         DatashareOptions.putIfNotNull(props, BATCH_SEARCH_MAX_TIME_OPT, batchSearchMaxTimeSeconds);
