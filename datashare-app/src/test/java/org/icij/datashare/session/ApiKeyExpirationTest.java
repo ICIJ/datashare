@@ -81,7 +81,25 @@ public class ApiKeyExpirationTest {
         noCap.expirationForNewKey(date("2025-12-31T00:00:00Z"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
+    public void test_beyond_cap_message_shows_configured_lifetime() {
+        Date requested = date("2026-04-01T00:00:01Z");
+
+        try {
+            cap90Days.expirationForNewKey(requested);
+        } catch (ApiKeyExpiration.InvalidExpirationException e) {
+            assertThat(e.getMessage()).isEqualTo("expiration date exceeds the maximum lifetime of P90D");
+            return;
+        }
+        throw new AssertionError("expected InvalidExpirationException");
+    }
+
+    @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
+    public void test_new_key_in_past_throws_invalid_expiration() {
+        noCap.expirationForNewKey(date("2025-12-31T00:00:00Z"));
+    }
+
+    @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
     public void test_invalid_max_lifetime_throws() {
         new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "90d")));
     }

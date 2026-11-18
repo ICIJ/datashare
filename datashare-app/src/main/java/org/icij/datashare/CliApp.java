@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.ProvisionException;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
@@ -20,6 +21,7 @@ import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.project.admin.ProjectStats;
+import org.icij.datashare.session.ApiKeyExpiration;
 import org.icij.datashare.tabular.DuplicateExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingReader;
@@ -31,6 +33,7 @@ import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.tasks.EnqueueFromIndexStage;
 import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreateRequest;
 import org.icij.datashare.user.admin.UserCreated;
@@ -966,9 +969,15 @@ class CliApp {
         String secretKey;
         try {
             Date expiration = parseExpirationDate(expirationDate);
-            secretKey = taskFactory.createGenApiKey(localUser(userName), expiration).call();
-        } catch (DateTimeParseException | IllegalArgumentException e) {
+            User user = localUser(userName);
+            secretKey = taskFactory.createGenApiKey(user, expiration).call();
+        } catch (DateTimeParseException | ApiKeyExpiration.InvalidExpirationException e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
+        } catch (ProvisionException e) {
+            if (!(e.getCause() instanceof ApiKeyExpiration.InvalidExpirationException)) {
+                throw e;
+            }
+            return error(e.getCause().getMessage(), "validation", EXIT_VALIDATION, false);
         }
         System.out.println(secretKey);
         return EXIT_SUCCESS;

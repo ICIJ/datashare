@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.errors.ForbiddenException;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -21,6 +22,7 @@ import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.user.ApiKey;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.User;
+import org.icij.datashare.utils.PayloadFormatter;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
@@ -65,10 +67,12 @@ public class ApiKeyResource {
         verifyOwnership(userId, context);
         String apiKey;
         try {
-            Date expirationDate = requestedExpirationDate(context.request().content());
-            apiKey = taskFactory.createGenApiKey(new User(userId), expirationDate).call();
-        } catch (IllegalArgumentException e) {
-            return new Payload(e.getMessage()).withCode(400);
+            String body = context.request().content();
+            Date expirationDate = requestedExpirationDate(body);
+            User user = new User(userId);
+            apiKey = taskFactory.createGenApiKey(user, expirationDate).call();
+        } catch (ApiKeyExpiration.InvalidExpirationException e) {
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
         return new Payload("application/json", Map.of("apiKey", apiKey), 201);
     }
@@ -83,10 +87,10 @@ public class ApiKeyResource {
             Context context) throws Exception {
         verifyOwnership(userId, context);
         User user = new User(userId);
-        String hashedKey = taskFactory.createGetApiKey(user).call();
+        ApiKey apiKey = apiKeyRepository.get(user);
         Map<String, Object> body = new HashMap<>();
-        body.put("hashedKey", hashedKey);
-        body.put("expirationDate", effectiveExpiration(user));
+        body.put("hashedKey", apiKey == null ? null : apiKey.getId());
+        body.put("expirationDate", effectiveExpiration(apiKey));
         return new Payload("application/json", body, 200);
     }
 
@@ -101,8 +105,7 @@ public class ApiKeyResource {
         return new Payload(204);
     }
 
-    private String effectiveExpiration(User user) {
-        ApiKey apiKey = apiKeyRepository.get(user);
+    private String effectiveExpiration(ApiKey apiKey) {
         Date expiration = apiKey == null ? null : apiKeyExpiration.effectiveExpiration(apiKey);
         return expiration == null ? null : expiration.toInstant().toString();
     }
@@ -112,14 +115,16 @@ public class ApiKeyResource {
             return null;
         }
         try {
-            JsonNode expirationDate = MAPPER.readTree(body).path("expirationDate");
+            JsonNode json = MAPPER.readTree(body);
+            JsonNode expirationDate = json.path("expirationDate");
             if (expirationDate.isMissingNode() || expirationDate.isNull()) {
                 return null;
             }
             Instant instant = Instant.parse(expirationDate.asText());
             return Date.from(instant);
         } catch (JsonProcessingException | DateTimeParseException e) {
-            throw new IllegalArgumentException("invalid expirationDate: expected an ISO-8601 instant", e);
+            throw new ApiKeyExpiration.InvalidExpirationException(
+                    "invalid expirationDate: expected an ISO-8601 instant", e);
         }
     }
 

@@ -7,7 +7,6 @@ import org.icij.datashare.session.ApiKeyExpiration;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
-import org.icij.datashare.tasks.GetApiKeyTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.DatashareApiKey;
@@ -68,37 +67,42 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_generate_key_rejected_by_policy_is_bad_request() throws Exception {
         GenApiKeyTask task = mock(GenApiKeyTask.class);
-        when(task.call()).thenThrow(new IllegalArgumentException("expiration date must be in the future"));
+        when(task.call()).thenThrow(
+                new ApiKeyExpiration.InvalidExpirationException("expiration date must be in the future"));
         when(taskFactory.createGenApiKey(User.local(), null)).thenReturn(task);
 
-        put("/api/key/" + User.local().id).should().respond(400).contain("expiration date must be in the future");
+        put("/api/key/" + User.local().id).should().respond(400).haveType("application/json")
+                .contain("{\"error\":\"expiration date must be in the future\"}");
+    }
+
+    @Test
+    public void test_generate_key_internal_illegal_argument_is_server_error() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenThrow(new IllegalArgumentException("internal detail"));
+        when(taskFactory.createGenApiKey(User.local(), null)).thenReturn(task);
+
+        put("/api/key/" + User.local().id).should().respond(500);
     }
 
     @Test
     public void test_get_key_returns_expiration_date() throws Exception {
-        GetApiKeyTask task = mock(GetApiKeyTask.class);
-        when(task.call()).thenReturn("hashedKeyUser");
-        when(taskFactory.createGetApiKey(User.local())).thenReturn(task);
         Date expiration = Date.from(Instant.parse("2027-02-01T00:00:00Z"));
         when(apiKeyRepository.get(User.local())).thenReturn(
                 new DatashareApiKey("hashedKeyUser", User.local(), new Date(), expiration));
 
-        get("/api/key/" + User.local().id).should().respond(200).contain("\"expirationDate\":\"2027-02-01T00:00:00Z\"");
+        get("/api/key/" + User.local().id).should().respond(200).contain("\"hashedKey\":\"hashedKeyUser\"")
+                .contain("\"expirationDate\":\"2027-02-01T00:00:00Z\"");
+        verify(apiKeyRepository, times(1)).get(User.local());
     }
 
     @Test
-    public void test_get_key_without_key_returns_null_expiration_date() throws Exception {
-        GetApiKeyTask task = mock(GetApiKeyTask.class);
-        when(taskFactory.createGetApiKey(User.local())).thenReturn(task);
-
+    public void test_get_key_without_key_returns_null_expiration_date() {
         get("/api/key/" + User.local().id).should().respond(200).contain("\"expirationDate\":null");
     }
 
     @Test
-    public void test_get_key() throws Exception {
-        GetApiKeyTask task = mock(GetApiKeyTask.class);
-        when(task.call()).thenReturn("hashedKeyUser");
-        when(taskFactory.createGetApiKey(User.local())).thenReturn(task);
+    public void test_get_key() {
+        when(apiKeyRepository.get(User.local())).thenReturn(new DatashareApiKey("hashedKeyUser", User.local()));
 
         get("/api/key/" + User.local().id).should().respond(200).haveType("application/json").contain("hashedKeyUser");
     }
