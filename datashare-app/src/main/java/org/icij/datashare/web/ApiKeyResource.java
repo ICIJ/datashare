@@ -45,7 +45,7 @@ public class ApiKeyResource {
             Context context) throws Exception {
         verifyOwnership(userId, context);
         return new Payload("application/json", new HashMap<String, String>() {{
-            put("apiKey", taskFactory.createGenApiKey(new User(userId)).call());
+            put("apiKey", taskFactory.createGenApiKey(new User(userId), null).call());
         }}, 201);
     }
 
