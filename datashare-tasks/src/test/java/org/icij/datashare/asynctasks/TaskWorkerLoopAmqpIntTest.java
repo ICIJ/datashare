@@ -17,6 +17,10 @@ import org.junit.Test;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -55,7 +59,11 @@ public class TaskWorkerLoopAmqpIntTest {
             @Override
             void handle(Task<?> task) {
                 super.handle(task);
-                sleep(300);
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
         startWorker(worker);
@@ -81,6 +89,41 @@ public class TaskWorkerLoopAmqpIntTest {
         assertThat(taskQueueStats().getConsumerCount()).isEqualTo(0);
     }
 
+    @Test(timeout = 10_000)
+    public void test_idle_worker_does_not_interrupt_the_delivery_thread_on_stop_and_close() throws Exception {
+        //This test ensures an idle AMQP worker that receives close() or stopAcceptingTasks()
+        //will not kill the Thread it used for previous task treatment, even if the Thread was reassigned
+        //in AMQP Thread pool
+        AtomicReference<Thread> deliveryThread = new AtomicReference<>();
+        AtomicBoolean deliveryThreadInterrupted = new AtomicBoolean(false);
+        CountDownLatch stopBusyWork = new CountDownLatch(1);
+        TaskWorkerLoop worker = new TaskWorkerLoop(new TestFactory(), supplier) {
+            @Override
+            void handle(Task<?> task) {
+                super.handle(task);
+                deliveryThread.set(Thread.currentThread());
+                while (stopBusyWork.getCount() > 0) {
+                    try {
+                        stopBusyWork.await(10, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        deliveryThreadInterrupted.set(true);
+                    }
+                }
+            }
+        };
+        startWorker(worker);
+        purgeTasks();
+        taskManager.startTask(TestFactory.Sleep.class.getName(), User.local(), Map.of("duration", 10)); //Task that the worker is completing
+        waitUntil(() -> deliveryThread.get() != null && worker.currentTask.get() == null);
+
+        worker.stopAcceptingTasks();
+        worker.close();
+        Thread.sleep(100);
+        stopBusyWork.countDown();
+
+        assertThat(deliveryThreadInterrupted.get()).isFalse();
+    }
+
     private List<TaskWorkerLoop> startWorkers(TaskSupplierAmqp taskSupplier, int nb) {
         return IntStream.range(0, nb).mapToObj(i -> startWorker(new TaskWorkerLoop(new TestFactory(), taskSupplier)))
                         .toList();
@@ -91,23 +134,6 @@ public class TaskWorkerLoopAmqpIntTest {
         thread.setDaemon(true);
         thread.start();
         return worker;
-    }
-
-    // close() interrupts the delivery thread: the delay has to outlast that to stand for a late ack
-    private static void sleep(long millis) {
-        long deadline = System.nanoTime() + Duration.ofMillis(millis).toNanos();
-        boolean interrupted = false;
-        long remaining;
-        while ((remaining = deadline - System.nanoTime()) > 0) {
-            try {
-                Thread.sleep(Math.max(1, remaining / 1_000_000));
-            } catch (InterruptedException e) {
-                interrupted = true;
-            }
-        }
-        if (interrupted) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     private void purgeTasks() throws Exception {

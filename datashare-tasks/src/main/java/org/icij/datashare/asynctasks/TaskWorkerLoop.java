@@ -32,7 +32,10 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     private volatile boolean exitAsked = false;
     private volatile boolean draining = false;
     private final Object stateLock = new Object(); // guards currentTask claim/release against stopAcceptingTasks
-    private volatile Thread loopThread;
+    // thread running currentTask: set by claim(), cleared by release(), under stateLock
+    private volatile Thread taskThread;
+    //Thread set only in mainLoop, for TaskSuppliers which require manual polling (Redis and Memory)
+    private volatile Thread pollThread;
     private int nbTasks = 0;
 
     public TaskWorkerLoop(TaskFactory factory, TaskSupplier taskSupplier) {
@@ -59,14 +62,18 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
 
         taskSupplier.addEventListener((event -> {
             if (event instanceof ShutdownEvent) {
+                logger.atInfo().log("Received ShutdownEvent {}", event);
+
                 closeAsync(); // for sending ack
                 // TODO: python alignment possible, in Python if the
                 //  worker.negative_acknowledge(task_id, requeue) succeeds the worker doesn't wait
                 //  for confirmation by the task manager to consider the task nacked (this works for
                 //  AMQP where the nack is transactional, does it work for Redis ?)
             } else if (event instanceof CancelledEvent cancelledEvent) {
+                logger.atInfo().log("Received CancelledEvent {}", event);
                 cancelledTasks.remove(cancelledEvent.taskId);
             } else if (event instanceof CancelEvent cancelEvent) {
+                logger.atInfo().log("Received CancelEvent {}", event);
                 cancel(cancelEvent.taskId, cancelEvent.requeue);
             }
         }));
@@ -75,6 +82,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     public Integer call() {
         waitForMainLoopCalled.countDown();
         if (taskSupplier instanceof TaskSupplierAmqp) {
+            logger.atInfo().log("Using TaskSupplierAMQP, polling is made by AMQP");
             taskSupplier.consumeTasks(this::handle);
             taskSupplier.waitForConsumer();
             return nbTasks;
@@ -84,28 +92,31 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     }
 
     private Integer mainLoop() {
-        loopThread = Thread.currentThread();
-        Task<Serializable> task;
-        logger.info("Waiting tasks from supplier ({})", taskSupplier.getClass());
-        while (!exitAsked) {
-            try {
-                task = taskSupplier.get(pollTimeMillis, TimeUnit.MILLISECONDS);
-                if (task != null) {
-                    handle(task);
+        pollThread = Thread.currentThread();
+        try {
+            Task<Serializable> task;
+            logger.info("Waiting tasks from supplier ({})", taskSupplier.getClass());
+            while (!exitAsked) {
+                try {
+                    task = taskSupplier.get(pollTimeMillis, TimeUnit.MILLISECONDS);
+                    if (task != null) {
+                        handle(task);
+                    }
+                } catch (InterruptedException e) {
+                    logger.info("get from task supplier has been interrupted");
+                } catch (NackException nex) {
+                    logger.error("fatal error in handle(task)", nex);
                 }
-            } catch (InterruptedException e) {
-                logger.info("get from task supplier has been interrupted");
-            } catch (NackException nex) {
-                logger.error("fatal error in handle(task)", nex);
             }
+            logger.info("Exiting loop after {} tasks", nbTasks);
+            Thread.currentThread().interrupt();
+            return nbTasks;
+        } finally {
+            pollThread = null;
         }
-        logger.info("Exiting loop after {} tasks", nbTasks);
-        loopThread.interrupt();
-        return nbTasks;
     }
 
     void handle(Task<?> task) {
-        loopThread = Thread.currentThread();
         if (!claim(task)) {
             // the task was already taken from the queue when the shutdown started: give it back
             Thread.interrupted(); // clears the flag possibly set by stopAcceptingTasks while we were polling
@@ -176,6 +187,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 return false;
             }
             currentTask.set(task);
+            taskThread = Thread.currentThread();
             return true;
         }
     }
@@ -183,6 +195,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     private void release() {
         synchronized (stateLock) {
             currentTask.set(null);
+            taskThread = null;
             stateLock.notifyAll();
         }
     }
@@ -197,7 +210,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
             draining = true;
             exit();
             if (currentTask.get() == null) {
-                ofNullable(loopThread).ifPresent(Thread::interrupt); // wakes up the poll
+                ofNullable(pollThread).ifPresent(Thread::interrupt); // wakes up the poll of mainLoop
             }
         }
         // outside the lock: this talks to the broker. A delivery already in flight is requeued by handle()
@@ -219,8 +232,14 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
             logger.warn("task {} still running after {}, cancelling it with requeue", running.id, timeout);
             cancel(running.id, true);
             if (!waitForRelease(CANCEL_GRACE_PERIOD)) {
-                logger.warn("task {} did not stop after cancellation, interrupting it", running.id);
-                ofNullable(loopThread).ifPresent(Thread::interrupt);
+                synchronized (stateLock) {
+                    if (currentTask.get() ==
+                        running) { //Ensure the task has not finished right after the waitForRelease call.
+                        //Else we would call interrupt on a Thread that could have gone back to the ThreadPool
+                        logger.warn("task {} did not stop after cancellation, interrupting it", running.id);
+                        ofNullable(taskThread).ifPresent(Thread::interrupt);
+                    }
+                }
             }
         }
     }
@@ -257,7 +276,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
     @Override
     public void close() throws IOException {
         exit();
-        ofNullable(loopThread).ifPresent(Thread::interrupt);
+        ofNullable(pollThread).ifPresent(Thread::interrupt); //Wakes up the poll of mainLoop
         taskSupplier.close();
     }
 
