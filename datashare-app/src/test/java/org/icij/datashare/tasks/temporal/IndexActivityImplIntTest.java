@@ -3,6 +3,7 @@ package org.icij.datashare.tasks.temporal;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import io.temporal.client.WorkflowOptions;
 import java.io.Closeable;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,8 @@ import org.junit.rules.TemporaryFolder;
 public class IndexActivityImplIntTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
+    @Rule
+    public TemporaryFolder outside = new TemporaryFolder();
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
     @ClassRule
@@ -65,6 +68,18 @@ public class IndexActivityImplIntTest {
 
     @Test
     public void test_scan_honors_the_scan_options() throws Exception {
+        assertThat(scan(ScanOptions.builder().excludePattern("**").build(), "excluded")).isEqualTo(0L);
+    }
+
+    @Test
+    public void test_scan_never_follows_a_link_out_of_the_data_dir() throws Exception {
+        Files.writeString(outside.getRoot().toPath().resolve("secret.txt"), "outside the data dir");
+        Files.createSymbolicLink(tmp.getRoot().toPath().resolve("link"), outside.getRoot().toPath());
+
+        assertThat(scan(ScanOptions.builder().followSymlinks(true).build(), "links")).isEqualTo(1L);
+    }
+
+    private Long scan(ScanOptions scanOptions, String workflowIdSuffix) throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider();
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(IndexationWorkflowImpl.class, WORKFLOWS_DEFAULT);
@@ -73,18 +88,16 @@ public class IndexActivityImplIntTest {
         registry.registerActivity(new IndexActivityImpl(
                 new ElasticsearchIndexer(es.client, propertiesProvider), text -> Language.ENGLISH), WORKFLOWS_DEFAULT);
 
-        Long scanned;
         try (Closeable ignored = new TemporalWorkers(temporal.interlocutor()).start(registry, List.of(WORKFLOWS_DEFAULT),
                                                        new TemporalWorkerOptions(1))) {
-            scanned = temporal.interlocutor().newWorkflowStub(IndexationWorkflow.class,
+            return temporal.interlocutor().newWorkflowStub(IndexationWorkflow.class,
                                                  WorkflowOptions.newBuilder().setTaskQueue(WORKFLOWS_DEFAULT)
-                                                                .setWorkflowId(es.getIndexName() + "-excluded").build())
-                    .run(ScanOptions.builder().excludePattern("**").build(), tmp.getRoot().toPath(), es.getIndexName(),
+                                                                .setWorkflowId(es.getIndexName() + "-" + workflowIdSuffix)
+                                                                .build())
+                    .run(scanOptions, tmp.getRoot().toPath(), es.getIndexName(),
                          IndexOptions.fromPropertiesProvider(propertiesProvider),
                          propertiesProvider.toRecord(ArtifactOptions.class));
         }
-
-        assertThat(scanned).isEqualTo(0L);
     }
 
     @Before
