@@ -134,6 +134,7 @@ public final class DatashareCliOptions {
     public static final String SESSION_SIGNING_KEY_OPT = "sessionSigningKey";
     public static final String SESSION_STORE_TYPE_OPT = "sessionStoreType";
     public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
+    public static final String API_KEY_MAX_LIFETIME_OPT = "apiKeyMaxLifetime";
     public static final String STATUS_ALLOWED_NETS_OPT = "statusAllowedNets";
     public static final String MAX_HTTP_BODY_SIZE_OPT = "maxHttpBodySize";
     public static final String SETTING_ABBR_OPT = "s";
