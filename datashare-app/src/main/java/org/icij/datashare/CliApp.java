@@ -1023,8 +1023,8 @@ class CliApp {
      * The generated key is the command's result, not a diagnostic: it goes to stdout so
      * `datashare --createApiKey alice | read KEY` keeps working now that logs go to stderr (#2442).
      */
-    static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName, String expirationDate)
-            throws Exception {
+    static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName, String expirationDate) throws
+            Exception {
         // GenApiKeyTask logs the generation itself, so nothing is logged here: two near-identical
         // lines per invocation is noise, and the key belongs on stdout, not in the log
         String secretKey;

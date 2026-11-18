@@ -56,12 +56,10 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
         LocalDateTime now = new Timestamp(DatashareTime.getInstance().currentTimeMillis()).toLocalDateTime();
         LocalDateTime expirationDate = toUtcLocalDateTime(apiKey.getExpirationDate());
         return ctx.insertInto(API_KEY, API_KEY.ID, API_KEY.USER_ID, API_KEY.CREATION_DATE, API_KEY.EXPIRATION_DATE)
-                  .values(apiKey.getId(), apiKey.getUser().id, now, expirationDate)
-                  .onConflict(API_KEY.USER_ID).doUpdate()
-                  .set(API_KEY.ID, apiKey.getId())
-                  .set(API_KEY.CREATION_DATE, now)
-                  .set(API_KEY.EXPIRATION_DATE, expirationDate)
-                  .where(API_KEY.USER_ID.eq(apiKey.getUser().id)).execute() > 0;
+                  .values(apiKey.getId(), apiKey.getUser().id, now, expirationDate).onConflict(API_KEY.USER_ID)
+                  .doUpdate().set(API_KEY.ID, apiKey.getId()).set(API_KEY.CREATION_DATE, now)
+                  .set(API_KEY.EXPIRATION_DATE, expirationDate).where(API_KEY.USER_ID.eq(apiKey.getUser().id))
+                  .execute() > 0;
 
     }
 
