@@ -16,6 +16,12 @@ public class ApiKeyCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_api_key_create_with_max_lifetime() {
+        Properties props = parse("api-key", "create", "alice", "--apiKeyMaxLifetime", "P90D");
+        assertThat(props).includes(entry("apiKeyMaxLifetime", "P90D"));
+    }
+
+    @Test
     public void test_api_key_create_without_expiration_date() {
         Properties props = parse("api-key", "create", "alice");
         assertThat(props.getProperty("apiKeyExpirationDate")).isNull();

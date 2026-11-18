@@ -6,6 +6,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import java.util.Properties;
 import static org.icij.datashare.cli.DatashareCliOptions.API_KEY_EXPIRATION_DATE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.API_KEY_MAX_LIFETIME_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.CRE_API_KEY_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 
@@ -18,6 +19,9 @@ public class ApiKeyCreateCommand implements Runnable, DatashareSubcommand {
     String user;
     @Option(names = {"--expiration-date"}, description = "Expiration date of the key (YYYY-MM-DD, UTC)")
     String expirationDate;
+    @Option(names = {"--apiKeyMaxLifetime"},
+            description = "Maximum lifetime of API keys as an ISO-8601 duration (e.g. P90D). Unset means no limit.")
+    String apiKeyMaxLifetime;
 
     @Override
     public void run() {
@@ -29,6 +33,7 @@ public class ApiKeyCreateCommand implements Runnable, DatashareSubcommand {
         DatashareOptions.put(props, MODE_OPT, Mode.CLI);
         DatashareOptions.put(props, CRE_API_KEY_OPT, user);
         DatashareOptions.putIfNotNull(props, API_KEY_EXPIRATION_DATE_OPT, expirationDate);
+        DatashareOptions.putIfNotNull(props, API_KEY_MAX_LIFETIME_OPT, apiKeyMaxLifetime);
         return props;
     }
 }
