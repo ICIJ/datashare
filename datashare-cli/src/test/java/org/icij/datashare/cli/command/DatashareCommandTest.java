@@ -230,6 +230,18 @@ public class DatashareCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_api_key_max_lifetime() {
+        Properties props = parse("app", "start", "--apiKeyMaxLifetime", "P90D");
+        assertThat(props).includes(entry("apiKeyMaxLifetime", "P90D"));
+    }
+
+    @Test
+    public void test_api_key_max_lifetime_has_no_default() {
+        Properties props = parse("app", "start");
+        assertThat(props.getProperty("apiKeyMaxLifetime")).isNull();
+    }
+
+    @Test
     public void test_session_ttl_default() {
         Properties props = parse("app", "start");
         assertThat(props).includes(entry("sessionTtlSeconds", "43200"));

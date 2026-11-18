@@ -51,6 +51,9 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -125,7 +128,9 @@ class CliApp {
         }
 
         if (properties.getProperty(CRE_API_KEY_OPT) != null) {
-            System.exit(handleApiKeyCreate(taskFactory, properties.getProperty(CRE_API_KEY_OPT)));
+            String userName = properties.getProperty(CRE_API_KEY_OPT);
+            String expirationDate = properties.getProperty(API_KEY_EXPIRATION_DATE_OPT);
+            System.exit(handleApiKeyCreate(taskFactory, userName, expirationDate));
         }
 
         if (properties.getProperty(GET_API_KEY_OPT) != null) {
@@ -954,12 +959,27 @@ class CliApp {
      * The generated key is the command's result, not a diagnostic: it goes to stdout so
      * `datashare --createApiKey alice | read KEY` keeps working now that logs go to stderr (#2442).
      */
-    static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName) throws Exception {
+    static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName, String expirationDate)
+            throws Exception {
         // GenApiKeyTask logs the generation itself, so nothing is logged here: two near-identical
         // lines per invocation is noise, and the key belongs on stdout, not in the log
-        String secretKey = taskFactory.createGenApiKey(localUser(userName), null).call();
+        String secretKey;
+        try {
+            Date expiration = parseExpirationDate(expirationDate);
+            secretKey = taskFactory.createGenApiKey(localUser(userName), expiration).call();
+        } catch (DateTimeParseException | IllegalArgumentException e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
+        }
         System.out.println(secretKey);
         return EXIT_SUCCESS;
+    }
+
+    private static Date parseExpirationDate(String expirationDate) {
+        if (expirationDate == null) {
+            return null;
+        }
+        Instant startOfDay = LocalDate.parse(expirationDate).atStartOfDay(ZoneOffset.UTC).toInstant();
+        return Date.from(startOfDay);
     }
 
     /**

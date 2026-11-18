@@ -10,6 +10,18 @@ import static org.fest.assertions.MapAssert.entry;
 public class ApiKeyCommandTest extends AbstractDatashareCommandTest {
 
     @Test
+    public void test_api_key_create_with_expiration_date() {
+        Properties props = parse("api-key", "create", "alice", "--expiration-date", "2027-02-01");
+        assertThat(props).includes(entry("apiKeyExpirationDate", "2027-02-01"));
+    }
+
+    @Test
+    public void test_api_key_create_without_expiration_date() {
+        Properties props = parse("api-key", "create", "alice");
+        assertThat(props.getProperty("apiKeyExpirationDate")).isNull();
+    }
+
+    @Test
     public void test_api_key_create() {
         Properties props = parse("api-key", "create", "alice");
         assertThat(props).includes(entry("mode", "CLI"));

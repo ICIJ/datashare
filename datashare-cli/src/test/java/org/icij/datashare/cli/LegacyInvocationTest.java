@@ -38,6 +38,11 @@ public class LegacyInvocationTest {
     }
 
     @Test
+    public void test_api_key_max_lifetime() {
+        assertThat(parse("--apiKeyMaxLifetime", "P90D")).includes(entry("apiKeyMaxLifetime", "P90D"));
+    }
+
+    @Test
     public void test_default_mode_is_local() {
         assertThat(parse("")).includes(entry("mode", "LOCAL"));
     }
