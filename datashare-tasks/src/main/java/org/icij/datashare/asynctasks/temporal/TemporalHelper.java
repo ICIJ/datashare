@@ -71,12 +71,25 @@ public class TemporalHelper {
         try {
             return taskFn.apply(payload);
         } catch (Exception e) {
-            if (retriables.stream().anyMatch(r -> r.isInstance(e))) {
+            //InterruptException can be thrown by tasks during shutdown of the worker, in which case it should be retried on another worker in Temporal
+            if (causedByInterrupt(e) || retriables.stream().anyMatch(r -> r.isInstance(e))) {
                 throw e;
             }
             throw ApplicationFailure.newNonRetryableFailureWithCause("Non retryable failure occurred", e.getMessage(),
                                                                      e);
         }
+    }
+
+    private static boolean causedByInterrupt(Throwable throwable) {
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            if (cause instanceof InterruptedException) {
+                return true;
+            }
+            if (cause == cause.getCause()) {
+                break;
+            }
+        }
+        return false;
     }
 
     protected static <P, R> R taskWrapper(Function<P, R> taskFn, P payload) {
