@@ -156,7 +156,11 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                     taskSupplier.canceled(currentTask.get(), cex.requeue);
                 } catch (InterruptedException iex) {
                     logger.error("task {} interrupted, cancelling it", currentTask.get(), iex);
-                    ofNullable(currentTask.get()).ifPresent(t -> taskSupplier.canceled(t, false));
+                    // TODO : as written in the CancelException handling block, some tasks throws InterruptedException
+                    //  instead of CancelException and ignores the requeue param. In this case we need to retrieve it manually
+                    //  The rework of those tasks in the future is good, but this preventive check can stay
+                    boolean requeue = cancelledTasks.getOrDefault(task.id, false);
+                    ofNullable(currentTask.get()).ifPresent(t -> taskSupplier.canceled(t, requeue));
                 } catch (RuntimeException ex) {
                     logger.error("error running task {}", currentTask.get(), ex);
                     if (currentTask.get() != null && !currentTask.get().isNull()) {
