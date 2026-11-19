@@ -44,6 +44,14 @@ public class ApiKeyExpirationTest {
     }
 
     @Test
+    public void test_blank_max_lifetime_means_no_cap() {
+        ApiKeyExpiration blankCap = new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", " ")));
+        ApiKey apiKey = apiKey("2020-01-01T00:00:00Z", null);
+
+        assertThat(blankCap.isExpired(apiKey)).isFalse();
+    }
+
+    @Test
     public void test_old_key_without_expiration_is_capped_from_creation() {
         ApiKey apiKey = apiKey("2025-09-01T00:00:00Z", null);
 
