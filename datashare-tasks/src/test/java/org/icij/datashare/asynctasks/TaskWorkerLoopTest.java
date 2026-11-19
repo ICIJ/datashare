@@ -121,6 +121,59 @@ public class TaskWorkerLoopTest {
         verify(supplier).canceled(eq(taskView), eq(false));
     }
 
+    @Test(timeout = 2000)
+    public void test_cancel_task_throwing_interrupted_exception_is_requeued_when_requested() throws Exception {
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
+        Task<Serializable> taskView = new Task<>(TestFactory.InterruptedOnCancel.class.getName(), User.local(), Map.of());
+        Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView);
+        CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
+
+        Thread appThread = new Thread(app::call);
+        appThread.start();
+        assertThat(taskStarted.await(1, TimeUnit.SECONDS)).isTrue();
+        app.cancel(taskView.id, true);
+        app.exit();
+        appThread.join();
+
+        verify(supplier).canceled(eq(taskView), eq(true));
+    }
+
+    @Test(timeout = 2000)
+    public void test_cancel_task_throwing_interrupted_exception_is_not_requeued_when_not_requested() throws Exception {
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
+        Task<Serializable> taskView = new Task<>(TestFactory.InterruptedOnCancel.class.getName(), User.local(), Map.of());
+        Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView);
+        CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
+
+        Thread appThread = new Thread(app::call);
+        appThread.start();
+        assertThat(taskStarted.await(1, TimeUnit.SECONDS)).isTrue();
+        app.cancel(taskView.id, false);
+        app.exit();
+        appThread.join();
+
+        verify(supplier).canceled(eq(taskView), eq(false));
+    }
+
+    @Test(timeout = 5000)
+    public void test_graceful_shutdown_requeues_task_throwing_interrupted_exception_when_timeout_is_reached()
+            throws Exception {
+        TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
+        Task<Serializable> task = new Task<>(TestFactory.InterruptedOnCancel.class.getName(), User.local(), Map.of());
+        when(supplier.get(anyInt(), any())).thenReturn(task).thenReturn(null);
+        CountDownLatch started = whenTaskHasStarted(task.id);
+        Thread appThread = new Thread(app::call);
+        appThread.start();
+        assertThat(started.await(1, TimeUnit.SECONDS)).isTrue();
+
+        app.stopAcceptingTasks();
+        app.awaitCurrentTask(Duration.ofMillis(200));
+        appThread.join();
+
+        verify(supplier).canceled(eq(task), eq(true));
+        verify(supplier, never()).result(any(), any());
+    }
+
     @Test(timeout = 5000)
     public void test_graceful_shutdown_lets_running_task_finish() throws Exception {
         TaskWorkerLoop app = new TaskWorkerLoop(registry, supplier);
