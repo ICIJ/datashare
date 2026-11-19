@@ -3,7 +3,10 @@ package org.icij.datashare.web;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
+import net.codestory.http.security.Users;
 import org.icij.datashare.session.ApiKeyExpiration;
+import org.icij.datashare.session.ApiKeyFilter;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
@@ -138,6 +141,19 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_delete_key_for_other_user_is_forbidden() {
         delete("/api/key/other-user").should().respond(403);
+    }
+
+    @Test
+    public void test_generate_key_with_api_key_is_forbidden() {
+        Users users = mock(Users.class);
+        when(users.find("local")).thenReturn(new DatashareUser(User.local()));
+        ApiKeyResource resource = new ApiKeyResource(taskFactory, apiKeyRepository,
+                                                     new ApiKeyExpiration(new PropertiesProvider()));
+        ApiKeyFilter apiKeyFilter = new ApiKeyFilter(users, key -> "local", null);
+        configure(routes -> routes.add(resource).filter(apiKeyFilter));
+
+        put("/api/key/" + User.local().id).withHeader("Authorization", "Bearer some-key").should().respond(403);
+        verify(taskFactory, never()).createGenApiKey(any(), any());
     }
 
     @Before
