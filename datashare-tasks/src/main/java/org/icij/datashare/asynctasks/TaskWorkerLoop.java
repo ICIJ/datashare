@@ -109,7 +109,6 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
                 }
             }
             logger.info("Exiting loop after {} tasks", nbTasks);
-            Thread.currentThread().interrupt();
             return nbTasks;
         } finally {
             pollThread = null;
@@ -178,6 +177,7 @@ public class TaskWorkerLoop implements Callable<Integer>, Closeable {
             }
         } finally {
             release();
+            Thread.interrupted(); // Avoid giving back the thread with an interrupted flag
         }
     }
 
