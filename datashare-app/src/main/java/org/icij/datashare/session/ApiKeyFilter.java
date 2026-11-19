@@ -70,7 +70,7 @@ public class ApiKeyFilter implements Filter {
         AUTHENTICATED.add(context);
     }
 
-    static boolean isAuthenticated(Context context) {
+    public static boolean isAuthenticated(Context context) {
         return AUTHENTICATED.contains(context);
     }
 
