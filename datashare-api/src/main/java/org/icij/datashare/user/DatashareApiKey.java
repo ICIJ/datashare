@@ -24,8 +24,12 @@ public class DatashareApiKey implements ApiKey {
     }
 
     public DatashareApiKey(SecretKey secretKey, User user, Date expirationDate) {
-        this(DEFAULT_DIGESTER.hash(getBase64Encoded(secretKey)), user, DatashareTime.getInstance().now(),
-             expirationDate);
+        this(hash(secretKey), user, DatashareTime.getInstance().now(), expirationDate);
+    }
+
+    private static String hash(SecretKey secretKey) {
+        String encoded = getBase64Encoded(secretKey);
+        return DEFAULT_DIGESTER.hash(encoded);
     }
 
     public DatashareApiKey(String hashedKey, User user) {
