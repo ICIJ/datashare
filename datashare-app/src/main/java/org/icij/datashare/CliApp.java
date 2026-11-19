@@ -56,6 +56,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -987,8 +988,10 @@ class CliApp {
         if (expirationDate == null) {
             return null;
         }
-        Instant startOfDay = LocalDate.parse(expirationDate).atStartOfDay(ZoneOffset.UTC).toInstant();
-        return Date.from(startOfDay);
+        LocalDate date = LocalDate.parse(expirationDate);
+        ZonedDateTime startOfDay = date.atStartOfDay(ZoneOffset.UTC);
+        Instant instant = startOfDay.toInstant();
+        return Date.from(instant);
     }
 
     /**
