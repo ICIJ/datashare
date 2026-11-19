@@ -19,7 +19,8 @@ public class ApiKeyExpiration {
 
     @Inject
     public ApiKeyExpiration(PropertiesProvider propertiesProvider) {
-        Optional<String> setting = propertiesProvider.get(API_KEY_MAX_LIFETIME_OPT);
+        Optional<String> configured = propertiesProvider.get(API_KEY_MAX_LIFETIME_OPT);
+        Optional<String> setting = configured.filter(value -> !value.isBlank());
         this.maxLifetimeSetting = setting.orElse(null);
         this.maxLifetime = setting.map(ApiKeyExpiration::parse).orElse(null);
     }

@@ -407,7 +407,7 @@ public final class DatashareCliOptions {
 
     static void apiKeyMaxLifetime(OptionParser parser) {
         parser.acceptsAll(singletonList(API_KEY_MAX_LIFETIME_OPT),
-                          "Maximum lifetime of API keys as an ISO-8601 duration (e.g. P90D). Unset means no limit.")
+                          "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H). Unset means no limit.")
               .withRequiredArg().ofType(String.class);
     }
 

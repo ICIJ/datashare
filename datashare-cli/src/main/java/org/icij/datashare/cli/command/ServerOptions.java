@@ -68,7 +68,7 @@ public class ServerOptions {
     @Option(names = {"--sessionTtlSeconds"}, description = "Session TTL in seconds", defaultValue = "43200")
     int sessionTtlSeconds;
     @Option(names = {"--apiKeyMaxLifetime"},
-            description = "Maximum lifetime of API keys as an ISO-8601 duration (e.g. P90D). Unset means no limit.")
+            description = "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H). Unset means no limit.")
     String apiKeyMaxLifetime;
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
     QueueType sessionStoreType;
