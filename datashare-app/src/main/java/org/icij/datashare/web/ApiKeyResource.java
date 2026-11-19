@@ -18,6 +18,7 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.errors.ForbiddenException;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.session.ApiKeyExpiration;
+import org.icij.datashare.session.ApiKeyFilter;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.user.ApiKey;
 import org.icij.datashare.user.ApiKeyRepository;
@@ -60,11 +61,17 @@ public class ApiKeyResource {
             examples = {@ExampleObject(value = "{\"apiKey\":\"SrcasvUmaAD6NsZ3+VmUkFFWVfRggIRNmWR5aHx7Kfc=\"}")})})
     @ApiResponse(responseCode = "400",
             description = "if the expiration date is invalid, in the past or beyond the maximum lifetime")
+    @ApiResponse(responseCode = "403",
+            description = "if the request is authenticated with an API key: a key cannot create another key")
     @Put("/:userId")
     public Payload createKey(
             @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,
             Context context) throws Exception {
         verifyOwnership(userId, context);
+        // a key must not mint its successor, otherwise a leaked key outlives its own expiration
+        if (ApiKeyFilter.isAuthenticated(context)) {
+            throw new ForbiddenException();
+        }
         String apiKey;
         try {
             String body = context.request().content();
