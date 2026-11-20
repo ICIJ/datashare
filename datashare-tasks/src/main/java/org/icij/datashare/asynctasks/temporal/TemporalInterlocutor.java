@@ -84,7 +84,7 @@ import org.icij.datashare.user.User;
 
 public class TemporalInterlocutor {
     private static final int DEFAULT_PAGE_SIZE = 100;
-    private static final Duration DEFAULT_WORKFLOW_TASK_TIMEOUT = Duration.ofDays(7);
+    private static final Duration DEFAULT_WORKFLOW_TASK_TIMEOUT = Duration.ofSeconds(10);
     private static final String TERMINATION_MSG = "terminated_by_user";
     // TODO: in-memory hack for strong consistence, maybe a repository would be a better implem
     private final ConcurrentHashMap.KeySetView<String, Boolean> executions = ConcurrentHashMap.newKeySet();
