@@ -13,6 +13,7 @@ import org.icij.datashare.asynctasks.TaskFilters;
 import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
+import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -51,6 +52,7 @@ import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.asynctasks.Task.State.RUNNING;
@@ -1184,6 +1186,17 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         postRaw("/api/task/batchSearch/p1", "multipart/form-data;boundary=AaB03x",
                 batchSearchMultipartBody())
                 .should().respond(200);
+    }
+
+    @Test
+    public void test_scoped_user_cannot_copy_batch_search_outside_scope() throws Exception {
+        BatchSearch outside = new BatchSearch(List.of(project("p2")), "name", "description", asSet("query 1"), null, local());
+        when(batchSearchRepository.get(any(User.class), eq(outside.uuid))).thenReturn(outside);
+        configureWithScopedUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+
+        post("/api/task/batchSearch/copy/" + outside.uuid, "{\"name\": \"copy\"}").should().respond(404);
+
+        verify(batchSearchRepository, never()).save(any());
     }
 
     @Test
