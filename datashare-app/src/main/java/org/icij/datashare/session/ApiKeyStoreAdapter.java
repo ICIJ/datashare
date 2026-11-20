@@ -15,11 +15,11 @@ public class ApiKeyStoreAdapter implements ApiKeyStore {
     }
 
     @Override
-    public String getLogin(String base64Key) {
+    public ApiKey get(String base64Key) {
         ApiKey apiKey = repository.get(base64Key);
         if (apiKey == null || apiKeyExpiration.isExpired(apiKey)) {
             return null;
         }
-        return apiKey.getUser().id;
+        return apiKey;
     }
 }

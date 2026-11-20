@@ -8,6 +8,7 @@ import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
+import org.icij.datashare.user.ApiKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
@@ -50,14 +51,18 @@ public class ApiKeyFilter implements Filter {
         }
         String apiKey = readApiKeyInHeader(context);
         if (apiKey != null) {
-            String login = apiKeyStore.getLogin(apiKey);
-            if (login != null) {
-                User user = users.find(login);
-                context.setCurrentUser(user);
-                markAuthenticated(context);
+            ApiKey key = apiKeyStore.get(apiKey);
+            if (key != null) {
+                User user = users.find(key.getUser().id);
                 if (postLoginEnroller != null && user instanceof DatashareUser dsUser) {
                     postLoginEnroller.enroll(dsUser);
                 }
+                User current = user;
+                if (user instanceof DatashareUser dsUser && !key.getProjects().isEmpty()) {
+                    current = new ScopedUser(dsUser, key.getProjects());
+                }
+                context.setCurrentUser(current);
+                markAuthenticated(context);
                 return nextFilter.get().withHeader(CACHE_CONTROL, "must-revalidate");
             }
         }
