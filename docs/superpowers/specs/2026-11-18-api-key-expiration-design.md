@@ -19,13 +19,14 @@ API keys never expire today. A leaked key works forever. Add an expiration date 
 
 ## Anti-goals
 
-- Breaking existing installs: with no max lifetime set and no expiration requested, behavior is unchanged.
+- Silent breakage beyond the 30-day default: keys with an explicit expiration date and no cap behave as requested.
 - Leaking whether a key exists but is expired (no distinct error message).
 
 ## Decisions (Pierre)
 
 - **Caller picks, server caps.** Expiration is optional per key; `--apiKeyMaxLifetime` caps it.
 - **Old keys are capped from their creation date.** Effective expiry = `min(expiration_date, creation_date + cap)`, computed at check time. Turning the cap on immediately disables keys older than the cap.
+- **30-day default (Pierre, 2026-11-20).** A key without an expiration date expires 30 days after its creation, for new and existing keys alike: existing keys older than 30 days stop working at deploy. Effective expiry = `min(expiration_date or creation_date + 30 days, creation_date + cap)`.
 - **Check lives in `ApiKeyStoreAdapter`** (approach 1 below).
 
 ## Approaches
@@ -43,7 +44,7 @@ API keys never expire today. A leaked key works forever. Add an expiration date 
 - **Create:**
   - REST `PUT /api/key/:userId` accepts an optional JSON body `{"expirationDate": "<ISO-8601 instant>"}`. Empty body still works.
   - CLI `datashare api-key create alice --expiration-date 2027-02-01` (picocli `ApiKeyCreateCommand` only; legacy `-k` stays non-expiring).
-  - No expiration given and cap set: expiration = now + cap. Requested expiration beyond now + cap, or in the past: 400 (CLI: non-zero exit with message).
+  - No expiration given: expiration = now + min(30 days, cap). Requested expiration beyond now + cap, or in the past: 400 (CLI: non-zero exit with message).
 - **Read:** `GET /api/key/:userId` returns `{"hashedKey": ..., "expirationDate": <effective expiry or null>}`. Adding a field is backward compatible for the client.
 
 ## Left to the builder
