@@ -309,9 +309,9 @@ public class JooqRepository implements Repository {
             SelectConditionStep<Record1<Integer>> linked =
                     inner.select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT)
                          .where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds));
+            Condition doomed = condition.and(USER_HISTORY.ID.in(linked));
             List<Integer> doomedIds =
-                    inner.select(USER_HISTORY.ID).from(USER_HISTORY).where(condition.and(USER_HISTORY.ID.in(linked)))
-                         .fetch(USER_HISTORY.ID);
+                    inner.select(USER_HISTORY.ID).from(USER_HISTORY).where(doomed).fetch(USER_HISTORY.ID);
             inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(doomedIds)).execute();
             return inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(doomedIds)).execute() > 0;
         });

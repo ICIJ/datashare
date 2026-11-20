@@ -32,8 +32,8 @@ import org.icij.datashare.asynctasks.PipelineExecutor;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.tasks.EnqueueFromIndexStage;
 import org.icij.datashare.tasks.StructuredEntityExtractionTask;
-import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.ApiKey;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.User;
@@ -148,19 +148,23 @@ class CliApp {
         if (properties.getProperty(LIST_API_KEYS_OPT) != null) {
             ApiKeyRepository apiKeyRepository = mode.get(ApiKeyRepository.class);
             ApiKeyExpiration apiKeyExpiration = mode.get(ApiKeyExpiration.class);
-            System.exit(
-                    handleApiKeyList(apiKeyRepository, apiKeyExpiration, properties.getProperty(LIST_API_KEYS_OPT)));
+            String listedUser = properties.getProperty(LIST_API_KEYS_OPT);
+            int listExitCode = handleApiKeyList(apiKeyRepository, apiKeyExpiration, listedUser);
+            System.exit(listExitCode);
         }
 
         if (properties.getProperty(GET_API_KEY_OPT) != null) {
-            System.exit(handleApiKeyGet(taskFactory, properties.getProperty(GET_API_KEY_OPT)));
+            String keyUser = properties.getProperty(GET_API_KEY_OPT);
+            int getExitCode = handleApiKeyGet(taskFactory, keyUser);
+            System.exit(getExitCode);
         }
 
         if (properties.getProperty(DEL_API_KEY_OPT) != null) {
             ApiKeyRepository apiKeyRepository = mode.get(ApiKeyRepository.class);
             String hashedKey = properties.getProperty(API_KEY_HASH_OPT);
-            System.exit(handleApiKeyDelete(taskFactory, apiKeyRepository, properties.getProperty(DEL_API_KEY_OPT),
-                                           hashedKey));
+            String deletedUser = properties.getProperty(DEL_API_KEY_OPT);
+            int deleteExitCode = handleApiKeyDelete(taskFactory, apiKeyRepository, deletedUser, hashedKey);
+            System.exit(deleteExitCode);
         }
 
         if (properties.getProperty(GRANT_ADMIN_OPT) != null) {

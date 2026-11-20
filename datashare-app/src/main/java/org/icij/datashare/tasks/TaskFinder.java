@@ -78,14 +78,16 @@ public class TaskFinder {
      */
     public Task<?> findVisibleTaskFor(User user, String id) throws IOException {
         Optional<Task<?>> managed = getTaskFromManager(id);
-        if (managed.filter(t -> Objects.equals(t.getUser(), user)).filter(t -> ScopedUser.allows(user, projectIdsOf(t)))
-                   .isPresent()) {
+        Optional<Task<?>> owned = managed.filter(t -> Objects.equals(t.getUser(), user));
+        Optional<Task<?>> inScope = owned.filter(t -> ScopedUser.allows(user, projectIdsOf(t)));
+        if (inScope.isPresent()) {
             return managed.get();
         }
-        return batchSearchRepository.getRecords(user, user.getProjectNames()).stream().filter(r -> r.uuid.equals(id))
-                                    .findFirst().map(TaskFinder::taskify)
-                                    .filter(t -> ScopedUser.allows(user, projectIdsOf(t))).orElseThrow(
-                        () -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
+        List<BatchSearchRecord> records = batchSearchRepository.getRecords(user, user.getProjectNames());
+        Optional<BatchSearchRecord> record = records.stream().filter(r -> r.uuid.equals(id)).findFirst();
+        Optional<Task<?>> taskified = record.map(TaskFinder::taskify);
+        Optional<Task<?>> visible = taskified.filter(t -> ScopedUser.allows(user, projectIdsOf(t)));
+        return visible.orElseThrow(() -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
     }
 
     public static List<String> projectIdsOf(Task<?> task) {
