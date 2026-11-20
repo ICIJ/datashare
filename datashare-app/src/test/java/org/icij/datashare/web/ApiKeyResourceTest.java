@@ -166,7 +166,7 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
         when(users.find("local")).thenReturn(new DatashareUser(User.local()));
         ApiKeyResource resource = new ApiKeyResource(taskFactory, apiKeyRepository,
                                                      new ApiKeyExpiration(new PropertiesProvider()));
-        ApiKeyFilter apiKeyFilter = new ApiKeyFilter(users, key -> "local", null);
+        ApiKeyFilter apiKeyFilter = new ApiKeyFilter(users, key -> new DatashareApiKey("hash", User.local()), null);
         configure(routes -> routes.add(resource).filter(apiKeyFilter));
 
         put("/api/key/" + User.local().id).withHeader("Authorization", "Bearer some-key").should().respond(403);
