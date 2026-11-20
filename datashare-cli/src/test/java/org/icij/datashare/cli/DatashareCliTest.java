@@ -413,6 +413,36 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_qr_codes() {
+        cli.parseArguments(new String[] {"--qrCodes=true"});
+
+        assertThat(cli.properties).includes(entry("qrCodes", "true"));
+    }
+
+    @Test
+    public void test_qr_codes_rejects_a_non_boolean_value() {
+        exit.expectSystemExitWithStatus(1);
+
+        cli.parseArguments(new String[] {"--qrCodes=yes"});
+    }
+
+    @Test
+    public void test_qr_codes_absent_by_default() {
+        cli.parseArguments(new String[] {"--stages", "INDEX"});
+
+        assertThat(cli.properties.containsKey("qrCodes")).isFalse();
+    }
+
+    @Test
+    public void test_qr_codes_from_settings_file_is_kept() throws IOException {
+        Path settings = settingsFile("qrCodes=true\n");
+
+        cli.parseArguments(new String[] {"-s", settings.toString()});
+
+        assertThat(cli.properties).includes(entry("qrCodes", "true"));
+    }
+
+    @Test
     public void test_option_defaults_are_still_emitted_without_a_settings_file() {
         cli.parseArguments(new String[] {"--stages", "INDEX"});
 

@@ -134,6 +134,7 @@ public class DatashareCli {
         DatashareCliOptions.ocrMinConfidence(parser);
         DatashareCliOptions.ocrType(parser);
         DatashareCliOptions.ocrStrategy(parser);
+        DatashareCliOptions.qrCodes(parser);
         DatashareCliOptions.ocrTimeout(parser);
         DatashareCliOptions.parseTimeout(parser);
         DatashareCliOptions.maxEmbedDepth(parser);

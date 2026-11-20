@@ -62,6 +62,18 @@ public class StageRunCommandTest extends AbstractDatashareCommandTest {
     }
 
     @Test
+    public void test_qr_codes() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX", "--qrCodes", "true");
+        assertThat(props).includes(entry("qrCodes", "true"));
+    }
+
+    @Test
+    public void test_qr_codes_absent_by_default() {
+        Properties props = parse("stage", "run", "--stages", "SCAN,INDEX");
+        assertThat(props.containsKey("qrCodes")).isFalse();
+    }
+
+    @Test
     public void test_max_embed_depth() {
         Properties props = parse("stage", "run", "--stages", "SCAN,INDEX", "--maxEmbedDepth", "5");
         assertThat(props).includes(entry("maxEmbedDepth", "5"));

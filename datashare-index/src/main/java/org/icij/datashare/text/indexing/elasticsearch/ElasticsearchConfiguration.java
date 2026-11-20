@@ -6,6 +6,7 @@ import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.http.Header;
@@ -18,6 +19,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.client.Request;
+import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.PropertiesProvider;
@@ -38,6 +40,7 @@ public class ElasticsearchConfiguration {
     // answer for a hit beyond it, so neither a page nor a batch can reach past it.
     public static final int INDEX_MAX_RESULT_WINDOW = 10_000;
     static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
+    private static final String QR_CODES_FIELD = "tika_metadata_qr_codes";
     static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
     static final String SETTINGS_RESOURCE_NAME_WINDOWS = "datashare_index_settings_windows.json";
     static final String ENTITIES_MAPPING_RESOURCE_NAME = "datashare_entities_index_mappings.json";
@@ -153,6 +156,34 @@ public class ElasticsearchConfiguration {
             throw new ConfigurationException(e);
         }
         return false;
+    }
+
+    /**
+     * Adds the qr codes field to an index created before it was mapped. A field that dynamic mapping
+     * already typed cannot be changed, so that index keeps its mapping and only a warning is logged.
+     */
+    public static void addQrCodesMapping(ElasticsearchClient client, String indexName) {
+        ObjectMapper mapper = JsonObjectMapper.getMapper();
+        RestClient restClient = ((RestClientTransport) client._transport()).restClient();
+        Request request = new Request("PUT", "/" + indexName + "/_mapping");
+        try {
+            JsonNode mappings = mapper.readTree(getResourceContent(MAPPING_RESOURCE_NAME));
+            JsonNode field = mappings.at("/properties/metadata/properties/" + QR_CODES_FIELD);
+            ObjectNode body = mapper.createObjectNode();
+            ObjectNode properties = body.putObject("properties");
+            ObjectNode metadata = properties.putObject("metadata");
+            ObjectNode metadataProperties = metadata.putObject("properties");
+            metadataProperties.set(QR_CODES_FIELD, field);
+            request.setJsonEntity(mapper.writeValueAsString(body));
+            restClient.performRequest(request);
+        } catch (ResponseException e) {
+            if (e.getResponse().getStatusLine().getStatusCode() != 400) {
+                throw new ConfigurationException(e);
+            }
+            LOGGER.warn("index {} keeps its existing {} mapping", indexName, QR_CODES_FIELD, e);
+        } catch (IOException e) {
+            throw new ConfigurationException(e);
+        }
     }
 
     static String createIndexBody(String mappingsResource, String settingsResource) throws JsonProcessingException {

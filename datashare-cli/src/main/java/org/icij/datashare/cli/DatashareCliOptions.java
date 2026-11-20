@@ -2,6 +2,7 @@ package org.icij.datashare.cli;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
+import joptsimple.ValueConversionException;
 import joptsimple.ValueConverter;
 import org.icij.datashare.EnvUtils;
 import org.icij.datashare.PipelineHelper;
@@ -108,6 +109,10 @@ public final class DatashareCliOptions {
     public static final String OCR_TYPE_OPT = "ocrType";
     public static final String OCR_TIMEOUT = "ocrTimeout";
     public static final String OCR_STRATEGY_OPT = "ocrStrategy";
+    public static final String QR_CODES_OPT = "qrCodes";
+    public static final String QR_CODES_DESC =
+            "Decode QR codes, Data Matrix, Aztec and PDF417 codes in images and add their values to the " +
+            "document text. Off by default. With OCR off, PDF inline images are then indexed as child documents.";
     public static final String MAX_EMBED_DEPTH_OPT = "maxEmbedDepth";
     public static final String MAX_EMBED_DEPTH_DESC =
             "Maximum nesting depth of embedded documents to extract before deeper embeds " +
@@ -701,6 +706,12 @@ public final class DatashareCliOptions {
               .defaultsTo(DEFAULT_PARSE_TIMEOUT);
     }
 
+    static void qrCodes(OptionParser parser) {
+        parser.acceptsAll(List.of(QR_CODES_OPT), QR_CODES_DESC)
+              // No defaultsTo: it would clobber a qrCodes=true set in the settings file (see artifactsForce).
+              .withRequiredArg().withValuesConvertedBy(strictBoolean());
+    }
+
     static void ocrStrategy(OptionParser parser) {
         parser.acceptsAll(List.of(OCR_STRATEGY_OPT),
                           "PDF OCR strategy: NO_OCR (default), AUTO, OCR_AND_TEXT_EXTRACTION or OCR_ONLY. " +
@@ -983,6 +994,29 @@ public final class DatashareCliOptions {
     static void temporalAddressOpt(OptionParser parser) {
         parser.acceptsAll(List.of(TEMPORAL_ADDRESS_OPT), "Temporal address").withRequiredArg().ofType(String.class)
               .defaultsTo(DEFAULT_TEMPORAL_ADDRESS);
+    }
+
+    /** Rejects anything but true or false, as picocli does, where Boolean.valueOf reads any typo as false. */
+    static ValueConverter<Boolean> strictBoolean() {
+        return new ValueConverter<>() {
+            @Override
+            public Boolean convert(String value) {
+                if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
+                    throw new ValueConversionException("expected true or false, got " + value);
+                }
+                return Boolean.valueOf(value);
+            }
+
+            @Override
+            public Class<? extends Boolean> valueType() {
+                return Boolean.class;
+            }
+
+            @Override
+            public String valuePattern() {
+                return "true|false";
+            }
+        };
     }
 
     public static ValueConverter<String> toAbsolute() {
