@@ -10,6 +10,8 @@ import org.icij.datashare.user.User;
 // in a "reference to Record is ambiguous" depending on your JRE since it will conflict with
 // java.util.Record
 import org.jooq.DSLContext;
+import org.jooq.Record1;
+import org.jooq.Select;
 import org.jooq.SQLDialect;
 import javax.sql.DataSource;
 import java.time.Instant;
@@ -65,7 +67,10 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
     @Override
     public boolean delete(User user) {
         DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.transactionResult(config -> deleteAll(using(config), user));
+        return ctx.transactionResult(config -> {
+            DSLContext tx = using(config);
+            return deleteAll(tx, user);
+        });
     }
 
     @Override
@@ -86,7 +91,10 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
     @Override
     public boolean save(ApiKey apiKey) {
         DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.transactionResult(config -> insert(using(config), apiKey));
+        return ctx.transactionResult(config -> {
+            DSLContext tx = using(config);
+            return insert(tx, apiKey);
+        });
     }
 
     @Override
@@ -101,9 +109,8 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
 
     // ----------------
     private boolean deleteAll(DSLContext tx, User user) {
-        tx.deleteFrom(API_KEY_PROJECT)
-          .where(API_KEY_PROJECT.API_KEY_ID.in(tx.select(API_KEY.ID).from(API_KEY).where(API_KEY.USER_ID.eq(user.id))))
-          .execute();
+        Select<Record1<String>> userKeyIds = tx.select(API_KEY.ID).from(API_KEY).where(API_KEY.USER_ID.eq(user.id));
+        tx.deleteFrom(API_KEY_PROJECT).where(API_KEY_PROJECT.API_KEY_ID.in(userKeyIds)).execute();
         return tx.deleteFrom(API_KEY).where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
     }
 
@@ -122,6 +129,9 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
     }
 
     private List<ApiKey> toApiKeys(DSLContext ctx, List<ApiKeyRecord> records) {
+        if (records.isEmpty()) {
+            return List.of();
+        }
         List<String> ids = records.stream().map(ApiKeyRecord::getId).collect(Collectors.toList());
         Map<String, List<String>> projectsByKey = new HashMap<>();
         ctx.selectFrom(API_KEY_PROJECT).where(API_KEY_PROJECT.API_KEY_ID.in(ids)).fetch().forEach(row -> {
