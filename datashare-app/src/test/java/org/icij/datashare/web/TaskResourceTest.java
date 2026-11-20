@@ -1121,7 +1121,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         DatashareUser cecile = memberOf("cecile", "p1", "p2");
         configureWithScopedUser(new ScopedUser(cecile, List.of("p1")));
 
-        put("/api/task/outside_id", taskJson("outside_id", "my.python.task", Map.of("defaultProject", "p2"))).should().respond(403);
+        put("/api/task/outside_id", taskJson("outside_id", "my.python.task", Map.of("defaultProject", "p2")))
+                .should().respond(403).contain("{\"error\":\"insufficient role\"}");
 
         assertThat(taskManager.getTasks().toList()).isEmpty();
     }
