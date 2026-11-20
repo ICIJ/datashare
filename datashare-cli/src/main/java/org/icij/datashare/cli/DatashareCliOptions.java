@@ -410,7 +410,7 @@ public final class DatashareCliOptions {
 
     static void apiKeyMaxLifetime(OptionParser parser) {
         parser.acceptsAll(singletonList(API_KEY_MAX_LIFETIME_OPT),
-                          "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H). Unset means no limit.")
+                          "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H). Unset means any requested date is allowed; keys created without a date still expire after 30 days.")
               .withRequiredArg().ofType(String.class);
     }
 
@@ -437,8 +437,8 @@ public final class DatashareCliOptions {
 
     static void genApiKey(OptionParser parser) {
         parser.acceptsAll(asList(CRE_API_KEY_ABBR_OPT, CRE_API_KEY_OPT),
-                          "Generate and store api key for user defaultUser (see opt)").withRequiredArg()
-              .ofType(String.class);
+                          "Generate and store api key for user defaultUser (see opt). The key expires in 30 days.")
+              .withRequiredArg().ofType(String.class);
     }
 
     static void getApiKey(OptionParser parser) {
