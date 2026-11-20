@@ -526,13 +526,15 @@ public class UserResource {
         String sortBy = getStringValue(sort).orElse(USER_HISTORY.MODIFICATION_DATE.getName());
         String[] projectIds = effectiveProjectIds(user, parseProjectIdsQueryArg(projects));
         if (isScopedToNothing(user, projectIds)) {
-            return new Payload(new WebResponse<UserEvent>(Collections.emptyList(), from, size, 0));
+            WebResponse<UserEvent> emptyHistory = new WebResponse<>(Collections.emptyList(), from, size, 0);
+            return new Payload(emptyHistory);
         }
         try {
-            WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(
-                    repository.getUserHistory(user, eventType, from, size, sortBy, parseBooleanQueryArg(desc),
-                                              projectIds), from, size,
-                    repository.getUserHistorySize(user, eventType, projectIds));
+            boolean descending = parseBooleanQueryArg(desc);
+            List<UserEvent> events =
+                    repository.getUserHistory(user, eventType, from, size, sortBy, descending, projectIds);
+            int total = repository.getUserHistorySize(user, eventType, projectIds);
+            WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(events, from, size, total);
             return new Payload(userEventWebResponse);
         } catch (IllegalArgumentException e) {
             return Payload.badRequest();
@@ -548,7 +550,6 @@ public class UserResource {
         return domainAndProject[domainAndProject.length - 1];
     }
 
-    @NotNull
     private static String[] effectiveProjectIds(DatashareUser user, String[] requested) {
         if (!(user instanceof ScopedUser)) {
             return requested;
@@ -564,6 +565,7 @@ public class UserResource {
         return user instanceof ScopedUser && projectIds.length == 0;
     }
 
+    @NotNull
     private static String[] parseProjectIdsQueryArg(String projects) {
         return getStringValue(projects).isEmpty() ? new String[] {} : projects.trim().split(",");
     }

@@ -141,7 +141,8 @@ public class ApiKeyResource {
             Context context) {
         verifyOwnership(userId, context);
         List<Map<String, Object>> keys = new ArrayList<>();
-        for (ApiKey apiKey : apiKeyRepository.getAll(new User(userId))) {
+        List<ApiKey> userKeys = apiKeyRepository.getAll(new User(userId));
+        for (ApiKey apiKey : userKeys) {
             Map<String, Object> key = new HashMap<>();
             key.put("hashedKey", apiKey.getId());
             key.put("projects", apiKey.getProjects());
