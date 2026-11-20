@@ -1158,6 +1158,44 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         get("/api/task/" + taskId + "/result").should().respond(403);
     }
 
+    private static String batchSearchMultipartBody() {
+        return "--AaB03x\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\nmy batch search\r\n"
+                + "--AaB03x\r\nContent-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n"
+                + "Content-Type: text/csv\r\n\r\nquery one\r\n--AaB03x--\r\n";
+    }
+
+    @Test
+    public void test_scoped_user_cannot_start_batch_search_on_project_outside_scope() throws Exception {
+        configureWithScopedUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+
+        postRaw("/api/task/batchSearch/p2", "multipart/form-data;boundary=AaB03x",
+                batchSearchMultipartBody())
+                .should().respond(403).contain("{\"error\":\"insufficient role\"}");
+
+        verify(batchSearchRepository, never()).save(any());
+        assertThat(taskManager.getTasks().toList()).isEmpty();
+    }
+
+    @Test
+    public void test_scoped_user_can_start_batch_search_on_project_in_scope() throws Exception {
+        configureWithScopedUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        when(batchSearchRepository.save(any())).thenReturn(true);
+
+        postRaw("/api/task/batchSearch/p1", "multipart/form-data;boundary=AaB03x",
+                batchSearchMultipartBody())
+                .should().respond(200);
+    }
+
+    @Test
+    public void test_scoped_user_cannot_start_batch_download_on_project_outside_scope() throws Exception {
+        configureWithScopedUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+
+        post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"p2\"], \"query\": \"*\" }}")
+                .should().respond(403).contain("{\"error\":\"insufficient role\"}");
+
+        assertThat(taskManager.getTasks().toList()).isEmpty();
+    }
+
     @Test
     public void test_task_names_lists_the_pipeline_tasks() {
         assertThat(DatashareTaskFactory.TASK_NAMES).contains(
