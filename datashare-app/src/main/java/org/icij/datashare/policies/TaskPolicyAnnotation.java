@@ -11,6 +11,8 @@ import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.ScopedUser;
+import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.utils.PayloadFormatter;
 import org.slf4j.Logger;
@@ -54,6 +56,10 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy>, 
 
     private boolean isAllowedSingleTask(Task<Serializable> task, TaskPolicy annotation, DatashareUser user,
                                         Domain domain) {
+        List<String> scopeProjectIds = TaskFinder.projectIdsOf(task);
+        if (!ScopedUser.allows(user, scopeProjectIds)) {
+            return false;
+        }
         Object batchSearchRecord = task.args.get("batchRecord");
         Object batchDownload = task.args.get("batchDownload");
         if (batchSearchRecord instanceof BatchSearchRecord bsr) {
@@ -91,6 +97,9 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy>, 
         //TODO #DOMAIN Currently Domain is not handled so we can't check it from query params
         Domain domain = Authorizer.requireDomain(annotation.domain(), true);
         if (!annotation.singleTask()) {
+            if (!ScopedUser.allows(user, List.of("*"))) {
+                return insufficientRole();
+            }
             // either we should check for every tasks' projects
             // or we enforce wildcard project access (domain level)to do batch operation (current solution).
             boolean isAllowed = authorizer.can(user.id, domain, "*", annotation.role());

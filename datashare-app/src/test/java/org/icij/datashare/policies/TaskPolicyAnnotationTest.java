@@ -9,6 +9,7 @@ import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.tasks.TestSleepingTask;
 import org.icij.datashare.tasks.TestTaskUtils;
 import org.icij.datashare.text.Project;
@@ -154,6 +155,11 @@ public class TaskPolicyAnnotationTest {
         authorizer.addRoleForUserInProject(cecile, Role.PROJECT_ADMIN, Domain.DEFAULT, project);
         authorizer.addRoleForUserInProject(john, Role.PROJECT_MEMBER, Domain.DEFAULT, project);
         annotation = new TaskPolicyAnnotation(authorizer, taskManager);
+    }
+
+    private static DatashareUser memberOf(String uid, String... projects) {
+        Map<String, Object> groups = Map.of("datashare", List.of(projects));
+        return new DatashareUser(Map.of("uid", uid, "groups_by_applications", groups));
     }
 
     @After
@@ -489,6 +495,62 @@ public class TaskPolicyAnnotationTest {
         assertEquals(true, annotation.isAllowed(john, taskManager.getTask(johnsTask), adminTaskPolicy));
         assertEquals(false, annotation.isAllowed(john, taskManager.getTask(cecilesTask), adminTaskPolicy));
         assertEquals(false, annotation.isAllowed(john, taskManager.getTask(johnsTask), noOwnerRoleTaskPolicy));
+    }
+
+    @Test
+    public void test_scoped_user_refused_on_multi_task_route() {
+        Context context = mock(Context.class);
+        DatashareUser cecile = new DatashareUser("cecile");
+        authorizer.addRoleForUserInDomain(cecile, Role.DOMAIN_ADMIN, Domain.DEFAULT);
+        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+
+        Payload result = annotation.apply(batchTaskPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
+    @Test
+    public void test_scoped_user_refused_on_batch_download_with_out_of_scope_project() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser cecile = new DatashareUser("cecile");
+        authorizer.addRoleForUserInProject(cecile, Role.PROJECT_ADMIN, Domain.DEFAULT, project("p2"));
+        BatchDownload batchDownload = new BatchDownload(
+                List.of(Project.project(projectId), Project.project("p2")), User.local(), "*");
+        String taskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+            put("batchDownload", batchDownload);
+        }});
+
+        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+        when(context.pathParam("taskName:")).thenReturn(taskId);
+
+        Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
+    @Test
+    public void test_scoped_user_allowed_on_own_task_in_scope() throws IOException {
+        Context context = mock(Context.class);
+        DatashareUser cecile = new DatashareUser("cecile");
+        String taskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+            put("defaultProject", projectId);
+        }});
+
+        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+        when(context.pathParam("taskName:")).thenReturn(taskId);
+
+        Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+        assertEquals(200, result.code());
+    }
+
+    @Test
+    public void test_is_allowed_refuses_scoped_user_outside_scope() throws IOException {
+        DatashareUser cecile = new DatashareUser("cecile");
+        authorizer.addRoleForUserInProject(cecile, Role.PROJECT_ADMIN, Domain.DEFAULT, project("p2"));
+        String taskId = taskManager.startTask(TestSleepingTask.class, localUser("cecile"), new HashMap<>() {{
+            put("defaultProject", "p2");
+        }});
+        ScopedUser scoped = new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId));
+
+        assertEquals(false, annotation.isAllowed(scoped, taskManager.getTask(taskId), adminTaskPolicy));
     }
 
 }
