@@ -15,6 +15,7 @@ import net.codestory.http.Context;
 import net.codestory.http.Part;
 import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.HttpException;
@@ -34,6 +35,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.ModeVerifier;
+import org.icij.datashare.utils.PayloadFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
@@ -193,7 +195,7 @@ public class TaskResource {
         }
         List<String> projectIds = TaskFinder.projectIdsOf(taskView);
         if (!ScopedUser.allows((User) context.currentUser(), projectIds)) {
-            return new JsonPayload(403, new ErrorResponse(Authorizer.INSUFFICIENT_ROLE));
+            return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
         Task<V> task = new Task<>(taskView.id, taskView.name, taskUser(context), taskView.args);
         try {
@@ -397,12 +399,12 @@ public class TaskResource {
                 parseBoolean(properties.getOrDefault(BATCH_DOWNLOAD_ENCRYPT_OPT, "false").toString());
         List<String> projectIds = (List<String>) options.get("projectIds");
 
-        BatchDownload batchDownload =
-                new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), taskUser(context), query,
-                                  uri, downloadDir, batchDownloadEncrypt);
+        List<Project> projects = projectIds.stream().map(Project::project).collect(toList());
+        User owner = taskUser(context);
+        BatchDownload batchDownload = new BatchDownload(projects, owner, query, uri, downloadDir, batchDownloadEncrypt);
 
-        return new TaskResponse(taskManager.startTask(BatchDownloadRunner.class, taskUser(context),
-                                                      Map.of("batchDownload", batchDownload)));
+        String taskId = taskManager.startTask(BatchDownloadRunner.class, owner, Map.of("batchDownload", batchDownload));
+        return new TaskResponse(taskId);
     }
 
     @Operation(description = "Indexes files from the queue.",
@@ -495,8 +497,10 @@ public class TaskResource {
         Path path = IS_OS_WINDOWS ? get(filePath) : get(File.separator, filePath);
         Properties properties = applyProjectProperties(optionsWrapper);
         properties.setProperty(DATA_DIR_OPT, path.toString());
-        return ofNullable(taskManager.startTask(ScanTask.class, taskUser(context), propertiesToMap(properties))).map(
-                TaskResponse::new).orElseThrow(() -> new HttpException(500));
+        User owner = taskUser(context);
+        Map<String, Object> scanArgs = propertiesToMap(properties);
+        String scanTaskId = taskManager.startTask(ScanTask.class, owner, scanArgs);
+        return ofNullable(scanTaskId).map(TaskResponse::new).orElseThrow(() -> new HttpException(500));
     }
 
     @Operation(description = "Cleans all DONE tasks.", parameters = {

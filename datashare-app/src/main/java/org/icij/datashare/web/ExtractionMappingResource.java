@@ -82,7 +82,9 @@ public class ExtractionMappingResource {
         // ahead of any lookup, so a user outside the project cannot tell a known id from an unknown one
         ForbiddenException.requireGranted(context, project);
         try {
-            String taskId = mappings.run(project, mappingId, ScopedUser.unscoped((User) context.currentUser()));
+            User requester = (User) context.currentUser();
+            User owner = ScopedUser.unscoped(requester);
+            String taskId = mappings.run(project, mappingId, owner);
             return new JsonPayload(201, new TaskResource.TaskResponse(taskId));
         } catch (ForbiddenExtractionMapping e) {
             return forbidden();
