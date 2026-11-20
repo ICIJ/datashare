@@ -30,10 +30,10 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.policies.TaskPolicy;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.ProjectProxy;
-import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.ModeVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
@@ -195,7 +195,8 @@ public class TaskResource {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         }
         List<String> projectIds = TaskFinder.projectIdsOf(taskView);
-        if (!ScopedUser.allows((User) context.currentUser(), projectIds)) {
+        User creator = (User) context.currentUser();
+        if (!ScopedUser.allows(creator, projectIds)) {
             return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
         Task<V> task = new Task<>(taskView.id, taskView.name, taskUser(context), taskView.args);
@@ -290,7 +291,8 @@ public class TaskResource {
     @Post("/batchSearch/:coma_separated_projects")
     public Payload search(String comaSeparatedProjects, Context context) throws IOException {
         List<String> requestedProjectIds = List.of(comaSeparatedProjects.split(","));
-        if (!ScopedUser.allows((User) context.currentUser(), requestedProjectIds)) {
+        User requester = (User) context.currentUser();
+        if (!ScopedUser.allows(requester, requestedProjectIds)) {
             return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
         List<Part> parts = context.parts();
@@ -411,7 +413,8 @@ public class TaskResource {
                 parseBoolean(properties.getOrDefault(BATCH_DOWNLOAD_ENCRYPT_OPT, "false").toString());
         List<String> projectIds = (List<String>) options.get("projectIds");
 
-        if (!ScopedUser.allows((User) context.currentUser(), projectIds)) {
+        User downloader = (User) context.currentUser();
+        if (!ScopedUser.allows(downloader, projectIds)) {
             return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
 
@@ -628,14 +631,15 @@ public class TaskResource {
         List<String> tasks = new LinkedList<>();
         Map<String, Object> nlpArgs = propertiesToMap(properties);
         if (parseBoolean(properties.getProperty(RESUME_OPT, "true"))) {
-            String enqueueTaskId =
-                    taskManager.startTask(EnqueueFromIndexTask.class, taskUser(context), propertiesToMap(properties));
+            Map<String, Object> enqueueArgs = propertiesToMap(properties);
+            String enqueueTaskId = taskManager.startTask(EnqueueFromIndexTask.class, taskUser(context), enqueueArgs);
             tasks.add(enqueueTaskId);
             // without it the NLP task would exit on its first empty poll, while the enqueuing task
             // is still scrolling the index, and report DONE having processed nothing
             nlpArgs.put(UpstreamGate.UPSTREAM_TASK_ID, enqueueTaskId);
         }
-        tasks.add(taskManager.startTask(ExtractNlpTask.class, taskUser(context), nlpArgs));
+        String nlpTaskId = taskManager.startTask(ExtractNlpTask.class, taskUser(context), nlpArgs);
+        tasks.add(nlpTaskId);
         return new JsonPayload(new TasksResponse(tasks));
     }
 
