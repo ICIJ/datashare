@@ -289,6 +289,10 @@ public class TaskResource {
             description = "if name or CSV file is missing, or name/description are empty or exceed their maximum length")
     @Post("/batchSearch/:coma_separated_projects")
     public Payload search(String comaSeparatedProjects, Context context) throws IOException {
+        List<String> requestedProjectIds = List.of(comaSeparatedProjects.split(","));
+        if (!ScopedUser.allows((User) context.currentUser(), requestedProjectIds)) {
+            return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
+        }
         List<Part> parts = context.parts();
         String name = fieldValue("name", parts);
         String csv = fieldValue("csvFile", parts);
@@ -392,7 +396,7 @@ public class TaskResource {
             content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task id", useReturnTypeSchema = true)
     @Post("/batchDownload")
-    public TaskResponse batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws IOException {
+    public Payload batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws IOException {
         Map<String, Object> options = optionsWrapper.getOptions();
         Properties properties = propertiesProvider.getProperties();
         Path downloadDir = get(properties.getProperty(BATCH_DOWNLOAD_DIR_OPT, DEFAULT_BATCH_DOWNLOAD_DIR));
@@ -405,12 +409,16 @@ public class TaskResource {
                 parseBoolean(properties.getOrDefault(BATCH_DOWNLOAD_ENCRYPT_OPT, "false").toString());
         List<String> projectIds = (List<String>) options.get("projectIds");
 
+        if (!ScopedUser.allows((User) context.currentUser(), projectIds)) {
+            return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
+        }
+
         List<Project> projects = projectIds.stream().map(Project::project).collect(toList());
         User owner = taskUser(context);
         BatchDownload batchDownload = new BatchDownload(projects, owner, query, uri, downloadDir, batchDownloadEncrypt);
 
         String taskId = taskManager.startTask(BatchDownloadRunner.class, owner, Map.of("batchDownload", batchDownload));
-        return new TaskResponse(taskId);
+        return new JsonPayload(200, new TaskResponse(taskId));
     }
 
     @Operation(description = "Indexes files from the queue.",
