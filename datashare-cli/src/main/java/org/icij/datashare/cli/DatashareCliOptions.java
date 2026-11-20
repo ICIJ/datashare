@@ -51,6 +51,7 @@ public final class DatashareCliOptions {
     public static final String CREATE_INDEX_OPT = "createIndex";
     public static final String CRE_API_KEY_ABBR_OPT = "k";
     public static final String CRE_API_KEY_OPT = "createApiKey";
+    public static final String API_KEY_EXPIRATION_DATE_OPT = "apiKeyExpirationDate";
     public static final String DATA_DIR_ABBR_OPT = "d";
     public static final String DATA_SOURCE_URL_OPT = "dataSourceUrl";
     public static final String DEFAULT_OCR_TYPE = "TESSERACT";
@@ -134,6 +135,7 @@ public final class DatashareCliOptions {
     public static final String SESSION_SIGNING_KEY_OPT = "sessionSigningKey";
     public static final String SESSION_STORE_TYPE_OPT = "sessionStoreType";
     public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
+    public static final String API_KEY_MAX_LIFETIME_OPT = "apiKeyMaxLifetime";
     public static final String STATUS_ALLOWED_NETS_OPT = "statusAllowedNets";
     public static final String MAX_HTTP_BODY_SIZE_OPT = "maxHttpBodySize";
     public static final String SETTING_ABBR_OPT = "s";
@@ -403,6 +405,12 @@ public final class DatashareCliOptions {
               .withRequiredArg().ofType(Integer.class).defaultsTo(DEFAULT_SESSION_TTL_SECONDS);
     }
 
+    static void apiKeyMaxLifetime(OptionParser parser) {
+        parser.acceptsAll(singletonList(API_KEY_MAX_LIFETIME_OPT),
+                          "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H). Unset means any requested date is allowed; keys created without a date still expire after 30 days.")
+              .withRequiredArg().ofType(String.class);
+    }
+
     static void protectedUriPrefix(OptionParser parser) {
         parser.acceptsAll(singletonList(PROTECTED_URI_PREFIX_OPT), "Protected URI prefix").withRequiredArg()
               .ofType(String.class).defaultsTo(DEFAULT_PROTECTED_URI_PREFIX);
@@ -426,8 +434,8 @@ public final class DatashareCliOptions {
 
     static void genApiKey(OptionParser parser) {
         parser.acceptsAll(asList(CRE_API_KEY_ABBR_OPT, CRE_API_KEY_OPT),
-                          "Generate and store api key for user defaultUser (see opt)").withRequiredArg()
-              .ofType(String.class);
+                          "Generate and store api key for user defaultUser (see opt). The key expires in 30 days.")
+              .withRequiredArg().ofType(String.class);
     }
 
     static void getApiKey(OptionParser parser) {

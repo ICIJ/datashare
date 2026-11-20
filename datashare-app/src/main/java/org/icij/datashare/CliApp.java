@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.ProvisionException;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
@@ -20,6 +21,7 @@ import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.project.admin.ProjectStats;
+import org.icij.datashare.session.ApiKeyExpiration;
 import org.icij.datashare.tabular.DuplicateExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.ExtractionMappingReader;
@@ -42,6 +44,7 @@ import org.icij.datashare.tasks.ScanQueryTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreateRequest;
 import org.icij.datashare.user.admin.UserCreated;
@@ -62,6 +65,10 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -139,7 +146,9 @@ class CliApp {
         }
 
         if (properties.getProperty(CRE_API_KEY_OPT) != null) {
-            System.exit(handleApiKeyCreate(taskFactory, properties.getProperty(CRE_API_KEY_OPT)));
+            String userName = properties.getProperty(CRE_API_KEY_OPT);
+            String expirationDate = properties.getProperty(API_KEY_EXPIRATION_DATE_OPT);
+            System.exit(handleApiKeyCreate(taskFactory, userName, expirationDate));
         }
 
         if (properties.getProperty(GET_API_KEY_OPT) != null) {
@@ -1018,12 +1027,35 @@ class CliApp {
      * The generated key is the command's result, not a diagnostic: it goes to stdout so
      * `datashare --createApiKey alice | read KEY` keeps working now that logs go to stderr (#2442).
      */
-    static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName) throws Exception {
+    static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName, String expirationDate) throws
+            Exception {
         // GenApiKeyTask logs the generation itself, so nothing is logged here: two near-identical
         // lines per invocation is noise, and the key belongs on stdout, not in the log
-        String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
+        String secretKey;
+        try {
+            Date expiration = parseExpirationDate(expirationDate);
+            User user = localUser(userName);
+            secretKey = taskFactory.createGenApiKey(user, expiration).call();
+        } catch (DateTimeParseException | ApiKeyExpiration.InvalidExpirationException e) {
+            return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
+        } catch (ProvisionException e) {
+            if (!(e.getCause() instanceof ApiKeyExpiration.InvalidExpirationException)) {
+                throw e;
+            }
+            return error(e.getCause().getMessage(), "validation", EXIT_VALIDATION, false);
+        }
         System.out.println(secretKey);
         return EXIT_SUCCESS;
+    }
+
+    private static Date parseExpirationDate(String expirationDate) {
+        if (expirationDate == null) {
+            return null;
+        }
+        LocalDate date = LocalDate.parse(expirationDate);
+        ZonedDateTime startOfDay = date.atStartOfDay(ZoneOffset.UTC);
+        Instant instant = startOfDay.toInstant();
+        return Date.from(instant);
     }
 
     /**

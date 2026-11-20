@@ -9,4 +9,6 @@ public interface ApiKey extends Entity {
     User getUser();
 
     Date getCreationDate();
+
+    Date getExpirationDate();
 }

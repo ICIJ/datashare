@@ -1,5 +1,7 @@
 package org.icij.datashare;
 
+import com.google.inject.ProvisionException;
+import org.icij.datashare.session.ApiKeyExpiration;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
@@ -11,10 +13,14 @@ import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.time.Instant;
+import java.util.Date;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -49,14 +55,60 @@ public class CliAppTaskDispatchTest {
     }
 
     @Test
+    public void test_create_api_key_with_expiration_date() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenReturn("the-generated-key");
+        Date expiration = Date.from(Instant.parse("2027-02-01T00:00:00Z"));
+        when(taskFactory.createGenApiKey(any(), eq(expiration))).thenReturn(task);
+
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "2027-02-01")).isEqualTo(CliApp.EXIT_SUCCESS);
+
+        verify(taskFactory).createGenApiKey(any(), eq(expiration));
+    }
+
+    @Test
+    public void test_create_api_key_with_invalid_date_exits_validation() throws Exception {
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "2027-13-01")).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
+    public void test_create_api_key_rejected_by_policy_exits_validation() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenThrow(
+                new ApiKeyExpiration.InvalidExpirationException("expiration date must be in the future"));
+        when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
+
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "2020-01-01")).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_create_api_key_internal_illegal_argument_is_not_a_validation_error() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenThrow(new IllegalArgumentException("internal detail"));
+        when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
+
+        CliApp.handleApiKeyCreate(taskFactory, "alice", null);
+    }
+
+    @Test
+    public void test_create_api_key_with_invalid_max_lifetime_exits_validation() throws Exception {
+        ApiKeyExpiration.InvalidExpirationException cause =
+                new ApiKeyExpiration.InvalidExpirationException("invalid apiKeyMaxLifetime: 90d");
+        when(taskFactory.createGenApiKey(any(), any())).thenThrow(new ProvisionException("guice", cause));
+
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", null)).isEqualTo(CliApp.EXIT_VALIDATION);
+        assertThat(err.toString()).contains("error: invalid apiKeyMaxLifetime: 90d");
+    }
+
+    @Test
     public void test_create_api_key_prints_the_key_on_stdout() throws Exception {
         // logs moved to stderr, so the key has to be written to stdout explicitly:
         // `datashare --createApiKey alice | read KEY` must keep working
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("the-generated-key");
-        when(taskFactory.createGenApiKey(any())).thenReturn(task);
+        when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
 
-        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice")).isEqualTo(CliApp.EXIT_SUCCESS);
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", null)).isEqualTo(CliApp.EXIT_SUCCESS);
 
         assertThat(out.toString().trim()).isEqualTo("the-generated-key");
     }
@@ -67,9 +119,9 @@ public class CliAppTaskDispatchTest {
         // stdout-only assertion would pass even if the secret were logged
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("the-generated-key");
-        when(taskFactory.createGenApiKey(any())).thenReturn(task);
+        when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
 
-        CliApp.handleApiKeyCreate(taskFactory, "alice");
+        CliApp.handleApiKeyCreate(taskFactory, "alice", null);
 
         assertThat(out.toString().trim()).isEqualTo("the-generated-key");
         assertThat(err.toString()).excludes("the-generated-key");

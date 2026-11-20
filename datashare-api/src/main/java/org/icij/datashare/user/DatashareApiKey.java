@@ -13,13 +13,23 @@ public class DatashareApiKey implements ApiKey {
     final String hashedKey;
     final User user;
     final Date creationDate;
+    final Date expirationDate;
 
     public DatashareApiKey(User user) throws NoSuchAlgorithmException {
         this(generateSecretKey(), user);
     }
 
     public DatashareApiKey(SecretKey secretKey, User user) {
-        this(DEFAULT_DIGESTER.hash(getBase64Encoded(secretKey)), user);
+        this(secretKey, user, null);
+    }
+
+    public DatashareApiKey(SecretKey secretKey, User user, Date expirationDate) {
+        this(hash(secretKey), user, DatashareTime.getInstance().now(), expirationDate);
+    }
+
+    private static String hash(SecretKey secretKey) {
+        String encoded = getBase64Encoded(secretKey);
+        return DEFAULT_DIGESTER.hash(encoded);
     }
 
     public DatashareApiKey(String hashedKey, User user) {
@@ -27,9 +37,14 @@ public class DatashareApiKey implements ApiKey {
     }
 
     public DatashareApiKey(String hashedKey, User user, Date creationDate) {
+        this(hashedKey, user, creationDate, null);
+    }
+
+    public DatashareApiKey(String hashedKey, User user, Date creationDate, Date expirationDate) {
         this.hashedKey = hashedKey;
         this.user = user;
         this.creationDate = creationDate;
+        this.expirationDate = expirationDate;
     }
 
     @Override
@@ -55,6 +70,11 @@ public class DatashareApiKey implements ApiKey {
     @Override
     public Date getCreationDate() {
         return creationDate;
+    }
+
+    @Override
+    public Date getExpirationDate() {
+        return expirationDate;
     }
 
     @Override

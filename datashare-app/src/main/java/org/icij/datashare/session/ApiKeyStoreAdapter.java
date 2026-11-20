@@ -6,15 +6,20 @@ import org.icij.datashare.user.ApiKeyRepository;
 
 public class ApiKeyStoreAdapter implements ApiKeyStore {
     private final ApiKeyRepository repository;
+    private final ApiKeyExpiration apiKeyExpiration;
 
     @Inject
-    public ApiKeyStoreAdapter(ApiKeyRepository repository) {
+    public ApiKeyStoreAdapter(ApiKeyRepository repository, ApiKeyExpiration apiKeyExpiration) {
         this.repository = repository;
+        this.apiKeyExpiration = apiKeyExpiration;
     }
 
     @Override
     public String getLogin(String base64Key) {
         ApiKey apiKey = repository.get(base64Key);
-        return apiKey == null ? null : apiKey.getUser().id;
+        if (apiKey == null || apiKeyExpiration.isExpired(apiKey)) {
+            return null;
+        }
+        return apiKey.getUser().id;
     }
 }
