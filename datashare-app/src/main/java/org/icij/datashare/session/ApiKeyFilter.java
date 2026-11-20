@@ -58,8 +58,11 @@ public class ApiKeyFilter implements Filter {
                     postLoginEnroller.enroll(dsUser);
                 }
                 User current = user;
-                if (user instanceof DatashareUser dsUser && !key.getProjects().isEmpty()) {
-                    current = new ScopedUser(dsUser, key.getProjects());
+                if (!key.getProjects().isEmpty()) {
+                    if (!(user instanceof DatashareUser scopable)) {
+                        return PayloadFormatter.error("authentication required", UNAUTHORIZED);
+                    }
+                    current = new ScopedUser(scopable, key.getProjects());
                 }
                 context.setCurrentUser(current);
                 markAuthenticated(context);
