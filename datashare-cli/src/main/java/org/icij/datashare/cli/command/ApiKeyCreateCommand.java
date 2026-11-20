@@ -21,7 +21,7 @@ public class ApiKeyCreateCommand implements Runnable, DatashareSubcommand {
             description = "Expiration date of the key (YYYY-MM-DD, UTC). Defaults to 30 days from now.")
     String expirationDate;
     @Option(names = {"--apiKeyMaxLifetime"},
-            description = "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H). Unset means no limit.")
+            description = "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H). Unset means any requested date is allowed; keys created without a date still expire after 30 days.")
     String apiKeyMaxLifetime;
 
     @Override
