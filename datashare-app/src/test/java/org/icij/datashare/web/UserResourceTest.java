@@ -303,6 +303,16 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_scoped_user_with_no_project_left_bulk_delete_deletes_nothing() {
+        actAs(scopedTo("z", "p1"));
+
+        delete("/api/users/me/history?type=document").should().respond(204);
+
+        verify(jooqRepository, never()).deleteUserHistory(any(User.class), eq(DOCUMENT));
+        verify(jooqRepository, never()).deleteUserHistory(any(User.class), eq(DOCUMENT), any(String[].class));
+    }
+
+    @Test
     public void test_me_lists_only_scope_projects() {
         actAs(scopedToP1());
 

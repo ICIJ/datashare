@@ -729,6 +729,17 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_delete_user_history_without_project_ids_deletes_nothing() {
+        User user = new User("userid");
+        UserEvent event = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
+        repository.addToUserHistory(singletonList(project("p1")), event);
+
+        assertThat(repository.deleteUserHistory(user, DOCUMENT, new String[0])).isFalse();
+
+        assertThat(repository.getUserEvents(user)).containsExactly(event);
+    }
+
+    @Test
     public void test_get_empty_user_history() {
         assertThat(repository.getUserHistory(User.local(), SEARCH, 0, 10, "modification_date", true)).isEmpty();
     }
