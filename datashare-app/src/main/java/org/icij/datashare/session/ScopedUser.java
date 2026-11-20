@@ -28,7 +28,8 @@ public class ScopedUser extends DatashareUser {
 
     @Override
     public Map<String, Object> getDetails() {
-        Map<String, Object> narrowed = new HashMap<>(super.getDetails());
+        Map<String, Object> allDetails = super.getDetails();
+        Map<String, Object> narrowed = new HashMap<>(allDetails);
         String[] keys = getJsonProjectKey().split("\\.");
         narrow(narrowed, keys, 0);
         return narrowed;
