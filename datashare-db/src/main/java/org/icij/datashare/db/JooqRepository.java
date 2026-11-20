@@ -282,19 +282,27 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public boolean deleteUserHistory(User user, UserEvent.Type type) {
+    public boolean deleteUserHistory(User user, UserEvent.Type type, String... projectIds) {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.transactionResult(configuration -> {
             DSLContext inner = using(connectionProvider, dialect);
-            SelectSelectStep<Record1<Integer>> innerSelect = inner.select(USER_HISTORY.ID);
-            inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
-                    innerSelect.from(USER_HISTORY).where(USER_HISTORY.TYPE.eq(type.id))
-                               .and(USER_HISTORY.USER_ID.eq(user.id)))).execute();
-            return inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.USER_ID.eq(user.id))
-                        .and(USER_HISTORY.TYPE.eq(type.id)).execute() > 0;
-
+            Condition condition = USER_HISTORY.USER_ID.eq(user.id).and(USER_HISTORY.TYPE.eq(type.id));
+            if (projectIds.length > 0) {
+                SelectConditionStep<Record1<Integer>> linked =
+                        inner.select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT)
+                             .where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds));
+                condition = condition.and(USER_HISTORY.ID.in(linked));
+            }
+            List<Integer> doomedIds =
+                    inner.select(USER_HISTORY.ID).from(USER_HISTORY).where(condition).fetch(USER_HISTORY.ID);
+            inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(doomedIds)).execute();
+            return inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(doomedIds)).execute() > 0;
         });
+    }
 
+    @Override
+    public boolean deleteUserHistory(User user, UserEvent.Type type) {
+        return deleteUserHistory(user, type, new String[0]);
     }
 
     @Override
