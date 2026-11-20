@@ -65,4 +65,24 @@ public class ApiKeyCommandTest extends AbstractDatashareCommandTest {
         int exitCode = parseExitCode("api-key", "delete");
         assertThat(exitCode).isNotEqualTo(0);
     }
+
+    @Test
+    public void test_create_with_projects() {
+        Properties props = parse("api-key", "create", "alice", "--project", "a", "--project", "b");
+        assertThat(props).includes(entry("apiKeyProjects", "a,b"));
+    }
+
+    @Test
+    public void test_list() {
+        Properties props = parse("api-key", "list", "alice");
+        assertThat(props).includes(entry("mode", "CLI"));
+        assertThat(props).includes(entry("listApiKeys", "alice"));
+    }
+
+    @Test
+    public void test_delete_one_key() {
+        Properties props = parse("api-key", "delete", "alice", "--key", "h");
+        assertThat(props).includes(entry("deleteApiKey", "alice"));
+        assertThat(props).includes(entry("apiKeyHash", "h"));
+    }
 }

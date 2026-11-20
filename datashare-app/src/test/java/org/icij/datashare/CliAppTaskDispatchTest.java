@@ -1,7 +1,11 @@
 package org.icij.datashare;
 
 import com.google.inject.ProvisionException;
+import org.icij.datashare.Repository;
 import org.icij.datashare.session.ApiKeyExpiration;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.user.ApiKey;
+import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
@@ -15,11 +19,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -61,20 +67,20 @@ public class CliAppTaskDispatchTest {
         Date expiration = Date.from(Instant.parse("2027-02-01T00:00:00Z"));
         when(taskFactory.createGenApiKey(any(), eq(expiration))).thenReturn(task);
 
-        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "2027-02-01")).isEqualTo(CliApp.EXIT_SUCCESS);
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, mock(Repository.class), "alice", "2027-02-01", List.of())).isEqualTo(CliApp.EXIT_SUCCESS);
 
         verify(taskFactory).createGenApiKey(any(), eq(expiration));
     }
 
     @Test
     public void test_create_api_key_with_invalid_date_exits_validation() throws Exception {
-        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "2027-13-01")).isEqualTo(CliApp.EXIT_VALIDATION);
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, mock(Repository.class), "alice", "2027-13-01", List.of())).isEqualTo(CliApp.EXIT_VALIDATION);
     }
 
     @Test
     public void test_create_api_key_with_date_beyond_year_9999_exits_validation() throws Exception {
-        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "+300000-01-01")).isEqualTo(CliApp.EXIT_VALIDATION);
-        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "+300000000-01-01")).isEqualTo(CliApp.EXIT_VALIDATION);
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, mock(Repository.class), "alice", "+300000-01-01", List.of())).isEqualTo(CliApp.EXIT_VALIDATION);
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, mock(Repository.class), "alice", "+300000000-01-01", List.of())).isEqualTo(CliApp.EXIT_VALIDATION);
     }
 
     @Test
@@ -84,7 +90,7 @@ public class CliAppTaskDispatchTest {
                 new ApiKeyExpiration.InvalidExpirationException("expiration date must be in the future"));
         when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
 
-        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "2020-01-01")).isEqualTo(CliApp.EXIT_VALIDATION);
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, mock(Repository.class), "alice", "2020-01-01", List.of())).isEqualTo(CliApp.EXIT_VALIDATION);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -93,7 +99,7 @@ public class CliAppTaskDispatchTest {
         when(task.call()).thenThrow(new IllegalArgumentException("internal detail"));
         when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
 
-        CliApp.handleApiKeyCreate(taskFactory, "alice", null);
+        CliApp.handleApiKeyCreate(taskFactory, mock(Repository.class), "alice", null, List.of());
     }
 
     @Test
@@ -102,7 +108,7 @@ public class CliAppTaskDispatchTest {
                 new ApiKeyExpiration.InvalidExpirationException("invalid apiKeyMaxLifetime: 90d");
         when(taskFactory.createGenApiKey(any(), any())).thenThrow(new ProvisionException("guice", cause));
 
-        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", null)).isEqualTo(CliApp.EXIT_VALIDATION);
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, mock(Repository.class), "alice", null, List.of())).isEqualTo(CliApp.EXIT_VALIDATION);
         assertThat(err.toString()).contains("error: invalid apiKeyMaxLifetime: 90d");
     }
 
@@ -114,7 +120,7 @@ public class CliAppTaskDispatchTest {
         when(task.call()).thenReturn("the-generated-key");
         when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
 
-        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", null)).isEqualTo(CliApp.EXIT_SUCCESS);
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, mock(Repository.class), "alice", null, List.of())).isEqualTo(CliApp.EXIT_SUCCESS);
 
         assertThat(out.toString().trim()).isEqualTo("the-generated-key");
     }
@@ -127,7 +133,7 @@ public class CliAppTaskDispatchTest {
         when(task.call()).thenReturn("the-generated-key");
         when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
 
-        CliApp.handleApiKeyCreate(taskFactory, "alice", null);
+        CliApp.handleApiKeyCreate(taskFactory, mock(Repository.class), "alice", null, List.of());
 
         assertThat(out.toString().trim()).isEqualTo("the-generated-key");
         assertThat(err.toString()).excludes("the-generated-key");
@@ -193,7 +199,7 @@ public class CliAppTaskDispatchTest {
         when(task.call()).thenReturn(false);
         when(taskFactory.createDelApiKey(any())).thenReturn(task);
 
-        assertThat(CliApp.handleApiKeyDelete(taskFactory, "ghost")).isEqualTo(CliApp.EXIT_NOT_FOUND);
+        assertThat(CliApp.handleApiKeyDelete(taskFactory, mock(ApiKeyRepository.class), "ghost", null)).isEqualTo(CliApp.EXIT_NOT_FOUND);
     }
 
     @Test
@@ -202,7 +208,7 @@ public class CliAppTaskDispatchTest {
         when(task.call()).thenReturn(true);
         when(taskFactory.createDelApiKey(any())).thenReturn(task);
 
-        assertThat(CliApp.handleApiKeyDelete(taskFactory, "alice")).isEqualTo(CliApp.EXIT_SUCCESS);
+        assertThat(CliApp.handleApiKeyDelete(taskFactory, mock(ApiKeyRepository.class), "alice", null)).isEqualTo(CliApp.EXIT_SUCCESS);
     }
 
     @Test
@@ -211,7 +217,7 @@ public class CliAppTaskDispatchTest {
         when(task.call()).thenReturn(null);
         when(taskFactory.createDelApiKey(any())).thenReturn(task);
 
-        assertThat(CliApp.handleApiKeyDelete(taskFactory, "ghost")).isEqualTo(CliApp.EXIT_NOT_FOUND);
+        assertThat(CliApp.handleApiKeyDelete(taskFactory, mock(ApiKeyRepository.class), "ghost", null)).isEqualTo(CliApp.EXIT_NOT_FOUND);
     }
 
     @Test
@@ -223,5 +229,76 @@ public class CliAppTaskDispatchTest {
         when(taskFactory.createGrantAdminPolicyTask(any())).thenReturn(task);
 
         assertThat(CliApp.handleGrantAdmin(taskFactory, "alice")).isEqualTo(CliApp.EXIT_RUNTIME);
+    }
+
+    @Test
+    public void test_create_without_projects_rotates() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenReturn("the-generated-key");
+        when(taskFactory.createGenApiKey(any(), any())).thenReturn(task);
+        Repository repository = mock(Repository.class);
+
+        int exitCode = CliApp.handleApiKeyCreate(taskFactory, repository, "alice", null, List.of());
+
+        assertThat(exitCode).isEqualTo(CliApp.EXIT_SUCCESS);
+        verify(taskFactory).createGenApiKey(any(), eq(null));
+        verify(taskFactory, never()).createGenApiKey(any(), any(), any());
+    }
+
+    @Test
+    public void test_create_with_projects_adds() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenReturn("the-generated-key");
+        when(taskFactory.createGenApiKey(any(), any(), any())).thenReturn(task);
+        Repository repository = mock(Repository.class);
+        when(repository.getProjects(List.of("a", "b"))).thenReturn(List.of(new Project("a"), new Project("b")));
+
+        int exitCode = CliApp.handleApiKeyCreate(taskFactory, repository, "alice", null, List.of("a", "b"));
+
+        assertThat(exitCode).isEqualTo(CliApp.EXIT_SUCCESS);
+        verify(taskFactory).createGenApiKey(any(), eq(null), eq(List.of("a", "b")));
+    }
+
+    @Test
+    public void test_create_with_unknown_project_fails() throws Exception {
+        Repository repository = mock(Repository.class);
+        when(repository.getProjects(List.of("a", "nope"))).thenReturn(List.of(new Project("a")));
+
+        int exitCode = CliApp.handleApiKeyCreate(taskFactory, repository, "alice", null, List.of("a", "nope"));
+
+        assertThat(exitCode).isEqualTo(CliApp.EXIT_VALIDATION);
+        assertThat(err.toString()).contains("nope");
+        verify(taskFactory, never()).createGenApiKey(any(), any(), any());
+        verify(taskFactory, never()).createGenApiKey(any(), any());
+    }
+
+    @Test
+    public void test_list_prints_one_line_per_key() {
+        ApiKey unscoped = mock(ApiKey.class);
+        when(unscoped.getId()).thenReturn("h1");
+        when(unscoped.getProjects()).thenReturn(List.of());
+        ApiKey scoped = mock(ApiKey.class);
+        when(scoped.getId()).thenReturn("h2");
+        when(scoped.getProjects()).thenReturn(List.of("a", "b"));
+        ApiKeyRepository apiKeyRepository = mock(ApiKeyRepository.class);
+        when(apiKeyRepository.getAll(any())).thenReturn(List.of(unscoped, scoped));
+        ApiKeyExpiration expiration = mock(ApiKeyExpiration.class);
+        when(expiration.effectiveExpiration(unscoped)).thenReturn(null);
+        when(expiration.effectiveExpiration(scoped)).thenReturn(Date.from(Instant.parse("2027-02-01T00:00:00Z")));
+
+        int exitCode = CliApp.handleApiKeyList(apiKeyRepository, expiration, "alice");
+
+        assertThat(exitCode).isEqualTo(CliApp.EXIT_SUCCESS);
+        assertThat(out.toString()).isEqualTo("h1\t*\t-\nh2\ta,b\t2027-02-01T00:00:00Z\n");
+    }
+
+    @Test
+    public void test_delete_one_unknown_key_is_not_found() throws Exception {
+        ApiKeyRepository apiKeyRepository = mock(ApiKeyRepository.class);
+        when(apiKeyRepository.delete(any(), eq("nope"))).thenReturn(false);
+
+        int exitCode = CliApp.handleApiKeyDelete(taskFactory, apiKeyRepository, "alice", "nope");
+
+        assertThat(exitCode).isEqualTo(CliApp.EXIT_NOT_FOUND);
     }
 }
