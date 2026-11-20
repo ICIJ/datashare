@@ -26,7 +26,8 @@ API keys never expire today. A leaked key works forever. Add an expiration date 
 
 - **Caller picks, server caps.** Expiration is optional per key; `--apiKeyMaxLifetime` caps it.
 - **Old keys are capped from their creation date.** Effective expiry = `min(expiration_date, creation_date + cap)`, computed at check time. Turning the cap on immediately disables keys older than the cap.
-- **30-day default (Pierre, 2026-11-20).** A key without an expiration date expires 30 days after its creation, for new and existing keys alike: existing keys older than 30 days stop working at deploy. Effective expiry = `min(expiration_date or creation_date + 30 days, creation_date + cap)`.
+- **30-day default (Pierre, 2026-11-20).** A key without an expiration date expires 30 days after its creation, for new and existing keys alike: existing keys older than 30 days stop working at deploy, with no setting to turn this off: the release notes and the PR must say so. Effective expiry = `min(expiration_date or creation_date + 30 days, creation_date + cap)`.
+- **Legacy creation dates are local time, read as UTC (accepted).** Rows written before this change stored `creation_date` in the JVM's local time; they are read as UTC, so their 30-day expiry shifts by the server's UTC offset (a few hours at most).
 - **Check lives in `ApiKeyStoreAdapter`** (approach 1 below).
 
 ## Approaches
@@ -43,9 +44,9 @@ API keys never expire today. A leaked key works forever. Add an expiration date 
 - **Check:** `ApiKeyStoreAdapter.getLogin` returns `null` when `now > effectiveExpiry`, using `DatashareTime` so tests can freeze time.
 - **Create:**
   - REST `PUT /api/key/:userId` accepts an optional JSON body `{"expirationDate": "<ISO-8601 instant>"}`. Empty body still works.
-  - CLI `datashare api-key create alice --expiration-date 2027-02-01` (picocli `ApiKeyCreateCommand` only; legacy `-k` stays non-expiring).
+  - CLI `datashare api-key create alice --expiration-date 2027-02-01` (picocli `ApiKeyCreateCommand` only; legacy `-k` also gets the 30-day default).
   - No expiration given: expiration = now + min(30 days, cap). Requested expiration beyond now + cap, or in the past: 400 (CLI: non-zero exit with message).
-- **Read:** `GET /api/key/:userId` returns `{"hashedKey": ..., "expirationDate": <effective expiry or null>}`. Adding a field is backward compatible for the client.
+- **Read:** `GET /api/key/:userId` returns `{"hashedKey": ..., "expirationDate": <effective expiry>}`. Adding a field is backward compatible for the client.
 
 ## Left to the builder
 
