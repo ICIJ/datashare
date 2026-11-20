@@ -6,6 +6,7 @@ import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -51,7 +52,9 @@ public class DatashareApiKey implements ApiKey {
     }
 
     public DatashareApiKey(String hashedKey, User user, Date creationDate, Date expirationDate, List<String> projects) {
-        this.projects = projects == null ? List.of() : List.copyOf(projects);
+        List<String> given = projects == null ? List.of() : projects;
+        LinkedHashSet<String> distinct = new LinkedHashSet<>(given);
+        this.projects = List.copyOf(distinct);
         this.hashedKey = hashedKey;
         this.user = user;
         this.creationDate = creationDate;
