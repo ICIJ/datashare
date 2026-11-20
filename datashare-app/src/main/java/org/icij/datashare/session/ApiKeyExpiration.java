@@ -14,6 +14,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.API_KEY_MAX_LIFETIME_OP
 
 @Singleton
 public class ApiKeyExpiration {
+    private static final Duration DEFAULT_LIFETIME = Duration.ofDays(30);
     private final String maxLifetimeSetting;
     private final Duration maxLifetime;
 
@@ -26,15 +27,12 @@ public class ApiKeyExpiration {
     }
 
     public Date effectiveExpiration(ApiKey apiKey) {
+        Date creationDate = apiKey.getCreationDate();
         Date expirationDate = apiKey.getExpirationDate();
-        if (maxLifetime == null) {
-            return expirationDate;
+        if (expirationDate == null) {
+            expirationDate = plus(creationDate, DEFAULT_LIFETIME);
         }
-        Date cappedDate = plusMaxLifetime(apiKey.getCreationDate());
-        if (expirationDate == null || cappedDate.before(expirationDate)) {
-            return cappedDate;
-        }
-        return expirationDate;
+        return capped(creationDate, expirationDate);
     }
 
     public boolean isExpired(ApiKey apiKey) {
@@ -44,10 +42,11 @@ public class ApiKeyExpiration {
 
     public Date expirationForNewKey(Date requested) {
         Date now = now();
-        Date cappedDate = maxLifetime == null ? null : plusMaxLifetime(now);
         if (requested == null) {
-            return cappedDate;
+            Date defaultDate = plus(now, DEFAULT_LIFETIME);
+            return capped(now, defaultDate);
         }
+        Date cappedDate = maxLifetime == null ? null : plus(now, maxLifetime);
         if (!requested.after(now)) {
             throw new InvalidExpirationException("expiration date must be in the future");
         }
@@ -58,9 +57,18 @@ public class ApiKeyExpiration {
         return requested;
     }
 
-    private Date plusMaxLifetime(Date date) {
-        Instant capped = date.toInstant().plus(maxLifetime);
-        return Date.from(capped);
+    private Date capped(Date creationDate, Date expirationDate) {
+        if (maxLifetime == null) {
+            return expirationDate;
+        }
+        Date cappedDate = plus(creationDate, maxLifetime);
+        return cappedDate.before(expirationDate) ? cappedDate : expirationDate;
+    }
+
+    private static Date plus(Date date, Duration duration) {
+        Instant instant = date.toInstant();
+        Instant shifted = instant.plus(duration);
+        return Date.from(shifted);
     }
 
     private static Date now() {
