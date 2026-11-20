@@ -11,9 +11,9 @@ import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.DatashareApiKey;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -221,6 +221,32 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_add_key_with_empty_projects_adds_unscoped() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenReturn("privateKey");
+        when(taskFactory.createGenApiKey(User.local(), null, List.of())).thenReturn(task);
+
+        post("/api/key/local/keys", "{\"projects\":[]}").should().respond(201).contain("privateKey");
+        verify(taskFactory).createGenApiKey(User.local(), null, List.of());
+    }
+
+    @Test
+    public void test_add_key_with_null_projects_adds_unscoped() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenReturn("privateKey");
+        when(taskFactory.createGenApiKey(User.local(), null, List.of())).thenReturn(task);
+
+        post("/api/key/local/keys", "{\"projects\":null}").should().respond(201).contain("privateKey");
+        verify(taskFactory).createGenApiKey(User.local(), null, List.of());
+    }
+
+    @Test
+    public void test_add_key_with_non_string_projects() {
+        post("/api/key/local/keys", "{\"projects\":[1,null]}").should().respond(400);
+        verify(taskFactory, never()).createGenApiKey(any(), any(), any());
+    }
+
+    @Test
     public void test_delete_one_key() {
         when(apiKeyRepository.delete(User.local(), "hash")).thenReturn(true);
 
@@ -244,6 +270,7 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
         delete("/api/key/local/keys/hash").withHeader("Authorization", "Bearer some-key").should().respond(403);
         verify(taskFactory, never()).createGenApiKey(any(), any());
         verify(taskFactory, never()).createGenApiKey(any(), any(), any());
+        verify(taskFactory, never()).createDelApiKey(any());
         verify(apiKeyRepository, never()).delete(any(User.class), any());
     }
 
