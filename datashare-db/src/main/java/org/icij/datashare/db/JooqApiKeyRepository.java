@@ -15,8 +15,14 @@ import javax.sql.DataSource;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import static org.icij.datashare.db.tables.ApiKey.API_KEY;
+import static org.icij.datashare.db.tables.ApiKeyProject.API_KEY_PROJECT;
 import static org.jooq.impl.DSL.using;
 
 public class JooqApiKeyRepository implements ApiKeyRepository {
@@ -31,48 +37,110 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
     @Override
     public ApiKey get(String base64Key) {
         DSLContext ctx = using(connectionProvider, dialect);
-        return createApiKey(
-                ctx.selectFrom(API_KEY).where(API_KEY.ID.eq(ApiKey.DEFAULT_DIGESTER.hash(base64Key))).fetchOne());
-
+        String hashedKey = ApiKey.DEFAULT_DIGESTER.hash(base64Key);
+        ApiKeyRecord apiKeyRecord = ctx.selectFrom(API_KEY).where(API_KEY.ID.eq(hashedKey)).fetchOne();
+        if (apiKeyRecord == null) {
+            return null;
+        }
+        return toApiKeys(ctx, List.of(apiKeyRecord)).get(0);
     }
 
     @Override
     public ApiKey get(User user) {
-        DSLContext ctx = using(connectionProvider, dialect);
-        return createApiKey(ctx.selectFrom(API_KEY).where(API_KEY.USER_ID.eq(user.id)).fetchOne());
+        List<ApiKey> apiKeys = getAll(user);
+        if (apiKeys.isEmpty()) {
+            return null;
+        }
+        return apiKeys.get(0);
+    }
 
+    @Override
+    public List<ApiKey> getAll(User user) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        List<ApiKeyRecord> records = ctx.selectFrom(API_KEY).where(API_KEY.USER_ID.eq(user.id))
+                                        .orderBy(API_KEY.CREATION_DATE.desc(), API_KEY.ID.desc()).fetch();
+        return toApiKeys(ctx, records);
     }
 
     @Override
     public boolean delete(User user) {
         DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.deleteFrom(API_KEY).where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
+        return ctx.transactionResult(config -> deleteAll(using(config), user));
+    }
 
+    @Override
+    public boolean delete(User user, String hashedKey) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.transactionResult(config -> {
+            DSLContext tx = using(config);
+            int deleted =
+                    tx.deleteFrom(API_KEY).where(API_KEY.ID.eq(hashedKey).and(API_KEY.USER_ID.eq(user.id))).execute();
+            if (deleted == 0) {
+                return false;
+            }
+            tx.deleteFrom(API_KEY_PROJECT).where(API_KEY_PROJECT.API_KEY_ID.eq(hashedKey)).execute();
+            return true;
+        });
     }
 
     @Override
     public boolean save(ApiKey apiKey) {
         DSLContext ctx = using(connectionProvider, dialect);
-        Date nowDate = DatashareTime.getInstance().now();
-        LocalDateTime now = toUtcLocalDateTime(nowDate);
-        LocalDateTime expirationDate = toUtcLocalDateTime(apiKey.getExpirationDate());
-        return ctx.insertInto(API_KEY, API_KEY.ID, API_KEY.USER_ID, API_KEY.CREATION_DATE, API_KEY.EXPIRATION_DATE)
-                  .values(apiKey.getId(), apiKey.getUser().id, now, expirationDate).onConflict(API_KEY.USER_ID)
-                  .doUpdate().set(API_KEY.ID, apiKey.getId()).set(API_KEY.CREATION_DATE, now)
-                  .set(API_KEY.EXPIRATION_DATE, expirationDate).where(API_KEY.USER_ID.eq(apiKey.getUser().id))
-                  .execute() > 0;
+        return ctx.transactionResult(config -> insert(using(config), apiKey));
+    }
 
+    @Override
+    public boolean replace(ApiKey apiKey) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.transactionResult(config -> {
+            DSLContext tx = using(config);
+            deleteAll(tx, apiKey.getUser());
+            return insert(tx, apiKey);
+        });
     }
 
     // ----------------
-    private ApiKey createApiKey(ApiKeyRecord apiKeyRecord) {
-        if (apiKeyRecord == null) {
-            return null;
+    private boolean deleteAll(DSLContext tx, User user) {
+        tx.deleteFrom(API_KEY_PROJECT)
+          .where(API_KEY_PROJECT.API_KEY_ID.in(tx.select(API_KEY.ID).from(API_KEY).where(API_KEY.USER_ID.eq(user.id))))
+          .execute();
+        return tx.deleteFrom(API_KEY).where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
+    }
+
+    private boolean insert(DSLContext tx, ApiKey apiKey) {
+        Date nowDate = DatashareTime.getInstance().now();
+        LocalDateTime now = toUtcLocalDateTime(nowDate);
+        LocalDateTime expirationDate = toUtcLocalDateTime(apiKey.getExpirationDate());
+        int inserted =
+                tx.insertInto(API_KEY, API_KEY.ID, API_KEY.USER_ID, API_KEY.CREATION_DATE, API_KEY.EXPIRATION_DATE)
+                  .values(apiKey.getId(), apiKey.getUser().id, now, expirationDate).execute();
+        for (String project : apiKey.getProjects()) {
+            tx.insertInto(API_KEY_PROJECT, API_KEY_PROJECT.API_KEY_ID, API_KEY_PROJECT.PRJ_ID)
+              .values(apiKey.getId(), project).execute();
         }
+        return inserted > 0;
+    }
+
+    private List<ApiKey> toApiKeys(DSLContext ctx, List<ApiKeyRecord> records) {
+        List<String> ids = records.stream().map(ApiKeyRecord::getId).collect(Collectors.toList());
+        Map<String, List<String>> projectsByKey = new HashMap<>();
+        ctx.selectFrom(API_KEY_PROJECT).where(API_KEY_PROJECT.API_KEY_ID.in(ids)).fetch().forEach(row -> {
+            List<String> projects = projectsByKey.computeIfAbsent(row.getApiKeyId(), id -> new ArrayList<>());
+            projects.add(row.getPrjId());
+        });
+        List<ApiKey> apiKeys = new ArrayList<>();
+        for (ApiKeyRecord apiKeyRecord : records) {
+            List<String> projects = projectsByKey.getOrDefault(apiKeyRecord.getId(), List.of());
+            apiKeys.add(createApiKey(apiKeyRecord, projects));
+        }
+        return apiKeys;
+    }
+
+    private ApiKey createApiKey(ApiKeyRecord apiKeyRecord, List<String> projects) {
         User user = new User(apiKeyRecord.getUserId());
         Date creationDate = toDate(apiKeyRecord.getCreationDate());
         Date expirationDate = toDate(apiKeyRecord.getExpirationDate());
-        return new DatashareApiKey(apiKeyRecord.getId(), user, creationDate, expirationDate);
+        return new DatashareApiKey(apiKeyRecord.getId(), user, creationDate, expirationDate, projects);
     }
 
     private static Date toDate(LocalDateTime utcDateTime) {
