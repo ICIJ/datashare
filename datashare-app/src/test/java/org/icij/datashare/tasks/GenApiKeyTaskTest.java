@@ -37,7 +37,7 @@ public class GenApiKeyTaskTest {
 
         DatashareApiKey saved = savedKey();
         assertThat(saved.getUser()).isEqualTo(User.local());
-        assertThat(saved.getExpirationDate()).isNull();
+        assertThat(saved.getExpirationDate()).isEqualTo(Date.from(Instant.parse("2026-01-31T00:00:00Z")));
     }
 
     @Test
@@ -50,10 +50,11 @@ public class GenApiKeyTaskTest {
     }
 
     @Test
-    public void test_call_defaults_to_cap() throws Exception {
-        new GenApiKeyTask(apiKeyRepository, cap90Days, User.local(), null).call();
+    public void test_call_defaults_to_cap_when_shorter_than_30_days() throws Exception {
+        ApiKeyExpiration cap7Days = new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "P7D")));
+        new GenApiKeyTask(apiKeyRepository, cap7Days, User.local(), null).call();
 
-        assertThat(savedKey().getExpirationDate()).isEqualTo(Date.from(Instant.parse("2026-04-01T00:00:00Z")));
+        assertThat(savedKey().getExpirationDate()).isEqualTo(Date.from(Instant.parse("2026-01-08T00:00:00Z")));
     }
 
     @Test
