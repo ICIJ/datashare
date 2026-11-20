@@ -17,7 +17,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 public class ApiKeyCreateCommand implements Runnable, DatashareSubcommand {
     @Parameters(index = "0", description = "Username")
     String user;
-    @Option(names = {"--expiration-date"}, description = "Expiration date of the key (YYYY-MM-DD, UTC)")
+    @Option(names = {"--expiration-date"},
+            description = "Expiration date of the key (YYYY-MM-DD, UTC). Defaults to 30 days from now.")
     String expirationDate;
     @Option(names = {"--apiKeyMaxLifetime"},
             description = "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H). Unset means no limit.")

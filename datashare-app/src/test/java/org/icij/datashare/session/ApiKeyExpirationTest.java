@@ -22,11 +22,19 @@ public class ApiKeyExpirationTest {
             new PropertiesProvider(Map.of("apiKeyMaxLifetime", "P90D")));
 
     @Test
-    public void test_no_cap_no_expiration_never_expires() {
+    public void test_old_key_without_expiration_expires_30_days_after_creation() {
         ApiKey apiKey = apiKey("2020-01-01T00:00:00Z", null);
 
+        assertThat(noCap.isExpired(apiKey)).isTrue();
+        assertThat(noCap.effectiveExpiration(apiKey)).isEqualTo(date("2020-01-31T00:00:00Z"));
+    }
+
+    @Test
+    public void test_recent_key_without_expiration_is_valid() {
+        ApiKey apiKey = apiKey("2025-12-15T00:00:00Z", null);
+
         assertThat(noCap.isExpired(apiKey)).isFalse();
-        assertThat(noCap.effectiveExpiration(apiKey)).isNull();
+        assertThat(noCap.effectiveExpiration(apiKey)).isEqualTo(date("2026-01-14T00:00:00Z"));
     }
 
     @Test
@@ -46,7 +54,7 @@ public class ApiKeyExpirationTest {
     @Test
     public void test_blank_max_lifetime_means_no_cap() {
         ApiKeyExpiration blankCap = new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", " ")));
-        ApiKey apiKey = apiKey("2020-01-01T00:00:00Z", null);
+        ApiKey apiKey = apiKey("2020-01-01T00:00:00Z", "2030-01-01T00:00:00Z");
 
         assertThat(blankCap.isExpired(apiKey)).isFalse();
     }
@@ -56,7 +64,7 @@ public class ApiKeyExpirationTest {
         ApiKey apiKey = apiKey("2025-09-01T00:00:00Z", null);
 
         assertThat(cap90Days.isExpired(apiKey)).isTrue();
-        assertThat(cap90Days.effectiveExpiration(apiKey)).isEqualTo(date("2025-11-30T00:00:00Z"));
+        assertThat(cap90Days.effectiveExpiration(apiKey)).isEqualTo(date("2025-10-01T00:00:00Z"));
     }
 
     @Test
@@ -67,9 +75,23 @@ public class ApiKeyExpirationTest {
     }
 
     @Test
-    public void test_new_key_defaults_to_cap() {
-        assertThat(cap90Days.expirationForNewKey(null)).isEqualTo(date("2026-04-01T00:00:00Z"));
-        assertThat(noCap.expirationForNewKey(null)).isNull();
+    public void test_new_key_defaults_to_30_days() {
+        assertThat(noCap.expirationForNewKey(null)).isEqualTo(date("2026-01-31T00:00:00Z"));
+        assertThat(cap90Days.expirationForNewKey(null)).isEqualTo(date("2026-01-31T00:00:00Z"));
+    }
+
+    @Test
+    public void test_new_key_defaults_to_cap_when_shorter_than_30_days() {
+        ApiKeyExpiration cap7Days = new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "P7D")));
+
+        assertThat(cap7Days.expirationForNewKey(null)).isEqualTo(date("2026-01-08T00:00:00Z"));
+    }
+
+    @Test
+    public void test_new_key_without_cap_keeps_requested_expiration_beyond_30_days() {
+        Date requested = date("2027-01-01T00:00:00Z");
+
+        assertThat(noCap.expirationForNewKey(requested)).isEqualTo(requested);
     }
 
     @Test
