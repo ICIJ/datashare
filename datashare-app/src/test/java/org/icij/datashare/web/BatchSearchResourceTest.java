@@ -414,7 +414,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         routeAsScopedUser();
 
         patch("/api/batch/search/" + outside.uuid, "{\"data\": {\"name\": \"renamed\"}}").should().respond(404);
-        delete("/api/batch/search/" + outside.uuid);
+        delete("/api/batch/search/" + outside.uuid).should().respond(204);
 
         verify(batchSearchRepository, never()).setName(any(User.class), eq(outside.uuid), any());
         verify(batchSearchRepository, never()).delete(any(User.class), eq(outside.uuid));
@@ -427,6 +427,33 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         delete("/api/batch/search").should().respond(403).contain("insufficient role");
 
         verify(batchSearchRepository, never()).deleteAll(any(User.class));
+    }
+
+    @Test
+    public void test_scoped_user_cannot_read_queries_of_batch_search_outside_scope() {
+        BatchSearch outside = new BatchSearch(singletonList(project("p2")), "name", "description", asSet("query 1"), null, User.local());
+        when(batchSearchRepository.get(any(User.class), eq(outside.uuid))).thenReturn(outside);
+        routeAsScopedUser();
+
+        get("/api/batch/search/" + outside.uuid + "/queries").should().respond(404);
+    }
+
+    @Test
+    public void test_scoped_user_cannot_read_results_of_batch_search_outside_scope() {
+        BatchSearch outside = new BatchSearch(singletonList(project("p2")), "name", "description", asSet("query 1"), null, User.local());
+        when(batchSearchRepository.get(any(User.class), eq(outside.uuid))).thenReturn(outside);
+        routeAsScopedUser();
+
+        post("/api/batch/search/result/" + outside.uuid, "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\"}").should().respond(404);
+    }
+
+    @Test
+    public void test_scoped_user_cannot_read_csv_results_of_batch_search_outside_scope() {
+        BatchSearch outside = new BatchSearch(singletonList(project("p2")), "name", "description", asSet("query 1"), null, User.local());
+        when(batchSearchRepository.get(any(User.class), eq(outside.uuid))).thenReturn(outside);
+        routeAsScopedUser();
+
+        get("/api/batch/search/result/csv/" + outside.uuid).should().respond(404);
     }
 
     private void routeAsScopedUser() {
