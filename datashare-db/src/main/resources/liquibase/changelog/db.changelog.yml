@@ -161,3 +161,6 @@ databaseChangeLog:
   - include:
       file: changes/053-api-key-expiration-date.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/054-api-key-project-scope.yml
+      relativeToChangelogFile: true
