@@ -24,6 +24,7 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.ScopedUser;
 import net.codestory.http.security.Users;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
@@ -1099,6 +1100,61 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     private static String taskJson(String id, String name, Map<String, Object> args) throws Exception {
         return JsonObjectMapper.writeValueAsString(new Task<>(id, name, local(), args));
+    }
+
+    private static DatashareUser memberOf(String uid, String... projects) {
+        Map<String, Object> groups = Map.of("datashare", List.of(projects));
+        return new DatashareUser(Map.of("uid", uid, "groups_by_applications", groups));
+    }
+
+    private void configureWithScopedUser(ScopedUser scopedUser) {
+        configure(routes -> routes
+                .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
+                .filter((uri, context, next) -> {
+                    context.setCurrentUser(scopedUser);
+                    return next.get();
+                }));
+    }
+
+    @Test
+    public void test_scoped_user_cannot_create_task_on_project_outside_scope() throws Exception {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        configureWithScopedUser(new ScopedUser(cecile, List.of("p1")));
+
+        put("/api/task/outside_id", taskJson("outside_id", "my.python.task", Map.of("defaultProject", "p2"))).should().respond(403);
+
+        assertThat(taskManager.getTasks().toList()).isEmpty();
+    }
+
+    @Test
+    public void test_scoped_user_cannot_create_task_without_project() throws Exception {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        configureWithScopedUser(new ScopedUser(cecile, List.of("p1")));
+
+        put("/api/task/no_project_id", taskJson("no_project_id", "my.python.task", Map.of("key", "val"))).should().respond(403);
+
+        assertThat(taskManager.getTasks().toList()).isEmpty();
+    }
+
+    @Test
+    public void test_task_started_by_scoped_user_stores_unscoped_user() throws Exception {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        configureWithScopedUser(new ScopedUser(cecile, List.of("p1")));
+
+        put("/api/task/inside_id", taskJson("inside_id", "my.python.task", Map.of("defaultProject", "p1"))).should().respond(201);
+
+        Task<?> stored = taskManager.getTask("inside_id");
+        assertThat(stored.getUser().getClass()).isEqualTo(DatashareUser.class);
+    }
+
+    @Test
+    public void test_scoped_user_cannot_read_result_of_task_outside_scope() throws Exception {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        String taskId = taskManager.startTask(TestSleepingTask.class, cecile, new HashMap<>(Map.of("defaultProject", "p2")));
+        taskManager.stopTask(taskId);
+        configureWithScopedUser(new ScopedUser(cecile, List.of("p1")));
+
+        get("/api/task/" + taskId + "/result").should().respond(403);
     }
 
     @Test

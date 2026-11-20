@@ -26,6 +26,8 @@ import org.icij.datashare.asynctasks.TaskManagerMemory;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import org.junit.After;
@@ -218,6 +220,83 @@ public class TaskFinderTest {
     public void test_find_visible_task_for_unknown_id() throws IOException {
         when(batchSearchRepository.getRecords(any(), anyList())).thenReturn(List.of());
         taskFinder.findVisibleTaskFor(User.local(), "nonexistent-id");
+    }
+
+    private static DatashareUser memberOf(String uid, String... projects) {
+        Map<String, Object> groups = Map.of("datashare", List.of(projects));
+        return new DatashareUser(Map.of("uid", uid, "groups_by_applications", groups));
+    }
+
+    private Task<String> ownedTaskOn(User owner, String project) throws IOException {
+        Task<String> task = new Task<>("name", owner, new HashMap<>(Map.of("defaultProject", project)));
+        taskManager.startTask(task, null);
+        return task;
+    }
+
+    private BatchSearchRecord batchSearchOn(User owner, String... projects) {
+        return new BatchSearchRecord(
+                UUID.randomUUID().toString(), List.of(projects), "name", "description",
+                123, 0, new Date(), BatchSearchRecord.State.SUCCESS, "/", owner, 0, true, null, null);
+    }
+
+    @Test
+    public void test_scoped_user_does_not_see_owned_task_outside_scope() throws IOException {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        Task<String> outside = ownedTaskOn(cecile, "p2");
+        Task<String> inside = ownedTaskOn(cecile, "p1");
+        when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of());
+
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(new ScopedUser(cecile, List.of("p1")), new TaskFilters()).toList();
+
+        assertThat(tasks.stream().map(t -> t.id).toList()).excludes(outside.id);
+        assertThat(tasks.stream().map(t -> t.id).toList()).contains(inside.id);
+    }
+
+    @Test
+    public void test_scoped_user_does_not_see_task_without_project() throws IOException {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        Task<String> noProject = new Task<>("name", cecile, new HashMap<>());
+        taskManager.startTask(noProject, null);
+        when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of());
+
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(new ScopedUser(cecile, List.of("p1")), new TaskFilters()).toList();
+
+        assertThat(tasks.stream().map(t -> t.id).toList()).excludes(noProject.id);
+    }
+
+    @Test
+    public void test_scoped_user_sees_batch_search_only_if_all_projects_in_scope() throws IOException {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        BatchSearchRecord onP1 = batchSearchOn(cecile, "p1");
+        BatchSearchRecord onP1AndP2 = batchSearchOn(cecile, "p1", "p2");
+        when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of(onP1, onP1AndP2));
+
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(new ScopedUser(cecile, List.of("p1")), new TaskFilters()).toList();
+
+        assertThat(tasks.stream().map(t -> t.id).toList()).contains(onP1.uuid);
+        assertThat(tasks.stream().map(t -> t.id).toList()).excludes(onP1AndP2.uuid);
+    }
+
+    @Test(expected = ForbiddenException.class)
+    public void test_scoped_user_lookup_outside_scope_is_forbidden() throws IOException {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        Task<String> outside = ownedTaskOn(cecile, "p2");
+        when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of());
+
+        taskFinder.findVisibleTaskFor(new ScopedUser(cecile, List.of("p1")), outside.id);
+    }
+
+    @Test
+    public void test_unscoped_user_still_sees_all_owned_tasks() throws IOException {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        Task<String> onP2 = ownedTaskOn(cecile, "p2");
+        Task<String> noProject = new Task<>("name", cecile, new HashMap<>());
+        taskManager.startTask(noProject, null);
+        when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of());
+
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(cecile, new TaskFilters()).toList();
+
+        assertThat(tasks.stream().map(t -> t.id).toList()).contains(onP2.id, noProject.id);
     }
 
     @After

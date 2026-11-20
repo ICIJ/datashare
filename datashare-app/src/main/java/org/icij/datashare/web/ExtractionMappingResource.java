@@ -22,6 +22,7 @@ import org.icij.datashare.tabular.ExtractionMappingService;
 import org.icij.datashare.tabular.ForbiddenExtractionMapping;
 import org.icij.datashare.tabular.UnknownExtractionMapping;
 import org.icij.datashare.tabular.UnreadableExtractionMapping;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 import org.icij.datashare.web.errors.ForbiddenException;
@@ -81,7 +82,7 @@ public class ExtractionMappingResource {
         // ahead of any lookup, so a user outside the project cannot tell a known id from an unknown one
         ForbiddenException.requireGranted(context, project);
         try {
-            String taskId = mappings.run(project, mappingId, (User) context.currentUser());
+            String taskId = mappings.run(project, mappingId, ScopedUser.unscoped((User) context.currentUser()));
             return new JsonPayload(201, new TaskResource.TaskResponse(taskId));
         } catch (ForbiddenExtractionMapping e) {
             return forbidden();
