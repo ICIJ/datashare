@@ -60,11 +60,20 @@ public class ApiKeyExpirationTest {
     }
 
     @Test
-    public void test_old_key_without_expiration_is_capped_from_creation() {
+    public void test_cap_longer_than_30_days_keeps_default_for_key_without_expiration() {
         ApiKey apiKey = apiKey("2025-09-01T00:00:00Z", null);
 
         assertThat(cap90Days.isExpired(apiKey)).isTrue();
         assertThat(cap90Days.effectiveExpiration(apiKey)).isEqualTo(date("2025-10-01T00:00:00Z"));
+    }
+
+    @Test
+    public void test_key_without_expiration_is_capped_when_cap_is_shorter_than_30_days() {
+        ApiKeyExpiration cap7Days = new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "P7D")));
+        ApiKey apiKey = apiKey("2025-12-28T00:00:00Z", null);
+
+        assertThat(cap7Days.isExpired(apiKey)).isFalse();
+        assertThat(cap7Days.effectiveExpiration(apiKey)).isEqualTo(date("2026-01-04T00:00:00Z"));
     }
 
     @Test
