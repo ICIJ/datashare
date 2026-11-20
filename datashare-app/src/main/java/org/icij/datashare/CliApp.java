@@ -32,6 +32,9 @@ import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.tasks.EnqueueFromIndexStage;
 import org.icij.datashare.tasks.StructuredEntityExtractionTask;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.user.ApiKey;
+import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreateRequest;
@@ -64,7 +67,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -133,7 +138,17 @@ class CliApp {
         if (properties.getProperty(CRE_API_KEY_OPT) != null) {
             String userName = properties.getProperty(CRE_API_KEY_OPT);
             String expirationDate = properties.getProperty(API_KEY_EXPIRATION_DATE_OPT);
-            System.exit(handleApiKeyCreate(taskFactory, userName, expirationDate));
+            String joinedProjects = properties.getProperty(API_KEY_PROJECTS_OPT);
+            List<String> projects = joinedProjects == null ? List.of() : List.of(joinedProjects.split(","));
+            Repository repository = mode.get(Repository.class);
+            System.exit(handleApiKeyCreate(taskFactory, repository, userName, expirationDate, projects));
+        }
+
+        if (properties.getProperty(LIST_API_KEYS_OPT) != null) {
+            ApiKeyRepository apiKeyRepository = mode.get(ApiKeyRepository.class);
+            ApiKeyExpiration apiKeyExpiration = mode.get(ApiKeyExpiration.class);
+            System.exit(
+                    handleApiKeyList(apiKeyRepository, apiKeyExpiration, properties.getProperty(LIST_API_KEYS_OPT)));
         }
 
         if (properties.getProperty(GET_API_KEY_OPT) != null) {
@@ -141,7 +156,10 @@ class CliApp {
         }
 
         if (properties.getProperty(DEL_API_KEY_OPT) != null) {
-            System.exit(handleApiKeyDelete(taskFactory, properties.getProperty(DEL_API_KEY_OPT)));
+            ApiKeyRepository apiKeyRepository = mode.get(ApiKeyRepository.class);
+            String hashedKey = properties.getProperty(API_KEY_HASH_OPT);
+            System.exit(handleApiKeyDelete(taskFactory, apiKeyRepository, properties.getProperty(DEL_API_KEY_OPT),
+                                           hashedKey));
         }
 
         if (properties.getProperty(GRANT_ADMIN_OPT) != null) {
@@ -962,20 +980,35 @@ class CliApp {
      * The generated key is the command's result, not a diagnostic: it goes to stdout so
      * `datashare --createApiKey alice | read KEY` keeps working now that logs go to stderr (#2442).
      */
-    static int handleApiKeyCreate(DatashareTaskFactory taskFactory, String userName, String expirationDate) throws
-            Exception {
+    static int handleApiKeyCreate(DatashareTaskFactory taskFactory, Repository repository, String userName,
+                                  String expirationDate, List<String> projects) throws Exception {
         // GenApiKeyTask logs the generation itself, so nothing is logged here: two near-identical
         // lines per invocation is noise, and the key belongs on stdout, not in the log
         String secretKey;
         try {
             Date expiration = parseExpirationDate(expirationDate);
             User user = localUser(userName);
-            secretKey = taskFactory.createGenApiKey(user, expiration).call();
+            if (projects.isEmpty()) {
+                secretKey = taskFactory.createGenApiKey(user, expiration).call();
+            } else {
+                List<String> unknown = unknownProjects(repository, projects);
+                if (!unknown.isEmpty()) {
+                    return error("unknown project: " + String.join(", ", unknown), "validation", EXIT_VALIDATION,
+                                 false);
+                }
+                secretKey = taskFactory.createGenApiKey(user, expiration, projects).call();
+            }
         } catch (DateTimeParseException | ApiKeyExpiration.InvalidExpirationException e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
         }
         System.out.println(secretKey);
         return EXIT_SUCCESS;
+    }
+
+    private static List<String> unknownProjects(Repository repository, List<String> projects) {
+        List<Project> known = repository.getProjects(projects);
+        Set<String> knownNames = known.stream().map(Project::getName).collect(Collectors.toSet());
+        return projects.stream().filter(name -> !knownNames.contains(name)).toList();
     }
 
     private static Date parseExpirationDate(String expirationDate) {
@@ -994,9 +1027,26 @@ class CliApp {
      * way by both commands, so a caller can branch on the exit code without knowing which it ran.
      * The task logs the outcome itself.
      */
-    static int handleApiKeyDelete(DatashareTaskFactory taskFactory, String userName) throws Exception {
+    static int handleApiKeyDelete(DatashareTaskFactory taskFactory, ApiKeyRepository apiKeyRepository, String userName,
+                                  String hashedKey) throws Exception {
+        if (hashedKey != null) {
+            boolean removed = apiKeyRepository.delete(localUser(userName), hashedKey);
+            return removed ? EXIT_SUCCESS : EXIT_NOT_FOUND;
+        }
         Boolean deleted = taskFactory.createDelApiKey(localUser(userName)).call();
         return Boolean.TRUE.equals(deleted) ? EXIT_SUCCESS : EXIT_NOT_FOUND;
+    }
+
+    static int handleApiKeyList(ApiKeyRepository apiKeyRepository, ApiKeyExpiration apiKeyExpiration, String userName) {
+        List<ApiKey> keys = apiKeyRepository.getAll(localUser(userName));
+        for (ApiKey key : keys) {
+            List<String> keyProjects = key.getProjects();
+            String scope = keyProjects.isEmpty() ? "*" : String.join(",", keyProjects);
+            Date expiration = apiKeyExpiration.effectiveExpiration(key);
+            String expirationText = expiration == null ? "-" : expiration.toInstant().toString();
+            System.out.println(key.getId() + "\t" + scope + "\t" + expirationText);
+        }
+        return EXIT_SUCCESS;
     }
 
     static int handleApiKeyGet(DatashareTaskFactory taskFactory, String userName) throws Exception {

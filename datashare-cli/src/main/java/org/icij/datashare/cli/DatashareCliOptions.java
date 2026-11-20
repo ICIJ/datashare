@@ -52,6 +52,9 @@ public final class DatashareCliOptions {
     public static final String CRE_API_KEY_ABBR_OPT = "k";
     public static final String CRE_API_KEY_OPT = "createApiKey";
     public static final String API_KEY_EXPIRATION_DATE_OPT = "apiKeyExpirationDate";
+    public static final String API_KEY_PROJECTS_OPT = "apiKeyProjects";
+    public static final String API_KEY_HASH_OPT = "apiKeyHash";
+    public static final String LIST_API_KEYS_OPT = "listApiKeys";
     public static final String DATA_DIR_ABBR_OPT = "d";
     public static final String DATA_SOURCE_URL_OPT = "dataSourceUrl";
     public static final String DEFAULT_OCR_TYPE = "TESSERACT";
