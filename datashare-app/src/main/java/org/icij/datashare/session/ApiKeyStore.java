@@ -1,5 +1,7 @@
 package org.icij.datashare.session;
 
+import org.icij.datashare.user.ApiKey;
+
 public interface ApiKeyStore {
-    String getLogin(String apiKey);
+    ApiKey get(String apiKey);
 }

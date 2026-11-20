@@ -6,12 +6,16 @@ import net.codestory.http.NewCookie;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
+import org.icij.datashare.user.DatashareApiKey;
 import net.codestory.http.security.Users;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentCaptor.forClass;
@@ -45,7 +49,7 @@ public class ApiKeyFilterTest {
     @Test
     public void test_adds_user_to_context() throws Exception {
         when(context.header("authorization")).thenReturn("Bearer session_id");
-        when(apiKeyStore.getLogin("session_id")).thenReturn("user_id");
+        when(apiKeyStore.get("session_id")).thenReturn(new DatashareApiKey("hash", new org.icij.datashare.user.User("user_id")));
         when(users.find("user_id")).thenReturn(new DatashareUser("user_id"));
 
         Payload payload = apiKeyFilter.apply("url", context, nextFilter);
@@ -58,7 +62,7 @@ public class ApiKeyFilterTest {
     @Test
     public void test_marks_context_as_authenticated_by_api_key() throws Exception {
         when(context.header("authorization")).thenReturn("Bearer session_id");
-        when(apiKeyStore.getLogin("session_id")).thenReturn("user_id");
+        when(apiKeyStore.get("session_id")).thenReturn(new DatashareApiKey("hash", new org.icij.datashare.user.User("user_id")));
         when(users.find("user_id")).thenReturn(new DatashareUser("user_id"));
 
         apiKeyFilter.apply("url", context, nextFilter);
@@ -108,7 +112,7 @@ public class ApiKeyFilterTest {
     public void test_enrolls_user_on_valid_api_key() throws Exception {
         DatashareUser dsUser = new DatashareUser("user_id");
         when(context.header("authorization")).thenReturn("Bearer session_id");
-        when(apiKeyStore.getLogin("session_id")).thenReturn("user_id");
+        when(apiKeyStore.get("session_id")).thenReturn(new DatashareApiKey("hash", new org.icij.datashare.user.User("user_id")));
         when(users.find("user_id")).thenReturn(dsUser);
 
         apiKeyFilter.apply("url", context, nextFilter);
@@ -119,7 +123,7 @@ public class ApiKeyFilterTest {
     @Test
     public void test_does_not_enroll_if_enroller_is_null() throws Exception {
         when(context.header("authorization")).thenReturn("Bearer session_id");
-        when(apiKeyStore.getLogin("session_id")).thenReturn("user_id");
+        when(apiKeyStore.get("session_id")).thenReturn(new DatashareApiKey("hash", new org.icij.datashare.user.User("user_id")));
         when(users.find("user_id")).thenReturn(new DatashareUser("user_id"));
         ApiKeyFilter filterWithoutEnroller = new ApiKeyFilter(users, apiKeyStore, null);
 
@@ -143,12 +147,67 @@ public class ApiKeyFilterTest {
     public void test_an_unknown_api_key_is_not_distinguishable_from_a_missing_one() throws Exception {
         // same body either way: telling them apart would say whether a key exists
         when(context.header("authorization")).thenReturn("Bearer nope");
-        when(apiKeyStore.getLogin("nope")).thenReturn(null);
+        when(apiKeyStore.get("nope")).thenReturn(null);
         Payload withBadKey = apiKeyFilter.apply("/api/users/me", context, nextFilter);
 
         when(context.header("authorization")).thenReturn(null);
         Payload withNoKey = apiKeyFilter.apply("/api/users/me", context, nextFilter);
 
         assertThat(String.valueOf(withBadKey.rawContent())).isEqualTo(String.valueOf(withNoKey.rawContent()));
+    }
+
+    @Test
+    public void test_scoped_key_sets_scoped_user() throws Exception {
+        DatashareUser found = new DatashareUser(Map.of(
+                "uid", "user_id",
+                "groups_by_applications", Map.of("datashare", List.of("p1", "p2"))));
+        when(context.header("authorization")).thenReturn("Bearer session_id");
+        when(apiKeyStore.get("session_id")).thenReturn(
+                new DatashareApiKey("hash", new org.icij.datashare.user.User("user_id"), new java.util.Date(), null, List.of("p1")));
+        when(users.find("user_id")).thenReturn(found);
+
+        apiKeyFilter.apply("url", context, nextFilter);
+
+        verify(context).setCurrentUser(user.capture());
+        assertThat(user.getValue()).isInstanceOf(ScopedUser.class);
+        assertThat(((ScopedUser) user.getValue()).getProjectNames()).containsOnly("p1");
+    }
+
+    @Test
+    public void test_unscoped_key_sets_found_user() throws Exception {
+        DatashareUser found = new DatashareUser("user_id");
+        when(context.header("authorization")).thenReturn("Bearer session_id");
+        when(apiKeyStore.get("session_id")).thenReturn(new DatashareApiKey("hash", new org.icij.datashare.user.User("user_id")));
+        when(users.find("user_id")).thenReturn(found);
+
+        apiKeyFilter.apply("url", context, nextFilter);
+
+        verify(context).setCurrentUser(user.capture());
+        assertThat(user.getValue()).isSameAs(found);
+    }
+
+    @Test
+    public void test_enroller_receives_unscoped_user() throws Exception {
+        DatashareUser found = new DatashareUser("user_id");
+        when(context.header("authorization")).thenReturn("Bearer session_id");
+        when(apiKeyStore.get("session_id")).thenReturn(
+                new DatashareApiKey("hash", new org.icij.datashare.user.User("user_id"), new java.util.Date(), null, List.of("p1")));
+        when(users.find("user_id")).thenReturn(found);
+
+        apiKeyFilter.apply("url", context, nextFilter);
+
+        verify(postLoginEnroller).enroll(same(found));
+    }
+
+    @Test
+    public void test_session_cookie_ignores_scoped_key() throws Exception {
+        when(context.cookies()).thenReturn(new SimpleCookies() {{
+            put("_ds_session_id", new NewCookie("_ds_session_id", "cookie value"));
+        }});
+        when(context.header("authorization")).thenReturn("Bearer session_id");
+
+        apiKeyFilter.apply("url", context, nextFilter);
+
+        verifyNoInteractions(apiKeyStore);
     }
 }

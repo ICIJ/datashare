@@ -90,6 +90,11 @@ public class User implements Entity, Comparable<User> {
     }
 
     @JsonIgnore
+    protected String getJsonProjectKey() {
+        return jsonProjectKey;
+    }
+
+    @JsonIgnore
     public List<String> getApplicationProjectNames() {
         List<String> jsonKeys = List.of(jsonProjectKey.split("\\."));
         Map<String, Object> node = details;
