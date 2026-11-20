@@ -12,12 +12,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
+import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.*;
 import org.icij.datashare.db.JooqBatchSearchRepository;
+import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
@@ -120,7 +123,9 @@ public class BatchSearchResource {
     @Get("/search/:batchid")
     public Payload getBatch(@Parameter(name = "batchId", in = ParameterIn.PATH) String batchId, Context context) {
         boolean withQueries = Boolean.parseBoolean(context.get("withQueries"));
-        BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId, withQueries);
+        User user = (User) context.currentUser();
+        BatchSearch found = batchSearchRepository.get(user, batchId, withQueries);
+        BatchSearch batchSearch = isOutOfScope(user, found) ? null : found;
         return batchSearch == null ? PayloadFormatter.error("Batch search not found.", HttpStatus.NOT_FOUND) :
                new Payload(batchSearch);
     }
@@ -153,6 +158,9 @@ public class BatchSearchResource {
         String sort = context.get("sort");
         String order = context.get("order");
         int maxResults = Integer.parseInt(ofNullable(context.get("maxResults")).orElse("-1"));
+        if (isOutOfScope(user, batchId)) {
+            return notFound();
+        }
 
         Map<String, Integer> queries =
                 batchSearchRepository.getQueries(user, batchId, from, size, search, sort, order, maxResults);
@@ -186,7 +194,11 @@ public class BatchSearchResource {
     @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent")
     @Delete("/search/:batchid")
     public Payload deleteBatch(String batchId, Context context) {
-        batchSearchRepository.delete((User) context.currentUser(), batchId);
+        User user = (User) context.currentUser();
+        if (isOutOfScope(user, batchId)) {
+            return new Payload(204);
+        }
+        batchSearchRepository.delete(user, batchId);
         return new Payload(204);
     }
 
@@ -205,6 +217,9 @@ public class BatchSearchResource {
         if (body == null || !hasUpdatableField(body)) {
             return PayloadFormatter.error("No updatable field provided (expected published, name or description).",
                                           HttpStatus.BAD_REQUEST);
+        }
+        if (isOutOfScope(user, batchId)) {
+            return notFound();
         }
         try {
             return applyEdits(user, batchId, body) ? ok() : notFound();
@@ -260,7 +275,11 @@ public class BatchSearchResource {
     @Post("/search/result/:batchid")
     public WebResponse<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery,
                                                Context context) {
-        return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
+        User user = (User) context.currentUser();
+        if (isOutOfScope(user, batchId)) {
+            throw new NotFoundException();
+        }
+        return getResultsOrThrowUnauthorized(batchId, user, webQuery);
     }
 
     @Operation(description = "Retrieves the results of a batch search as an attached CSV file.",
@@ -279,6 +298,9 @@ public class BatchSearchResource {
         // Get the current user and batch search information
         User currentUser = (User) context.currentUser();
         BatchSearch batchSearch = batchSearchRepository.get(currentUser, batchId);
+        if (isOutOfScope(currentUser, batchSearch)) {
+            return notFound();
+        }
         String url = propertiesProvider.get("rootHost").orElse(context.header("Host"));
         BatchSearchRepository.WebQuery webQuery = WebQueryBuilder.createWebQuery().queryAll().build();
         WebResponse<SearchResult> results =
@@ -309,8 +331,28 @@ public class BatchSearchResource {
     @ApiResponse(responseCode = "204", description = "no content: idempotent")
     @Delete("/search")
     public Payload deleteSearches(Context context) {
-        batchSearchRepository.deleteAll((User) context.currentUser());
+        User user = (User) context.currentUser();
+        if (!ScopedUser.allows(user, List.of("*"))) {
+            return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
+        }
+        batchSearchRepository.deleteAll(user);
         return new Payload(204);
+    }
+
+    private boolean isOutOfScope(User user, String batchId) {
+        if (!(user instanceof ScopedUser)) {
+            return false;
+        }
+        BatchSearch batchSearch = batchSearchRepository.get(user, batchId);
+        return isOutOfScope(user, batchSearch);
+    }
+
+    private static boolean isOutOfScope(User user, BatchSearch batchSearch) {
+        if (batchSearch == null) {
+            return false;
+        }
+        List<String> projectIds = batchSearch.projects.stream().map(ProjectProxy::getId).toList();
+        return !ScopedUser.allows(user, projectIds);
     }
 
     private String docUrl(String uri, List<ProjectProxy> projects, String documentId, String rootId) {
