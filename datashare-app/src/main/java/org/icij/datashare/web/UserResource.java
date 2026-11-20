@@ -491,7 +491,12 @@ public class UserResource {
     @Get("/me/permissions")
     public List<CasbinRule> getUserPermissions(Context context) {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
-        return authorizer.getGroupPermissions(User.localUser(datashareUser.id));
+        List<CasbinRule> rules = authorizer.getGroupPermissions(User.localUser(datashareUser.id));
+        if (!(datashareUser instanceof ScopedUser)) {
+            return rules;
+        }
+        List<String> scope = datashareUser.getProjectNames();
+        return rules.stream().filter(rule -> scope.contains(projectOf(rule))).collect(Collectors.toList());
     }
 
     @Operation(description = "Preflight request for history")
@@ -539,6 +544,11 @@ public class UserResource {
     }
 
     @NotNull
+    private static String projectOf(CasbinRule rule) {
+        String[] domainAndProject = rule.getV2().split("::");
+        return domainAndProject[domainAndProject.length - 1];
+    }
+
     private static String[] effectiveProjectIds(DatashareUser user, String[] requested) {
         if (!(user instanceof ScopedUser)) {
             return requested;
@@ -572,6 +582,13 @@ public class UserResource {
     @Put("/me/history")
     public Payload addToUserHistory(@Parameter(name = "query", description = "user history query to save",
             in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
+        User currentUser = (User) context.currentUser();
+        boolean scoped = currentUser instanceof ScopedUser;
+        List<String> queryProjectIds =
+                query.projects.stream().map(project -> project.name).collect(Collectors.toList());
+        if (scoped && (!isNull(query.eventId) || !ScopedUser.allows(currentUser, queryProjectIds))) {
+            return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
+        }
         if (!isNull(query.eventId)) {
             boolean updated =
                     repository.renameSavedSearch((DatashareUser) context.currentUser(), query.eventId, query.name);
@@ -615,6 +632,9 @@ public class UserResource {
     @Delete("/me/history/event?id=:eventId")
     public Payload deleteUserEvent(@Parameter(name = "eventId", description = "user history event id to delete",
             in = ParameterIn.QUERY) String eventId, Context context) {
+        if (context.currentUser() instanceof ScopedUser) {
+            return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
+        }
         repository.deleteUserHistoryEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
         return new Payload(204);
     }

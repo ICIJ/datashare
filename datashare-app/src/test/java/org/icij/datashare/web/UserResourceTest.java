@@ -322,6 +322,56 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_scoped_user_cannot_save_history_on_project_outside_scope() {
+        actAs(scopedToP1());
+
+        put("/api/users/me/history", "{\"type\": \"SEARCH\", \"name\": \"n\", \"uri\": \"u\", \"projectIds\": [\"p2\"]}")
+                .should().respond(403).contain("{\"error\":\"insufficient role\"}");
+
+        verify(jooqRepository, never()).addToUserHistory(any(), any(UserEvent.class));
+    }
+
+    @Test
+    public void test_scoped_user_can_save_history_on_project_in_scope() {
+        actAs(scopedToP1());
+
+        put("/api/users/me/history", "{\"type\": \"SEARCH\", \"name\": \"n\", \"uri\": \"u\", \"projectIds\": [\"p1\"]}")
+                .should().respond(200);
+    }
+
+    @Test
+    public void test_scoped_user_cannot_rename_history_event_by_id() {
+        actAs(scopedToP1());
+
+        put("/api/users/me/history", "{\"type\": \"SEARCH\", \"name\": \"n\", \"eventId\": 12}")
+                .should().respond(403).contain("{\"error\":\"insufficient role\"}");
+
+        verify(jooqRepository, never()).renameSavedSearch(any(User.class), anyInt(), anyString());
+    }
+
+    @Test
+    public void test_scoped_user_cannot_delete_history_event_by_id() {
+        actAs(scopedToP1());
+
+        delete("/api/users/me/history/event?id=7").should().respond(403).contain("{\"error\":\"insufficient role\"}");
+
+        verify(jooqRepository, never()).deleteUserHistoryEvent(any(User.class), anyInt());
+    }
+
+    @Test
+    public void test_scoped_user_permissions_are_limited_to_scope() {
+        actAs(scopedToP1());
+        authorizer.addRoleForUserInProject(localUser("cecile"), Role.PROJECT_MEMBER, Domain.of("icij"), project("p1"));
+        authorizer.addRoleForUserInProject(localUser("cecile"), Role.PROJECT_ADMIN, Domain.of("icij"), project("p2"));
+        authorizer.addRoleForUserInInstance(localUser("cecile"), Role.INSTANCE_ADMIN);
+
+        get("/api/users/me/permissions").should().respond(200).contain("icij::p1");
+        String body = get("/api/users/me/permissions").response().content();
+        assertFalse(body.contains("p2"));
+        assertFalse(body.contains("INSTANCE_ADMIN"));
+    }
+
+    @Test
     public void test_delete_user_event_by_id() {
         when(jooqRepository.deleteUserHistoryEvent(User.local(), 1)).thenReturn(true).thenReturn(false);
 
