@@ -74,6 +74,14 @@ public class JooqApiKeyRepositoryTest {
     }
 
     @Test
+    public void test_save_ignores_duplicate_projects() throws NoSuchAlgorithmException {
+        SecretKey secretKey = DatashareApiKey.generateSecretKey();
+        repository.save(new DatashareApiKey(secretKey, User.local(), null, List.of("a", "b", "a")));
+
+        assertThat(repository.get(getBase64Encoded(secretKey)).getProjects()).containsOnly("a", "b").hasSize(2);
+    }
+
+    @Test
     public void test_key_without_projects_is_unscoped() throws NoSuchAlgorithmException {
         SecretKey secretKey = DatashareApiKey.generateSecretKey();
         repository.save(new DatashareApiKey(secretKey, User.local()));
