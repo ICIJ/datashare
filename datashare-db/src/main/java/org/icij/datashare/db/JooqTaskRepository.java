@@ -29,6 +29,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -93,12 +94,22 @@ public class JooqTaskRepository implements TaskRepository {
                                                                                                                                  d -> new Timestamp(
                                                                                                                                          d.getTime()).toLocalDateTime())
                                                                                                                          .orElse(null))
-                                               .where(TASK.ID.eq(task.id)).returning().fetchOne();
-            if (r == null) {
+                                               .where(TASK.ID.eq(task.id))
+                                               .and(storedStateCanBeReplacedBy(task.getState())).returning().fetchOne();
+            if (r == null && !using(configuration).fetchExists(TASK, TASK.ID.eq(task.id))) {
                 throw new UnknownTask(task.id);
             }
             return null;
         });
+    }
+
+    // Matching the stored state in the UPDATE itself makes the check atomic: a stale update read before a
+    // concurrent result was written matches no row instead of reopening the finished task.
+    private static Condition storedStateCanBeReplacedBy(Task.State next) {
+        List<String> replaceableStates =
+                Arrays.stream(Task.State.values()).filter(stored -> stored.canBeReplacedBy(next)).map(Task.State::name)
+                      .toList();
+        return TASK.STATE.in(replaceableStates);
     }
 
     @Override
