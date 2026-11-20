@@ -13,6 +13,7 @@ import org.icij.datashare.tasks.GenApiKeyTask;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.DatashareApiKey;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -21,6 +22,7 @@ import org.mockito.Mock;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -171,6 +173,107 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
 
         put("/api/key/" + User.local().id).withHeader("Authorization", "Bearer some-key").should().respond(403);
         verify(taskFactory, never()).createGenApiKey(any(), any());
+    }
+
+    @Test
+    public void test_list_keys() {
+        Date creation = Date.from(Instant.parse("2026-01-01T00:00:00Z"));
+        Date expiration = Date.from(Instant.parse("2027-02-01T00:00:00Z"));
+        when(apiKeyRepository.getAll(User.local())).thenReturn(List.of(
+                new DatashareApiKey("hash1", User.local(), creation, expiration, List.of("p1"))));
+
+        get("/api/key/local/keys").should().respond(200).haveType("application/json")
+                .contain("\"hashedKey\":\"hash1\"")
+                .contain("\"projects\":[\"p1\"]")
+                .contain("\"creationDate\":\"2026-01-01T00:00:00Z\"")
+                .contain("\"expirationDate\":\"2027-02-01T00:00:00Z\"");
+    }
+
+    @Test
+    public void test_add_key_with_projects() throws Exception {
+        when(jooqRepository.getProjects()).thenReturn(List.of(new Project("p1")));
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenReturn("privateKey");
+        when(taskFactory.createGenApiKey(User.local(), null, List.of("p1"))).thenReturn(task);
+
+        post("/api/key/local/keys", "{\"projects\":[\"p1\",\"p1\"]}").should().respond(201)
+                .haveType("application/json").contain("{\"apiKey\":\"privateKey\"}");
+        verify(taskFactory).createGenApiKey(User.local(), null, List.of("p1"));
+    }
+
+    @Test
+    public void test_add_key_without_body_adds_unscoped() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenReturn("privateKey");
+        when(taskFactory.createGenApiKey(User.local(), null, List.of())).thenReturn(task);
+
+        post("/api/key/local/keys").should().respond(201).contain("privateKey");
+        verify(taskFactory).createGenApiKey(User.local(), null, List.of());
+    }
+
+    @Test
+    public void test_add_key_with_ungranted_project() {
+        when(jooqRepository.getProjects()).thenReturn(List.of(new Project("p1")));
+
+        post("/api/key/local/keys", "{\"projects\":[\"p1\",\"nope\"]}").should().respond(400).contain("nope");
+        verify(taskFactory, never()).createGenApiKey(any(), any(), any());
+    }
+
+    @Test
+    public void test_add_key_with_non_array_projects() {
+        post("/api/key/local/keys", "{\"projects\":\"p1\"}").should().respond(400);
+        verify(taskFactory, never()).createGenApiKey(any(), any(), any());
+    }
+
+    @Test
+    public void test_delete_one_key() {
+        when(apiKeyRepository.delete(User.local(), "hash")).thenReturn(true);
+
+        delete("/api/key/local/keys/hash").should().respond(204);
+    }
+
+    @Test
+    public void test_delete_unknown_key() {
+        when(apiKeyRepository.delete(User.local(), "hash")).thenReturn(false);
+
+        delete("/api/key/local/keys/hash").should().respond(404);
+    }
+
+    @Test
+    public void test_write_routes_refused_with_api_key() {
+        configureWithApiKeyFilter();
+
+        put("/api/key/local").withHeader("Authorization", "Bearer some-key").should().respond(403);
+        post("/api/key/local/keys").withHeader("Authorization", "Bearer some-key").should().respond(403);
+        delete("/api/key/local").withHeader("Authorization", "Bearer some-key").should().respond(403);
+        delete("/api/key/local/keys/hash").withHeader("Authorization", "Bearer some-key").should().respond(403);
+        verify(taskFactory, never()).createGenApiKey(any(), any());
+        verify(taskFactory, never()).createGenApiKey(any(), any(), any());
+        verify(apiKeyRepository, never()).delete(any(User.class), any());
+    }
+
+    @Test
+    public void test_read_routes_open_with_api_key() {
+        configureWithApiKeyFilter();
+
+        get("/api/key/local").withHeader("Authorization", "Bearer some-key").should().respond(200);
+        get("/api/key/local/keys").withHeader("Authorization", "Bearer some-key").should().respond(200);
+    }
+
+    @Test
+    public void test_other_user_keys_forbidden() {
+        get("/api/key/bob/keys").should().respond(403);
+        post("/api/key/bob/keys").should().respond(403);
+        delete("/api/key/bob/keys/hash").should().respond(403);
+    }
+
+    private void configureWithApiKeyFilter() {
+        Users users = mock(Users.class);
+        when(users.find("local")).thenReturn(new DatashareUser(User.local()));
+        ApiKeyResource resource = new ApiKeyResource(taskFactory, apiKeyRepository,
+                                                     new ApiKeyExpiration(new PropertiesProvider()));
+        ApiKeyFilter apiKeyFilter = new ApiKeyFilter(users, key -> new DatashareApiKey("hash", User.local()), null);
+        configure(routes -> routes.add(resource).filter(apiKeyFilter));
     }
 
     @Before

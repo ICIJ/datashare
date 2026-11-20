@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,6 +54,8 @@ public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.Task
                                                                         Function<Double, Void> updateCallback);
 
     GenApiKeyTask createGenApiKey(User user, @Nullable Date expirationDate);
+
+    GenApiKeyTask createGenApiKey(User user, @Nullable Date expirationDate, List<String> projects);
 
     DelApiKeyTask createDelApiKey(User user);
 
