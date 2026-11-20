@@ -26,8 +26,8 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.Date;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -225,17 +225,11 @@ public class ApiKeyResource {
         }
     }
 
-    private static List<String> requestedProjects(String body) {
+    private static List<String> requestedProjects(String body) throws JsonProcessingException {
         if (body == null || body.isBlank()) {
             return List.of();
         }
-        JsonNode json;
-        try {
-            json = MAPPER.readTree(body);
-        } catch (JsonProcessingException e) {
-            throw new InvalidProjectsException("invalid projects: expected an array of strings");
-        }
-        JsonNode projects = json.path("projects");
+        JsonNode projects = MAPPER.readTree(body).path("projects");
         if (projects.isMissingNode() || projects.isNull()) {
             return List.of();
         }
