@@ -14,6 +14,7 @@ import org.icij.datashare.project.admin.ValidationException;
 import org.icij.datashare.policies.*;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.session.YesBasicAuthFilter;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Project;
@@ -660,6 +661,25 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .thenReturn(fullyDeleted("bar"));
         when(taskManager.clearDoneTasks()).thenReturn(List.of(task)).thenReturn(List.of());
         delete("/api/project/").should().respond(204);
+    }
+
+    @Test
+    public void test_scoped_user_cannot_delete_all_projects() throws Exception {
+        configure(routes -> {
+            ProjectResource projectResource = new ProjectResource(repository, indexer, taskManager, propertiesProvider, projectAdminService);
+            routes.filter((uri, context, next) -> {
+                Map<String, Object> groups = Map.of("datashare", List.of("p1", "p2"));
+                DatashareUser cecile = new DatashareUser(Map.of("uid", "cecile", "groups_by_applications", groups));
+                context.setCurrentUser(new ScopedUser(cecile, List.of("z")));
+                return next.get();
+            }).add(projectResource);
+        });
+        when(repository.getProjects(any())).thenReturn(List.of());
+
+        delete("/api/project/").should().respond(403).contain("{\"error\":\"insufficient role\"}");
+
+        verify(taskManager, never()).stopTasks(any(User.class));
+        verify(taskManager, never()).clearDoneTasks();
     }
 
     @Test
