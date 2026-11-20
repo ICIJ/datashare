@@ -16,7 +16,9 @@ import org.icij.datashare.project.admin.ProjectGranted;
 import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.project.admin.WideRoleHeldException;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserAdminService;
@@ -37,6 +39,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singletonList;
@@ -48,7 +51,9 @@ import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
@@ -236,6 +241,74 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         delete("/api/users/me/history?type=search").should().respond(204);
         delete("/api/users/me/history?type=document").should().respond(204);
         delete("/api/users/me/history?type=document").should().respond(204);
+    }
+
+    private ScopedUser scopedToP1() {
+        return scopedTo("p1", "p1", "p2");
+    }
+
+    private ScopedUser scopedTo(String scope, String... realProjects) {
+        Map<String, Object> groups = Map.of("datashare", List.of(realProjects));
+        DatashareUser real = new DatashareUser(Map.of("uid", "cecile", "groups_by_applications", groups));
+        return new ScopedUser(real, List.of(scope));
+    }
+
+    private void actAs(ScopedUser scoped) {
+        configure(routes -> routes
+                .registerAroundAnnotation(Policy.class, new PolicyAnnotation(authorizer))
+                .add(new UserResource(jooqRepository, authorizer, userAdminService, projectAdminService))
+                .filter((uri, context, next) -> {
+                    context.setCurrentUser(scoped);
+                    return next.get();
+                }));
+    }
+
+    @Test
+    public void test_history_of_scoped_user_is_limited_to_scope() {
+        actAs(scopedToP1());
+        UserEvent inScope = new UserEvent(User.local(), DOCUMENT, "in_scope", URI.create("in_scope_uri"));
+        UserEvent unfiltered = new UserEvent(User.local(), DOCUMENT, "unfiltered", URI.create("unfiltered_uri"));
+        when(jooqRepository.getUserHistory(any(User.class), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean(), eq("p1"))).thenReturn(singletonList(inScope));
+        when(jooqRepository.getUserHistorySize(any(User.class), eq(DOCUMENT), eq("p1"))).thenReturn(1);
+        when(jooqRepository.getUserHistory(any(User.class), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean())).thenReturn(singletonList(unfiltered));
+        when(jooqRepository.getUserHistorySize(any(User.class), eq(DOCUMENT))).thenReturn(1);
+
+        get("/api/users/me/history?type=document&from=0&size=10").should().respond(200)
+                .contain("in_scope_uri").contain("\"total\":1");
+        get("/api/users/me/history?type=document&from=0&size=10").should().respond(200)
+                .not().contain("unfiltered_uri");
+        get("/api/users/me/history?type=document&from=0&size=10&projects=p2").should().respond(200)
+                .contain("\"total\":0").not().contain("unfiltered_uri");
+    }
+
+    @Test
+    public void test_history_of_scoped_user_with_no_project_left_is_empty() {
+        actAs(scopedTo("z", "p1"));
+        UserEvent unfiltered = new UserEvent(User.local(), DOCUMENT, "unfiltered", URI.create("unfiltered_uri"));
+        when(jooqRepository.getUserHistory(any(User.class), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean())).thenReturn(singletonList(unfiltered));
+        when(jooqRepository.getUserHistorySize(any(User.class), eq(DOCUMENT))).thenReturn(1);
+
+        get("/api/users/me/history?type=document&from=0&size=10").should().respond(200)
+                .contain("\"total\":0").not().contain("unfiltered_uri");
+    }
+
+    @Test
+    public void test_scoped_user_bulk_delete_only_deletes_scope() {
+        actAs(scopedToP1());
+
+        delete("/api/users/me/history?type=document").should().respond(204);
+
+        verify(jooqRepository).deleteUserHistory(any(User.class), eq(DOCUMENT), eq("p1"));
+        verify(jooqRepository, never()).deleteUserHistory(any(User.class), eq(DOCUMENT));
+    }
+
+    @Test
+    public void test_me_lists_only_scope_projects() {
+        actAs(scopedToP1());
+
+        get("/api/users/me").should().respond(200)
+                .contain("\"datashare\":[\"p1\"]")
+                .not().contain("p2");
     }
 
     @Test

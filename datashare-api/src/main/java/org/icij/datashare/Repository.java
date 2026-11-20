@@ -38,6 +38,8 @@ public interface Repository {
 
     boolean deleteUserHistory(User user, UserEvent.Type type);
 
+    boolean deleteUserHistory(User user, UserEvent.Type type, String... projectIds);
+
     boolean deleteUserHistoryEvent(User user, int eventId);
 
     // project related

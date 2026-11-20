@@ -6,7 +6,9 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.tasks.MockIndexer;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
@@ -491,6 +493,25 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_get_starred_documents() {
         when(jooqRepository.getStarredDocuments(any())).thenReturn(asList(createDoc("doc1").build(), createDoc("doc2").build()));
         get("/api/documents/starred").should().respond(200).haveType("application/json").contain("\"doc1\"").contain("\"doc2\"");
+    }
+
+    @Test
+    public void test_scoped_user_starred_documents_limited_to_scope() {
+        Map<String, Object> groups = Map.of("datashare", List.of("p1", "p2"));
+        DatashareUser real = new DatashareUser(Map.of("uid", "cecile", "groups_by_applications", groups));
+        ScopedUser scoped = new ScopedUser(real, List.of("p1"));
+        configure(routes -> routes
+                .add(new DocumentResource(jooqRepository, indexer, propertiesProvider,
+                        new DocumentSourceAccess(jooqRepository, indexer, propertiesProvider)))
+                .filter((uri, context, next) -> {
+                    context.setCurrentUser(scoped);
+                    return next.get();
+                }));
+        Document inScope = createDoc("doc_p1").with(project("p1")).build();
+        Document outOfScope = createDoc("doc_p2").with(project("p2")).build();
+        when(jooqRepository.getStarredDocuments(any())).thenReturn(asList(inScope, outOfScope));
+
+        get("/api/documents/starred").should().respond(200).contain("\"doc_p1\"").not().contain("doc_p2");
     }
 
     @Test

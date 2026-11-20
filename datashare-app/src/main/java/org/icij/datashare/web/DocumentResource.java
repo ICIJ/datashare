@@ -26,6 +26,7 @@ import org.icij.datashare.Repository.Aggregate;
 import org.icij.datashare.Repository.AggregateList;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.artifact.PageArtifact;
 import org.icij.datashare.text.indexing.ExtractedText;
@@ -440,11 +441,18 @@ public class DocumentResource {
         return untagSaved ? Payload.created() : Payload.ok();
     }
 
+    private static boolean isInScope(DatashareUser user, Document document) {
+        List<String> projectIds = List.of(document.getProject().getId());
+        return ScopedUser.allows(user, projectIds);
+    }
+
     @Operation(description = "Retrieves the list of starred document for all projects for the current user.")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/documents/starred")
     public List<Document> getStarredDocuments(Context context) {
-        return repository.getStarredDocuments((DatashareUser) context.currentUser());
+        DatashareUser user = (DatashareUser) context.currentUser();
+        List<Document> starred = repository.getStarredDocuments(user);
+        return starred.stream().filter(document -> isInScope(user, document)).collect(Collectors.toList());
     }
 
     @Operation(
