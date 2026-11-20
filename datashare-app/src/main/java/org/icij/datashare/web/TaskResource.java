@@ -26,10 +26,12 @@ import org.icij.datashare.batch.*;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.policies.Role;
 import org.icij.datashare.policies.TaskPolicy;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.ModeVerifier;
 import org.slf4j.Logger;
@@ -189,7 +191,11 @@ public class TaskResource {
         if (DatashareTaskFactory.TASK_NAMES.contains(taskView.name)) {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         }
-        Task<V> task = new Task<>(taskView.id, taskView.name, (User) context.currentUser(), taskView.args);
+        List<String> projectIds = TaskFinder.projectIdsOf(taskView);
+        if (!ScopedUser.allows((User) context.currentUser(), projectIds)) {
+            return new JsonPayload(403, new ErrorResponse(Authorizer.INSUFFICIENT_ROLE));
+        }
+        Task<V> task = new Task<>(taskView.id, taskView.name, taskUser(context), taskView.args);
         try {
             return new JsonPayload(201,
                                    new TaskResponse(notFoundIfUnknown(() -> taskManager.startTask(task, taskGroup))));
@@ -307,8 +313,8 @@ public class TaskResource {
 
         BatchSearch batchSearch = new BatchSearch(
                 stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name,
-                description, queries, uri, (User) context.currentUser(), published, fileTypes, queryTemplate, paths,
-                fuzziness, phraseMatches);
+                description, queries, uri, taskUser(context), published, fileTypes, queryTemplate, paths, fuzziness,
+                phraseMatches);
         boolean isSaved;
         try {
             isSaved = batchSearchRepository.save(batchSearch);
@@ -316,7 +322,7 @@ public class TaskResource {
             return badRequest();
         }
         if (isSaved) {
-            taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class, (User) context.currentUser(),
+            taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class, taskUser(context),
                                   Map.of("batchRecord", new BatchSearchRecord(batchSearch)));
         }
         return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
@@ -352,7 +358,7 @@ public class TaskResource {
             throw new BadRequestException();
         }
         if (isSaved)
-            taskManager.startTask(copy.uuid, BatchSearchRunner.class, (User) context.currentUser(),
+            taskManager.startTask(copy.uuid, BatchSearchRunner.class, taskUser(context),
                                   Map.of("batchRecord", new BatchSearchRecord(copy)));
         return copy.uuid;
     }
@@ -391,11 +397,11 @@ public class TaskResource {
                 parseBoolean(properties.getOrDefault(BATCH_DOWNLOAD_ENCRYPT_OPT, "false").toString());
         List<String> projectIds = (List<String>) options.get("projectIds");
 
-        BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()),
-                                                        (User) context.currentUser(), query, uri, downloadDir,
-                                                        batchDownloadEncrypt);
+        BatchDownload batchDownload =
+                new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), taskUser(context), query,
+                                  uri, downloadDir, batchDownloadEncrypt);
 
-        return new TaskResponse(taskManager.startTask(BatchDownloadRunner.class, (User) context.currentUser(),
+        return new TaskResponse(taskManager.startTask(BatchDownloadRunner.class, taskUser(context),
                                                       Map.of("batchDownload", batchDownload)));
     }
 
@@ -414,8 +420,7 @@ public class TaskResource {
             return indexPath(path, optionsWrapper, context);
         }
         Properties properties = applyProjectProperties(optionsWrapper);
-        String taskId =
-                taskManager.startTask(IndexTask.class, (User) context.currentUser(), propertiesToMap(properties));
+        String taskId = taskManager.startTask(IndexTask.class, taskUser(context), propertiesToMap(properties));
         if (taskId != null) {
             return new JsonPayload(Map.of("taskId", taskId));
         }
@@ -449,7 +454,7 @@ public class TaskResource {
         List<String> taskIds = new LinkedList<>();
         taskIds.add(scanResponse.taskId);
         Properties properties = applyProjectProperties(optionsWrapper);
-        User user = (User) context.currentUser();
+        User user = taskUser(context);
         Task<Long> scanIndex;
         // Use a report map only if the request's body contains a "filter" attribute
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
@@ -490,8 +495,7 @@ public class TaskResource {
         Path path = IS_OS_WINDOWS ? get(filePath) : get(File.separator, filePath);
         Properties properties = applyProjectProperties(optionsWrapper);
         properties.setProperty(DATA_DIR_OPT, path.toString());
-        return ofNullable(
-                taskManager.startTask(ScanTask.class, (User) context.currentUser(), propertiesToMap(properties))).map(
+        return ofNullable(taskManager.startTask(ScanTask.class, taskUser(context), propertiesToMap(properties))).map(
                 TaskResponse::new).orElseThrow(() -> new HttpException(500));
     }
 
@@ -604,14 +608,14 @@ public class TaskResource {
         List<String> tasks = new LinkedList<>();
         Map<String, Object> nlpArgs = propertiesToMap(properties);
         if (parseBoolean(properties.getProperty(RESUME_OPT, "true"))) {
-            String enqueueTaskId = taskManager.startTask(EnqueueFromIndexTask.class, ((User) context.currentUser()),
-                                                         propertiesToMap(properties));
+            String enqueueTaskId =
+                    taskManager.startTask(EnqueueFromIndexTask.class, taskUser(context), propertiesToMap(properties));
             tasks.add(enqueueTaskId);
             // without it the NLP task would exit on its first empty poll, while the enqueuing task
             // is still scrolling the index, and report DONE having processed nothing
             nlpArgs.put(UpstreamGate.UPSTREAM_TASK_ID, enqueueTaskId);
         }
-        tasks.add(taskManager.startTask(ExtractNlpTask.class, (User) context.currentUser(), nlpArgs));
+        tasks.add(taskManager.startTask(ExtractNlpTask.class, taskUser(context), nlpArgs));
         return new JsonPayload(new TasksResponse(tasks));
     }
 
@@ -638,6 +642,11 @@ public class TaskResource {
     public static String getReportMapNameFor(Properties properties) {
         String projectName = properties.getOrDefault(DEFAULT_PROJECT_OPT, "local-datashare").toString();
         return "extract:report:" + projectName;
+    }
+
+    private static User taskUser(Context context) {
+        User user = (User) context.currentUser();
+        return ScopedUser.unscoped(user);
     }
 
     private static <V extends Serializable> Task<V> forbiddenIfNotSameUser(Context context, Task<V> task) {

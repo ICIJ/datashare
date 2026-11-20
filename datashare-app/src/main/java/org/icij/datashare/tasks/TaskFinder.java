@@ -8,6 +8,7 @@ import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import java.io.IOException;
@@ -53,7 +54,9 @@ public class TaskFinder {
         Stream<Task<Integer>> batchSearchTasks =
                 batchSearchRecords.stream().map(TaskFinder::taskify).filter(filtersWithoutUser::filter);
         // Merge the list of tasks and deduplicate them by id
-        return Stream.concat(userTasks, batchSearchTasks).collect(toMap(
+        Stream<Task<?>> allTasks = Stream.concat(userTasks, batchSearchTasks);
+        Stream<Task<?>> inScope = allTasks.filter(t -> ScopedUser.allows(user, projectIdsOf(t)));
+        return inScope.collect(toMap(
                 // We deduplicate tasks by id
                 Entity::getId, task -> task,
                 // Get the first in priority
@@ -75,11 +78,13 @@ public class TaskFinder {
      */
     public Task<?> findVisibleTaskFor(User user, String id) throws IOException {
         Optional<Task<?>> managed = getTaskFromManager(id);
-        if (managed.filter(t -> Objects.equals(t.getUser(), user)).isPresent()) {
+        if (managed.filter(t -> Objects.equals(t.getUser(), user)).filter(t -> ScopedUser.allows(user, projectIdsOf(t)))
+                   .isPresent()) {
             return managed.get();
         }
         return batchSearchRepository.getRecords(user, user.getProjectNames()).stream().filter(r -> r.uuid.equals(id))
-                                    .findFirst().map(TaskFinder::taskify).orElseThrow(
+                                    .findFirst().map(TaskFinder::taskify)
+                                    .filter(t -> ScopedUser.allows(user, projectIdsOf(t))).orElseThrow(
                         () -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
     }
 
