@@ -8,8 +8,10 @@ import net.codestory.http.annotations.ApplyAroundAnnotation;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.utils.PayloadFormatter;
 import java.io.IOException;
+import java.util.List;
 import java.util.function.Function;
 import static org.icij.datashare.policies.Authorizer.INSUFFICIENT_ROLE;
 import static org.icij.datashare.policies.Authorizer.requireDomain;
@@ -40,6 +42,11 @@ public class PolicyAnnotation implements ApplyAroundAnnotation<Policy> {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        boolean inScope = ScopedUser.allows(user, List.of(projectId));
+        if (!inScope) {
+            return PayloadFormatter.error(INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
 
         if (!authorizer.can(user.id, domain, projectId, annotation.role())) {

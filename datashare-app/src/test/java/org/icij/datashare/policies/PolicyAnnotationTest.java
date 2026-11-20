@@ -1,9 +1,11 @@
 package org.icij.datashare.policies;
 
 import net.codestory.http.Context;
+import net.codestory.http.Request;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.Project;
 import org.junit.After;
 import org.junit.Before;
@@ -12,6 +14,7 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.util.List;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertEquals;
@@ -198,6 +201,60 @@ public class PolicyAnnotationTest {
     public void should_throw_unauthorized_if_no_user_for_domain_policy() {
         Context context = mock(Context.class);
         annotation.apply(domainAdminPolicy, context, c -> Payload.ok());
+    }
+
+    @Test
+    public void test_scoped_user_refused_on_instance_admin() {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+        Payload result = annotation.apply(instanceAdminPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+        assertThat(result.rawContent()).isEqualTo(Map.of("error", "insufficient role"));
+    }
+
+    @Test
+    public void test_scoped_user_refused_on_domain_admin() {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("alice", projectId), List.of(projectId)));
+        Payload result = annotation.apply(domainAdminPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+        assertThat(result.rawContent()).isEqualTo(Map.of("error", "insufficient role"));
+    }
+
+    @Test
+    public void test_scoped_user_refused_without_project_id() throws IOException {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+        when(context.pathParam("index")).thenReturn(null);
+        Request request = mock(Request.class);
+        when(request.content()).thenReturn("");
+        when(context.request()).thenReturn(request);
+        Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
+    @Test
+    public void test_scoped_user_refused_outside_scope() {
+        Context context = mock(Context.class);
+        authorizer.addRoleForUserInProject(adminUser, Role.PROJECT_ADMIN, Domain.DEFAULT, project("p2"));
+        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+        when(context.pathParam("index")).thenReturn("p2");
+        Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
+    @Test
+    public void test_scoped_user_allowed_inside_scope() {
+        Context context = mock(Context.class);
+        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+        when(context.pathParam("index")).thenReturn(projectId);
+        Payload result = annotation.apply(adminProjectPolicy, context, c -> Payload.ok());
+        assertEquals(200, result.code());
+    }
+
+    private static DatashareUser memberOf(String uid, String... projects) {
+        Map<String, Object> groups = Map.of("datashare", List.of(projects));
+        return new DatashareUser(Map.of("uid", uid, "groups_by_applications", groups));
     }
 
     @After
