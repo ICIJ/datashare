@@ -234,6 +234,22 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_get_records_project_filter_is_intersected_with_user_projects() {
+        repository.save(new BatchSearch(singletonList(proxy("p2")), "name", "description", asSet("q1"), null, User.local()));
+        BatchSearchRepository.WebQuery onP2 = WebQueryBuilder.createWebQuery().queryAll().withProjects(singletonList("p2")).build();
+
+        assertThat(repository.getRecords(User.local(), singletonList("p1"), onP2)).isEmpty();
+    }
+
+    @Test
+    public void test_get_total_project_filter_is_intersected_with_user_projects() {
+        repository.save(new BatchSearch(singletonList(proxy("p2")), "name", "description", asSet("q1"), null, User.local()));
+        BatchSearchRepository.WebQuery onP2 = WebQueryBuilder.createWebQuery().queryAll().withProjects(singletonList("p2")).build();
+
+        assertThat(repository.getTotal(User.local(), singletonList("p1"), onP2)).isEqualTo(0);
+    }
+
+    @Test
     public void test_get_records_with_query() {
         IntStream.range(0, 5).mapToObj(i -> new BatchSearch(singletonList(proxy("prj1")), "name" + i, "description" + i, asSet("q1/" + i, "q2/" + i), null, User.local(),
                 true, asList("application/json", "image/jpeg"), null, asList("/path/to/docs", "/path/to/pdfs"), 3, true)).

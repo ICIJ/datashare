@@ -242,7 +242,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         SelectConditionStep<Record14<String, String, String, String, String, LocalDateTime, String, Integer, Integer, String, String, String, Integer, Integer>>
                 query = createBatchSearchRecordWithQueriesSelectStatement(context).where(
                 BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0)));
-        List<String> filteredProjects = webQuery.hasFilteredProjects() ? asNameList(webQuery.project) : projectsIds;
+        List<String> filteredProjects = new ArrayList<>(projectsIds);
+        if (webQuery.hasFilteredProjects()) {
+            filteredProjects.retainAll(asNameList(webQuery.project));
+        }
         addFilterToSelectCondition(webQuery, query);
         if (webQuery.isSorted()) {
             SortOrder sortOrder = SortOrder.valueOf(webQuery.order.name());

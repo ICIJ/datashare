@@ -32,6 +32,7 @@ import org.icij.datashare.policies.Role;
 import org.icij.datashare.policies.TaskPolicy;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.ModeVerifier;
@@ -348,8 +349,13 @@ public class TaskResource {
             useReturnTypeSchema = true)
     @Post("/batchSearch/copy/:sourcebatchid")
     public String copySearch(String sourceBatchId, Context context) throws IOException {
-        BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
+        User user = (User) context.currentUser();
+        BatchSearch sourceBatchSearch = batchSearchRepository.get(user, sourceBatchId);
         if (sourceBatchSearch == null) {
+            throw new NotFoundException();
+        }
+        List<String> sourceProjectIds = sourceBatchSearch.projects.stream().map(ProjectProxy::getId).toList();
+        if (!ScopedUser.allows(user, sourceProjectIds)) {
             throw new NotFoundException();
         }
         BatchSearch copy = new BatchSearch(sourceBatchSearch, context.extract(HashMap.class));

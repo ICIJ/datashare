@@ -8,7 +8,9 @@ import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.batch.WebQueryBuilder;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jooq.exception.DataAccessException;
@@ -20,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 import static java.lang.String.format;
@@ -30,7 +33,10 @@ import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.ProjectProxy.proxy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -388,6 +394,50 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     public void test_get_batch_search_queries_with_window_from_size_with_unknown_filter_order() {
         when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 2,"foo","bar", "unknown", -1)).thenThrow(IllegalArgumentException.class);
         get("/api/batch/search/batchSearchId/queries?from=0&size=2&search=foo&sort=bar&order=unknown").should().respond(500);
+    }
+
+    @Test
+    public void test_scoped_user_get_batch_search_outside_scope_is_not_found() {
+        BatchSearch outside = new BatchSearch(singletonList(project("p2")), "name", "description", asSet("query 1"), null, User.local());
+        when(batchSearchRepository.get(any(User.class), eq(outside.uuid), anyBoolean())).thenReturn(outside);
+        routeAsScopedUser();
+
+        get("/api/batch/search/" + outside.uuid).should().respond(404);
+    }
+
+    @Test
+    public void test_scoped_user_cannot_patch_or_delete_batch_search_outside_scope() {
+        BatchSearch outside = new BatchSearch(singletonList(project("p2")), "name", "description", asSet("query 1"), null, User.local());
+        when(batchSearchRepository.get(any(User.class), eq(outside.uuid), anyBoolean())).thenReturn(outside);
+        when(batchSearchRepository.get(any(User.class), eq(outside.uuid))).thenReturn(outside);
+        when(batchSearchRepository.setName(any(User.class), eq(outside.uuid), any())).thenReturn(true);
+        routeAsScopedUser();
+
+        patch("/api/batch/search/" + outside.uuid, "{\"data\": {\"name\": \"renamed\"}}").should().respond(404);
+        delete("/api/batch/search/" + outside.uuid);
+
+        verify(batchSearchRepository, never()).setName(any(User.class), eq(outside.uuid), any());
+        verify(batchSearchRepository, never()).delete(any(User.class), eq(outside.uuid));
+    }
+
+    @Test
+    public void test_scoped_user_cannot_delete_all_batch_searches() {
+        routeAsScopedUser();
+
+        delete("/api/batch/search").should().respond(403).contain("insufficient role");
+
+        verify(batchSearchRepository, never()).deleteAll(any(User.class));
+    }
+
+    private void routeAsScopedUser() {
+        Map<String, Object> groups = Map.of("datashare", List.of("p1", "p2"));
+        DatashareUser cecile = new DatashareUser(Map.of("uid", "cecile", "groups_by_applications", groups));
+        ScopedUser scoped = new ScopedUser(cecile, List.of("p1"));
+        configure(routes -> routes.add(new BatchSearchResource(new PropertiesProvider(), batchSearchRepository)).
+                filter((uri, context, next) -> {
+                    context.setCurrentUser(scoped);
+                    return next.get();
+                }));
     }
 
     @Before
