@@ -14,12 +14,14 @@ import org.mockito.Mock;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -65,12 +67,28 @@ public class GenApiKeyTaskTest {
 
         assertThrows(ApiKeyExpiration.InvalidExpirationException.class, task::call);
 
+        verify(apiKeyRepository, never()).replace(any());
+    }
+
+    @Test
+    public void test_legacy_create_replaces_all_keys() throws Exception {
+        new GenApiKeyTask(apiKeyRepository, noCap, User.local(), null).call();
+
+        verify(apiKeyRepository).replace(any());
         verify(apiKeyRepository, never()).save(any());
+    }
+
+    @Test
+    public void test_create_with_projects_adds_a_key() throws Exception {
+        new GenApiKeyTask(apiKeyRepository, noCap, User.local(), null, List.of("p1")).call();
+
+        verify(apiKeyRepository).save(argThat(k -> k.getProjects().equals(List.of("p1"))));
+        verify(apiKeyRepository, never()).replace(any());
     }
 
     private DatashareApiKey savedKey() {
         ArgumentCaptor<DatashareApiKey> apiKey = forClass(DatashareApiKey.class);
-        verify(apiKeyRepository).save(apiKey.capture());
+        verify(apiKeyRepository).replace(apiKey.capture());
         return apiKey.getValue();
     }
 

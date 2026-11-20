@@ -27,7 +27,10 @@ import org.icij.datashare.utils.PayloadFormatter;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import static net.codestory.http.payload.Payload.ok;
 
@@ -55,8 +58,25 @@ public class ApiKeyResource {
         return ok().withAllowMethods("OPTIONS", "GET", "PUT", "DELETE");
     }
 
+    @Operation(description = "Preflight for key list management")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS, GET and POST")
+    @Options("/:userId/keys")
+    public Payload keysOptions(
+            @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId) {
+        return ok().withAllowMethods("OPTIONS", "GET", "POST");
+    }
+
+    @Operation(description = "Preflight for single key management")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS and DELETE")
+    @Options("/:userId/keys/:hashedKey")
+    public Payload keyOptions(
+            @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,
+            @Parameter(name = "hashedKey", description = "hashed key", in = ParameterIn.PATH) String hashedKey) {
+        return ok().withAllowMethods("OPTIONS", "DELETE");
+    }
+
     @Operation(
-            description = "Creates a new private key and saves its SHA384 hash into database for current user. Accepts an optional JSON body with an ISO-8601 expiration date, e.g. {\"expirationDate\":\"2027-02-01T00:00:00Z\"}. Without it, the key expires in 30 days. Only available in SERVER mode.")
+            description = "Rotates the keys: creates a new unscoped private key, replaces all the existing keys of the current user and saves its SHA384 hash into database. Accepts an optional JSON body with an ISO-8601 expiration date, e.g. {\"expirationDate\":\"2027-02-01T00:00:00Z\"}. Without it, the key expires in 30 days. Only available in SERVER mode.")
     @ApiResponse(responseCode = "201", description = "returns the api key JSON", content = {@Content(
             examples = {@ExampleObject(value = "{\"apiKey\":\"SrcasvUmaAD6NsZ3+VmUkFFWVfRggIRNmWR5aHx7Kfc=\"}")})})
     @ApiResponse(responseCode = "400",
@@ -68,10 +88,7 @@ public class ApiKeyResource {
             @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,
             Context context) throws Exception {
         verifyOwnership(userId, context);
-        // a key must not mint its successor, otherwise a leaked key outlives its own expiration
-        if (ApiKeyFilter.isAuthenticated(context)) {
-            throw new ForbiddenException();
-        }
+        refuseApiKeyAuthentication(context);
         String apiKey;
         try {
             String body = context.request().content();
@@ -84,7 +101,7 @@ public class ApiKeyResource {
         return new Payload("application/json", Map.of("apiKey", apiKey), 201);
     }
 
-    @Operation(description = "Get the private key for an existing user. Only available in SERVER mode.")
+    @Operation(description = "Get the newest private key of an existing user. Only available in SERVER mode.")
     @ApiResponse(responseCode = "200", description = "returns the hashed key JSON", content = {@Content(examples = {
             @ExampleObject(
                     value = "{\"hashedKey\":\"c3e7766f7605659f2b97f2a6f5bcf34611997fc31173931eefcea91df1b465ffe35c2b9b4b91e8bbe2eec3730ce2a74a\",\"expirationDate\":\"2027-02-01T00:00:00Z\"}")})})
@@ -101,15 +118,85 @@ public class ApiKeyResource {
         return new Payload("application/json", body, 200);
     }
 
-    @Operation(description = "Deletes an apikey for current user. Only available in SERVER mode.")
+    @Operation(description = "Deletes all the apikeys of the current user. Only available in SERVER mode.")
     @ApiResponse(responseCode = "204", description = "when key has been deleted")
     @Delete("/:userId")
     public Payload deleteKey(
             @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,
             Context context) throws Exception {
         verifyOwnership(userId, context);
+        refuseApiKeyAuthentication(context);
         taskFactory.createDelApiKey(new User(userId)).call();
         return new Payload(204);
+    }
+
+    @Operation(
+            description = "Lists the keys of the current user, newest first, with their project scope. An empty projects list means unscoped. Only available in SERVER mode.")
+    @ApiResponse(responseCode = "200", description = "returns the list of keys", content = {@Content(examples = {
+            @ExampleObject(
+                    value = "[{\"hashedKey\":\"c3e7766f\",\"projects\":[\"p1\"],\"creationDate\":\"2026-01-01T00:00:00Z\",\"expirationDate\":\"2027-02-01T00:00:00Z\"}]")})})
+    @Get("/:userId/keys")
+    public Payload listKeys(
+            @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,
+            Context context) {
+        verifyOwnership(userId, context);
+        List<Map<String, Object>> keys = new ArrayList<>();
+        for (ApiKey apiKey : apiKeyRepository.getAll(new User(userId))) {
+            Map<String, Object> key = new HashMap<>();
+            key.put("hashedKey", apiKey.getId());
+            key.put("projects", apiKey.getProjects());
+            key.put("creationDate", apiKey.getCreationDate().toInstant().toString());
+            key.put("expirationDate", effectiveExpiration(apiKey));
+            keys.add(key);
+        }
+        return new Payload("application/json", keys, 200);
+    }
+
+    @Operation(
+            description = "Adds a private key for the current user without touching the existing ones. Accepts an optional JSON body with an ISO-8601 expiration date and a list of project ids the key is limited to, e.g. {\"expirationDate\":\"2027-02-01T00:00:00Z\",\"projects\":[\"p1\"]}. Without projects the key is unscoped. Only available in SERVER mode.")
+    @ApiResponse(responseCode = "201", description = "returns the api key JSON", content = {@Content(
+            examples = {@ExampleObject(value = "{\"apiKey\":\"SrcasvUmaAD6NsZ3+VmUkFFWVfRggIRNmWR5aHx7Kfc=\"}")})})
+    @ApiResponse(responseCode = "400",
+            description = "if the expiration date is invalid, projects is not an array of strings or a project is not granted to the user")
+    @ApiResponse(responseCode = "403",
+            description = "if the request is authenticated with an API key: a key cannot create another key")
+    @Post("/:userId/keys")
+    public Payload addKey(
+            @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,
+            Context context) throws Exception {
+        verifyOwnership(userId, context);
+        refuseApiKeyAuthentication(context);
+        String apiKey;
+        try {
+            String body = context.request().content();
+            Date expirationDate = requestedExpirationDate(body);
+            List<String> projects = requestedProjects(body);
+            User currentUser = (User) context.currentUser();
+            List<String> refused = projects.stream().filter(id -> !currentUser.isGranted(id)).toList();
+            if (!refused.isEmpty()) {
+                return PayloadFormatter.error("projects not granted: " + String.join(", ", refused),
+                                              HttpStatus.BAD_REQUEST);
+            }
+            apiKey = taskFactory.createGenApiKey(new User(userId), expirationDate, projects).call();
+        } catch (ApiKeyExpiration.InvalidExpirationException | InvalidProjectsException e) {
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+        }
+        return new Payload("application/json", Map.of("apiKey", apiKey), 201);
+    }
+
+    @Operation(
+            description = "Deletes one key of the current user, identified by its hash. Only available in SERVER mode.")
+    @ApiResponse(responseCode = "204", description = "when the key has been deleted")
+    @ApiResponse(responseCode = "404", description = "if the user has no such key")
+    @Delete("/:userId/keys/:hashedKey")
+    public Payload deleteOneKey(
+            @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,
+            @Parameter(name = "hashedKey", description = "hashed key", in = ParameterIn.PATH) String hashedKey,
+            Context context) {
+        verifyOwnership(userId, context);
+        refuseApiKeyAuthentication(context);
+        boolean deleted = apiKeyRepository.delete(new User(userId), hashedKey);
+        return new Payload(deleted ? 204 : 404);
     }
 
     private String effectiveExpiration(ApiKey apiKey) {
@@ -135,6 +222,46 @@ public class ApiKeyResource {
         } catch (JsonProcessingException | DateTimeParseException e) {
             throw new ApiKeyExpiration.InvalidExpirationException(
                     "invalid expirationDate: expected an ISO-8601 instant", e);
+        }
+    }
+
+    private static List<String> requestedProjects(String body) {
+        if (body == null || body.isBlank()) {
+            return List.of();
+        }
+        JsonNode json;
+        try {
+            json = MAPPER.readTree(body);
+        } catch (JsonProcessingException e) {
+            throw new InvalidProjectsException("invalid projects: expected an array of strings");
+        }
+        JsonNode projects = json.path("projects");
+        if (projects.isMissingNode() || projects.isNull()) {
+            return List.of();
+        }
+        if (!projects.isArray()) {
+            throw new InvalidProjectsException("invalid projects: expected an array of strings");
+        }
+        LinkedHashSet<String> ids = new LinkedHashSet<>();
+        for (JsonNode project : projects) {
+            if (!project.isTextual()) {
+                throw new InvalidProjectsException("invalid projects: expected an array of strings");
+            }
+            ids.add(project.asText());
+        }
+        return List.copyOf(ids);
+    }
+
+    // a key must not mint its successor, otherwise a leaked key outlives its own expiration
+    private static void refuseApiKeyAuthentication(Context context) {
+        if (ApiKeyFilter.isAuthenticated(context)) {
+            throw new ForbiddenException();
+        }
+    }
+
+    private static class InvalidProjectsException extends RuntimeException {
+        InvalidProjectsException(String message) {
+            super(message);
         }
     }
 
