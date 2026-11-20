@@ -6,6 +6,7 @@ import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 
 public class DatashareApiKey implements ApiKey {
@@ -14,6 +15,7 @@ public class DatashareApiKey implements ApiKey {
     final User user;
     final Date creationDate;
     final Date expirationDate;
+    final List<String> projects;
 
     public DatashareApiKey(User user) throws NoSuchAlgorithmException {
         this(generateSecretKey(), user);
@@ -24,7 +26,11 @@ public class DatashareApiKey implements ApiKey {
     }
 
     public DatashareApiKey(SecretKey secretKey, User user, Date expirationDate) {
-        this(hash(secretKey), user, DatashareTime.getInstance().now(), expirationDate);
+        this(secretKey, user, expirationDate, List.of());
+    }
+
+    public DatashareApiKey(SecretKey secretKey, User user, Date expirationDate, List<String> projects) {
+        this(hash(secretKey), user, DatashareTime.getInstance().now(), expirationDate, projects);
     }
 
     private static String hash(SecretKey secretKey) {
@@ -41,6 +47,11 @@ public class DatashareApiKey implements ApiKey {
     }
 
     public DatashareApiKey(String hashedKey, User user, Date creationDate, Date expirationDate) {
+        this(hashedKey, user, creationDate, expirationDate, List.of());
+    }
+
+    public DatashareApiKey(String hashedKey, User user, Date creationDate, Date expirationDate, List<String> projects) {
+        this.projects = projects == null ? List.of() : List.copyOf(projects);
         this.hashedKey = hashedKey;
         this.user = user;
         this.creationDate = creationDate;
@@ -75,6 +86,11 @@ public class DatashareApiKey implements ApiKey {
     @Override
     public Date getExpirationDate() {
         return expirationDate;
+    }
+
+    @Override
+    public List<String> getProjects() {
+        return projects;
     }
 
     @Override

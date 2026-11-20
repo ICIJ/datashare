@@ -1,0 +1,76 @@
+databaseChangeLog:
+  - changeSet:
+      id: 92
+      author: pirhoo
+      changes:
+        - createTable:
+            tableName: api_key_project
+            columns:
+              - column:
+                  name: api_key_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: api_key_project
+            indexName: idx_api_key_project_unique
+            unique: true
+            columns:
+              - column:
+                  name: api_key_id
+              - column:
+                  name: prj_id
+  - changeSet:
+      id: 93
+      author: pirhoo
+      dbms: postgresql
+      changes:
+        - dropUniqueConstraint:
+            tableName: api_key
+            constraintName: api_key_user_id_key
+        - createIndex:
+            tableName: api_key
+            indexName: api_key_user_id
+            columns:
+              - column:
+                  name: user_id
+  - changeSet:
+      id: 94
+      author: pirhoo
+      dbms: sqlite
+      changes:
+        - sql:
+            sql: CREATE TABLE api_key_temporary (id varchar(96) PRIMARY KEY, user_id varchar(96) NOT NULL, creation_date datetime NOT NULL, expiration_date datetime)
+  - changeSet:
+      id: 95
+      author: pirhoo
+      dbms: sqlite
+      changes:
+        - sql:
+            sql: INSERT INTO api_key_temporary (id, user_id, creation_date, expiration_date) SELECT id, user_id, creation_date, expiration_date FROM api_key
+  - changeSet:
+      id: 96
+      author: pirhoo
+      dbms: sqlite
+      changes:
+        - sql:
+            sql: DROP TABLE api_key
+  - changeSet:
+      id: 97
+      author: pirhoo
+      dbms: sqlite
+      changes:
+        - sql:
+            sql: ALTER TABLE api_key_temporary RENAME TO api_key
+  - changeSet:
+      id: 98
+      author: pirhoo
+      dbms: sqlite
+      changes:
+        - sql:
+            sql: CREATE INDEX api_key_user_id ON api_key(user_id)
