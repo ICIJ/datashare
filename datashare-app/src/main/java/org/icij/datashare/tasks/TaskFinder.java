@@ -5,13 +5,16 @@ import com.google.inject.Singleton;
 import net.codestory.http.errors.ForbiddenException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.*;
+import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 import static java.util.stream.Collectors.toMap;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
 @Singleton
 public class TaskFinder {
@@ -78,6 +81,22 @@ public class TaskFinder {
         return batchSearchRepository.getRecords(user, user.getProjectNames()).stream().filter(r -> r.uuid.equals(id))
                                     .findFirst().map(TaskFinder::taskify).orElseThrow(
                         () -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
+    }
+
+    public static List<String> projectIdsOf(Task<?> task) {
+        Object batchSearchRecord = task.args.get("batchRecord");
+        Object batchDownload = task.args.get("batchDownload");
+        if (batchSearchRecord instanceof BatchSearchRecord bsr) {
+            return bsr.projects.stream().map(ProjectProxy::getId).toList();
+        }
+        if (batchDownload instanceof BatchDownload bd) {
+            return bd.projects.stream().map(ProjectProxy::getId).toList();
+        }
+        Object defaultProject = task.args.get(DEFAULT_PROJECT_OPT);
+        if (defaultProject instanceof String projectId) {
+            return List.of(projectId);
+        }
+        return List.of();
     }
 
     private Optional<Task<?>> getTaskFromManager(String id) throws IOException {
