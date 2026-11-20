@@ -394,7 +394,9 @@ public class TaskResource {
             see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query.
             """, requestBody = @RequestBody(description = "the json used to wrap the query", required = true,
             content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
-    @ApiResponse(responseCode = "200", description = "returns 200 and the json task id", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "200", description = "returns 200 and the json task id",
+            content = @Content(schema = @Schema(implementation = TaskResponse.class)))
+    @ApiResponse(responseCode = "403", description = "returns 403 if a project is outside the API key scope")
     @Post("/batchDownload")
     public Payload batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws IOException {
         Map<String, Object> options = optionsWrapper.getOptions();

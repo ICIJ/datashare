@@ -543,12 +543,12 @@ public class UserResource {
         return Optional.ofNullable(value).filter(Predicate.not(String::isBlank));
     }
 
-    @NotNull
     private static String projectOf(CasbinRule rule) {
         String[] domainAndProject = rule.getV2().split("::");
         return domainAndProject[domainAndProject.length - 1];
     }
 
+    @NotNull
     private static String[] effectiveProjectIds(DatashareUser user, String[] requested) {
         if (!(user instanceof ScopedUser)) {
             return requested;
@@ -583,11 +583,12 @@ public class UserResource {
     public Payload addToUserHistory(@Parameter(name = "query", description = "user history query to save",
             in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
         User currentUser = (User) context.currentUser();
-        boolean scoped = currentUser instanceof ScopedUser;
-        List<String> queryProjectIds =
-                query.projects.stream().map(project -> project.name).collect(Collectors.toList());
-        if (scoped && (!isNull(query.eventId) || !ScopedUser.allows(currentUser, queryProjectIds))) {
-            return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
+        if (currentUser instanceof ScopedUser) {
+            List<String> queryProjectIds =
+                    query.projects.stream().map(project -> project.name).collect(Collectors.toList());
+            if (!isNull(query.eventId) || !ScopedUser.allows(currentUser, queryProjectIds)) {
+                return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
+            }
         }
         if (!isNull(query.eventId)) {
             boolean updated =
