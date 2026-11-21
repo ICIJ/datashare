@@ -102,6 +102,22 @@ public class IndexTaskTest {
     }
 
     @Test
+    public void test_qr_codes_reaches_extractor() throws Exception {
+        ElasticsearchSpewerFactory spewerFactory = mock(ElasticsearchSpewerFactory.class);
+        IndexTask indexTask = new IndexTask(spewerFactory, mock(DocumentCollectionFactory.class), new UpstreamGate.Factory(taskRepository),
+                new Task<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
+                    put("queueName", "test:queue");
+                }}), null);
+
+        Options<String> bound = indexTask.options().createFrom(Options.from(Map.of(
+                "qrCodes", "true", "ocr", "false", "queueName", "test:queue")));
+        DocumentFactory documentFactory = new DocumentFactory().configure(bound);
+        Extractor extractor = new Extractor(documentFactory, bound);
+
+        assertThat(extractor.isExtractInlineImages()).isTrue();
+    }
+
+    @Test
     public void test_max_embed_depth_reaches_extractor() throws Exception {
         IndexTask indexTask = indexTask(Map.of("queueName", "test:queue"));
 
