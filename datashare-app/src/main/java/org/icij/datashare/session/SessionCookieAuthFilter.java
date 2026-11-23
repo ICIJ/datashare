@@ -33,6 +33,11 @@ abstract class SessionCookieAuthFilter extends CookieAuthFilter {
         return payload;
     }
 
+    /** Secure rule shared by the session cookie and any other cookie a filter sets next to it. */
+    protected boolean isCookieSecure(Context context) {
+        return isSessionCookieSecure || SessionCookies.isHttps(context);
+    }
+
     // authCookie gets no request, so the per-request HTTPS upgrade happens on the cookie already in the payload
     private void markSessionCookieSecure(Payload payload) {
         for (Cookie cookie : payload.cookies()) {

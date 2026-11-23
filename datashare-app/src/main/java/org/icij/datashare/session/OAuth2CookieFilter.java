@@ -160,7 +160,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         logger.info("received response code from user API : {}", oauthApiResponse.getCode());
         DatashareUser datashareUser = processOAuthApiResponse(oauthApiResponse);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context)))
-                      .withCookie(this.authCookie(this.buildCookie(datashareUser, "/"))).withCookie(stateCookie("", 0));
+                      .withCookie(this.authCookie(this.buildCookie(datashareUser, "/")))
+                      .withCookie(stateCookie(context, "", 0));
     }
 
     protected DatashareUser processOAuthApiResponse(Response oauthApiResponse) throws IOException {
@@ -199,7 +200,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
             oauthAuthorizeQS = oauthAuthorizeQS + "&scope=" + oauthScope;
         }
         int stateTtlSeconds = (int) STATE_TTL.toSeconds();
-        return Payload.seeOther(oauthAuthorizeUrl + oauthAuthorizeQS).withCookie(stateCookie(state, stateTtlSeconds));
+        NewCookie stateCookie = stateCookie(context, state, stateTtlSeconds);
+        return Payload.seeOther(oauthAuthorizeUrl + oauthAuthorizeQS).withCookie(stateCookie);
     }
 
     private String getCallbackUrl(Context context) {
@@ -251,8 +253,10 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         return MessageDigest.isEqual(expectedBytes, actualBytes);
     }
 
-    private NewCookie stateCookie(String state, int expirySeconds) {
-        return new NewCookie(STATE_COOKIE_NAME, state, oauthCallbackPath, true).setExpiry(expirySeconds);
+    private NewCookie stateCookie(Context context, String state, int expirySeconds) {
+        NewCookie cookie = new NewCookie(STATE_COOKIE_NAME, state, oauthCallbackPath, true);
+        cookie.setSecure(isCookieSecure(context));
+        return cookie.setExpiry(expirySeconds);
     }
 
     @Override

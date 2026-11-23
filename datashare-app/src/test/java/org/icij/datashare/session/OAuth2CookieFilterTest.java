@@ -2,9 +2,11 @@ package org.icij.datashare.session;
 
 
 import net.codestory.http.Context;
+import net.codestory.http.Cookie;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
+import net.codestory.http.payload.Payload;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.rest.Response;
@@ -17,6 +19,7 @@ import org.junit.Test;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,6 +33,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 public class OAuth2CookieFilterTest implements FluentRestTest {
     private static final WebServer identityProvider = new WebServer() {
@@ -95,6 +99,34 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         filter.signin(context);
 
         verifyNoInteractions(sessionIdStore);
+    }
+
+    @Test
+    public void test_state_cookie_is_secure_when_the_option_is_set() {
+        PropertiesProvider secureProvider = new PropertiesProvider(Map.of("secureSessionCookie", "true"));
+        OAuth2CookieFilter filter = new OAuth2CookieFilter(secureProvider,
+                new UsersIdProviderRedisCache(propertiesProvider), userStore, mock(SessionIdStore.class), null);
+
+        Payload payload = filter.signin(mock(Context.class, RETURNS_DEEP_STUBS));
+
+        assertThat(stateCookieIn(payload).isSecure()).isTrue();
+    }
+
+    @Test
+    public void test_state_cookie_is_secure_behind_an_https_proxy() {
+        Context context = mock(Context.class, RETURNS_DEEP_STUBS);
+        when(context.header("x-forwarded-proto")).thenReturn("https");
+
+        Payload payload = oAuth2Filter.signin(context);
+
+        assertThat(stateCookieIn(payload).isSecure()).isTrue();
+    }
+
+    @Test
+    public void test_state_cookie_is_not_secure_over_plain_http() {
+        Payload payload = oAuth2Filter.signin(mock(Context.class, RETURNS_DEEP_STUBS));
+
+        assertThat(stateCookieIn(payload).isSecure()).isFalse();
     }
 
     @Test
@@ -276,6 +308,11 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
                         .get("/api/users/me", context -> format("hello %s", context.currentUser().login()))
                         .get("/protected", context -> "protected content")
                         .filter(oAuth2Filter));
+    }
+
+    private Cookie stateCookieIn(Payload payload) {
+        return payload.cookies().stream().filter(cookie -> STATE_COOKIE_NAME.equals(cookie.name())).findFirst()
+                      .orElseThrow();
     }
 
     private Response signinWithoutRedirect() {
