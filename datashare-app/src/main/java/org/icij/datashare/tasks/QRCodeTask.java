@@ -12,6 +12,7 @@ import org.icij.datashare.asynctasks.TaskGroupType;
 import org.icij.datashare.asynctasks.temporal.ActivityOpts;
 import org.icij.datashare.asynctasks.temporal.TemporalSingleActivityWorkflow;
 import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
@@ -46,6 +47,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 @TemporalSingleActivityWorkflow(name = "qr-codes", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
 public class QRCodeTask extends PipelineTask<String> {
+    private static final List<String> SOURCE_EXCLUDES = List.of("content_translated");
     private static final String QR_KEY = new FieldNames().forMetadata(QRCodeParserDecorator.QR_CODES.getName());
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
@@ -88,28 +90,58 @@ public class QRCodeTask extends PipelineTask<String> {
             throw new IllegalArgumentException("project %s has no index".formatted(project));
         }
         indexer.createIndex(project);
-        Indexer.Searcher searcher =
-                indexer.search(List.of(project), Document.class).withPrefixQuery("contentType", "image/");
-        searcher.withoutSource("content_translated").limit(scrollSize)
-                .sort("rootDocument", Indexer.Searcher.SortOrder.ASC);
+        long total = spoolImageReferences();
+        logger.info("decoding QR codes in {} image document(s) of project {}", total, project);
         Counters counters = new Counters();
         List<Document> pendingGroup = new ArrayList<>();
-        List<? extends Entity> page = searcher.scroll(scrollDuration).toList();
-        long totalHits = searcher.totalHits();
-        logger.info("decoding QR codes in {} image document(s) of project {}", totalHits, project);
         long seen = 0;
-        while (!page.isEmpty()) {
-            for (Entity entity : page) {
-                process((Document) entity, pendingGroup, counters);
+        String entry = inputQueue.poll();
+        while (entry != null) {
+            processReference(DocReference.parse(entry), pendingGroup, counters);
+            seen++;
+            if (seen % scrollSize == 0 || seen == total) {
+                updateCallback.apply((double) seen / total);
             }
-            seen += page.size();
-            updateCallback.apply((double) seen / totalHits);
-            page = searcher.scroll(scrollDuration).toList();
+            entry = inputQueue.poll();
         }
-        searcher.clearScroll();
         flush(pendingGroup, counters);
         logSummary(counters);
         return counters.updated().get() + counters.noCode().get();
+    }
+
+    // References first, documents later: a root walk can outlast any scroll keep-alive, so no scroll
+    // context stays open while images are decoded. The queue keeps the root order of the scroll.
+    private long spoolImageReferences() throws IOException {
+        inputQueue.clear();
+        Indexer.Searcher searcher =
+                indexer.search(List.of(project), Document.class).withPrefixQuery("contentType", "image/");
+        searcher.withDocValues("rootDocument").limit(scrollSize).sort("rootDocument", Indexer.Searcher.SortOrder.ASC);
+        List<? extends Entity> page = searcher.scroll(scrollDuration).toList();
+        while (!page.isEmpty()) {
+            for (Entity entity : page) {
+                DocReference reference = DocReference.fromDocument((Document) entity);
+                inputQueue.add(reference.toQueueEntry());
+            }
+            page = searcher.scroll(scrollDuration).toList();
+        }
+        searcher.clearScroll();
+        return searcher.totalHits();
+    }
+
+    private void processReference(DocReference reference, List<Document> pendingGroup, Counters counters) {
+        Document document;
+        try {
+            document = getDocument(indexer, project, reference, SOURCE_EXCLUDES);
+        } catch (RuntimeException e) {
+            logger.error("cannot read document {} in project {}", reference.id(), project, e);
+            counters.failed().incrementAndGet();
+            return;
+        }
+        if (document == null) {
+            counters.failed().incrementAndGet();
+            return;
+        }
+        process(document, pendingGroup, counters);
     }
 
     static String appendLines(String content, List<String> values) {
@@ -197,7 +229,7 @@ public class QRCodeTask extends PipelineTask<String> {
         try {
             indexer.update(project, document.getId(), fields, document.getRootDocument());
             counters.updated().incrementAndGet();
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             logger.error("cannot save QR codes of document {} in project {}", document.getId(), project, e);
             counters.failed().incrementAndGet();
         }

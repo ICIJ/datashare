@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch.nodes.NodesStatsResponse;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
@@ -13,6 +14,7 @@ import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
@@ -28,6 +30,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +39,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -196,6 +204,42 @@ public class QRCodeTaskIntTest {
         assertThat(documentsWithMetadataKey()).isEmpty();
     }
 
+    @Test(timeout = 120_000)
+    public void test_holds_no_scroll_context_while_walking_a_root() throws Exception {
+        Path first = mailWithTwoCodes("a.eml", "one", "two");
+        Path second = mailWithTwoCodes("b.eml", "three", "four");
+        index(Map.of(), first, second);
+        SourceExtractor sourceExtractor = spy(new SourceExtractor(new PropertiesProvider()));
+        List<Long> openContextsDuringWalk = new ArrayList<>();
+        doAnswer(invocation -> {
+            openContextsDuringWalk.add(openSearchContexts());
+            return invocation.callRealMethod();
+        }).when(sourceExtractor).forEachEmbed(any(), any(), any());
+
+        qrCodeTask(Map.of(), sourceExtractor).call();
+
+        assertThat(openContextsDuringWalk).isEqualTo(List.of(0L, 0L));
+        assertDecoded("one");
+        assertDecoded("three");
+    }
+
+    @Test(timeout = 120_000)
+    public void test_an_index_error_on_one_document_does_not_stop_the_stage() throws Exception {
+        Path rejected = png(corpus.getRoot().toPath().resolve("rejected.png"), "https://example.org/rejected");
+        Path qr = png(corpus.getRoot().toPath().resolve("qr.png"), QR_VALUE);
+        index(Map.of(), rejected, qr);
+        String rejectedId = documentAt(rejected).getId();
+        ElasticsearchIndexer failingIndexer = spy(indexer);
+        doThrow(new RuntimeException("es_rejected_execution_exception")).when(failingIndexer)
+                .update(eq(es.getIndexName()), eq(rejectedId), anyMap(), anyString());
+        SourceExtractor sourceExtractor = new SourceExtractor(new PropertiesProvider());
+
+        qrCodeTask(failingIndexer, Map.of(), sourceExtractor).call();
+
+        assertThat(documentAt(qr).getContent()).endsWith("QR code: " + QR_VALUE + "\n");
+        assertThat(documentAt(rejected).getMetadata().containsKey(QR_KEY)).isFalse();
+    }
+
     private QRCodeTask qrCodeTask(Map<String, Object> extraArgs) {
         Map<String, Object> args = new HashMap<>(Map.of("defaultProject", es.getIndexName()));
         args.putAll(extraArgs);
@@ -204,10 +248,14 @@ public class QRCodeTaskIntTest {
     }
 
     private QRCodeTask qrCodeTask(Map<String, Object> extraArgs, SourceExtractor sourceExtractor) {
+        return qrCodeTask(indexer, extraArgs, sourceExtractor);
+    }
+
+    private QRCodeTask qrCodeTask(Indexer taskIndexer, Map<String, Object> extraArgs, SourceExtractor sourceExtractor) {
         Map<String, Object> args = new HashMap<>(Map.of("defaultProject", es.getIndexName()));
         args.putAll(extraArgs);
         Task<Long> taskView = new Task<>(QRCodeTask.class.getName(), User.local(), args);
-        return new QRCodeTask(stringQueueFactory, indexer, sourceExtractor, taskView, NO_PROGRESS);
+        return new QRCodeTask(stringQueueFactory, taskIndexer, sourceExtractor, taskView, NO_PROGRESS);
     }
 
     private void assertDecoded(String value) throws IOException {
@@ -217,6 +265,11 @@ public class QRCodeTaskIntTest {
         assertThat(decoded).hasSize(1);
         assertThat(decoded.get(0).getContent()).endsWith("QR code: " + value + "\n");
         assertThat(decoded.get(0).isRootDocument()).isFalse();
+    }
+
+    private long openSearchContexts() throws IOException {
+        NodesStatsResponse stats = es.client.nodes().stats(request -> request.metric("indices"));
+        return stats.nodes().values().stream().mapToLong(node -> node.indices().search().openContexts()).sum();
     }
 
     private List<Document> documentsWithMetadataKey() throws IOException {
