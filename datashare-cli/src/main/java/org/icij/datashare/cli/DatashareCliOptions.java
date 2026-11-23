@@ -133,7 +133,6 @@ public final class DatashareCliOptions {
     public static final String SCROLL_SLICES_OPT = "scrollSlices";
     public static final String SESSION_SIGNING_KEY_OPT = "sessionSigningKey";
     public static final String SESSION_STORE_TYPE_OPT = "sessionStoreType";
-    public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
     public static final String SESSION_STORE_MAX_SIZE_OPT = "sessionStoreMaxSize";
     public static final String STATUS_ALLOWED_NETS_OPT = "statusAllowedNets";
     public static final String MAX_HTTP_BODY_SIZE_OPT = "maxHttpBodySize";
@@ -283,7 +282,6 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_SCROLL_SIZE = 1000;
     public static final int DEFAULT_SCROLL_SLICES = 1;
     public static final int DEFAULT_TCP_LISTEN_PORT = 8080;
-    public static final int DEFAULT_SESSION_TTL_SECONDS = 43200;
     public static final int DEFAULT_SESSION_STORE_MAX_SIZE = 10000;
     public static final String DEFAULT_MAX_CONTENT_LENGTH = "20000000";
     public static final RoutingStrategy DEFAULT_TASK_ROUTING_STRATEGY = RoutingStrategy.UNIQUE;

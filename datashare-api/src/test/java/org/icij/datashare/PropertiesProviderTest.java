@@ -258,6 +258,24 @@ public class PropertiesProviderTest {
     }
 
     @Test
+    public void test_session_ttl_seconds_default_is_12_hours() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider();
+        assertThat(propertiesProvider.sessionTtlSeconds()).isEqualTo(43200);
+    }
+
+    @Test
+    public void test_session_ttl_seconds_reads_the_property() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("sessionTtlSeconds", "3600"));
+        assertThat(propertiesProvider.sessionTtlSeconds()).isEqualTo(3600);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_session_ttl_seconds_rejects_zero() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("sessionTtlSeconds", "0"));
+        propertiesProvider.sessionTtlSeconds();
+    }
+
+    @Test
     public void test_properties_to_map() {
         Map<String, Object> map = Map.of("foo", "bar", "baz", 12);
         assertThat(PropertiesProvider.propertiesToMap(new PropertiesProvider(map).getProperties())).isEqualTo(map);

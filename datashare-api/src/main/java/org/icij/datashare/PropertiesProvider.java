@@ -39,6 +39,8 @@ public class PropertiesProvider {
     public static final String QUEUE_NAME_OPT = "queueName";
     public static final String QUEUE_CAPACITY_OPT = "queueCapacity";
     public static final int DEFAULT_QUEUE_CAPACITY = (int) 1e6;
+    public static final String SESSION_TTL_SECONDS_OPT = "sessionTtlSeconds";
+    public static final int DEFAULT_SESSION_TTL_SECONDS = 43200;
     public static final List<String> QUEUE_HASH_PROPERTIES = List.of(DATA_DIR_OPT);
     public static final String QUEUE_SEPARATOR = ":";
     public static final String REPORT_NAME_OPT = "reportName";
@@ -235,6 +237,20 @@ public class PropertiesProvider {
             throw new IllegalArgumentException("Queue capacity must be a positive integer");
         }
         return qC;
+    }
+
+    /**
+     * Session lifetime shared by every session store, user cache and auth cookie. Rejected below 1 because Redis
+     * {@code EXPIRE key 0} deletes a session right after login, which no reader would notice on its own.
+     */
+    public int sessionTtlSeconds() {
+        String defaultTtl = String.valueOf(DEFAULT_SESSION_TTL_SECONDS);
+        String ttlValue = get(SESSION_TTL_SECONDS_OPT).orElse(defaultTtl);
+        int ttl = parseInt(ttlValue);
+        if (ttl < 1) {
+            throw new IllegalArgumentException(SESSION_TTL_SECONDS_OPT + " must be at least 1, got " + ttl);
+        }
+        return ttl;
     }
 
     private void putAllIfIsAbsent(Properties dest, Properties propertiesToMerge) {

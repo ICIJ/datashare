@@ -20,8 +20,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
-import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 
 @Singleton
 public class FormAuthFilter extends DatashareAuthFilter {
@@ -39,9 +37,7 @@ public class FormAuthFilter extends DatashareAuthFilter {
                           @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore,
               SessionCookies.isSecure(propertiesProvider));
-        String defaultTtl = String.valueOf(DEFAULT_SESSION_TTL_SECONDS);
-        String ttl = propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(defaultTtl);
-        this.sessionTtl = Integer.parseInt(ttl);
+        this.sessionTtl = propertiesProvider.sessionTtlSeconds();
         this.postLoginEnroller = postLoginEnroller;
         logger.info("created FormAuthFilter with uriPrefix={}", uriPrefix);
     }

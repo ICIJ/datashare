@@ -7,6 +7,7 @@ import picocli.CommandLine.Option;
 import java.nio.file.Paths;
 import java.util.Properties;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
+import static org.icij.datashare.PropertiesProvider.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.PropertiesProvider.TCP_LISTEN_PORT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 

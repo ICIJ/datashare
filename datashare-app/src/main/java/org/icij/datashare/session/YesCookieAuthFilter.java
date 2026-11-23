@@ -9,14 +9,12 @@ import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.text.Project;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.stream.Collectors;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
-import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.user.User.localUser;
 
 @Singleton
@@ -33,8 +31,7 @@ public class YesCookieAuthFilter extends SessionCookieAuthFilter {
                                final Repository repository, @Nullable PostLoginEnroller postLoginEnroller) {
         super(propertiesProvider.get("protectedUrlPrefix").orElse("/"), usersIdProviderCache, sessionIdStore,
               SessionCookies.isSecure(propertiesProvider));
-        this.ttl = Integer.valueOf(propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(
-                DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS)));
+        this.ttl = propertiesProvider.sessionTtlSeconds();
         this.repository = repository;
         this.defaultProject = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
         this.postLoginEnroller = postLoginEnroller;

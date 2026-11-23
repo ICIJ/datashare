@@ -11,8 +11,6 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 import java.io.Closeable;
 import java.util.List;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
-import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.user.User.fromJson;
 
 @Singleton
@@ -23,8 +21,7 @@ public class UsersIdProviderRedisCache implements UsersIdProviderCache, Closeabl
     @Inject
     public UsersIdProviderRedisCache(PropertiesProvider propertiesProvider) {
         redis = RedisPoolFactory.createPool(propertiesProvider);
-        this.ttl = Integer.valueOf(
-                propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(DEFAULT_SESSION_TTL_SECONDS)));
+        this.ttl = propertiesProvider.sessionTtlSeconds();
     }
 
     @Override

@@ -8,8 +8,6 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 import java.io.Closeable;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS;
-import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT;
 
 @Singleton
 public class RedisSessionIdStore implements SessionIdStore, Closeable {
@@ -19,9 +17,7 @@ public class RedisSessionIdStore implements SessionIdStore, Closeable {
     @Inject
     public RedisSessionIdStore(PropertiesProvider propertiesProvider) {
         this.redis = RedisPoolFactory.createPool(propertiesProvider);
-        String defaultTtl = String.valueOf(DEFAULT_SESSION_TTL_SECONDS);
-        String ttl = propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(defaultTtl);
-        this.ttl = Integer.valueOf(ttl);
+        this.ttl = propertiesProvider.sessionTtlSeconds();
     }
 
     @Override
