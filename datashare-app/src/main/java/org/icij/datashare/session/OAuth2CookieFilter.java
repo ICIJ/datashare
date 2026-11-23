@@ -215,8 +215,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     @Override
     protected String newSessionId(String login) {
         // Sign the session ID with HMAC so it cannot be forged from an OAuth state token.
-        // The parent generates plain random hex for both state and session IDs in the same
-        // store. Signing makes session IDs cryptographically distinct from state tokens.
+        // State tokens and session IDs share the session store; signing makes session IDs
+        // cryptographically distinct from state tokens, which readSessionIdInCookie rejects.
         String rawId = SessionCookies.newSessionId();
         String signature = hmacSign(rawId);
         String signedSessionId = rawId + "." + signature;
