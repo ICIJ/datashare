@@ -32,7 +32,17 @@ final class SessionCookies {
     }
 
     static boolean isSecure(PropertiesProvider propertiesProvider) {
-        return propertiesProvider.get(SECURE_SESSION_COOKIE_OPT).map(Boolean::parseBoolean).orElse(false);
+        return propertiesProvider.get(SECURE_SESSION_COOKIE_OPT).map(SessionCookies::parseStrictBoolean).orElse(false);
+    }
+
+    // Boolean.parseBoolean reads "yes" or a typo as false, which would silently leave cookies sent over plain HTTP
+    private static boolean parseStrictBoolean(String value) {
+        String normalizedValue = value.trim().toLowerCase();
+        return switch (normalizedValue) {
+            case "true" -> true;
+            case "false" -> false;
+            default -> throw new InvalidSecureSessionCookieException(value);
+        };
     }
 
     static Cookie withSecureFlag(Cookie cookie, boolean isSecure) {
