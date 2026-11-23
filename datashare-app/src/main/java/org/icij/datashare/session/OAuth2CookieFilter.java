@@ -28,6 +28,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Date;
 import java.util.HexFormat;
 import java.util.Map;
@@ -237,10 +238,17 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         }
         String rawId = sessionId.substring(0, dotIndex);
         String signature = sessionId.substring(dotIndex + 1);
-        if (!hmacSign(rawId).equals(signature)) {
+        if (!isValidSignature(rawId, signature)) {
             return null;
         }
         return sessionId;
+    }
+
+    // Constant-time comparison so response timing cannot leak the expected signature byte by byte
+    private boolean isValidSignature(String rawId, String signature) {
+        byte[] expected = hmacSign(rawId).getBytes(StandardCharsets.UTF_8);
+        byte[] actual = signature.getBytes(StandardCharsets.UTF_8);
+        return MessageDigest.isEqual(expected, actual);
     }
 
     private String hmacSign(String data) {
