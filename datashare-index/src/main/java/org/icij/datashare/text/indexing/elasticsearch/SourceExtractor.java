@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
@@ -169,9 +170,7 @@ public class SourceExtractor {
         // succeed via getEmbeddedSource's multi-digester fallback (incl. the legacy digester)
         // and EmbeddedDocumentExtractor's live-parse fallback on a cache miss - drift only
         // costs a wasted cache entry + re-parse, it doesn't lose the content.
-        DigestingParser.Digester digester =
-                noDigestProject() ? new CommonsDigester(20 * 1024 * 1024, hasher.toStringWithoutDash()) :
-                new UpdatableDigester(project.getId(), hasher.toString());
+        DigestingParser.Digester digester = writeDigester(project, hasher);
 
         Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
         TikaDocument tikaDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
@@ -179,6 +178,27 @@ public class SourceExtractor {
                 new EmbeddedDocumentExtractor(digester, hasher.toString(), getArtifactPath(project), useOcr(document));
         embeddedExtractor.extractAll(tikaDocument);
         return tikaDocument;
+    }
+
+    public void forEachEmbed(final Project project, final Document embedded,
+                             final BiConsumer<String, Path> visitor) throws TikaException, IOException, SAXException {
+        Hasher hasher = Hasher.valueOf(embedded.getId().length());
+        DigestingParser.Digester digester = writeDigester(project, hasher);
+        Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
+        String tikaVersionField = embedded.getField(DocumentMetadataConstants.TIKA_VERSION);
+        String tikaVersion = (String) embedded.getMetadata().get(tikaVersionField);
+        TikaDocument rootDocument =
+                new DocumentFactory().withIdentifier(identifier).create(embedded.getPath(), tikaVersion);
+        EmbeddedDocumentExtractor embeddedExtractor =
+                new EmbeddedDocumentExtractor(digester, hasher.toString(), null, useOcr(embedded));
+        embeddedExtractor.forEachEmbed(rootDocument, visitor);
+    }
+
+    private DigestingParser.Digester writeDigester(final Project project, final Hasher hasher) {
+        if (noDigestProject()) {
+            return new CommonsDigester(20 * 1024 * 1024, hasher.toStringWithoutDash());
+        }
+        return new UpdatableDigester(project.getId(), hasher.toString());
     }
 
     // Embedded documents produced by the OCR pipeline (e.g. inline images extracted from PDFs)
@@ -199,9 +219,14 @@ public class SourceExtractor {
      *  usable cache entry. extract-lib writes the raw payload uncompressed, so this is exactly
      *  the number of bytes a cache-hit read serves. */
     public long cachedEmbeddedSourceLength(final Project project, final Document document) {
+        Path rawPayload = cachedEmbeddedSourcePath(project, document);
+        return rawPayload == null ? -1 : rawPayload.toFile().length();
+    }
+
+    public Path cachedEmbeddedSourcePath(final Project project, final Document document) {
         Path artifactPath = getArtifactPath(project);
         if (artifactPath == null) {
-            return -1;
+            return null;
         }
         Path documentArtifactDir = ArtifactPath.dir(artifactPath, document.getId());
         Path rawPayload = documentArtifactDir.resolve(ArtifactPath.RAW_FILE);
@@ -209,13 +234,12 @@ public class SourceExtractor {
         // Readable, not merely present: the files are written 0600 by whichever process produced
         // them, and an unreadable artifact sends extract-lib back to a live parse of the root.
         if (!Files.isReadable(rawPayload) || !Files.isReadable(rawSidecar)) {
-            return -1;
+            return null;
         }
         // Non-empty too: extract-lib records a zero-byte payload for embeds whose bytes it could
         // not read, and serving those as a cache hit would return an empty 200 where the size
         // limit used to return 413.
-        long length = rawPayload.toFile().length();
-        return length > 0 ? length : -1;
+        return rawPayload.toFile().length() > 0 ? rawPayload : null;
     }
 
     private Path getArtifactPath(Project project) {
