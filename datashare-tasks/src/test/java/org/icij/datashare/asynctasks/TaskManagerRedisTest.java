@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -162,6 +163,15 @@ public class TaskManagerRedisTest {
         List<Task<?>> tasks = taskManager.getTasks().toList();
         assertThat(tasks).hasSize(1);
         assertThat(tasks.get(0).getResult()).isEqualTo(expectedResult);
+    }
+
+    @Test(timeout = 10000)
+    public void test_result_outside_allowlist_marks_task_as_error() throws Exception {
+        String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        TaskResult<UUID> result = new TaskResult<>(UUID.randomUUID());
+        taskSupplier.result(taskViewId, result);
+        assertThat(waitForEvent.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.getTask(taskViewId).getState()).isEqualTo(Task.State.ERROR);
     }
 
     @Test
