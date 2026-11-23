@@ -84,6 +84,38 @@ public class MemorySessionIdStoreTest {
         assertThat(remaining).isEqualTo(1000);
     }
 
+    @Test
+    public void test_login_keeps_only_its_newest_sessions() {
+        MemorySessionIdStore store = store(60, 1000);
+
+        IntStream.range(0, 11).forEach(i -> store.put("sid" + i, "alice"));
+
+        assertThat(store.getLogin("sid0")).isNull();
+        long remaining = IntStream.range(1, 11).filter(i -> store.getLogin("sid" + i) != null).count();
+        assertThat(remaining).isEqualTo(10);
+    }
+
+    @Test
+    public void test_one_login_cannot_evict_other_logins() {
+        MemorySessionIdStore store = store(60, 20);
+        store.put("bob-sid", "bob");
+
+        IntStream.range(0, 1000).forEach(i -> store.put("sid" + i, "alice"));
+
+        assertThat(store.getLogin("bob-sid")).isEqualTo("bob");
+    }
+
+    @Test
+    public void test_removed_session_frees_its_login_slot() {
+        MemorySessionIdStore store = store(60, 1000);
+        IntStream.range(0, 10).forEach(i -> store.put("sid" + i, "alice"));
+
+        store.remove("sid9");
+        store.put("sid10", "alice");
+
+        assertThat(store.getLogin("sid0")).isEqualTo("alice");
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void test_max_size_below_one_is_rejected() {
         store(60, 0);
