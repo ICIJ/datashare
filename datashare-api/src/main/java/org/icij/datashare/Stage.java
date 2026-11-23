@@ -13,7 +13,7 @@ public enum Stage {
     DEDUPLICATE(false, Payload.PATH), INDEX(true, Payload.PATH), ENQUEUEIDX(false, Payload.NONE),
     CATEGORIZE(false, Payload.ID), NLP(true, Payload.ID), CREATENLPBATCHESFROMIDX(false, Payload.NONE, true),
     BATCHNLP(false, Payload.NONE, true), ARTIFACT(false, Payload.ID), LANGUAGE(false, Payload.ID),
-    ENTITIES(false, Payload.NONE, true);
+    ENTITIES(false, Payload.NONE, true), QRCODES(false, Payload.NONE, true);
     public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
     private final boolean isMainStage;
     private final Payload consumed;
