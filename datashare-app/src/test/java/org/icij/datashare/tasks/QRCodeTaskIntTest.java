@@ -15,6 +15,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
+import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.extract.parser.QRCodeParserDecorator;
 import org.icij.extract.queue.DocumentQueue;
@@ -27,12 +28,19 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class QRCodeTaskIntTest {
     private static final String QR_KEY = new FieldNames().forMetadata(QRCodeParserDecorator.QR_CODES.getName());
@@ -41,6 +49,8 @@ public class QRCodeTaskIntTest {
 
     @Rule public ElasticsearchRule es = new ElasticsearchRule();
     @Rule public TemporaryFolder corpus = new TemporaryFolder();
+    @Rule public TemporaryFolder attachments = new TemporaryFolder();
+    @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
 
     private final MemoryDocumentCollectionFactory<String> stringQueueFactory = new MemoryDocumentCollectionFactory<>();
     private final TaskRepositoryMemory taskRepository = new TaskRepositoryMemory();
@@ -119,11 +129,125 @@ public class QRCodeTaskIntTest {
         assertThat(documentAt(moved).getContent()).isEqualTo(movedBefore.getContent());
     }
 
+    @Test(timeout = 120_000)
+    public void test_parses_an_uncached_root_once_for_all_its_images() throws Exception {
+        Path mail = mailWithTwoCodes("mail.eml", "one", "two");
+        index(Map.of(), mail);
+        SourceExtractor sourceExtractor = spy(new SourceExtractor(new PropertiesProvider()));
+
+        qrCodeTask(Map.of(), sourceExtractor).call();
+
+        assertDecoded("one");
+        assertDecoded("two");
+        verify(sourceExtractor, times(1)).forEachEmbed(any(), any(), any());
+    }
+
+    @Test(timeout = 120_000)
+    public void test_groups_a_root_split_across_scroll_pages() throws Exception {
+        Path mail = mailWithTwoCodes("mail.eml", "one", "two");
+        index(Map.of(), mail);
+        SourceExtractor sourceExtractor = spy(new SourceExtractor(new PropertiesProvider()));
+
+        qrCodeTask(Map.of("scrollSize", "1"), sourceExtractor).call();
+
+        assertDecoded("one");
+        assertDecoded("two");
+        verify(sourceExtractor, times(1)).forEachEmbed(any(), any(), any());
+    }
+
+    @Test(timeout = 120_000)
+    public void test_reads_cached_embeds_without_parsing_the_root() throws Exception {
+        Path mail = mailWithTwoCodes("mail.eml", "one", "two");
+        Map<String, Object> artifactArgs = Map.of("artifacts", "raw", "artifactDir", artifactDir.getRoot().toString());
+        index(artifactArgs, mail);
+        SourceExtractor sourceExtractor = spy(new SourceExtractor(new PropertiesProvider(new HashMap<>(artifactArgs))));
+
+        qrCodeTask(artifactArgs, sourceExtractor).call();
+
+        assertDecoded("one");
+        assertDecoded("two");
+        verify(sourceExtractor, never()).forEachEmbed(any(), any(), any());
+    }
+
+    @Test(timeout = 120_000)
+    public void test_a_root_that_fails_to_parse_does_not_stop_the_stage() throws Exception {
+        Path broken = mailWithTwoCodes("a.eml", "one", "two");
+        Path mail = mailWithTwoCodes("b.eml", "three", "four");
+        index(Map.of(), broken, mail);
+        Files.write(broken, new byte[0]);
+        SourceExtractor sourceExtractor = spy(new SourceExtractor(new PropertiesProvider()));
+
+        qrCodeTask(Map.of(), sourceExtractor).call();
+
+        assertDecoded("three");
+        assertDecoded("four");
+    }
+
+    @Test(timeout = 120_000)
+    public void test_an_embed_the_walk_never_yields_counts_as_failed() throws Exception {
+        Path mail = mailWithTwoCodes("mail.eml", "one", "two");
+        index(Map.of(), mail);
+        SourceExtractor sourceExtractor = spy(new SourceExtractor(new PropertiesProvider()));
+        doNothing().when(sourceExtractor).forEachEmbed(any(), any(), any());
+
+        Long processed = qrCodeTask(Map.of(), sourceExtractor).call();
+
+        assertThat(processed).isEqualTo(0L);
+        assertThat(documentsWithMetadataKey()).isEmpty();
+    }
+
     private QRCodeTask qrCodeTask(Map<String, Object> extraArgs) {
         Map<String, Object> args = new HashMap<>(Map.of("defaultProject", es.getIndexName()));
         args.putAll(extraArgs);
         Task<Long> taskView = new Task<>(QRCodeTask.class.getName(), User.local(), args);
         return new QRCodeTask(stringQueueFactory, indexer, taskView, NO_PROGRESS);
+    }
+
+    private QRCodeTask qrCodeTask(Map<String, Object> extraArgs, SourceExtractor sourceExtractor) {
+        Map<String, Object> args = new HashMap<>(Map.of("defaultProject", es.getIndexName()));
+        args.putAll(extraArgs);
+        Task<Long> taskView = new Task<>(QRCodeTask.class.getName(), User.local(), args);
+        return new QRCodeTask(stringQueueFactory, indexer, sourceExtractor, taskView, NO_PROGRESS);
+    }
+
+    private void assertDecoded(String value) throws IOException {
+        List<Document> decoded = documentsWithMetadataKey().stream()
+                                                           .filter(doc -> doc.getMetadata().get(QR_KEY).equals(List.of(value)))
+                                                           .toList();
+        assertThat(decoded).hasSize(1);
+        assertThat(decoded.get(0).getContent()).endsWith("QR code: " + value + "\n");
+        assertThat(decoded.get(0).isRootDocument()).isFalse();
+    }
+
+    private List<Document> documentsWithMetadataKey() throws IOException {
+        return indexer.search(List.of(es.getIndexName()), Document.class).execute()
+                      .map(Document.class::cast)
+                      .filter(doc -> doc.getMetadata() != null && doc.getMetadata().containsKey(QR_KEY))
+                      .toList();
+    }
+
+    private Path mailWithTwoCodes(String name, String first, String second) throws Exception {
+        Path firstPng = png(attachments.getRoot().toPath().resolve(name + "-" + first + ".png"), first);
+        Path secondPng = png(attachments.getRoot().toPath().resolve(name + "-" + second + ".png"), second);
+        return eml(corpus.getRoot().toPath().resolve(name), firstPng, secondPng);
+    }
+
+    private static Path eml(Path file, Path... attachments) throws IOException {
+        StringBuilder mime = new StringBuilder();
+        mime.append("From: sender@example.org\r\nTo: recipient@example.org\r\nSubject: codes\r\n");
+        mime.append("MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"BOUNDARY\"\r\n\r\n");
+        mime.append("--BOUNDARY\r\nContent-Type: text/plain\r\n\r\nsee attached\r\n");
+        for (Path attachment : attachments) {
+            byte[] bytes = Files.readAllBytes(attachment);
+            String encoded = Base64.getMimeEncoder().encodeToString(bytes);
+            String name = attachment.getFileName().toString();
+            mime.append("--BOUNDARY\r\nContent-Type: image/png; name=\"").append(name).append("\"\r\n");
+            mime.append("Content-Disposition: attachment; filename=\"").append(name).append("\"\r\n");
+            mime.append("Content-Transfer-Encoding: base64\r\n\r\n").append(encoded).append("\r\n");
+        }
+        mime.append("--BOUNDARY--\r\n");
+        Files.writeString(file, mime.toString());
+        return file;
     }
 
     private void index(Map<String, Object> extraArgs, Path... files) throws Exception {
