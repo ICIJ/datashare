@@ -44,7 +44,7 @@ public class TemporalPipelineExecutorIntTest {
 
     @Test
     public void test_run_indexes_the_documents_of_the_data_dir_and_reports_completion() throws Exception {
-        PropertiesProvider propertiesProvider = new PropertiesProvider();
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("dataDir", tmp.getRoot().getPath()));
         ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, propertiesProvider);
         String queue = TemporalPipelineExecutor.taskQueue(propertiesProvider);
         WorkflowRegistry registry = new WorkflowRegistry();
