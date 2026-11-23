@@ -1,7 +1,7 @@
 package org.icij.datashare.policies;
 
 import org.casbin.jcasbin.persist.Watcher;
-import org.icij.datashare.asynctasks.TaskManagerRedis;
+import org.icij.datashare.asynctasks.RedisCodec;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -23,7 +23,7 @@ public class PolicyWatcher implements Watcher, Closeable {
     private volatile int listenerId = -1;
 
     public PolicyWatcher(RedissonClient redisson) {
-        var codec = new TaskManagerRedis.RedisCodec<>(PolicyUpdateMessage.class);
+        var codec = new RedisCodec<>(PolicyUpdateMessage.class);
         this.topic = redisson.getTopic(TOPIC, codec);
     }
 

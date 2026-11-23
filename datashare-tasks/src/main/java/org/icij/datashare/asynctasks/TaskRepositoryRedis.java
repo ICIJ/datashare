@@ -17,7 +17,7 @@ public class TaskRepositoryRedis extends RedissonMap<String, TaskGroupMetadata<?
     }
 
     public TaskRepositoryRedis(RedissonClient redisson, String name) {
-        super(new TaskManagerRedis.RedisCodec<>(TaskGroupMetadata.class, JsonObjectMapper.getMapper()),
+        super(new RedisCodec<>(TaskGroupMetadata.class, JsonObjectMapper.getMapper()),
               new CommandSyncService(((Redisson) redisson).getConnectionManager(), new RedissonObjectBuilder(redisson)),
               name, redisson, null, null);
     }

@@ -16,7 +16,7 @@ import org.redisson.client.codec.BaseCodec;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RedisEventCodecTest {
-    private final BaseCodec codec = new TaskManagerRedis.RedisCodec<>(Event.class, JsonObjectMapper.getTypedMapper());
+    private final BaseCodec codec = TaskManagerRedis.EVENT_CODEC;
 
     @BeforeClass
     public static void registerSubtypes() {

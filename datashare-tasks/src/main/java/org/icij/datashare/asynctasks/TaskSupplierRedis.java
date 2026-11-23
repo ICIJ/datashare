@@ -7,7 +7,6 @@ import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
@@ -21,6 +20,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import static org.icij.datashare.asynctasks.TaskManagerRedis.EVENT_CHANNEL_NAME;
+import static org.icij.datashare.asynctasks.TaskManagerRedis.EVENT_CODEC;
 
 public class TaskSupplierRedis implements TaskSupplier {
     private final RTopic eventTopic;
@@ -32,9 +32,7 @@ public class TaskSupplierRedis implements TaskSupplier {
     }
 
     public TaskSupplierRedis(RedissonClient redissonClient, String taskQueueKey) {
-        TaskManagerRedis.RedisCodec<Event> eventCodec =
-                new TaskManagerRedis.RedisCodec<>(Event.class, JsonObjectMapper.getTypedMapper());
-        this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME, eventCodec);
+        this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME, EVENT_CODEC);
         this.redissonClient = redissonClient;
         this.taskQueueKey = taskQueueKey;
     }
@@ -81,9 +79,9 @@ public class TaskSupplierRedis implements TaskSupplier {
 
     private <V extends Serializable> BlockingQueue<Task<V>> taskQueue() {
         return this.taskQueueKey == null ?
-               new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(),
-                                           AmqpQueue.TASK.name(), redissonClient) :
-               new RedissonBlockingQueue<>(new TaskManagerRedis.RedisCodec<>(Task.class), getCommandSyncService(),
+               new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(), AmqpQueue.TASK.name(),
+                                           redissonClient) :
+               new RedissonBlockingQueue<>(new RedisCodec<>(Task.class), getCommandSyncService(),
                                            String.format("%s.%s", AmqpQueue.TASK.name(), taskQueueKey), redissonClient);
     }
 

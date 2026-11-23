@@ -13,7 +13,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
 public class TaskManagerRedisCodecTest {
-    TaskManagerRedis.RedisCodec<?> codec = new TaskManagerRedis.RedisCodec<>(Task.class);
+    RedisCodec<?> codec = new RedisCodec<>(Task.class);
 
     @Test
     public void test_json_serialize_deserialize_with_inline_properties_map() throws Exception {
