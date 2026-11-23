@@ -29,7 +29,7 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
     private final Runnable eventCallback; // for test
     public static final String EVENT_CHANNEL_NAME = "EVENT";
     public static final RedisCodec<Event> EVENT_CODEC =
-            new RedisCodec<>(Event.class, JsonObjectMapper.getTypedMapper());
+            new RedisCodec<>(JsonObjectMapper.typedReaderFor(Event.class), JsonObjectMapper.typedWriter());
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
     private final TaskRepository tasks;
     private final RTopic eventTopic;

@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -319,8 +321,12 @@ public class JsonObjectMapper {
         return MAPPER.writeValueAsString(obj);
     }
 
-    public static ObjectMapper getTypedMapper() {
-        return TYPE_INCLUSION_MAPPER;
+    public static ObjectReader typedReaderFor(Class<?> type) {
+        return TYPE_INCLUSION_MAPPER.readerFor(type);
+    }
+
+    public static ObjectWriter typedWriter() {
+        return TYPE_INCLUSION_MAPPER.writer();
     }
 
     public static String writeValueAsStringTyped(Object obj) throws JsonProcessingException {

@@ -1,6 +1,8 @@
 package org.icij.datashare.asynctasks;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
@@ -16,19 +18,18 @@ import org.redisson.client.protocol.Decoder;
 import org.redisson.client.protocol.Encoder;
 
 public class RedisCodec<T> extends BaseCodec {
-    private final Class<T> clazz;
     private final Encoder keyEncoder;
     private final Decoder<Object> keyDecoder;
-    protected final ObjectMapper mapObjectMapper;
+    private final ObjectReader reader;
+    private final ObjectWriter writer;
 
     public RedisCodec(Class<T> clazz) {
-        this(clazz, JsonObjectMapper.getMapper());
+        this(untypedReaderFor(clazz), untypedWriter());
     }
 
-    public RedisCodec(Class<T> clazz, ObjectMapper objectMapper) {
-        // Ugly but this doesn't work with type ref directly
-        this.clazz = clazz;
-        this.mapObjectMapper = objectMapper;
+    public RedisCodec(ObjectReader reader, ObjectWriter writer) {
+        this.reader = reader;
+        this.writer = writer;
         this.keyEncoder = in -> {
             ByteBuf out = ByteBufAllocator.DEFAULT.buffer();
             out.writeCharSequence(in.toString(), Charset.defaultCharset());
@@ -47,7 +48,7 @@ public class RedisCodec<T> extends BaseCodec {
             ByteBuf out = ByteBufAllocator.DEFAULT.buffer();
             try {
                 ByteBufOutputStream os = new ByteBufOutputStream(out);
-                mapObjectMapper.writeValue((OutputStream) os, in);
+                writer.writeValue((OutputStream) os, in);
                 return os.buffer();
             } catch (IOException e) {
                 out.release();
@@ -58,7 +59,7 @@ public class RedisCodec<T> extends BaseCodec {
     private final Decoder<Object> decoder = new Decoder<>() {
         @Override
         public T decode(ByteBuf buf, State state) throws IOException {
-            return mapObjectMapper.readValue((InputStream) new ByteBufInputStream(buf), clazz);
+            return reader.readValue((InputStream) new ByteBufInputStream(buf));
         }
     };
 
@@ -80,5 +81,15 @@ public class RedisCodec<T> extends BaseCodec {
     @Override
     public Encoder getMapKeyEncoder() {
         return keyEncoder;
+    }
+
+    private static ObjectReader untypedReaderFor(Class<?> clazz) {
+        ObjectMapper mapper = JsonObjectMapper.getMapper();
+        return mapper.readerFor(clazz);
+    }
+
+    private static ObjectWriter untypedWriter() {
+        ObjectMapper mapper = JsonObjectMapper.getMapper();
+        return mapper.writer();
     }
 }
