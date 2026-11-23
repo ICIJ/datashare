@@ -2,6 +2,7 @@ package net.codestory.http.filters.auth;
 
 import net.codestory.http.Context;
 import net.codestory.http.Cookie;
+import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
@@ -54,6 +55,18 @@ public class DatashareSessionCookieTest {
         for (CookieAuthFilter filter : filtersWith(Map.of("secureSessionCookie", "true"))) {
             Cookie cookie = filter.authCookie("value");
 
+            assertThat(cookie.isSecure()).as(filter.getClass().getSimpleName()).isTrue();
+        }
+    }
+
+    @Test
+    public void test_signout_cookie_is_secure_when_the_option_is_set() {
+        for (CookieAuthFilter filter : filtersWith(Map.of("secureSessionCookie", "true"))) {
+            Context context = mock(Context.class, RETURNS_DEEP_STUBS);
+
+            Payload payload = filter.signout(context);
+
+            Cookie cookie = payload.cookies().get(0);
             assertThat(cookie.isSecure()).as(filter.getClass().getSimpleName()).isTrue();
         }
     }
