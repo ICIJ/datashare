@@ -8,13 +8,11 @@ import net.codestory.http.NewCookie;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
-import java.security.SecureRandom;
 import java.util.regex.Pattern;
 
 public class CsrfFilter implements Filter {
     static final String CSRF_COOKIE_NAME = "_ds_csrf_token";
     static final String CSRF_HEADER_NAME = "X-DS-CSRF-TOKEN";
-    private static final SecureRandom RANDOM = new SecureRandom();
     private static final Pattern LOOPBACK_HOST =
             Pattern.compile("(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d+)?", Pattern.CASE_INSENSITIVE);
     private final boolean localMode;
@@ -83,7 +81,7 @@ public class CsrfFilter implements Filter {
     }
 
     private static String generateToken() {
-        return Long.toHexString(RANDOM.nextLong()) + Long.toHexString(RANDOM.nextLong());
+        return SessionCookies.newSessionId();
     }
 
     private NewCookie csrfCookie(String token) {
