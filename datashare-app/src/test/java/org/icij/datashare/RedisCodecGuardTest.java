@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -15,7 +16,9 @@ import java.util.stream.Stream;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RedisCodecGuardTest {
-    private static final Pattern FORBIDDEN = Pattern.compile("JsonJacksonCodec|getTopic\\(\\s*[^,()]+\\)");
+    private static final Pattern FORBIDDEN = Pattern.compile(
+            "(JsonJacksonCodec|SerializationCodec|MarshallingCodec|Kryo5?Codec|FstCodec)"
+            + "|\\.get(Topic|ReliableTopic|ShardedTopic|PatternTopic|Map|MapCache|Bucket|Queue|BlockingQueue|Deque|List|Set|SetCache)\\(\\s*[^,]*?\\)");
 
     @Test
     public void main_sources_have_no_violations() throws IOException {
@@ -40,11 +43,11 @@ public class RedisCodecGuardTest {
             for (Path file : javaFiles) {
                 Path relative = root.relativize(file);
                 scanned.add(relative.toString());
-                List<String> lines = Files.readAllLines(file);
-                for (int i = 0; i < lines.size(); i++) {
-                    if (FORBIDDEN.matcher(lines.get(i)).find()) {
-                        found.add(relative + ":" + (i + 1) + ": " + lines.get(i).trim());
-                    }
+                String content = Files.readString(file);
+                String collapsed = content.replaceAll("\\s+", " ");
+                Matcher matcher = FORBIDDEN.matcher(collapsed);
+                while (matcher.find()) {
+                    found.add(relative + ": " + matcher.group());
                 }
             }
         }

@@ -186,7 +186,7 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
         RKeys keys = redissonClient.getKeys();
         Iterable<String> iterable = keys.getKeysByPattern(AmqpQueue.TASK.name() + "*", 100);
         StreamSupport.stream(iterable.spliterator(), false).filter(k -> keys.getType(k) == RType.LIST)
-                     .forEach(k -> redissonClient.getQueue(k).delete());
+                     .forEach(k -> keys.delete(k));
     }
 
     @Override
