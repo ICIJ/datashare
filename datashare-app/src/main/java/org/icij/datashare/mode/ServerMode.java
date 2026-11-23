@@ -52,11 +52,23 @@ public class ServerMode extends CommonMode {
     SessionIdStore provideSessionIdStore() {
         QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
         if (QueueType.MEMORY == sessionStoreType) {
+            warnIfAnonymousSessionsCanFillTheStore();
             return new MemorySessionIdStore(propertiesProvider);
         }
         RedisSessionIdStore sessionIdStore = new RedisSessionIdStore(propertiesProvider);
         addCloseable(sessionIdStore);
         return sessionIdStore;
+    }
+
+    // yesCookie stores a new session for every request without a cookie, so a crawler or a loop can push real
+    // sessions out of the capped memory store. Redis has no cap, so it is the store to use with yesCookie.
+    private void warnIfAnonymousSessionsCanFillTheStore() {
+        String authMode = propertiesProvider.get(AUTH_MODE_OPT).orElse("");
+        if (!AuthMode.YES_COOKIE.cliName.equals(authMode)) {
+            return;
+        }
+        logger.warn("--auth yesCookie with --sessionStoreType MEMORY: anonymous requests can evict sessions once the " +
+                    "store holds --sessionStoreMaxSize sessions. Use --sessionStoreType REDIS to avoid it.");
     }
 
     static Class<? extends Filter> filterClassFor(AuthMode mode) {
