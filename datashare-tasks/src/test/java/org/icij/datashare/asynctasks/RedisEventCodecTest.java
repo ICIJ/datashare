@@ -1,9 +1,11 @@
 package org.icij.datashare.asynctasks;
 
 import io.netty.buffer.ByteBuf;
+import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import io.netty.buffer.ByteBufAllocator;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URI;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
@@ -14,18 +16,31 @@ import org.junit.Test;
 import org.redisson.client.codec.BaseCodec;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
 
 public class RedisEventCodecTest {
     private final BaseCodec codec = TaskManagerRedis.EVENT_CODEC;
 
     @BeforeClass
     public static void registerSubtypes() {
-        JsonObjectMapper.registerSubtypes(new NamedType(UriResult.class));
+        JsonObjectMapper.registerSubtypes(new NamedType(UriResult.class), new NamedType(Holder.class));
     }
 
     @Test(expected = IOException.class)
     public void rejects_unregistered_event_type() throws Exception {
         decode("{\"@type\":\"java.net.URL\",\"createdAt\":0,\"retries\":3}");
+    }
+
+    @Test
+    public void rejects_non_allowlisted_class_nested_in_result_value() throws Exception {
+        String json = "{\"@type\":\"ResultEvent\",\"taskId\":\"t\",\"result\":{\"value\":"
+                + "{\"@type\":\"RedisEventCodecTest$Holder\",\"payload\":[\"java.util.UUID\",\"00000000-0000-0000-0000-000000000000\"]}}}";
+        try {
+            decode(json);
+            fail("nested class outside the allowlist was deserialized");
+        } catch (InvalidTypeIdException e) {
+            assertThat(e.getMessage()).contains("denied resolution");
+        }
     }
 
     @Test
@@ -40,5 +55,9 @@ public class RedisEventCodecTest {
         ByteBuf buf = ByteBufAllocator.DEFAULT.buffer();
         buf.writeBytes(json.getBytes());
         return (Event) codec.getValueDecoder().decode(buf, null);
+    }
+
+    public static class Holder implements Serializable {
+        public Object payload;
     }
 }
