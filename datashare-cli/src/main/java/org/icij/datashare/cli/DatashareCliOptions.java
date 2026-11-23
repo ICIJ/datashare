@@ -887,8 +887,8 @@ public final class DatashareCliOptions {
 
     public static void secureSessionCookie(OptionParser parser) {
         parser.acceptsAll(singletonList(SECURE_SESSION_COOKIE_OPT),
-                          "Send the session cookie over HTTPS only (default false)").withRequiredArg()
-              .ofType(Boolean.class);
+                          "Mark the session and CSRF cookies as Secure, sent over HTTPS only (default false)")
+              .withRequiredArg().ofType(Boolean.class);
     }
 
     public static void digestMethod(OptionParser parser) {
