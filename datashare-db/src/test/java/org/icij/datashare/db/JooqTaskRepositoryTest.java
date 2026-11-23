@@ -126,6 +126,22 @@ public class JooqTaskRepositoryTest {
     }
 
     @Test
+    public void test_update_with_a_stale_running_task_keeps_task_done() throws Exception {
+        Task<Integer> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));
+        repository.insert(foo, new Group(TaskGroupType.Test));
+        Task<Integer> staleRunning = repository.getTask(foo.id);
+        staleRunning.setProgress(0.5);
+
+        foo.setResult(new TaskResult<>(1));
+        repository.update(foo);
+        repository.update(staleRunning);
+
+        Task<?> actual = repository.getTask(foo.id);
+        assertThat(actual.getState()).isEqualTo(Task.State.DONE);
+        assertThat(actual.getResult()).isEqualTo(new TaskResult<>(1));
+    }
+
+    @Test
     public void test_update_should_throw_unknown_task() {
         // Given
         Task<Integer> foo = new Task<>("foo", User.local(), Map.of("user", User.local()));

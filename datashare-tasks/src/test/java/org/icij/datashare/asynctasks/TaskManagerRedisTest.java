@@ -63,6 +63,30 @@ public class TaskManagerRedisTest {
     }
 
     @Test
+    public void test_update_with_a_stale_running_task_keeps_task_done() throws Exception {
+        Task<?> task = new Task<>("HelloWorld", User.local(), Map.of("greeted", "world"));
+        Task<?> done = new Task<>(task.id, task.name, Task.State.DONE, 1, null, 3, null, task.args, null, null);
+        Task<?> staleRunning = new Task<>(task.id, task.name, Task.State.RUNNING, 1, null, 3, null, task.args, null, null);
+        taskManager.insert(task, null);
+
+        taskManager.update(done);
+        taskManager.update(staleRunning);
+
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(Task.State.DONE);
+    }
+
+    @Test(timeout = 2000)
+    public void test_cancel_with_requeue_queues_the_task_again() throws Exception {
+        String taskId = taskManager.startTask("HelloWorld", User.local(), new HashMap<>());
+        Task<Serializable> task = taskSupplier.get(1, TimeUnit.SECONDS);
+
+        taskSupplier.canceled(task, true);
+        waitForEvent.await();
+
+        assertThat(taskManager.getTask(taskId).getState()).isEqualTo(Task.State.QUEUED);
+    }
+
+    @Test
     public void test_start_task() throws IOException {
         assertThat(taskManager.startTask("HelloWorld", User.local(),
             new HashMap<>() {{ put("greeted", "world"); }})).isNotNull();
