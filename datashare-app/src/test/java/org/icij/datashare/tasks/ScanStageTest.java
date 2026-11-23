@@ -1,21 +1,26 @@
 package org.icij.datashare.tasks;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import static org.fest.assertions.Assertions.assertThat;
 import org.icij.datashare.asynctasks.ScopedStageContext;
 import org.icij.datashare.asynctasks.StageResult;
+import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Project;
-import static org.fest.assertions.Assertions.assertThat;
+import org.icij.datashare.utils.DataDirVerifier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.event.Level;
 
 public class ScanStageTest {
     @Rule public TemporaryFolder dataDir = new TemporaryFolder();
+    @Rule public LogbackCapturingRule logbackCapturingRule = new LogbackCapturingRule();
     private final List<Path> emitted = new ArrayList<>();
 
     @Before
@@ -60,6 +65,27 @@ public class ScanStageTest {
         assertThat(names()).excludes("deep.txt");
     }
 
+    @Test
+    public void test_refuses_path_outside_data_dir() {
+        assertRefused(Paths.get("/"));
+    }
+
+    @Test
+    public void test_refuses_parent_traversal() {
+        assertRefused(Paths.get("/path/to/data/../../etc"));
+    }
+
+    @Test
+    public void test_scan_refuses_a_sibling() throws Exception {
+        assertRefused(Paths.get("/path/to/data-other"));
+    }
+
+    private void assertRefused(Path path) {
+        StageResult result = scan(Map.of("dataDir", path.toString()));
+        assertThat(result.failed()).isEqualTo(1);
+        assertThat(logbackCapturingRule.logs(Level.WARN).size()).isGreaterThan(0);
+    }
+
     private List<String> names() {
         return emitted.stream().map(p -> p.getFileName().toString()).toList();
     }
@@ -67,7 +93,8 @@ public class ScanStageTest {
     private StageResult scan(Map<String, Object> extraOptions) {
         Map<String, Object> options = new HashMap<>(Map.of("dataDir", dataDir.getRoot().toString()));
         options.putAll(extraOptions);
-        return new ScanStage().process(List.of(), new ScopedStageContext<>() {
+        return new ScanStage(new DataDirVerifier(dataDir.getRoot().toPath()))
+                .process(List.of(), new ScopedStageContext<>() {
             public Project project() {return Project.project("prj");}
 
             public Map<String, Object> options() {return options;}

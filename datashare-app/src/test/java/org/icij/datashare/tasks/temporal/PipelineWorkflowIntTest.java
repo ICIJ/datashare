@@ -31,6 +31,7 @@ import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.tasks.ScanStage;
 import org.icij.datashare.tasks.IndexStage;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.datashare.utils.DataDirVerifier;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -116,7 +117,7 @@ public class PipelineWorkflowIntTest {
                                                 Map<String, Object> extraOptions) throws Exception {
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(PipelineWorkflowImpl.class, WORKFLOWS_DEFAULT);
-        registry.registerActivity(new StageActivityImpl(new StageRegistry().register(new ScanStage()).register(
+        registry.registerActivity(new StageActivityImpl(new StageRegistry().register(new ScanStage(new DataDirVerifier(dataDir))).register(
                 new IndexStage(indexer().withRefresh(Refresh.True), text -> Language.ENGLISH)),
                 temporal.interlocutor()), WORKFLOWS_DEFAULT);
         Map<String, Object> options = new HashMap<>(extraOptions);

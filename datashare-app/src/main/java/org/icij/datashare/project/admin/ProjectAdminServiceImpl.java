@@ -729,7 +729,7 @@ public class ProjectAdminServiceImpl implements ProjectAdminService {
     private ProjectCreated persist(ProjectCreateRequest request) throws IOException {
         String label = request.label() == null ? request.name() : request.label();
         Path sourcePath =
-                request.sourcePath() == null ? new DataDirVerifier(propertiesProvider).path() : request.sourcePath();
+                request.sourcePath() == null ? DataDirVerifier.from(propertiesProvider).value() : request.sourcePath();
         String allowFromMask = request.allowFromMask() == null ? DEFAULT_ALLOW_FROM_MASK : request.allowFromMask();
         // Auto-stamp on create. Backfill operators can override via explicit
         // request.creationDate()/updateDate(); otherwise both fields share the

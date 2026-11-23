@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import static java.util.Optional.ofNullable;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.StageContext;
 import org.icij.datashare.asynctasks.StageProcessor;
@@ -15,18 +16,25 @@ import java.util.ArrayList;
 import java.util.List;
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 import static org.icij.datashare.PropertiesProvider.mapToRecord;
+import org.icij.datashare.utils.DataDirVerifier;
+import org.slf4j.LoggerFactory;
 
 /**
- * The source stage: it is handed an empty batch and emits the paths it finds under {@code dataDir}, in groups. The
- * scan is configured by the options of the run: {@code includeOSFiles}, {@code includeHiddenFiles},
- * {@code includePattern}, {@code excludePattern}, {@code followSymlinks} and {@code maxDepth} (see
- * {@link ScanOptions}). An absent option keeps the default of the scanner.
+ * The source stage: it is handed an empty batch and emits the paths it finds under {@code dataDir}, in groups. The scan
+ * is configured by the options of the run: {@code includeOSFiles}, {@code includeHiddenFiles}, {@code includePattern},
+ * {@code excludePattern}, {@code followSymlinks} and {@code maxDepth} (see {@link ScanOptions}). An absent option keeps
+ * the default of the scanner.
  */
 public class ScanStage implements StageProcessor<Void, Path> {
     // Each batch costs the workflow ~4 history events (signal + activity scheduled/started/completed).
     // Kept low enough to stay well under Temporal's ~50k-event history cap even at ~10M scanned paths,
     // while still splitting the work into enough batches for horizontal scaling across index workers.
     static final int BATCH_SIZE = 1000;
+    private final DataDirVerifier dataDirVerifier;
+
+    public ScanStage(DataDirVerifier dataDirVerifier) {
+        this.dataDirVerifier = dataDirVerifier;
+    }
 
     @Override
     public Stage stage() {
@@ -40,18 +48,24 @@ public class ScanStage implements StageProcessor<Void, Path> {
 
     @Override
     public StageResult process(List<Void> batch, StageContext<Path> ctx) {
-        Path dataDir = Paths.get((String) ctx.options().get(DATA_DIR_OPT));
-        PathGrouper grouper = new PathGrouper(ctx);
-        try {
-            ScanOptions o = mapToRecord(ScanOptions.class, ctx.options());
-            // never follow a link out of the data dir, whatever the run asks for
-            ScanOptions confined = new ScanOptions(o.includeOSFiles(), o.includeHiddenFiles(), o.includePatterns(),
-                                                   o.excludePatterns(), false, o.maxDepth());
-            long scanned = new Scanner(confined, grouper).scan(dataDir);
-            grouper.purge(); // the trailing batch, smaller than BATCH_SIZE, that scan() never triggered
-            return new StageResult(scanned, 0, 0, 0);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        Path dataDir = Paths.get(ofNullable((String) ctx.options().get(DATA_DIR_OPT)).orElseThrow(
+                () -> new IllegalArgumentException("dataDir option must be provided")));
+        if (dataDirVerifier.allowed(dataDir)) {
+            PathGrouper grouper = new PathGrouper(ctx);
+            try {
+                ScanOptions o = mapToRecord(ScanOptions.class, ctx.options());
+                // never follow a link out of the data dir, whatever the run asks for
+                ScanOptions confined = new ScanOptions(o.includeOSFiles(), o.includeHiddenFiles(), o.includePatterns(),
+                                                       o.excludePatterns(), false, o.maxDepth());
+                long scanned = new Scanner(confined, grouper).scan(dataDir);
+                grouper.purge(); // the trailing batch, smaller than BATCH_SIZE, that scan() never triggered
+                return new StageResult(scanned, 0, 0, 0);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        } else {
+            LoggerFactory.getLogger(ScanStage.class).warn("Data directory {} not allowed", dataDir);
+            return new StageResult(0, 0, 0, 1);
         }
     }
 

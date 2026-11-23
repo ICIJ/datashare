@@ -66,6 +66,7 @@ import org.icij.datashare.tabular.ExtractionMappingServiceImpl;
 import org.icij.datashare.asynctasks.PipelineExecutor;
 import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.tasks.ArtifactStage;
+import org.icij.datashare.utils.DataDirVerifier;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.report.ReportMap;
 import org.icij.datashare.tasks.CategorizeStage;
@@ -554,7 +555,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         StageRegistry registry = new StageRegistry().register(new LanguageStage(indexer, languageGuesser)).register(
                                                             new IndexStage(indexer, languageGuesser, Extractor::new,
                                                                            reportMapFactory(getCurrentBatchQueueType(), collectionFactory)))
-                                                    .register(new ScanStage())
+                                                    .register(new ScanStage(DataDirVerifier.from(propertiesProvider)))
                                                     .register(new NlpStage(indexer, pipelineRegistry))
                                                     .register(new CategorizeStage(indexer))
                                                     .register(new EnqueueFromIndexStage(indexer))

@@ -59,7 +59,7 @@ public class ProjectResource {
         this.repository = repository;
         this.indexer = indexer;
         this.taskManager = taskManager;
-        this.dataDirVerifier = new DataDirVerifier(propertiesProvider);
+        this.dataDirVerifier = DataDirVerifier.from(propertiesProvider);
         this.modeVerifier = new ModeVerifier(propertiesProvider);
         this.projectAdminService = projectAdminService;
     }
@@ -309,7 +309,7 @@ public class ProjectResource {
     }
 
     private Project withDefaultSourcePath(Project project) {
-        return new Project(project.getName(), project.getLabel(), project.getDescription(), dataDirVerifier.path(),
+        return new Project(project.getName(), project.getLabel(), project.getDescription(), dataDirVerifier.value(),
                            project.getSourceUrl(), project.getMaintainerName(), project.getPublisherName(),
                            project.getLogoUrl(), project.getAllowFromMask(), project.creationDate, project.updateDate);
     }

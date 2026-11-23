@@ -28,6 +28,7 @@ import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.datashare.utils.DataDirVerifier;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -48,7 +49,7 @@ public class TemporalPipelineExecutorIntTest {
         String queue = TemporalPipelineExecutor.taskQueue(propertiesProvider);
         WorkflowRegistry registry = new WorkflowRegistry();
         registry.registerWorkflow(PipelineWorkflowImpl.class, queue);
-        StageRegistry stages = new StageRegistry().register(new ScanStage()).register(
+        StageRegistry stages = new StageRegistry().register(new ScanStage(DataDirVerifier.from(propertiesProvider))).register(
                 new IndexStage(indexer.withRefresh(Refresh.True), text -> Language.ENGLISH));
         registry.registerActivity(new StageActivityImpl(stages, temporal.interlocutor()), queue);
 

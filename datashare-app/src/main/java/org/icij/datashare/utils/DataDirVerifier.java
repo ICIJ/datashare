@@ -1,29 +1,21 @@
 package org.icij.datashare.utils;
 
-import org.icij.datashare.PropertiesProvider;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.icij.datashare.PropertiesProvider;
 import static org.icij.datashare.PropertiesProvider.DATA_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DATA_DIR;
 
 public class DataDirVerifier {
-    final PropertiesProvider propertiesProvider;
+    final Path dataDir;
 
-    public DataDirVerifier(PropertiesProvider propertiesProvider) {
-        this.propertiesProvider = propertiesProvider;
-    }
-
-    public String value() {
-        return propertiesProvider.get(DATA_DIR_OPT).orElse(DEFAULT_DATA_DIR);
-    }
-
-    public Path path() {
-        return Paths.get(this.value());
+    public DataDirVerifier(Path dataDir) {
+        this.dataDir = dataDir;
     }
 
     public boolean allowed(Path path) {
-        return real(path).startsWith(real(this.path()));
+        return real(path).startsWith(real(dataDir));
     }
 
     /** Throws when the path is outside the data directory; the message names both. */
@@ -31,6 +23,14 @@ public class DataDirVerifier {
         if (!allowed(path)) {
             throw new IllegalArgumentException(path + " must be inside the data directory " + value());
         }
+    }
+
+    public Path value() {
+        return dataDir;
+    }
+
+    public static DataDirVerifier from(PropertiesProvider propertiesProvider) {
+        return new DataDirVerifier(Paths.get(propertiesProvider.get(DATA_DIR_OPT).orElse(DEFAULT_DATA_DIR)));
     }
 
     // Links are resolved on the longest part of the path that exists, so a path that is not created yet can

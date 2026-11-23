@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
@@ -13,6 +14,7 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.user.User;
+import org.icij.datashare.utils.DataDirVerifier;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -38,7 +40,8 @@ public class TaskWorkerLoopForPipelineTasksTest {
     @Test
     public void test_scan_task() throws Exception {
         Task<Long> task = new Task<>(ScanTask.class.getName(), User.local(), Map.of("dataDir", "/path/to/files"));
-        ScanTask taskRunner = new ScanTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new ScanStage()), task, updateCallback);
+        ScanTask taskRunner = new ScanTask(mock(DocumentCollectionFactory.class), new StageRegistry().register(new ScanStage(new DataDirVerifier(
+                Path.of("/path/to/files")))), task, updateCallback);
         when(taskFactory.createScanTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
