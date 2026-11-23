@@ -28,7 +28,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
@@ -245,6 +244,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         return Long.parseLong(expiry);
     }
 
+    // Constant-time comparison so response timing cannot leak the expected value byte by byte
     private static boolean constantTimeEquals(String expected, String actual) {
         byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
         byte[] actualBytes = actual.getBytes(StandardCharsets.UTF_8);
@@ -257,9 +257,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
 
     @Override
     protected String newSessionId(String login) {
-        // Sign the session ID with HMAC so it cannot be forged from an OAuth state token.
-        // State tokens and session IDs share the session store; signing makes session IDs
-        // cryptographically distinct from state tokens, which readSessionIdInCookie rejects.
+        // Sign the session ID with HMAC so readSessionIdInCookie rejects any id the server did not issue,
+        // such as an OAuth state token, which is signed with a different prefix.
         String rawId = SessionCookies.newSessionId();
         String signature = hmacSign(rawId);
         String signedSessionId = rawId + "." + signature;
@@ -280,17 +279,10 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         }
         String rawId = sessionId.substring(0, dotIndex);
         String signature = sessionId.substring(dotIndex + 1);
-        if (!isValidSignature(rawId, signature)) {
+        if (!constantTimeEquals(hmacSign(rawId), signature)) {
             return null;
         }
         return sessionId;
-    }
-
-    // Constant-time comparison so response timing cannot leak the expected signature byte by byte
-    private boolean isValidSignature(String rawId, String signature) {
-        byte[] expected = hmacSign(rawId).getBytes(StandardCharsets.UTF_8);
-        byte[] actual = signature.getBytes(StandardCharsets.UTF_8);
-        return MessageDigest.isEqual(expected, actual);
     }
 
     private String hmacSign(String data) {
