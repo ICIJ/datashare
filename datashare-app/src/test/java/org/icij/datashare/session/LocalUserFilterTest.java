@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import net.codestory.http.Context;
+import net.codestory.http.Request;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
@@ -24,12 +25,14 @@ public class LocalUserFilterTest {
     private Payload next = Payload.ok();
     private PayloadSupplier nextFilter = () -> next;
     private Context context = mock(Context.class);
+    private Request request = mock(Request.class);
     private ArgumentCaptor<User> user = forClass(User.class);
 
     @Before
     public void setUp() {
         initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        when(context.request()).thenReturn(request);
     }
 
     @Test
@@ -99,5 +102,45 @@ public class LocalUserFilterTest {
         assertThat(payload.cookies().size()).isEqualTo(1);
         assertThat(payload.cookies().get(0).name()).isEqualTo("_ds_session_id");
         assertThat(payload.cookies().get(0).value()).contains("\"login\":\"local\"");
+    }
+
+    @Test
+    public void test_cookie_is_not_secure_over_http() throws Exception {
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
+
+        Payload payload = localUserFilter.apply("url", context, () -> Payload.ok());
+
+        assertThat(payload.cookies().get(0).isSecure()).isFalse();
+    }
+
+    @Test
+    public void test_cookie_is_secure_when_the_request_is_https() throws Exception {
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
+        when(request.isSecure()).thenReturn(true);
+
+        Payload payload = localUserFilter.apply("url", context, () -> Payload.ok());
+
+        assertThat(payload.cookies().get(0).isSecure()).isTrue();
+    }
+
+    @Test
+    public void test_cookie_is_secure_when_a_proxy_forwards_an_https_request() throws Exception {
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
+        when(context.header("x-forwarded-proto")).thenReturn("https");
+
+        Payload payload = localUserFilter.apply("url", context, () -> Payload.ok());
+
+        assertThat(payload.cookies().get(0).isSecure()).isTrue();
+    }
+
+    @Test
+    public void test_cookie_is_not_secure_when_a_tls_proxy_forwards_an_http_request() throws Exception {
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
+        when(request.isSecure()).thenReturn(true);
+        when(context.header("x-forwarded-proto")).thenReturn("http");
+
+        Payload payload = localUserFilter.apply("url", context, () -> Payload.ok());
+
+        assertThat(payload.cookies().get(0).isSecure()).isFalse();
     }
 }

@@ -1,5 +1,6 @@
 package org.icij.datashare.session;
 
+import net.codestory.http.Context;
 import org.icij.datashare.PropertiesProvider;
 import java.security.SecureRandom;
 import java.util.HexFormat;
@@ -13,6 +14,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.SECURE_SESSION_COOKIE_O
 final class SessionCookies {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int SESSION_ID_BYTES = 16;
+    private static final String FORWARDED_PROTO_HEADER = "x-forwarded-proto";
 
     private SessionCookies() {}
 
@@ -24,6 +26,15 @@ final class SessionCookies {
 
     static boolean isSecure(PropertiesProvider propertiesProvider) {
         return propertiesProvider.get(SECURE_SESSION_COOKIE_OPT).map(SessionCookies::parseStrictBoolean).orElse(false);
+    }
+
+    // A TLS-terminating proxy knows the scheme the browser used, so its header wins over the connection to datashare
+    static boolean isHttps(Context context) {
+        String forwardedProto = context.header(FORWARDED_PROTO_HEADER);
+        if (forwardedProto != null) {
+            return "https".equalsIgnoreCase(forwardedProto);
+        }
+        return context.request().isSecure();
     }
 
     // Boolean.parseBoolean reads "yes" or a typo as false, which would silently leave cookies sent over plain HTTP

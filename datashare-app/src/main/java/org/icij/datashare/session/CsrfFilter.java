@@ -35,7 +35,7 @@ public class CsrfFilter implements Filter {
         if ("GET".equals(method) || "HEAD".equals(method) || "OPTIONS".equals(method)) {
             Payload payload = nextFilter.get();
             if (payload.isSuccess() && needsCsrfCookie(context) && !hasCsrfCookie(payload)) {
-                payload = payload.withCookie(csrfCookie(generateToken()));
+                payload = payload.withCookie(csrfCookie(generateToken(), context));
             }
             return payload;
         }
@@ -84,10 +84,11 @@ public class CsrfFilter implements Filter {
         return SessionCookies.newSessionId();
     }
 
-    private NewCookie csrfCookie(String token) {
+    private NewCookie csrfCookie(String token, Context context) {
+        boolean isSecure = isCookieSecure || SessionCookies.isHttps(context);
         NewCookie cookie = new NewCookie(CSRF_COOKIE_NAME, token, "/");
         cookie.setHttpOnly(false);
-        cookie.setSecure(isCookieSecure);
+        cookie.setSecure(isSecure);
         return cookie;
     }
 }

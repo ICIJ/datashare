@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import net.codestory.http.Context;
+import net.codestory.http.Request;
 import net.codestory.http.Cookie;
 import net.codestory.http.Cookies;
 import net.codestory.http.NewCookie;
@@ -27,6 +28,7 @@ public class CsrfFilterTest {
     public void setUp() {
         csrfFilter = filterIn("SERVER");
         when(context.cookies()).thenReturn(mock(Cookies.class));
+        when(context.request()).thenReturn(mock(Request.class));
     }
 
     @Test
@@ -158,6 +160,19 @@ public class CsrfFilterTest {
         when(context.cookies()).thenReturn(new SimpleCookies());
 
         Payload payload = filter.apply("/api/users", context, nextFilter);
+
+        Cookie csrfCookie = payload.cookies().get(0);
+        assertThat(csrfCookie.isSecure()).isTrue();
+    }
+
+    @Test
+    public void test_csrf_cookie_is_secure_when_a_proxy_forwards_an_https_request() throws Exception {
+        when(context.method()).thenReturn("GET");
+        when(context.currentUser()).thenReturn(mock(User.class));
+        when(context.cookies()).thenReturn(new SimpleCookies());
+        when(context.header("x-forwarded-proto")).thenReturn("https");
+
+        Payload payload = csrfFilter.apply("/api/users", context, nextFilter);
 
         Cookie csrfCookie = payload.cookies().get(0);
         assertThat(csrfCookie.isSecure()).isTrue();

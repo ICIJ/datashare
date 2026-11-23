@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import net.codestory.http.Context;
+import net.codestory.http.Request;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
@@ -36,6 +37,7 @@ public class YesCookieAuthFilterTest {
     @Before
     public void setUp() {
         initMocks(this);
+        when(context.request()).thenReturn(mock(Request.class));
     }
 
     @After
