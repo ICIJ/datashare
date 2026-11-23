@@ -77,7 +77,7 @@
             <scope>compile</scope>
         </dependency>
         <!--
-        Redisson is needed for RedisBlockingQueue. Redisson is pulling netty.
+        Redisson is needed for the Redis task queues and event topic. Redisson is pulling netty.
         It overrides netty 4.1.49 from datashare-index and avoid blocking Redis tests
         :/
         -->

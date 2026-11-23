@@ -11,8 +11,8 @@ import java.util.List;
  *
  * Record are not working likely because the public visibility of the properties is removed.
  *
- * Public no-arg constructor and public fields are required by the Redisson
- * JSON codec used in {@link RedisAsyncSearchStore}.
+ * Serialized by {@code RedisCodec} with the untyped JsonObjectMapper in
+ * {@link RedisAsyncSearchStore}, through its {@code @JsonCreator} constructor.
  */
 public class AsyncSearchOwner {
     public final String userId;
