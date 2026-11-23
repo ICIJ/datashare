@@ -40,7 +40,8 @@ public class InMemoryStatementRepository implements StatementRepository {
 
     @Override
     public Replaced replace(String projectId, String runId, String documentId, String sheet,
-                            Stream<Statement> statements) {
+                            Stream<Statement> statements, boolean verbatimIds,
+                            Runnable beforeCommit) {
         String section = Statement.Provenance.sheetOrEmpty(sheet);
         Map<String, Statement> before = new LinkedHashMap<>(stored);
         int retracted = 0;
@@ -65,6 +66,7 @@ public class InMemoryStatementRepository implements StatementRepository {
             if (pending) {
                 retracted = deleteBySheet(projectId, documentId, sheet);
             }
+            beforeCommit.run();
         } catch (RuntimeException e) {
             stored.clear();
             stored.putAll(before);

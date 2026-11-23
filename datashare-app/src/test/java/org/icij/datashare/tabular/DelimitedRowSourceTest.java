@@ -39,9 +39,9 @@ public class DelimitedRowSourceTest {
 
         assertThat(rows).hasSize(2);
         assertThat(rows.get(0).number()).isEqualTo(1L);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
         assertThat(rows.get(1).number()).isEqualTo(2L);
-        assertThat(rows.get(1).values().get("id")).isEqualTo("2");
+        assertThat(rows.get(1).values().get("id")).isEqualTo(List.of("2"));
     }
 
     @Test
@@ -49,7 +49,7 @@ public class DelimitedRowSourceTest {
         List<Row> rows = read("id;name\n1;ACME\n",
                 RowSourceOptions.defaults().withDelimiter(';'));
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -57,7 +57,7 @@ public class DelimitedRowSourceTest {
         List<Row> rows = read("id,name\n1,\"ACME, Inc.\nsecond line\"\n", RowSourceOptions.defaults());
 
         assertThat(rows).hasSize(1);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME, Inc.\nsecond line");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME, Inc.\nsecond line"));
     }
 
     @Test
@@ -67,7 +67,7 @@ public class DelimitedRowSourceTest {
         List<Row> rows = read(latin1,
                 RowSourceOptions.defaults().withCharset(Charset.forName("windows-1252")));
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("Café");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("Café"));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class DelimitedRowSourceTest {
         List<Row> rows = read("id,,name\n1,ignored,ACME\n", RowSourceOptions.defaults());
 
         assertThat(rows.get(0).values()).hasSize(2);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -98,7 +98,7 @@ public class DelimitedRowSourceTest {
         List<Row> rows = read("id,name,country\n1,ACME\n", RowSourceOptions.defaults());
 
         assertThat(rows.get(0).values()).hasSize(3);
-        assertThat(rows.get(0).values().get("country")).isEqualTo("");
+        assertThat(rows.get(0).values().get("country")).isEqualTo(List.of(""));
     }
 
     @Test
@@ -123,8 +123,8 @@ public class DelimitedRowSourceTest {
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).values()).hasSize(2);
-        assertThat(rows.get(0).values().get("id")).isEqualTo("1");
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("1"));
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -133,7 +133,7 @@ public class DelimitedRowSourceTest {
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).number()).isEqualTo(1L);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -142,7 +142,7 @@ public class DelimitedRowSourceTest {
 
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).number()).isEqualTo(1L);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -162,7 +162,7 @@ public class DelimitedRowSourceTest {
         List<Row> rows = read(withBom, RowSourceOptions.defaults());
 
         assertThat(rows.get(0).values().keySet()).containsOnly("id", "name");
-        assertThat(rows.get(0).values().get("id")).isEqualTo("1");
+        assertThat(rows.get(0).values().get("id")).isEqualTo(List.of("1"));
     }
 
     @Test
@@ -181,7 +181,7 @@ public class DelimitedRowSourceTest {
             List<Row> rows = read("id\tname\n1\tACME\n",
                     RowSourceOptions.defaults().withContentType(contentType));
 
-            assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+            assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
         }
     }
 
@@ -190,7 +190,7 @@ public class DelimitedRowSourceTest {
         List<Row> rows = read("id,name\n1,'ACME, Inc'\n",
                 RowSourceOptions.defaults().withQuote('\''));
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME, Inc");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME, Inc"));
     }
 
     /**
@@ -202,7 +202,7 @@ public class DelimitedRowSourceTest {
         List<Row> rows = read("id,name\n1,R\u00e9publique\n",
                 RowSourceOptions.defaults().withCharset(Charset.forName("ISO-8859-1")));
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("R\u00e9publique");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("R\u00e9publique"));
     }
 
     @Test
@@ -211,7 +211,7 @@ public class DelimitedRowSourceTest {
 
         List<Row> rows = read(latin1, RowSourceOptions.defaults().withCharset(Charset.forName("ISO-8859-1")));
 
-        assertThat(rows.get(0).values().get("name")).isEqualTo("R\u00e9publique");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("R\u00e9publique"));
     }
 
     @Test

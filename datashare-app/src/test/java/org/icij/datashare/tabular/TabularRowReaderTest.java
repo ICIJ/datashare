@@ -51,7 +51,7 @@ public class TabularRowReaderTest {
     public void test_reads_a_csv_document_through_the_delimited_reader() throws Exception {
         indexed("companies.csv", "text/csv", "id,name\n1,ACME\n", Map.of());
 
-        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class TabularRowReaderTest {
         indexed("companies.csv", "text/csv", "id;name\n1;ACME\n",
                 Map.of("tika_metadata_csv_delimiter", "semicolon"));
 
-        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -68,21 +68,21 @@ public class TabularRowReaderTest {
                 Map.of("tika_metadata_csv_delimiter", "semicolon"));
 
         assertThat(rows(RowSourceOptions.defaults().withDelimiter('|')).get(0).values().get("name"))
-                .isEqualTo("ACME");
+                .isEqualTo(List.of("ACME"));
     }
 
     @Test
     public void test_a_jsonl_file_typed_text_plain_reaches_the_json_reader() throws Exception {
         indexed("dump.jsonl", "text/plain", "{\"id\":1,\"name\":\"ACME\"}\n", Map.of());
 
-        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
     public void test_a_csv_typed_text_plain_still_reaches_the_delimited_reader() throws Exception {
         indexed("companies.txt", "text/plain", "id,name\n1,ACME\n", Map.of());
 
-        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -90,7 +90,7 @@ public class TabularRowReaderTest {
         indexed("mislabelled.csv", "text/csv", "{\"id\":1,\"name\":\"ACME\"}\n", Map.of());
 
         assertThat(rows(RowSourceOptions.defaults().withContentType("application/json"))
-                .get(0).values().get("name")).isEqualTo("ACME");
+                .get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
@@ -177,21 +177,21 @@ public class TabularRowReaderTest {
         List<Row> rows = rows(RowSourceOptions.defaults());
 
         assertThat(rows).hasSize(1);
-        assertThat(rows.get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows.get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
     public void test_a_document_with_no_detected_content_type_is_refined_by_extension() throws Exception {
         indexed("contacts.csv", null, "id,name\n1,ACME\n", Map.of());
 
-        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
     @Test
     public void test_a_tsv_extension_supplies_the_delimiter_its_metadata_does_not() throws Exception {
         indexed("companies.tsv", "text/plain", "id\tname\n1\tACME\n", Map.of());
 
-        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo("ACME");
+        assertThat(rows(RowSourceOptions.defaults()).get(0).values().get("name")).isEqualTo(List.of("ACME"));
     }
 
 }

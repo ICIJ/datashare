@@ -60,7 +60,7 @@ public class TabularRowReader {
         InputStream source = sourceExtractor.getSource(project, document);
         try {
             Rows rows = reader.rows(source, resolved);
-            return new Rows(rows.sheet(), rows.rows().onClose(() -> closeQuietly(source)));
+            return new Rows(rows.sheet(), rows.header(), rows.rows().onClose(() -> closeQuietly(source)));
         } catch (IOException | RuntimeException failure) {
             closeQuietly(source);
             throw failure;
