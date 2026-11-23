@@ -79,8 +79,8 @@ public class TaskWorkerLoopTest {
         Thread appThread = new Thread(app::call);
         appThread.start();
         taskStarted.await(1, TimeUnit.SECONDS);
+        app.exit(); // before cancel: the supplier mock always returns the same task, it must not be run again once cancelled
         app.cancel(taskView.id, requeue);
-        app.exit();
         appThread.join();
 
         verify(supplier).canceled(ArgumentMatchers.eq(taskView), ArgumentMatchers.eq(false));
@@ -97,8 +97,8 @@ public class TaskWorkerLoopTest {
         Thread appThread = new Thread(app::call);
         appThread.start();
         taskStarted.await(1, TimeUnit.SECONDS);
+        app.exit(); // before cancel: the supplier mock always returns the same task, it must not be run again once cancelled
         app.cancel(taskView.id, requeue);
-        app.exit();
         appThread.join();
 
         verify(supplier).canceled(eq(taskView), eq(true));
@@ -131,8 +131,8 @@ public class TaskWorkerLoopTest {
         Thread appThread = new Thread(app::call);
         appThread.start();
         assertThat(taskStarted.await(1, TimeUnit.SECONDS)).isTrue();
+        app.exit(); // before cancel: the supplier mock always returns the same task, it must not be run again once cancelled
         app.cancel(taskView.id, true);
-        app.exit();
         appThread.join();
 
         verify(supplier).canceled(eq(taskView), eq(true));
@@ -148,8 +148,8 @@ public class TaskWorkerLoopTest {
         Thread appThread = new Thread(app::call);
         appThread.start();
         assertThat(taskStarted.await(1, TimeUnit.SECONDS)).isTrue();
+        app.exit(); // before cancel: the supplier mock always returns the same task, it must not be run again once cancelled
         app.cancel(taskView.id, false);
-        app.exit();
         appThread.join();
 
         verify(supplier).canceled(eq(taskView), eq(false));
