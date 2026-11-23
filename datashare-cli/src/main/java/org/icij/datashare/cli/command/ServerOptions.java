@@ -6,6 +6,7 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import java.nio.file.Paths;
 import java.util.Properties;
+import static org.icij.datashare.PropertiesProvider.DEFAULT_SESSION_TTL_SECONDS;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.PropertiesProvider.SESSION_TTL_SECONDS_OPT;
 import static org.icij.datashare.PropertiesProvider.TCP_LISTEN_PORT_OPT;
@@ -69,7 +70,8 @@ public class ServerOptions {
     @Option(names = {"--sessionSigningKey"},
             description = "HMAC key for session signing. Prefer passing via a settings file to avoid leaking into shell history.")
     String sessionSigningKey;
-    @Option(names = {"--sessionTtlSeconds"}, description = "Session TTL in seconds", defaultValue = "43200")
+    @Option(names = {"--sessionTtlSeconds"}, description = "Session TTL in seconds",
+            defaultValue = "" + DEFAULT_SESSION_TTL_SECONDS)
     int sessionTtlSeconds;
     @Option(names = {"--sessionStoreType"}, description = "Session store type", defaultValue = "MEMORY")
     QueueType sessionStoreType;
