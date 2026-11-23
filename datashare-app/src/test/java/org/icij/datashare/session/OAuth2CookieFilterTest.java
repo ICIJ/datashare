@@ -8,23 +8,25 @@ import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.rest.Response;
+import net.codestory.rest.RestAssert;
 import org.icij.datashare.PropertiesProvider;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.icij.datashare.session.OAuth2CookieFilter.STATE_COOKIE_NAME;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -84,8 +86,8 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
-    public void test_signin_does_not_write_state_into_capped_memory_store() {
-        MemorySessionIdStore sessionIdStore = spy(new MemorySessionIdStore(propertiesProvider));
+    public void test_signin_does_not_touch_the_session_store() {
+        SessionIdStore sessionIdStore = mock(SessionIdStore.class);
         OAuth2CookieFilter filter = new OAuth2CookieFilter(propertiesProvider,
                 new UsersIdProviderRedisCache(propertiesProvider), userStore, sessionIdStore, null);
         Context context = mock(Context.class, RETURNS_DEEP_STUBS);
@@ -96,28 +98,66 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
-    public void test_signin_writes_state_into_shared_session_store() {
-        SessionIdStore sessionIdStore = mock(SessionIdStore.class);
-        OAuth2CookieFilter filter = new OAuth2CookieFilter(propertiesProvider,
-                new UsersIdProviderRedisCache(propertiesProvider), userStore, sessionIdStore, null);
-        Context context = mock(Context.class, RETURNS_DEEP_STUBS);
+    public void test_signin_sets_the_state_in_a_cookie() {
+        Response signinResponse = signinWithoutRedirect();
 
-        filter.signin(context);
-
-        verify(sessionIdStore).put(anyString(), anyString());
+        assertThat(stateCookieOf(signinResponse)).isEqualTo(stateOf(signinResponse));
     }
 
     @Test
-    public void test_callback_consumes_state_kept_in_local_cache() {
-        MemorySessionIdStore sessionIdStore = new MemorySessionIdStore(propertiesProvider);
-        OAuth2CookieFilter filter = new OAuth2CookieFilter(propertiesProvider,
-                new UsersIdProviderRedisCache(propertiesProvider), userStore, sessionIdStore, null);
-        datashare.configure(routes -> routes.filter(filter));
-        String state = getState(this.get("/auth/signin").response().content());
-        String callback = "/auth/callback?code=a0b1c2d3e4f5&state=" + state;
+    public void test_callback_rejects_state_without_its_cookie() {
+        String state = stateOf(signinWithoutRedirect());
 
-        this.get(callback).withFollowRedirect(false).should().respond(303);
-        this.get(callback).withFollowRedirect(false).should().respond(400);
+        this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + state).withFollowRedirect(false).should().respond(400);
+    }
+
+    @Test
+    public void test_callback_rejects_state_from_another_signin() {
+        String state = stateOf(signinWithoutRedirect());
+        String otherState = stateOf(signinWithoutRedirect());
+
+        callbackWithStateCookie(state, otherState).should().respond(400);
+    }
+
+    @Test
+    public void test_callback_rejects_tampered_state() {
+        String state = stateOf(signinWithoutRedirect());
+        String tamperedState = state.replaceFirst("\\.[0-9]+\\.", ".9999999999.");
+
+        callbackWithStateCookie(tamperedState, tamperedState).should().respond(400);
+    }
+
+    @Test
+    public void test_callback_clears_the_state_cookie() {
+        String state = stateOf(signinWithoutRedirect());
+
+        Response response = callbackWithStateCookie(state, state).response();
+
+        assertThat(response.code()).isEqualTo(303);
+        assertThat(response.header("set-cookie").toString()).contains(STATE_COOKIE_NAME + "=;");
+    }
+
+    @Test
+    public void test_state_is_rejected_once_expired() {
+        Instant signinTime = Instant.now().minus(Duration.ofMinutes(11));
+        String state = oAuth2Filter.createState(signinTime);
+
+        assertThat(oAuth2Filter.isValidState(state, state, Instant.now())).isFalse();
+    }
+
+    @Test
+    public void test_state_is_accepted_before_it_expires() {
+        Instant signinTime = Instant.now().minus(Duration.ofMinutes(9));
+        String state = oAuth2Filter.createState(signinTime);
+
+        assertThat(oAuth2Filter.isValidState(state, state, Instant.now())).isTrue();
+    }
+
+    @Test
+    public void test_session_id_is_not_a_valid_state() {
+        String sessionId = oAuth2Filter.newSessionId("foo");
+
+        assertThat(oAuth2Filter.isValidState(sessionId, sessionId, Instant.now())).isFalse();
     }
 
     @Test
@@ -130,7 +170,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     @Test
     public void test_callback_should_return_bad_request_when_state_is_wrong() {
         this.get("/auth/signin").should().respond(200);
-        this.get("/auth/callback?code=1234&state=unknown").should().respond(400);
+        callbackWithStateCookie("unknown", "unknown").should().respond(400);
     }
 
     @Test
@@ -189,8 +229,8 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
 
     @Test
     public void test_callback_should_call_api_with_code_and_state() throws Exception {
-        Response response = this.get("/auth/signin").response();
-        response = this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + getState(response.content())).withFollowRedirect(false).response();
+        String state = stateOf(signinWithoutRedirect());
+        Response response = callbackWithStateCookie(state, state).response();
         String cookie = response.header("set-cookie").get(0);
         String[] cookieAll = cookie.split("=", 2);
         String cookieValue  = cookieAll[1].split(";")[0];
@@ -202,10 +242,10 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     @Test
     public void test_callback_should_persist_user_in_user_store_at_each_login() throws Exception {
         reset(userStore);
-        Response response = this.get("/auth/signin").response();
-        this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + getState(response.content())).withFollowRedirect(false).response();
-        response = this.get("/auth/signin").response();
-        this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + getState(response.content())).withFollowRedirect(false).response();
+        String firstState = stateOf(signinWithoutRedirect());
+        callbackWithStateCookie(firstState, firstState).response();
+        String secondState = stateOf(signinWithoutRedirect());
+        callbackWithStateCookie(secondState, secondState).response();
 
         verify(userStore, times(2)).save(argThat(user -> "123".equals(user.id)));
     }
@@ -236,6 +276,28 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
                         .get("/api/users/me", context -> format("hello %s", context.currentUser().login()))
                         .get("/protected", context -> "protected content")
                         .filter(oAuth2Filter));
+    }
+
+    private Response signinWithoutRedirect() {
+        return this.get("/auth/signin").withFollowRedirect(false).response();
+    }
+
+    private String stateOf(Response signinResponse) {
+        String location = signinResponse.header("location").get(0);
+        return getState(location);
+    }
+
+    private String stateCookieOf(Response signinResponse) {
+        String cookiePrefix = STATE_COOKIE_NAME + "=";
+        String setCookie = signinResponse.header("set-cookie").get(0);
+        String cookieValue = setCookie.substring(cookiePrefix.length());
+        return cookieValue.split(";")[0];
+    }
+
+    private RestAssert callbackWithStateCookie(String state, String cookieState) {
+        String callback = "/auth/callback?code=a0b1c2d3e4f5&state=" + state;
+        String cookie = STATE_COOKIE_NAME + "=" + cookieState;
+        return this.get(callback).withHeader("Cookie", cookie).withFollowRedirect(false);
     }
 
     private String getState(String content) {

@@ -11,11 +11,10 @@ import com.github.scribejava.core.model.OAuthRequest;
 import com.github.scribejava.core.model.Response;
 import com.github.scribejava.core.model.Verb;
 import com.github.scribejava.core.oauth.OAuth20Service;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
+import net.codestory.http.NewCookie;
 import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
@@ -29,16 +28,16 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.util.Date;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import static java.lang.String.format;
-import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
 
 /**
@@ -63,7 +62,10 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String REQUEST_CODE_KEY = "code";
     public static final String REQUEST_STATE_KEY = "state";
+    static final String STATE_COOKIE_NAME = "_ds_oauth_state";
     private static final String HMAC_ALGO = "HmacSHA256";
+    private static final String STATE_SIGNING_PREFIX = "oauth-state.";
+    private static final Duration STATE_TTL = Duration.ofMinutes(10);
     protected final String oauthDefaultProject;
     private final DefaultApi20 defaultOauthApi;
     private final Integer oauthTtl;
@@ -81,12 +83,6 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     private final PostLoginEnroller postLoginEnroller;
     private final UsersIdProviderCache usersCache;
     private final UserStore userStore;
-    // The capped memory store would let anonymous /auth/signin hits evict real sessions, so states
-    // go to a local cache there. Shared stores keep them so any server can handle the callback.
-    private final boolean keepStatesLocally;
-    private final Cache<String, Boolean> pendingStates =
-            CacheBuilder.newBuilder().concurrencyLevel(1).expireAfterWrite(Duration.ofMinutes(10)).maximumSize(10_000)
-                        .build();
 
     @Inject
     public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersIdProviderCache users, UserStore userStore,
@@ -94,7 +90,6 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore,
               SessionCookies.isSecure(propertiesProvider));
         this.usersCache = users;
-        this.keepStatesLocally = sessionIdStore instanceof MemorySessionIdStore;
         this.userStore = userStore;
         this.oauthAuthorizeUrl = propertiesProvider.get("oauthAuthorizeUrl").orElse("http://localhost");
         this.oauthTokenUrl = propertiesProvider.get("oauthTokenUrl").orElse("http://localhost");
@@ -146,8 +141,9 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         logger.info("callback called with {}={} {}={}", REQUEST_CODE_KEY, context.get(REQUEST_CODE_KEY),
                     REQUEST_STATE_KEY, context.get(REQUEST_STATE_KEY));
         String state = context.get(REQUEST_STATE_KEY);
+        String cookieState = context.cookies().value(STATE_COOKIE_NAME);
         if (context.get(REQUEST_CODE_KEY) == null || state == null || !"GET".equals(context.method()) ||
-            !consumeState(state)) {
+            !isValidState(state, cookieState, Instant.now())) {
             return Payload.badRequest();
         }
         OAuth20Service service =
@@ -165,7 +161,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         logger.info("received response code from user API : {}", oauthApiResponse.getCode());
         DatashareUser datashareUser = processOAuthApiResponse(oauthApiResponse);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context)))
-                      .withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
+                      .withCookie(this.authCookie(this.buildCookie(datashareUser, "/"))).withCookie(stateCookie("", 0));
     }
 
     protected DatashareUser processOAuthApiResponse(Response oauthApiResponse) throws IOException {
@@ -197,13 +193,14 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
 
     @Override
     protected Payload signin(Context context) {
+        String state = createState(Instant.now());
         String oauthAuthorizeQS = format("?client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId,
-                                         URLEncoder.encode(getCallbackUrl(context), StandardCharsets.UTF_8),
-                                         createState());
+                                         URLEncoder.encode(getCallbackUrl(context), StandardCharsets.UTF_8), state);
         if (!Objects.equals(oauthScope, "")) {
             oauthAuthorizeQS = oauthAuthorizeQS + "&scope=" + oauthScope;
         }
-        return Payload.seeOther(oauthAuthorizeUrl + oauthAuthorizeQS);
+        int stateTtlSeconds = (int) STATE_TTL.toSeconds();
+        return Payload.seeOther(oauthAuthorizeUrl + oauthAuthorizeQS).withCookie(stateCookie(state, stateTtlSeconds));
     }
 
     private String getCallbackUrl(Context context) {
@@ -214,25 +211,48 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         return url;
     }
 
-    private String createState() {
-        String hexState = SessionCookies.newSessionId();
-        if (keepStatesLocally) {
-            pendingStates.put(hexState, Boolean.TRUE);
-        } else {
-            sessionIdStore.put(hexState, valueOf(new Date().getTime()));
-        }
-        return hexState;
+    /**
+     * The state is signed and also sent back in a cookie, so the server keeps nothing between sign-in and callback:
+     * anonymous sign-ins cannot fill any store, any server can check the callback, and a state only works in the
+     * browser that started the sign-in (no login CSRF). The prefix keeps a signed session id from passing as a state.
+     */
+    String createState(Instant signinTime) {
+        String nonce = SessionCookies.newSessionId();
+        long expiry = signinTime.plus(STATE_TTL).getEpochSecond();
+        String payload = nonce + "." + expiry;
+        String signature = hmacSign(STATE_SIGNING_PREFIX + payload);
+        return payload + "." + signature;
     }
 
-    private boolean consumeState(String state) {
-        if (keepStatesLocally) {
-            return pendingStates.asMap().remove(state) != null;
-        }
-        if (sessionIdStore.getLogin(state) == null) {
+    boolean isValidState(String state, String cookieState, Instant now) {
+        if (cookieState == null || !constantTimeEquals(state, cookieState)) {
             return false;
         }
-        sessionIdStore.remove(state);
-        return true;
+        int signatureIndex = state.lastIndexOf('.');
+        if (signatureIndex < 0) {
+            return false;
+        }
+        String payload = state.substring(0, signatureIndex);
+        String signature = state.substring(signatureIndex + 1);
+        if (!constantTimeEquals(hmacSign(STATE_SIGNING_PREFIX + payload), signature)) {
+            return false;
+        }
+        return now.getEpochSecond() < expiryOf(payload);
+    }
+
+    private static long expiryOf(String signedPayload) {
+        String expiry = signedPayload.substring(signedPayload.lastIndexOf('.') + 1);
+        return Long.parseLong(expiry);
+    }
+
+    private static boolean constantTimeEquals(String expected, String actual) {
+        byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
+        byte[] actualBytes = actual.getBytes(StandardCharsets.UTF_8);
+        return MessageDigest.isEqual(expectedBytes, actualBytes);
+    }
+
+    private NewCookie stateCookie(String state, int expirySeconds) {
+        return new NewCookie(STATE_COOKIE_NAME, state, oauthCallbackPath, true).setExpiry(expirySeconds);
     }
 
     @Override
