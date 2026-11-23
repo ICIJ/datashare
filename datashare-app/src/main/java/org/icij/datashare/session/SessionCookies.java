@@ -1,8 +1,5 @@
 package org.icij.datashare.session;
 
-import net.codestory.http.Cookie;
-import net.codestory.http.NewCookie;
-import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import java.security.SecureRandom;
 import java.util.HexFormat;
@@ -25,12 +22,6 @@ final class SessionCookies {
         return HexFormat.of().formatHex(bytes);
     }
 
-    static String newSessionId(SessionIdStore sessionIdStore, String login) {
-        String sessionId = newSessionId();
-        sessionIdStore.put(sessionId, login);
-        return sessionId;
-    }
-
     static boolean isSecure(PropertiesProvider propertiesProvider) {
         return propertiesProvider.get(SECURE_SESSION_COOKIE_OPT).map(SessionCookies::parseStrictBoolean).orElse(false);
     }
@@ -43,10 +34,5 @@ final class SessionCookies {
             case "false" -> false;
             default -> throw new InvalidSecureSessionCookieException(value);
         };
-    }
-
-    static Cookie withSecureFlag(Cookie cookie, boolean isSecure) {
-        NewCookie newCookie = (NewCookie) cookie;
-        return newCookie.setSecure(isSecure);
     }
 }

@@ -3,9 +3,7 @@ package org.icij.datashare.session;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
-import net.codestory.http.Cookie;
 import net.codestory.http.filters.PayloadSupplier;
-import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
@@ -22,11 +20,10 @@ import static org.icij.datashare.cli.DatashareCliOptions.SESSION_TTL_SECONDS_OPT
 import static org.icij.datashare.user.User.localUser;
 
 @Singleton
-public class YesCookieAuthFilter extends CookieAuthFilter {
+public class YesCookieAuthFilter extends SessionCookieAuthFilter {
     private final Integer ttl;
     private final String defaultProject;
     private final Repository repository;
-    private final boolean isSessionCookieSecure;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
 
@@ -34,13 +31,13 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
     public YesCookieAuthFilter(final PropertiesProvider propertiesProvider,
                                final UsersIdProviderCache usersIdProviderCache, final SessionIdStore sessionIdStore,
                                final Repository repository, @Nullable PostLoginEnroller postLoginEnroller) {
-        super(propertiesProvider.get("protectedUrlPrefix").orElse("/"), usersIdProviderCache, sessionIdStore);
+        super(propertiesProvider.get("protectedUrlPrefix").orElse("/"), usersIdProviderCache, sessionIdStore,
+              SessionCookies.isSecure(propertiesProvider));
         this.ttl = Integer.valueOf(propertiesProvider.get(SESSION_TTL_SECONDS_OPT).orElse(String.valueOf(
                 DatashareCliOptions.DEFAULT_SESSION_TTL_SECONDS)));
         this.repository = repository;
         this.defaultProject = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
         this.postLoginEnroller = postLoginEnroller;
-        this.isSessionCookieSecure = SessionCookies.isSecure(propertiesProvider);
     }
 
     public YesCookieAuthFilter(final PropertiesProvider propertiesProvider,
@@ -95,22 +92,6 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
             return true;
         }
         return super.matches(uri, context);
-    }
-
-    @Override
-    protected String newSessionId(String login) {
-        return SessionCookies.newSessionId(sessionIdStore, login);
-    }
-
-    @Override
-    protected Cookie authCookie(String value) {
-        Cookie cookie = super.authCookie(value);
-        return SessionCookies.withSecureFlag(cookie, isSessionCookieSecure);
-    }
-
-    @Override
-    protected String cookieName() {
-        return "_ds_session_id";
     }
 
     @Override
