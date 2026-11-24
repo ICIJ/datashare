@@ -97,7 +97,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     public void test_signin_does_not_touch_the_session_store() {
         SessionIdStore sessionIdStore = mock(SessionIdStore.class);
         OAuth2CookieFilter filter = new OAuth2CookieFilter(propertiesProvider,
-                new UsersIdProviderRedisCache(propertiesProvider), userStore, sessionIdStore, null);
+                mock(UsersIdProviderCache.class), userStore, sessionIdStore, null);
         Context context = mock(Context.class, RETURNS_DEEP_STUBS);
 
         filter.signin(context);
@@ -109,7 +109,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     public void test_state_cookie_is_secure_when_the_option_is_set() {
         PropertiesProvider secureProvider = new PropertiesProvider(Map.of("secureSessionCookie", "true"));
         OAuth2CookieFilter filter = new OAuth2CookieFilter(secureProvider,
-                new UsersIdProviderRedisCache(propertiesProvider), userStore, mock(SessionIdStore.class), null);
+                mock(UsersIdProviderCache.class), userStore, mock(SessionIdStore.class), null);
 
         Payload payload = filter.signin(mock(Context.class, RETURNS_DEEP_STUBS));
 
