@@ -76,7 +76,7 @@ public class StageTaskTest {
         MemoryDocumentCollectionFactory<String> outputFactory = new MemoryDocumentCollectionFactory<>();
         PropertiesProvider props = new PropertiesProvider(Map.of("defaultProject", "prj", "parallelism", "2"));
         Task<Long> task = new Task<>(LanguageDetectTask.class.getName(), User.local(), Map.of("defaultProject", "prj"));
-        StageTask<String, String> stageTask = new StageTask<>(Stage.CATEGORIZE, User.local(), factory, props,
+        StageTask<String, String> stageTask = new StageTask<>(Stage.CATEGORIZE, User.local(), "taskId", factory, props,
                 String.class, new UpstreamGate.Factory(taskRepository).forTask(task),
                 new StageRegistry().register(new Emitting()), outputFactory, String.class);
 
@@ -93,7 +93,7 @@ public class StageTaskTest {
         factory.createQueue("extract:queue:categorize", String.class).add("doc");
         PropertiesProvider props = new PropertiesProvider(Map.of("defaultProject", "prj"));
         Task<Long> task = new Task<>(LanguageDetectTask.class.getName(), User.local(), Map.of("defaultProject", "prj"));
-        StageTask<String, String> stageTask = new StageTask<>(Stage.CATEGORIZE, User.local(), factory, props,
+        StageTask<String, String> stageTask = new StageTask<>(Stage.CATEGORIZE, User.local(), "taskId", factory, props,
                 String.class, new UpstreamGate.Factory(taskRepository).forTask(task),
                 new StageRegistry().register(new Emitting()));
 
@@ -111,7 +111,7 @@ public class StageTaskTest {
         UsingTheContext processor = new UsingTheContext();
         Task<Long> task = new Task<>(LanguageDetectTask.class.getName(), User.local(),
                                      Map.of("defaultProject", "prj", "parallelism", "2"));
-        StageTask<String, Void> stageTask = new StageTask<>(Stage.LANGUAGE, User.local(), factory,
+        StageTask<String, Void> stageTask = new StageTask<>(Stage.LANGUAGE, User.local(), "taskId", factory,
                                                             new PropertiesProvider(task.args), String.class,
                                                             new UpstreamGate.Factory(taskRepository).forTask(task),
                                                             new StageRegistry().register(processor));

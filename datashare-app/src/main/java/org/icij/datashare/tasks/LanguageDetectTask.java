@@ -26,8 +26,8 @@ public class LanguageDetectTask extends StageTask<String, Void> {
     public LanguageDetectTask(DocumentCollectionFactory<String> factory, StageRegistry registry,
                               final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
                               @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.LANGUAGE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class,
-              gateFactory.forTask(taskView), registry);
+        super(Stage.LANGUAGE, taskView.getUser(), taskView.id, factory, new PropertiesProvider(taskView.args),
+              String.class, gateFactory.forTask(taskView), registry);
     }
 
     /** Declared here, not only inherited: TemporalWorkflowGenerator reads the output type from the annotated class. */

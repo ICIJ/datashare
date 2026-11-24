@@ -18,7 +18,7 @@ public class ScanIndexTask extends StageTask<Void, Void> {
     @Inject
     public ScanIndexTask(final StageRegistry registry, @Assisted Task<Long> taskView,
                          @Assisted Function<Double, Void> ignored) {
-        super(Stage.SCANIDX, taskView.getUser(), null, new PropertiesProvider(taskView.args), Void.class,
+        super(Stage.SCANIDX, taskView.getUser(), taskView.id, null, new PropertiesProvider(taskView.args), Void.class,
               UpstreamGate.NONE, registry);
     }
 

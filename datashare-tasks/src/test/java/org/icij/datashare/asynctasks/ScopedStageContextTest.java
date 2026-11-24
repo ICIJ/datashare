@@ -15,15 +15,7 @@ import static org.junit.Assert.assertThrows;
 
 public class ScopedStageContextTest {
     private final List<String> closed = new ArrayList<>();
-    private final ScopedStageContext<String> ctx = new ScopedStageContext<>() {
-        public Project project() {return null;}
-
-        public Map<String, Object> options() {return Map.of();}
-
-        public boolean isCancelled() {return false;}
-
-        public void emit(List<String> out) {}
-    };
+    private final ScopedStageContext<String> ctx = new DefaultStageContext<>("taskId", Project.project("prj"), Map.of(), out -> {});
 
     @Test
     public void test_a_resource_is_built_once_and_shared() {

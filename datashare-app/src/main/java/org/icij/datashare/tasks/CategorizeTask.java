@@ -35,8 +35,8 @@ public class CategorizeTask extends StageTask<String, String> implements Monitor
                           final DocumentCollectionFactory<String> outputFactory, final UpstreamGate.Factory gateFactory,
                           final StageRegistry stageRegistry, @Assisted Task<Long> taskView,
                           @Assisted final Function<Double, Void> progressCallback) {
-        super(Stage.CATEGORIZE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class,
-              gateFactory.forTask(taskView), stageRegistry, outputFactory, String.class);
+        super(Stage.CATEGORIZE, taskView.getUser(), taskView.id, factory, new PropertiesProvider(taskView.args),
+              String.class, gateFactory.forTask(taskView), stageRegistry, outputFactory, String.class);
         this.progressCallback = progressCallback;
     }
 

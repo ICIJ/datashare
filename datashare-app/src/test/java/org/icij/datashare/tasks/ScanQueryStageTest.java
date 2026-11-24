@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.asynctasks.ScopedStageContext;
+import org.icij.datashare.asynctasks.DefaultStageContext;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
@@ -80,15 +80,7 @@ public class ScanQueryStageTest {
         Map<String, Object> options = new HashMap<>(Map.of("defaultProject", es.getIndexName(),
                                                            STAGES_OPT, "SCANQUERY,INDEX"));
         options.putAll(extraOptions);
-        return stage.process(List.of(), new ScopedStageContext<Path>() {
-            public Project project() {return Project.project(es.getIndexName());}
-
-            public Map<String, Object> options() {return options;}
-
-            public boolean isCancelled() {return false;}
-
-            public void emit(List<Path> out) {emitted.addAll(out);}
-        });
+        return stage.process(List.of(), new DefaultStageContext<>("taskId", Project.project(es.getIndexName()), options, out -> emitted.addAll(out)));
     }
 
     @After

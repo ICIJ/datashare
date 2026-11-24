@@ -48,6 +48,7 @@ interface StageProcessor<I, O> {
 }
 
 interface StageContext<O> extends AutoCloseable {
+    String taskId();                // the id the run is tracked under, never null
     Project project();
     Map<String, Object> options();
     boolean isCancelled();
@@ -61,6 +62,12 @@ interface StageContext<O> extends AutoCloseable {
 - `options()` are the properties of the run, as the queue executor gives them to a stage. A
   stage reads its typed options from them (`PropertiesProvider.toRecord`, as `IndexOptions` and
   `LanguageOptions` do).
+- `taskId()` identifies the run to what a stage records (the manifest entries of INDEX and ARTIFACT carry
+  it). It is a method, not an option of the map, so that a context without an id does not compile and
+  a stage never reads a magic string. It does not mean the same on both executors: on the queues it is the
+  id of the `Task` of the stage (one per stage, given to `StageTask` by its shell), on Temporal it is
+  the workflow id (one per pipeline run, shared by all its stages). Giving the queue side one id per run
+  would need `QueuePipelineExecutor` to generate it and pass it to every task: not done.
 - `StageResult` holds only the counters (updated, unchanged, skipped, failed).
 - Items are small and serializable (`DocReference` queue entries, `Path`).
 - **Per-run state is a context resource.** What depends on the run (the options record, the
@@ -68,7 +75,10 @@ interface StageContext<O> extends AutoCloseable {
   `ctx.resource(type, factory)` and closed with the context, in reverse order of creation. The
   processor itself holds only what lives for the process (the indexer, the language guesser).
   A queue task has one context per run; a Temporal activity has one per batch. The base class
-  is `ScopedStageContext`.
+  is `ScopedStageContext`, and both executors build a `DefaultStageContext`: the run's data
+  (`taskId`, project, options) and what `emit` does are constructor arguments (a stage that emits
+  into nothing must be a choice, so there is no default emitter), and a subclass overrides the rest
+  (`isCancelled()` defaults to the interrupt flag of the calling thread).
 - A registry (`StageRegistry`) maps `Stage` → `StageProcessor`. It lives outside
   `datashare-api` (the enum cannot see app classes) and is not `PipelineRegistry`.
 - Not done: a `produced` payload on `Stage` to check that a stage can feed the next one when a
@@ -302,8 +312,16 @@ Consequences to handle before running at scale on Temporal:
   images and PSTs.
 - A huge document holds its slot for hours. The other slots keep draining the queue, but the
   activity needs a per-stage timeout, a bounded retry policy and a heartbeat. The first two are
-  `StageActivityOptions`, which each stage must set: the default (one minute, unbounded
-  retries) is not usable for INDEX or ARTIFACT. The heartbeat is not done.
+  `StageActivityOptions`, which each stage must set: the default (one day, unbounded retries) is
+  not meant for INDEX or ARTIFACT. Liveness and cancellation are done: Temporal never beats by itself,
+  so `StageActivityImpl` runs an `ActivityHeartbeat` for the duration of a batch, three beats per
+  `heartbeatTimeout` (a field of `StageActivityOptions`, one minute unless a stage sets another, zero
+  to disable). A worker that dies is given away after that timeout instead of the start-to-close one. The
+  beat is also how the server tells a running activity that its workflow was cancelled: the beating
+  thread then interrupts the thread of the stage, which is what `ctx.isCancelled()` reads, as on the
+  queues. No stage has to beat. It proves the worker is alive, not that the stage progresses: a stage
+  that hangs is stopped by the start-to-close timeout. Not done: resuming a retried batch from heartbeat
+  details (it restarts at its first item, idempotence makes it safe), see the open items.
 - Emitting one signal per document would grow the workflow history (181 events for 40
   documents measured; Temporal caps a history near 50k events). Done: `StageActivityImpl`
   buffers what a stage emits (`EmitBuffer`, signals of 1000 items at most) and flushes it only

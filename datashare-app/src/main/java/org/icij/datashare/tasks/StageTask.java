@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.asynctasks.CancellableTask;
+import org.icij.datashare.asynctasks.DefaultStageContext;
 import org.icij.datashare.user.UserTask;
 import org.icij.task.DefaultTask;
 import static java.util.Optional.ofNullable;
@@ -55,6 +56,7 @@ public class StageTask<I, O> extends DefaultTask<Long> implements UserTask, Canc
     protected final DocumentQueue<I> inputQueue;
     protected final Stage stage;
     protected final User user;
+    private final String taskId;
     protected final PropertiesProvider propertiesProvider;
     protected final UpstreamGate gate;
     /** Workers a parallel consumer stage runs, from --parallelism. A source stage ignores it. */
@@ -67,17 +69,18 @@ public class StageTask<I, O> extends DefaultTask<Long> implements UserTask, Canc
     private final DocumentQueue<O> nextStageQueue;
     private final boolean dropsEmits;
 
-    public StageTask(Stage stage, User user, DocumentCollectionFactory<I> factory,
+    public StageTask(Stage stage, User user, String taskId, DocumentCollectionFactory<I> factory,
                      PropertiesProvider propertiesProvider, Class<I> clazz, UpstreamGate gate, StageRegistry registry) {
-        this(stage, user, factory, propertiesProvider, clazz, gate, registry, null, null);
+        this(stage, user, taskId, factory, propertiesProvider, clazz, gate, registry, null, null);
     }
 
-    public StageTask(Stage stage, User user, DocumentCollectionFactory<I> factory,
+    public StageTask(Stage stage, User user, String taskId, DocumentCollectionFactory<I> factory,
                      PropertiesProvider propertiesProvider, Class<I> clazz, UpstreamGate gate, StageRegistry registry,
                      DocumentCollectionFactory<O> outputFactory, Class<O> outputClass) {
         this.propertiesProvider = propertiesProvider;
         this.stage = stage;
         this.user = user;
+        this.taskId = Objects.requireNonNull(taskId, "a stage task needs the id it is tracked under");
         this.gate = gate;
         // a source stage has no input queue name, and no input factory
         String inputQueueName = getInputQueueName();
@@ -150,31 +153,21 @@ public class StageTask<I, O> extends DefaultTask<Long> implements UserTask, Canc
     }
 
     private ScopedStageContext<O> newContext() {
-        return new ScopedStageContext<>() {
-            public Project project() {return project;}
-
-            public Map<String, Object> options() {return options;}
-
-            public boolean isCancelled() {return Thread.currentThread().isInterrupted();}
-
-            public void emit(List<O> out) {
-                if (out.isEmpty() || dropsEmits) {
-                    return;
-                }
-                if (nextStageQueue == null) {
-                    throw new IllegalStateException("stage " + stage + " emits but has no output queue");
-                }
-                for (O item : out) {
-                    if (!putInNextStage(item)) {
-                        return;
-                    }
-                }
-            }
-        };
+        return new DefaultStageContext<>(taskId, project, options, this::emitToNextStage);
     }
 
-    protected void setTaskId(String taskId) {
-        options.put(StageContext.TASK_ID_OPT, taskId);
+    private void emitToNextStage(List<O> out) {
+        if (out.isEmpty() || dropsEmits) {
+            return;
+        }
+        if (nextStageQueue == null) {
+            throw new IllegalStateException("stage " + stage + " emits but has no output queue");
+        }
+        for (O item : out) {
+            if (!putInNextStage(item)) {
+                return;
+            }
+        }
     }
 
     protected void onEntryProcessed() {}

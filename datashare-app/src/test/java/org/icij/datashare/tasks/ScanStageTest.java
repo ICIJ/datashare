@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import static org.fest.assertions.Assertions.assertThat;
-import org.icij.datashare.asynctasks.ScopedStageContext;
+import org.icij.datashare.asynctasks.DefaultStageContext;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Project;
@@ -94,14 +94,6 @@ public class ScanStageTest {
         Map<String, Object> options = new HashMap<>(Map.of("dataDir", dataDir.getRoot().toString()));
         options.putAll(extraOptions);
         return new ScanStage(new DataDirVerifier(dataDir.getRoot().toPath()))
-                .process(List.of(), new ScopedStageContext<>() {
-            public Project project() {return Project.project("prj");}
-
-            public Map<String, Object> options() {return options;}
-
-            public boolean isCancelled() {return false;}
-
-            public void emit(List<Path> out) {emitted.addAll(out);}
-        });
+                .process(List.of(), new DefaultStageContext<>("taskId", Project.project("prj"), options, out -> emitted.addAll(out)));
     }
 }

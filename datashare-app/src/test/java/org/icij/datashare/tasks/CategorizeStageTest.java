@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.icij.datashare.asynctasks.DefaultStageContext;
 import org.icij.datashare.asynctasks.ScopedStageContext;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.text.ContentTypeCategory;
@@ -30,14 +31,9 @@ public class CategorizeStageTest {
     private final CategorizeStage stage = new CategorizeStage(indexer);
     private final List<String> emitted = new ArrayList<>();
     private boolean cancelled;
-    private final ScopedStageContext<String> ctx = new ScopedStageContext<>() {
-        public Project project() {return Project.project(PROJECT);}
-
-        public Map<String, Object> options() {return Map.of("defaultProject", PROJECT);}
-
+    private final ScopedStageContext<String> ctx = new DefaultStageContext<>("taskId", Project.project(PROJECT), Map.of("defaultProject", PROJECT), out -> emitted.addAll(out)) {
+        @Override
         public boolean isCancelled() {return cancelled;}
-
-        public void emit(List<String> out) {emitted.addAll(out);}
     };
 
     @Test

@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.DefaultStageContext;
 import org.icij.datashare.asynctasks.ScopedStageContext;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -125,17 +126,12 @@ public class EnqueueFromIndexStageTest {
     private ScopedStageContext<String> ctx(Map<String, Object> options) {
         Map<String, Object> allOptions = new HashMap<>(options);
         allOptions.put("defaultProject", es.getIndexName());
-        return new ScopedStageContext<>() {
-            public Project project() {return Project.project(es.getIndexName());}
-
-            public Map<String, Object> options() {return allOptions;}
-
+        return new DefaultStageContext<>("taskId", Project.project(es.getIndexName()), allOptions, out -> {
+            emissions.add(out);
+            cancelled = cancelAfterFirstEmission;
+        }) {
+            @Override
             public boolean isCancelled() {return cancelled;}
-
-            public void emit(List<String> out) {
-                emissions.add(out);
-                cancelled = cancelAfterFirstEmission;
-            }
         };
     }
 }

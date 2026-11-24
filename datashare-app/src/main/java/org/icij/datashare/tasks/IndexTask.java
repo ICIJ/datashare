@@ -49,10 +49,9 @@ public class IndexTask extends StageTask<Path, String> implements Monitorable {
                      final DocumentCollectionFactory<String> outputFactory, final StageRegistry registry,
                      final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
                      @Assisted final Function<Double, Void> progressCallback) {
-        super(Stage.INDEX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class,
+        super(Stage.INDEX, taskView.getUser(), taskView.id, factory, new PropertiesProvider(taskView.args), Path.class,
               gateFactory.forTask(taskView), registry, outputFactory, String.class);
         this.progressCallback = progressCallback;
-        setTaskId(taskView.id);
     }
 
     @Override

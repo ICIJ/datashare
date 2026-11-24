@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import java.util.List;
 import java.util.Map;
+import org.icij.datashare.asynctasks.DefaultStageContext;
 import org.icij.datashare.asynctasks.ScopedStageContext;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.text.DocReference;
@@ -25,15 +26,7 @@ public class NlpStageTest {
     private final Indexer indexer = mock(Indexer.class);
     private final AbstractPipeline pipeline = mock(AbstractPipeline.class);
     private final NlpStage stage = new NlpStage(indexer, pipeline);
-    private final ScopedStageContext<Void> ctx = new ScopedStageContext<>() {
-        public Project project() {return Project.project("projectName");}
-
-        public Map<String, Object> options() {return Map.of("defaultProject", "projectName", "maxContentLength", "32");}
-
-        public boolean isCancelled() {return false;}
-
-        public void emit(List<Void> out) {}
-    };
+    private final ScopedStageContext<Void> ctx = new DefaultStageContext<>("taskId", Project.project("projectName"), Map.of("defaultProject", "projectName", "maxContentLength", "32"), out -> {});
 
     @Test
     public void test_does_nothing__when_doc_not_found_in_index() throws Exception {

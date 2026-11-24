@@ -21,8 +21,8 @@ public class EnqueueFromIndexTask extends StageTask<String, String> {
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final StageRegistry registry,
                                 @Assisted Task<Long> taskView, @Assisted final Function<Double, Void> ignored) {
-        super(Stage.ENQUEUEIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class,
-              UpstreamGate.NONE, registry, factory, String.class);
+        super(Stage.ENQUEUEIDX, taskView.getUser(), taskView.id, factory, new PropertiesProvider(taskView.args),
+              String.class, UpstreamGate.NONE, registry, factory, String.class);
     }
 
     @Override
