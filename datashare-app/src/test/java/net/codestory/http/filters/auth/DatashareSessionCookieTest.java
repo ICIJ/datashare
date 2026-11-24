@@ -112,9 +112,10 @@ public class DatashareSessionCookieTest {
         Context context = mock(Context.class, RETURNS_DEEP_STUBS);
         String predictedState = seedSharedRandomAndPredictNextId();
 
-        filter.signin(context);
+        Payload signinPayload = filter.signin(context);
 
-        assertThat(sessionIdStore.getLogin(predictedState)).isNull();
+        String authorizeUrl = signinPayload.headers().get("Location");
+        assertThat(authorizeUrl).contains("state=").doesNotContain(predictedState);
     }
 
     @After
