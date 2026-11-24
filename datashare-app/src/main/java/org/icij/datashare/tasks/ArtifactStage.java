@@ -16,7 +16,6 @@ import org.icij.datashare.text.DocReference;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.artifact.Artifact;
-import org.icij.datashare.text.artifact.ArtifactConfigurationException;
 import org.icij.datashare.text.artifact.ArtifactContext;
 import org.icij.datashare.text.artifact.ArtifactProducer;
 import org.icij.datashare.text.artifact.ArtifactRegistry;
@@ -50,36 +49,25 @@ public class ArtifactStage implements StageProcessor<String, Void> {
         ArtifactOptions artifactOptions = setup.options();
         ArtifactProducer producer = setup.producer();
 
-        long nbSkipped = 0;
-        long nbFailed = 0;
-        long nbDocs = 0;
-        for (String docRef : docRefs) {
+        return StageItems.forEach(logger, ctx, docRefs, docRef -> {
             try {
                 Document doc = indexer.get(artifactOptions.projectName(), DocReference.parse(docRef), SOURCE_EXCLUDES);
-                if (doc != null) {
-                    Path docArtifactDir = ArtifactPath.dir(setup.projectRoot(), doc.getId());
-                    if (producer.run(setup.selected(),
-                                     new ArtifactContext(setup.project(), doc, docArtifactDir, setup.extractor()),
-                                     artifactOptions.force())) {
-                        nbDocs++;
-                    } else {
-                        nbFailed++;
-                    }
-                } else {
-                    nbSkipped++;
+                if (doc == null) {
+                    return new StageResult(0, 0, 1, 0);
                 }
-            } catch (Error | ArtifactConfigurationException e) {
-                // cannot continue (ex: MemoryError or the like)
-                throw e;
-            } catch (Throwable e) {
+                Path docArtifactDir = ArtifactPath.dir(setup.projectRoot(), doc.getId());
+                return producer.run(setup.selected(),
+                                    new ArtifactContext(setup.project(), doc, docArtifactDir, setup.extractor()),
+                                    artifactOptions.force()) ? new StageResult(1, 0, 0, 0) :
+                       new StageResult(0, 0, 0, 1);
+            } catch (Exception e) {
                 if (producer.isCancellation(e)) {
+                    // the producer also knows the interruptions of the extract library that StageItems does not
                     Thread.currentThread().interrupt();
                 }
-                logger.error("error in ArtifactTask loop", e);
-                nbFailed++;
+                throw e;
             }
-        }
-        return new StageResult(nbDocs, 0, nbSkipped, nbFailed);
+        });
     }
 
     private record RunSetup(ArtifactOptions options, Project project, Path projectRoot, List<Artifact> selected, ArtifactProducer producer, SourceExtractor extractor) {}

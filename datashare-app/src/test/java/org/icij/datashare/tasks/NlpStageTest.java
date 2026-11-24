@@ -104,6 +104,21 @@ public class NlpStageTest {
     }
 
     @Test
+    public void test_a_document_failure_is_counted_and_the_rest_is_processed() throws Exception {
+        when(pipeline.initialize(any())).thenReturn(true);
+        Document first = createDoc("first").build();
+        Document second = createDoc("second").build();
+        when(pipeline.process(first)).thenThrow(new IllegalStateException("boom"));
+        when(pipeline.process(second)).thenReturn(emptyList());
+        when(indexer.get("projectName", DocReference.parse(first.getId()))).thenReturn(first);
+        when(indexer.get("projectName", DocReference.parse(second.getId()))).thenReturn(second);
+
+        StageResult result = stage.process(List.of(first.getId(), second.getId()), ctx);
+
+        assertThat(result).isEqualTo(new StageResult(1, 0, 0, 1));
+    }
+
+    @Test
     public void test_an_interruption_returns_at_once_with_what_was_done() throws Exception {
         when(pipeline.initialize(any())).thenReturn(true);
         Document first = createDoc("first").build();
@@ -117,7 +132,10 @@ public class NlpStageTest {
 
         StageResult result = stage.process(List.of(first.getId(), second.getId(), third.getId()), ctx);
 
-        assertThat(result).isEqualTo(new StageResult(1, 0, 1, 1));
+        // a cancellation counts nothing for the document it interrupted: it is neither failed nor skipped
+        assertThat(result).isEqualTo(new StageResult(1, 0, 0, 0));
+        assertThat(ctx.isCancelled()).isTrue();
         verify(pipeline, never()).process(third);
+        Thread.interrupted();
     }
 }

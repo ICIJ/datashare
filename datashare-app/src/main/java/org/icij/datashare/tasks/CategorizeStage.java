@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import org.icij.datashare.Stage;
 import org.icij.datashare.asynctasks.StageActivityOptions;
@@ -43,32 +42,23 @@ public class CategorizeStage implements StageProcessor<String, String> {
         if (projectName == null) {
             throw new IllegalArgumentException("Cannot categorize documents on null project");
         }
-        int updated = 0;
-        int unchanged = 0;
-        int failed = 0;
         int toProcess = batchDocumentsId.size();
         logger.info("Processing {} docs to add their content type category ", toProcess);
-        for (String docId : batchDocumentsId) {
-            if (ctx.isCancelled()) {
-                break;
+        StageResult result = StageItems.forEach(logger, ctx, batchDocumentsId, docId -> {
+            Document retrievedFromIndexer = indexer.get(projectName, DocReference.parse(docId));
+            StageResult processed = new StageResult(0, 1, 0, 0);
+            if (retrievedFromIndexer != null) {
+                enrichWithType(retrievedFromIndexer, projectName);
+                processed = new StageResult(1, 0, 0, 0);
             }
-            try {
-                Document retrievedFromIndexer = indexer.get(projectName, DocReference.parse(docId));
-                if (retrievedFromIndexer != null) {
-                    enrichWithType(retrievedFromIndexer, projectName);
-                    updated++;
-                } else {
-                    unchanged++;
-                }
-                ctx.emit(List.of(docId));
-            } catch (Exception e) {
-                logger.error("Error when categorizing {}", docId, e);
-                failed++;
-            }
-        }
+            ctx.emit(List.of(docId));
+            return processed;
+        });
 
-        logger.info("Processed Categorize Stage on {} documents", updated + unchanged);
-        return new StageResult(updated, unchanged, toProcess - updated - unchanged - failed, failed);
+        logger.info("Processed Categorize Stage on {} documents", result.updated() + result.unchanged());
+        // what a cancellation left unprocessed
+        return result.plus(
+                new StageResult(0, 0, toProcess - result.updated() - result.unchanged() - result.failed(), 0));
     }
 
     @Override

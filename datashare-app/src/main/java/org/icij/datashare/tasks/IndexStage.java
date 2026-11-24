@@ -89,28 +89,18 @@ public class IndexStage implements StageProcessor<Path, String> {
         Extractor extractor = ctx.resource(Extractor.class, () -> newExtractor(ctx));
         ElasticsearchSpewer spewer = ctx.resource(ElasticsearchSpewer.class, () -> newSpewer(extractor, ctx));
         Reporter reporter = reporter(ctx);
-        StageResult result = StageResult.EMPTY;
-        for (Path path : batch) {
-            if (ctx.isCancelled()) {
-                break;
-            }
-            try {
-                ExtractionStatus status =
-                        reporter == null ? extractor.extract(path, spewer) : extractor.extract(path, spewer, reporter);
-                result = result.plus(switch (status) {
-                    case SUCCESS -> new StageResult(1, 0, 0, 0);
-                    case SKIPPED -> new StageResult(0, 0, 1, 0);
-                    default -> {
-                        logger.error("failed to extract/index {}: {}", path, status);
-                        yield new StageResult(0, 0, 0, 1);
-                    }
-                });
-            } catch (Exception e) {
-                logger.error("failed to extract/index {}", path, e);
-                result = result.plus(new StageResult(0, 0, 0, 1));
-            }
-        }
-        return result;
+        return StageItems.forEach(logger, ctx, batch, path -> {
+            ExtractionStatus status =
+                    reporter == null ? extractor.extract(path, spewer) : extractor.extract(path, spewer, reporter);
+            return switch (status) {
+                case SUCCESS -> new StageResult(1, 0, 0, 0);
+                case SKIPPED -> new StageResult(0, 0, 1, 0);
+                default -> {
+                    logger.error("failed to extract/index {}: {}", path, status);
+                    yield new StageResult(0, 0, 0, 1);
+                }
+            };
+        });
     }
 
     /** The reporter of the run's report map, or null when the run names none. Closed with the context: it flushes there. */

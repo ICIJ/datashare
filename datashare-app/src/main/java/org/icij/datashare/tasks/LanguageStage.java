@@ -51,37 +51,20 @@ public class LanguageStage implements StageProcessor<String, Void> {
     @Override
     public StageResult process(List<String> batch, StageContext<Void> ctx) {
         int minOcrConfidence = new PropertiesProvider(ctx.options()).toRecord(LanguageOptions.class).ocrMinConfidence();
-        StageResult result = StageResult.EMPTY;
-        for (String queueEntry : batch) {
-            if (ctx.isCancelled()) {
-                break;
-            }
-            result = result.plus(detect(queueEntry, ctx.project().name, minOcrConfidence));
-        }
-        return result;
+        return StageItems.forEach(logger, ctx, batch,
+                                  queueEntry -> detect(queueEntry, ctx.project().name, minOcrConfidence));
     }
 
-    private StageResult detect(String queueEntry, String project, int minOcrConfidence) {
-        try {
-            DocReference ref = DocReference.parse(queueEntry);
-            Document document = indexer.get(project, ref.id(), ref.routing(), SOURCE_EXCLUDES);
-            if (document == null) {
-                // indexer.get() also returns null on fetch failures (it logs them as ERROR), not only on missing ids
-                logger.warn("document <{}> could not be retrieved from index {} (missing document or index fetch " +
-                            "error), skipping", ref.id(), project);
-                return new StageResult(0, 0, 1, 0);
-            }
-            return updateLanguage(project, document, ref, minOcrConfidence);
-        } catch (IOException | RuntimeException e) {
-            if (StageTask.causedByInterrupt(e)) {
-                // a cancelled worker ends its drain: the flag is set back, ctx.isCancelled() reads it
-                Thread.currentThread().interrupt();
-                return StageResult.EMPTY;
-            }
-            // one document going wrong is counted and re-runnable, not thrown
-            logger.error("language detection failed for queue entry <{}>", queueEntry, e);
-            return new StageResult(0, 0, 0, 1);
+    private StageResult detect(String queueEntry, String project, int minOcrConfidence) throws IOException {
+        DocReference ref = DocReference.parse(queueEntry);
+        Document document = indexer.get(project, ref.id(), ref.routing(), SOURCE_EXCLUDES);
+        if (document == null) {
+            // indexer.get() also returns null on fetch failures (it logs them as ERROR), not only on missing ids
+            logger.warn("document <{}> could not be retrieved from index {} (missing document or index fetch " +
+                        "error), skipping", ref.id(), project);
+            return new StageResult(0, 0, 1, 0);
         }
+        return updateLanguage(project, document, ref, minOcrConfidence);
     }
 
     private StageResult updateLanguage(String project, Document document, DocReference ref, int minOcrConfidence) throws
