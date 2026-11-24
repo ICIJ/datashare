@@ -17,6 +17,7 @@ import java.util.Date;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -62,12 +63,9 @@ public class GenApiKeyTaskTest {
         Date requested = Date.from(Instant.parse("2027-01-01T00:00:00Z"));
         GenApiKeyTask task = new GenApiKeyTask(apiKeyRepository, cap90Days, User.local(), requested);
 
-        try {
-            task.call();
-            throw new AssertionError("expected IllegalArgumentException");
-        } catch (IllegalArgumentException expected) {
-            verify(apiKeyRepository, never()).save(any());
-        }
+        assertThrows(ApiKeyExpiration.InvalidExpirationException.class, task::call);
+
+        verify(apiKeyRepository, never()).save(any());
     }
 
     private DatashareApiKey savedKey() {
