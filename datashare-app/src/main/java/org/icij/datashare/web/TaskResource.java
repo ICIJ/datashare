@@ -360,11 +360,16 @@ public class TaskResource {
         if (sourceBatchSearch == null) {
             throw new NotFoundException();
         }
+        User owner = taskUser(context);
+        boolean ownsSource = owner.id.equals(sourceBatchSearch.user.id);
+        boolean readable = ownsSource || sourceBatchSearch.published;
         List<String> sourceProjectIds = sourceBatchSearch.projects.stream().map(ProjectProxy::getId).toList();
-        if (!ScopedUser.allows(user, sourceProjectIds)) {
+        boolean granted = sourceProjectIds.stream().allMatch(user::isGranted);
+        if (!readable || !granted || !ScopedUser.allows(user, sourceProjectIds)) {
             throw new NotFoundException();
         }
-        BatchSearch copy = new BatchSearch(sourceBatchSearch, context.extract(HashMap.class));
+        HashMap<String, String> overriddenParameters = context.extract(HashMap.class);
+        BatchSearch copy = new BatchSearch(sourceBatchSearch, overriddenParameters, owner);
         boolean isSaved;
         try {
             isSaved = batchSearchRepository.save(copy);
@@ -372,7 +377,7 @@ public class TaskResource {
             throw new BadRequestException();
         }
         if (isSaved)
-            taskManager.startTask(copy.uuid, BatchSearchRunner.class, taskUser(context),
+            taskManager.startTask(copy.uuid, BatchSearchRunner.class, owner,
                                   Map.of("batchRecord", new BatchSearchRecord(copy)));
         return copy.uuid;
     }

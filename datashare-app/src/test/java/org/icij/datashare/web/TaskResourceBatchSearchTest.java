@@ -13,6 +13,7 @@ import org.icij.datashare.asynctasks.TaskManagerMemory;
 import java.util.concurrent.CountDownLatch;
 import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.tasks.TestTaskUtils;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
@@ -26,6 +27,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -53,6 +55,18 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
         TestTaskUtils.init(taskFactory);
         taskFinder = new TaskFinder(taskManager, batchSearchRepository);
         configure(routes -> routes.add(new TaskResource(taskFactory, taskManager, new PropertiesProvider(), batchSearchRepository, taskFinder)));
+    }
+
+    private DatashareUser configureWithUserOf(String uid, String... projects) {
+        Map<String, Object> groups = Map.of("datashare", List.of(projects));
+        DatashareUser user = new DatashareUser(Map.of("uid", uid, "groups_by_applications", groups));
+        configure(routes -> routes
+                .add(new TaskResource(taskFactory, taskManager, new PropertiesProvider(), batchSearchRepository, taskFinder))
+                .filter((uri, context, next) -> {
+                    context.setCurrentUser(user);
+                    return next.get();
+                }));
+        return user;
     }
 
     @After
@@ -183,7 +197,8 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     public void test_copy_batch_search_with_invalid_name_returns_400() {
         BatchSearch sourceSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name", "description1",
                 asSet("query 1", "query 2"), "/?q=", User.local());
-        when(batchSearchRepository.get(null, sourceSearch.uuid)).thenReturn(sourceSearch);
+        DatashareUser local = configureWithUserOf("local", "prj1", "prj2");
+        when(batchSearchRepository.get(local, sourceSearch.uuid)).thenReturn(sourceSearch);
         when(batchSearchRepository.save(any())).thenThrow(new IllegalArgumentException("Batch search name exceeds 255 characters."));
 
         post("/api/task/batchSearch/copy/" + sourceSearch.uuid,
@@ -198,8 +213,9 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
     @Test
     public void test_rerun_batch_search() throws IOException {
         String uri = "/?q=&from=0&size=25&sort=relevance&indices=test&field=all";
-        BatchSearch sourceSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name", "description1", asSet("query 1", "query 2"), uri, User.local());
-        when(batchSearchRepository.get(null, sourceSearch.uuid)).thenReturn(sourceSearch);
+        BatchSearch sourceSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name", "description1", asSet("query 1", "query 2"), uri, User.local(), true);
+        DatashareUser bob = configureWithUserOf("bob", "prj1", "prj2");
+        when(batchSearchRepository.get(bob, sourceSearch.uuid)).thenReturn(sourceSearch);
         when(batchSearchRepository.save(any())).thenReturn(true);
 
         post("/api/task/batchSearch/copy/" + sourceSearch.uuid,
@@ -213,8 +229,8 @@ public class TaskResourceBatchSearchTest extends AbstractProdWebServerTest {
         assertThat(argument.getValue().uri).isEqualTo(sourceSearch.uri);
         assertThat(argument.getValue().projects).isEqualTo(sourceSearch.projects);
         assertThat(argument.getValue().queries).isEqualTo(sourceSearch.queries);
-        assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
         assertThat(argument.getValue().queryTemplate).isEqualTo(sourceSearch.queryTemplate);
+        assertThat(argument.getValue().user.id).isEqualTo("bob");
 
         assertThat(argument.getValue().state).isEqualTo(BatchSearchRecord.State.QUEUED);
         List<Task<?>> tasks = taskManager.getTasks().toList();

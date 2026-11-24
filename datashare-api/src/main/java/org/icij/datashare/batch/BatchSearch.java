@@ -89,14 +89,14 @@ public class BatchSearch extends BatchSearchRecord {
 
     // copy constructor
     public BatchSearch(final BatchSearch toCopy) {
-        this(toCopy, new HashMap<>());
+        this(toCopy, new HashMap<>(), toCopy.user);
     }
 
-    public BatchSearch(final BatchSearch toCopy, final Map<String, String> overriddenParameters) {
+    public BatchSearch(final BatchSearch toCopy, final Map<String, String> overriddenParameters, final User owner) {
         this(UUID.randomUUID().toString(), toCopy.projects,
              ofNullable(overriddenParameters.get("name")).orElse(toCopy.name),
              ofNullable(overriddenParameters.get("description")).orElse(toCopy.description), toCopy.queries,
-             DatashareTime.getNow(), State.QUEUED, toCopy.uri, toCopy.user, 0, toCopy.published, toCopy.fileTypes,
+             DatashareTime.getNow(), State.QUEUED, toCopy.uri, owner, 0, toCopy.published, toCopy.fileTypes,
              toCopy.queryTemplate.toString(), toCopy.paths, toCopy.fuzziness, toCopy.phraseMatches, null, null);
     }
 
