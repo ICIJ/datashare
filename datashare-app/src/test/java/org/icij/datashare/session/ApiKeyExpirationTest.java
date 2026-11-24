@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 
 public class ApiKeyExpirationTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2026-01-01T00:00:00Z");
@@ -110,27 +111,15 @@ public class ApiKeyExpirationTest {
         assertThat(cap90Days.expirationForNewKey(requested)).isEqualTo(requested);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void test_new_key_beyond_cap_throws() {
-        cap90Days.expirationForNewKey(date("2026-04-01T00:00:01Z"));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void test_new_key_in_past_throws() {
-        noCap.expirationForNewKey(date("2025-12-31T00:00:00Z"));
-    }
-
     @Test
     public void test_beyond_cap_message_shows_configured_lifetime() {
         Date requested = date("2026-04-01T00:00:01Z");
 
-        try {
-            cap90Days.expirationForNewKey(requested);
-        } catch (ApiKeyExpiration.InvalidExpirationException e) {
-            assertThat(e.getMessage()).isEqualTo("expiration date exceeds the maximum lifetime of P90D");
-            return;
-        }
-        throw new AssertionError("expected InvalidExpirationException");
+        ApiKeyExpiration.InvalidExpirationException e = assertThrows(
+                ApiKeyExpiration.InvalidExpirationException.class,
+                () -> cap90Days.expirationForNewKey(requested));
+
+        assertThat(e.getMessage()).isEqualTo("expiration date exceeds the maximum lifetime of P90D");
     }
 
     @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
@@ -143,12 +132,12 @@ public class ApiKeyExpirationTest {
         new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "90d")));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
     public void test_negative_max_lifetime_throws() {
         new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "-P90D")));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
     public void test_zero_max_lifetime_throws() {
         new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "PT0S")));
     }
