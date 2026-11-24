@@ -71,6 +71,13 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
+    public void test_redirect_uri_uses_the_first_entry_of_a_proxy_chain() {
+        this.get("/auth/signin").withHeader("x-forwarded-host", "localhost:9009")
+                .withHeader("x-forwarded-proto", "https, http")
+                .should().contain("redirect_uri=https://localhost:9009/auth/callback");
+    }
+
+    @Test
     public void test_callback_should_return_bad_request_with_bad_args() {
         this.get("/auth/callback").should().respond(400);
         this.get("/auth/callback?code=1234").should().respond(400);

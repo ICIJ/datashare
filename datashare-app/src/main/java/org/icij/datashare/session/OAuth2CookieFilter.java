@@ -200,8 +200,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
 
     private String getCallbackUrl(Context context) {
         String host = ofNullable(context.request().header("x-forwarded-host")).orElse(context.request().header("Host"));
-        String proto = ofNullable(context.request().header("x-forwarded-proto")).orElse(
-                context.request().isSecure() ? "https" : "http");
+        String proto = SessionCookies.isHttps(context) ? "https" : "http";
         String url = proto + "://" + host + this.oauthCallbackPath;
         logger.info("oauth callback url = {}", url);
         return url;
