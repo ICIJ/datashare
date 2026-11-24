@@ -1,10 +1,16 @@
 package org.icij.datashare.asynctasks;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
+import java.io.InputStream;
 import java.util.List;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
+import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ShutdownEvent;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.RoutingStrategy;
@@ -15,6 +21,8 @@ import org.redisson.api.RTopic;
 import org.redisson.api.RType;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.RedisException;
+import org.redisson.client.handler.State;
+import org.redisson.client.protocol.Decoder;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 import java.io.IOException;
@@ -29,7 +37,13 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
     private final Runnable eventCallback; // for test
     public static final String EVENT_CHANNEL_NAME = "EVENT";
     public static final RedisCodec<Event> EVENT_CODEC =
-            new RedisCodec<>(JsonObjectMapper.typedReaderFor(Event.class), JsonObjectMapper.typedWriter());
+            new RedisCodec<>(JsonObjectMapper.typedReaderFor(Event.class), JsonObjectMapper.typedWriter()) {
+                @Override
+                public Decoder<Object> getValueDecoder() {
+                    Decoder<Object> decoder = super.getValueDecoder();
+                    return (buf, state) -> decodeOrError(decoder, buf, state);
+                }
+            };
     protected static final int DEFAULT_TASK_POLLING_INTERVAL_MS = 5000;
     private final TaskRepository tasks;
     private final RTopic eventTopic;
@@ -108,6 +122,31 @@ public class TaskManagerRedis extends StoreAndQueueTaskManagerImpl {
             logger.warn("unknown task id <{}> for cancel call", taskId);
         }
         return false;
+    }
+
+    private static Object decodeOrError(Decoder<Object> decoder, ByteBuf buf, State state) throws IOException {
+        int start = buf.readerIndex();
+        try {
+            return decoder.decode(buf, state);
+        } catch (IOException e) {
+            buf.readerIndex(start);
+            String taskId = readTaskId(buf);
+            if (taskId == null) {
+                throw e;
+            }
+            logger.error("cannot decode event for task {}", taskId, e);
+            return new ErrorEvent(taskId, new TaskError(e));
+        }
+    }
+
+    private static String readTaskId(ByteBuf buf) {
+        try {
+            InputStream json = new ByteBufInputStream(buf);
+            JsonNode event = JsonObjectMapper.getMapper().readTree(json);
+            return event.path("taskId").textValue();
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     public void handleEvent(TaskEvent e) {

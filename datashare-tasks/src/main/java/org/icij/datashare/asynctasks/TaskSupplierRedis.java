@@ -1,6 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import io.netty.buffer.ByteBuf;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
@@ -56,23 +55,7 @@ public class TaskSupplierRedis implements TaskSupplier {
 
     @Override
     public <V extends Serializable> void result(String taskId, TaskResult<V> result) {
-        ResultEvent<V> event = new ResultEvent<>(taskId, result);
-        try {
-            checkDecodable(event);
-        } catch (IOException e) {
-            error(taskId, new TaskError(e));
-            return;
-        }
-        eventTopic.publish(event);
-    }
-
-    private static void checkDecodable(Event event) throws IOException {
-        ByteBuf encoded = EVENT_CODEC.getValueEncoder().encode(event);
-        try {
-            EVENT_CODEC.getValueDecoder().decode(encoded, null);
-        } finally {
-            encoded.release();
-        }
+        eventTopic.publish(new ResultEvent<>(taskId, result));
     }
 
     @Override

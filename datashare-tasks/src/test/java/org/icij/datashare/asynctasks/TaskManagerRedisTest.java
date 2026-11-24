@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -166,12 +165,14 @@ public class TaskManagerRedisTest {
     }
 
     @Test(timeout = 10000)
-    public void test_result_outside_allowlist_marks_task_as_error() throws Exception {
-        String taskViewId = taskManager.startTask("sleep", User.local(), new HashMap<>());
-        TaskResult<UUID> result = new TaskResult<>(UUID.randomUUID());
-        taskSupplier.result(taskViewId, result);
+    public void test_result_the_manager_cannot_decode_marks_task_as_error() throws Exception {
+        String taskId = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        String json = "{\"@type\":\"ResultEvent\",\"taskId\":\"" + taskId + "\",\"result\":{\"value\":{\"@type\":\"UnknownResult\"}}}";
+        redissonClient.getTopic(TaskManagerRedis.EVENT_CHANNEL_NAME, StringCodec.INSTANCE).publish(json);
         assertThat(waitForEvent.await(5, TimeUnit.SECONDS)).isTrue();
-        assertThat(taskManager.getTask(taskViewId).getState()).isEqualTo(Task.State.ERROR);
+        Task<?> task = taskManager.getTask(taskId);
+        assertThat(task.getState()).isEqualTo(Task.State.ERROR);
+        assertThat(task.getError().getMessage()).contains("Could not resolve type id");
     }
 
     @Test

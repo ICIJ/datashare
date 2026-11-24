@@ -1,13 +1,13 @@
 package org.icij.datashare.asynctasks;
 
 import io.netty.buffer.ByteBuf;
-import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import io.netty.buffer.Unpooled;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import org.icij.datashare.asynctasks.bus.amqp.ErrorEvent;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
@@ -17,7 +17,6 @@ import org.junit.Test;
 import org.redisson.client.codec.BaseCodec;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.fail;
 
 public class RedisEventCodecTest {
     private final BaseCodec codec = TaskManagerRedis.EVENT_CODEC;
@@ -33,15 +32,12 @@ public class RedisEventCodecTest {
     }
 
     @Test
-    public void rejects_non_allowlisted_class_nested_in_result_value() throws Exception {
+    public void turns_non_allowlisted_class_nested_in_result_value_into_error_event() throws Exception {
         String json = "{\"@type\":\"ResultEvent\",\"taskId\":\"t\",\"result\":{\"value\":"
                 + "{\"@type\":\"RedisEventCodecTest$Holder\",\"payload\":[\"java.util.UUID\",\"00000000-0000-0000-0000-000000000000\"]}}}";
-        try {
-            decode(json);
-            fail("nested class outside the allowlist was deserialized");
-        } catch (InvalidTypeIdException e) {
-            assertThat(e.getMessage()).contains("denied resolution");
-        }
+        ErrorEvent event = (ErrorEvent) decode(json);
+        assertThat(event.taskId).isEqualTo("t");
+        assertThat(event.error.getMessage()).contains("denied resolution");
     }
 
     @Test
