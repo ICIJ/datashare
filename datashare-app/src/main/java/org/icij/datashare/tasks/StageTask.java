@@ -32,6 +32,7 @@ import org.icij.datashare.asynctasks.StageProcessor;
 import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.StageResult;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
+import static org.icij.datashare.asynctasks.Interruptions.causedByInterrupt;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -202,23 +203,6 @@ public class StageTask<I, O> extends DefaultTask<Long> implements UserTask, Canc
             logger.error("{} document(s) {} in project {}, re-run the {} stage for them", nbDocuments, reason,
                          project.name, stage);
         }
-    }
-
-    /**
-     * True when this throwable is, or wraps, an InterruptedException. Redisson and the
-     * Elasticsearch rest-client both re-interrupt the thread and rethrow a RuntimeException
-     * wrapping the InterruptedException, so a plain instanceof test misses a real cancellation.
-     */
-    protected static boolean causedByInterrupt(Throwable throwable) {
-        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
-            if (cause instanceof InterruptedException) {
-                return true;
-            }
-            if (cause == cause.getCause()) {
-                break;
-            }
-        }
-        return false;
     }
 
     /**

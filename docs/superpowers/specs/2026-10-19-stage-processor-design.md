@@ -228,7 +228,7 @@ pipeline path.
 ### 4. Errors and cancellation
 
 **As built.** The executors stay as they are, and the five consumer stages (INDEX, LANGUAGE, NLP, ARTIFACT,
-CATEGORIZE) loop over their batch through `StageItems.forEach(logger, ctx, items, work)`. A stage gives the work for
+CATEGORIZE) loop over their batch through `new StageItems(logger, ctx).forEach(items, work)`. A stage gives the work for
 one item and returns what it did (updated, unchanged or skipped); it does not catch, count failures or read the
 cancellation. For each item the loop ends once `ctx.isCancelled()`; a `FatalStageException` (unchecked, in
 `datashare-api`; `ArtifactConfigurationException` extends it) is rethrown and stops the run, as an `Error` does;

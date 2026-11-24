@@ -15,6 +15,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import static io.temporal.api.enums.v1.WorkflowExecutionStatus.*;
 import static org.icij.datashare.asynctasks.temporal.TemporalInterlocutor.USER_CUSTOM_ATTRIBUTE;
+import static org.icij.datashare.asynctasks.Interruptions.causedByInterrupt;
 
 public class TemporalHelper {
     private static final DefaultDataConverter defaultDataConverter = DefaultDataConverter.newDefaultInstance();
@@ -78,18 +79,6 @@ public class TemporalHelper {
             throw ApplicationFailure.newNonRetryableFailureWithCause("Non retryable failure occurred", e.getMessage(),
                                                                      e);
         }
-    }
-
-    private static boolean causedByInterrupt(Throwable throwable) {
-        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
-            if (cause instanceof InterruptedException) {
-                return true;
-            }
-            if (cause == cause.getCause()) {
-                break;
-            }
-        }
-        return false;
     }
 
     protected static <P, R> R taskWrapper(Function<P, R> taskFn, P payload) {

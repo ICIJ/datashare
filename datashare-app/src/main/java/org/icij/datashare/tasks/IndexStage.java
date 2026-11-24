@@ -89,7 +89,7 @@ public class IndexStage implements StageProcessor<Path, String> {
         Extractor extractor = ctx.resource(Extractor.class, () -> newExtractor(ctx));
         ElasticsearchSpewer spewer = ctx.resource(ElasticsearchSpewer.class, () -> newSpewer(extractor, ctx));
         Reporter reporter = reporter(ctx);
-        return StageItems.forEach(logger, ctx, batch, path -> {
+        return new StageItems(logger, ctx).forEach(batch, path -> {
             ExtractionStatus status =
                     reporter == null ? extractor.extract(path, spewer) : extractor.extract(path, spewer, reporter);
             return switch (status) {
