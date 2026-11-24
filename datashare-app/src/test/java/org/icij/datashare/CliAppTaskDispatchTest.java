@@ -72,6 +72,12 @@ public class CliAppTaskDispatchTest {
     }
 
     @Test
+    public void test_create_api_key_with_date_beyond_year_9999_exits_validation() throws Exception {
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "+300000-01-01")).isEqualTo(CliApp.EXIT_VALIDATION);
+        assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "+300000000-01-01")).isEqualTo(CliApp.EXIT_VALIDATION);
+    }
+
+    @Test
     public void test_create_api_key_rejected_by_policy_exits_validation() throws Exception {
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenThrow(
