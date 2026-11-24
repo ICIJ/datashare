@@ -7,6 +7,7 @@ import org.junit.Test;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,15 @@ public class SessionCookiesTest {
     public void test_https_uses_the_first_entry_of_a_proxy_chain() {
         Context context = mock(Context.class);
         when(context.header("x-forwarded-proto")).thenReturn("https, http");
+
+        assertThat(SessionCookies.isHttps(context)).isTrue();
+    }
+
+    @Test
+    public void test_https_falls_back_to_the_connection_when_the_proxy_header_is_blank() {
+        Context context = mock(Context.class, RETURNS_DEEP_STUBS);
+        when(context.header("x-forwarded-proto")).thenReturn("");
+        when(context.request().isSecure()).thenReturn(true);
 
         assertThat(SessionCookies.isHttps(context)).isTrue();
     }

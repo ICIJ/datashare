@@ -31,7 +31,7 @@ final class SessionCookies {
     // A TLS-terminating proxy knows the scheme the browser used, so its header wins over the connection to datashare
     static boolean isHttps(Context context) {
         String forwardedProto = context.header(FORWARDED_PROTO_HEADER);
-        if (forwardedProto != null) {
+        if (forwardedProto != null && !forwardedProto.isBlank()) {
             String browserProto = forwardedProto.split(",")[0].trim();
             return "https".equalsIgnoreCase(browserProto);
         }
