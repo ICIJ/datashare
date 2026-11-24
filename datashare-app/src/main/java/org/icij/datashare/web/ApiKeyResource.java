@@ -175,8 +175,8 @@ public class ApiKeyResource {
             User currentUser = (User) context.currentUser();
             List<String> refused = projects.stream().filter(id -> !currentUser.isGranted(id)).toList();
             if (!refused.isEmpty()) {
-                return PayloadFormatter.error("projects not granted: " + String.join(", ", refused),
-                                              HttpStatus.BAD_REQUEST);
+                String refusedNames = String.join(", ", refused);
+                return PayloadFormatter.error("projects not granted: " + refusedNames, HttpStatus.BAD_REQUEST);
             }
             apiKey = taskFactory.createGenApiKey(new User(userId), expirationDate, projects).call();
         } catch (ApiKeyExpiration.InvalidExpirationException | InvalidProjectsException e) {

@@ -1,5 +1,6 @@
 package org.icij.datashare.db;
 
+import org.icij.datashare.db.tables.records.ApiKeyProjectRecord;
 import org.icij.datashare.db.tables.records.ApiKeyRecord;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.ApiKey;
@@ -9,6 +10,7 @@ import org.icij.datashare.user.User;
 // Keep these imports explicit otherwise the wildcard import of import org.jooq.Record will end up
 // in a "reference to Record is ambiguous" depending on your JRE since it will conflict with
 // java.util.Record
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record1;
 import org.jooq.Select;
@@ -134,10 +136,12 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
         }
         List<String> ids = records.stream().map(ApiKeyRecord::getId).collect(Collectors.toList());
         Map<String, List<String>> projectsByKey = new HashMap<>();
-        ctx.selectFrom(API_KEY_PROJECT).where(API_KEY_PROJECT.API_KEY_ID.in(ids)).fetch().forEach(row -> {
+        Condition ofKeys = API_KEY_PROJECT.API_KEY_ID.in(ids);
+        List<ApiKeyProjectRecord> rows = ctx.selectFrom(API_KEY_PROJECT).where(ofKeys).fetch();
+        for (ApiKeyProjectRecord row : rows) {
             List<String> projects = projectsByKey.computeIfAbsent(row.getApiKeyId(), id -> new ArrayList<>());
             projects.add(row.getPrjId());
-        });
+        }
         List<ApiKey> apiKeys = new ArrayList<>();
         for (ApiKeyRecord apiKeyRecord : records) {
             List<String> projects = projectsByKey.getOrDefault(apiKeyRecord.getId(), List.of());
