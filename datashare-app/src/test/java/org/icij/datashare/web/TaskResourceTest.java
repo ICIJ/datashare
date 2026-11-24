@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.io.IOException;
@@ -1109,11 +1110,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         return new DatashareUser(Map.of("uid", uid, "groups_by_applications", groups));
     }
 
-    private void configureWithScopedUser(ScopedUser scopedUser) {
+    private void configureWithUser(DatashareUser user) {
         configure(routes -> routes
                 .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
                 .filter((uri, context, next) -> {
-                    context.setCurrentUser(scopedUser);
+                    context.setCurrentUser(user);
                     return next.get();
                 }));
     }
@@ -1121,7 +1122,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_scoped_user_cannot_create_task_on_project_outside_scope() throws Exception {
         DatashareUser cecile = memberOf("cecile", "p1", "p2");
-        configureWithScopedUser(new ScopedUser(cecile, List.of("p1")));
+        configureWithUser(new ScopedUser(cecile, List.of("p1")));
 
         put("/api/task/outside_id", taskJson("outside_id", "my.python.task", Map.of("defaultProject", "p2")))
                 .should().respond(403).contain("{\"error\":\"insufficient role\"}");
@@ -1132,7 +1133,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_scoped_user_cannot_create_task_without_project() throws Exception {
         DatashareUser cecile = memberOf("cecile", "p1", "p2");
-        configureWithScopedUser(new ScopedUser(cecile, List.of("p1")));
+        configureWithUser(new ScopedUser(cecile, List.of("p1")));
 
         put("/api/task/no_project_id", taskJson("no_project_id", "my.python.task", Map.of("key", "val"))).should().respond(403);
 
@@ -1142,7 +1143,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_task_started_by_scoped_user_stores_unscoped_user() throws Exception {
         DatashareUser cecile = memberOf("cecile", "p1", "p2");
-        configureWithScopedUser(new ScopedUser(cecile, List.of("p1")));
+        configureWithUser(new ScopedUser(cecile, List.of("p1")));
 
         put("/api/task/inside_id", taskJson("inside_id", "my.python.task", Map.of("defaultProject", "p1"))).should().respond(201);
 
@@ -1155,7 +1156,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         DatashareUser cecile = memberOf("cecile", "p1", "p2");
         String taskId = taskManager.startTask(TestSleepingTask.class, cecile, new HashMap<>(Map.of("defaultProject", "p2")));
         taskManager.stopTask(taskId);
-        configureWithScopedUser(new ScopedUser(cecile, List.of("p1")));
+        configureWithUser(new ScopedUser(cecile, List.of("p1")));
 
         get("/api/task/" + taskId + "/result").should().respond(403);
     }
@@ -1168,7 +1169,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scoped_user_cannot_start_batch_search_on_project_outside_scope() throws Exception {
-        configureWithScopedUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
 
         postRaw("/api/task/batchSearch/p2", "multipart/form-data;boundary=AaB03x",
                 batchSearchMultipartBody())
@@ -1180,7 +1181,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scoped_user_can_start_batch_search_on_project_in_scope() throws Exception {
-        configureWithScopedUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
         when(batchSearchRepository.save(any())).thenReturn(true);
 
         postRaw("/api/task/batchSearch/p1", "multipart/form-data;boundary=AaB03x",
@@ -1192,7 +1193,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_scoped_user_cannot_copy_batch_search_outside_scope() throws Exception {
         BatchSearch outside = new BatchSearch(List.of(project("p2")), "name", "description", asSet("query 1"), null, local());
         when(batchSearchRepository.get(any(User.class), eq(outside.uuid))).thenReturn(outside);
-        configureWithScopedUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
 
         post("/api/task/batchSearch/copy/" + outside.uuid, "{\"name\": \"copy\"}").should().respond(404);
 
@@ -1200,8 +1201,58 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_copied_batch_search_belongs_to_the_user_who_copied_it() throws Exception {
+        BatchSearch source = new BatchSearch(List.of(project("p1")), "name", "description", asSet("query 1"), null, local(), true);
+        when(batchSearchRepository.get(any(User.class), eq(source.uuid))).thenReturn(source);
+        when(batchSearchRepository.save(any())).thenReturn(true);
+        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+
+        post("/api/task/batchSearch/copy/" + source.uuid, "{\"name\": \"copy\"}").should().respond(200);
+
+        ArgumentCaptor<BatchSearch> saved = ArgumentCaptor.forClass(BatchSearch.class);
+        verify(batchSearchRepository).save(saved.capture());
+        assertThat(saved.getValue().user.id).isEqualTo("cecile");
+    }
+
+    @Test
+    public void test_user_cannot_copy_private_batch_search_of_another_user() throws Exception {
+        BatchSearch alices = new BatchSearch(List.of(project("p1")), "name", "description", asSet("query 1"), null, memberOf("alice", "p1"));
+        when(batchSearchRepository.get(any(User.class), eq(alices.uuid))).thenReturn(alices);
+        configureWithUser(memberOf("bob", "p1"));
+
+        post("/api/task/batchSearch/copy/" + alices.uuid, "{\"name\": \"copy\"}").should().respond(404);
+
+        verify(batchSearchRepository, never()).save(any());
+    }
+
+    @Test
+    public void test_user_cannot_copy_published_batch_search_on_project_not_granted() throws Exception {
+        BatchSearch published = new BatchSearch(List.of(project("p2")), "name", "description", asSet("query 1"), null, memberOf("alice", "p2"), true);
+        when(batchSearchRepository.get(any(User.class), eq(published.uuid))).thenReturn(published);
+        configureWithUser(memberOf("bob", "p1"));
+
+        post("/api/task/batchSearch/copy/" + published.uuid, "{\"name\": \"copy\"}").should().respond(404);
+
+        verify(batchSearchRepository, never()).save(any());
+    }
+
+    @Test
+    public void test_user_copying_published_batch_search_owns_the_copy() throws Exception {
+        BatchSearch published = new BatchSearch(List.of(project("p1")), "name", "description", asSet("query 1"), null, memberOf("alice", "p1"), true);
+        when(batchSearchRepository.get(any(User.class), eq(published.uuid))).thenReturn(published);
+        when(batchSearchRepository.save(any())).thenReturn(true);
+        configureWithUser(memberOf("bob", "p1"));
+
+        post("/api/task/batchSearch/copy/" + published.uuid, "{\"name\": \"copy\"}").should().respond(200);
+
+        ArgumentCaptor<BatchSearch> saved = ArgumentCaptor.forClass(BatchSearch.class);
+        verify(batchSearchRepository).save(saved.capture());
+        assertThat(saved.getValue().user.id).isEqualTo("bob");
+    }
+
+    @Test
     public void test_scoped_user_cannot_start_batch_download_on_project_outside_scope() throws Exception {
-        configureWithScopedUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
 
         post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"p2\"], \"query\": \"*\" }}")
                 .should().respond(403).contain("{\"error\":\"insufficient role\"}");

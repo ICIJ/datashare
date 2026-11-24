@@ -84,7 +84,7 @@ public class BatchSearchTest {
         BatchSearch copy = new BatchSearch(batchSearch, new HashMap<String, String>() {{
             put("name", "new name");
             put("description", "new description");
-        }});
+        }}, User.local());
 
         assertThat(copy.name).isEqualTo("new name");
         assertThat(copy.description).isEqualTo("new description");
