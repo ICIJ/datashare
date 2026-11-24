@@ -236,7 +236,7 @@ JDWP_TRANSPORT_PORT=8001 ./run.sh \
   --mode BATCH_SEARCH \
   --dataDir /home/dev/Datashare/Data/ \
   --dataSourceUrl "jdbc:postgresql://postgres/datashare?user=dstest&password=test" \
-  --batchQueueType org.icij.datashare.extract.RedisBlockingQueue
+  --batchQueueType REDIS
 ```
 
 ## Maintenance
