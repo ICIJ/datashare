@@ -50,23 +50,14 @@ public class ArtifactStage implements StageProcessor<String, Void> {
         ArtifactProducer producer = setup.producer();
 
         return new StageItems(logger, ctx).forEach(docRefs, docRef -> {
-            try {
-                Document doc = indexer.get(artifactOptions.projectName(), DocReference.parse(docRef), SOURCE_EXCLUDES);
-                if (doc == null) {
-                    return new StageResult(0, 0, 1, 0);
-                }
-                Path docArtifactDir = ArtifactPath.dir(setup.projectRoot(), doc.getId());
-                return producer.run(setup.selected(),
-                                    new ArtifactContext(setup.project(), doc, docArtifactDir, setup.extractor()),
-                                    artifactOptions.force()) ? new StageResult(1, 0, 0, 0) :
-                       new StageResult(0, 0, 0, 1);
-            } catch (Exception e) {
-                if (producer.isCancellation(e)) {
-                    // the producer also knows the interruptions of the extract library that StageItems does not
-                    Thread.currentThread().interrupt();
-                }
-                throw e;
+            Document doc = indexer.get(artifactOptions.projectName(), DocReference.parse(docRef), SOURCE_EXCLUDES);
+            if (doc == null) {
+                return new StageResult(0, 0, 1, 0);
             }
+            Path docArtifactDir = ArtifactPath.dir(setup.projectRoot(), doc.getId());
+            return producer.run(setup.selected(),
+                                new ArtifactContext(setup.project(), doc, docArtifactDir, setup.extractor()),
+                                artifactOptions.force()) ? new StageResult(1, 0, 0, 0) : new StageResult(0, 0, 0, 1);
         });
     }
 

@@ -1,5 +1,8 @@
 package org.icij.datashare.asynctasks;
 
+import java.io.InterruptedIOException;
+import java.nio.channels.ClosedByInterruptException;
+
 public final class Interruptions {
     private Interruptions() {}
 
@@ -10,7 +13,8 @@ public final class Interruptions {
      */
     public static boolean causedByInterrupt(Throwable throwable) {
         for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
-            if (cause instanceof InterruptedException) {
+            if (cause instanceof InterruptedException || cause instanceof InterruptedIOException ||
+                cause instanceof ClosedByInterruptException) {
                 return true;
             }
             // a custom or deserialised exception can return itself from getCause()
