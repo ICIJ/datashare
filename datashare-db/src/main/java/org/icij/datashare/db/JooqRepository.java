@@ -237,41 +237,68 @@ public class JooqRepository implements Repository {
     public List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc,
                                           String... projectIds) {
         DSLContext ctx = using(connectionProvider, dialect);
-        String sortName = ofNullable(sort).filter(Predicate.not(String::isBlank))
-                                          .orElse(USER_HISTORY.MODIFICATION_DATE.getName());
-        Field<?> sortBy = ofNullable(USER_HISTORY.field(sortName)).orElseThrow(
-                () -> new IllegalArgumentException(String.format("Invalid sort attribute: %s", sortName)));
-        SortField<?> order = desc ? sortBy.desc() : sortBy.asc();
-        if (projectIds.length > 0) {
-
-            SelectConditionStep<Record1<Integer>> innerSelect =
-                    ctx.select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT)
-                       .where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds));
-            return ctx.selectFrom(USER_HISTORY).where(USER_HISTORY.USER_ID.eq(user.id))
-                      .and(USER_HISTORY.TYPE.eq(type.id)).and(USER_HISTORY.ID.in(innerSelect)).orderBy(order)
-                      .offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
-
-        } else {
-            return ctx.selectFrom(USER_HISTORY).where(USER_HISTORY.USER_ID.eq(user.id))
-                      .and(USER_HISTORY.TYPE.eq(type.id)).orderBy(order).offset(from).limit(size).stream()
-                      .map(this::createUserEventFrom).collect(toList());
-
-        }
-
+        Condition condition = userHistoryOf(ctx, user, type, projectIds);
+        return fetchUserHistory(ctx, condition, from, size, sort, desc);
     }
 
     @Override
     public int getUserHistorySize(User user, UserEvent.Type type, String... projectIds) {
         DSLContext ctx = using(connectionProvider, dialect);
-        SelectConditionStep<Record1<Integer>> query =
-                ctx.selectCount().from(USER_HISTORY).where(USER_HISTORY.USER_ID.eq(user.id))
-                   .and(USER_HISTORY.TYPE.eq(type.id));
-        if (projectIds.length > 0) {
-            query.and(USER_HISTORY.ID.in(ctx.select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT)
-                                            .where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds))));
-        }
-        return query.fetchOne(0, int.class);
+        Condition condition = userHistoryOf(ctx, user, type, projectIds);
+        return ctx.fetchCount(USER_HISTORY, condition);
+    }
 
+    @Override
+    public List<UserEvent> getScopedUserHistory(User user, UserEvent.Type type, int from, int size, String sort,
+                                                boolean desc, List<String> scope, String... projectIds) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        Condition condition = scopedUserHistoryOf(ctx, user, type, scope, projectIds);
+        return fetchUserHistory(ctx, condition, from, size, sort, desc);
+    }
+
+    @Override
+    public int getScopedUserHistorySize(User user, UserEvent.Type type, List<String> scope, String... projectIds) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        Condition condition = scopedUserHistoryOf(ctx, user, type, scope, projectIds);
+        return ctx.fetchCount(USER_HISTORY, condition);
+    }
+
+    private static Condition userHistoryOf(DSLContext ctx, User user, UserEvent.Type type, String... projectIds) {
+        Condition ofUser = USER_HISTORY.USER_ID.eq(user.id);
+        Condition ofType = USER_HISTORY.TYPE.eq(type.id);
+        Condition condition = ofUser.and(ofType);
+        if (projectIds.length == 0) {
+            return condition;
+        }
+        Condition inRequested = USER_HISTORY_PROJECT.PRJ_ID.in(projectIds);
+        SelectConditionStep<Record1<Integer>> linked =
+                ctx.select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(inRequested);
+        Condition linkedToRequested = USER_HISTORY.ID.in(linked);
+        return condition.and(linkedToRequested);
+    }
+
+    // An event linked to a project outside the scope would leak that project to a scoped key, so
+    // every linked project must be in scope, not just one of them.
+    private static Condition scopedUserHistoryOf(DSLContext ctx, User user, UserEvent.Type type, List<String> scope,
+                                                 String... projectIds) {
+        Condition requested = userHistoryOf(ctx, user, type, projectIds);
+        Condition linkedToEvent = USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(USER_HISTORY.ID);
+        Condition outsideScope = USER_HISTORY_PROJECT.PRJ_ID.notIn(scope);
+        SelectConditionStep<Record1<Integer>> linkedOutside =
+                ctx.selectOne().from(USER_HISTORY_PROJECT).where(linkedToEvent).and(outsideScope);
+        Condition noneOutside = notExists(linkedOutside);
+        return requested.and(noneOutside);
+    }
+
+    private List<UserEvent> fetchUserHistory(DSLContext ctx, Condition condition, int from, int size, String sort,
+                                             boolean desc) {
+        String sortName = ofNullable(sort).filter(Predicate.not(String::isBlank))
+                                          .orElse(USER_HISTORY.MODIFICATION_DATE.getName());
+        Field<?> sortBy = ofNullable(USER_HISTORY.field(sortName)).orElseThrow(
+                () -> new IllegalArgumentException(String.format("Invalid sort attribute: %s", sortName)));
+        SortField<?> order = desc ? sortBy.desc() : sortBy.asc();
+        return ctx.selectFrom(USER_HISTORY).where(condition).orderBy(order).offset(from).limit(size).stream()
+                  .map(this::createUserEventFrom).collect(toList());
     }
 
     @Override
@@ -298,18 +325,15 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public boolean deleteUserHistory(User user, UserEvent.Type type, String... projectIds) {
-        if (projectIds.length == 0) {
+    public boolean deleteScopedUserHistory(User user, UserEvent.Type type, List<String> scope) {
+        if (scope.isEmpty()) {
             return false;
         }
+        String[] scopeIds = scope.toArray(new String[0]);
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            Condition condition = USER_HISTORY.USER_ID.eq(user.id).and(USER_HISTORY.TYPE.eq(type.id));
-            SelectConditionStep<Record1<Integer>> linked =
-                    inner.select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT)
-                         .where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds));
-            Condition doomed = condition.and(USER_HISTORY.ID.in(linked));
+            Condition doomed = scopedUserHistoryOf(inner, user, type, scope, scopeIds);
             List<Integer> doomedIds =
                     inner.select(USER_HISTORY.ID).from(USER_HISTORY).where(doomed).fetch(USER_HISTORY.ID);
             inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(doomedIds)).execute();
