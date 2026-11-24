@@ -92,8 +92,8 @@ public class ArtifactStage implements StageProcessor<String, Void> {
         List<Artifact> selected = artifactOptions.artifacts().isEmpty() ? registry.select((String) null) :
                                   registry.select(artifactOptions.artifacts());
         // isCancelled reads the calling thread, so the one producer shared by the workers stays correct
-        ArtifactProducer producer = new ArtifactProducer(new FilesystemManifestRepository(), ctx::isCancelled,
-                                                         ctx.options().get("taskId").toString());
+        ArtifactProducer producer =
+                new ArtifactProducer(new FilesystemManifestRepository(), ctx::isCancelled, ctx.taskId());
         return new RunSetup(artifactOptions, Project.project(artifactOptions.projectName()),
                             ArtifactPath.projectRoot(artifactOptions.artifactDir(), artifactOptions.projectName()),
                             selected, producer, extractorFactory.apply(ctx.options()));

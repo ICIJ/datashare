@@ -150,8 +150,7 @@ public class IndexStage implements StageProcessor<Path, String> {
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(new FieldNames(), indexer, languageGuesser, indexOptions,
                                                              config.artifactOptions().projectName(),
                                                              indexOptions.languageDetection().ocrMinConfidence(),
-                                                             manifestRecorder(config, extractor, (String) ctx.options()
-                                                                                                             .get(StageContext.TASK_ID_OPT)));
+                                                             manifestRecorder(config, extractor, ctx.taskId()));
         try {
             spewer.createIndexIfNotExists();
         } catch (IOException e) {

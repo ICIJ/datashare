@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 import org.icij.datashare.text.Project;
 
 public interface StageContext<O> extends AutoCloseable {
-    String TASK_ID_OPT = "taskId";
+    String taskId();
 
     Project project();
 

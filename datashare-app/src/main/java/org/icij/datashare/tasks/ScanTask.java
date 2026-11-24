@@ -25,8 +25,8 @@ public class ScanTask extends StageTask<Void, Path> {
     public ScanTask(DocumentCollectionFactory<Path> factory, StageRegistry registry, @Assisted Task<Long> task,
                     @Assisted Function<Double, Void> updateCallback) {
         // a source stage has no input queue (the first stage has no input queue name): the input factory is never used
-        super(Stage.SCAN, task.getUser(), null, new PropertiesProvider(task.args), Void.class, UpstreamGate.NONE,
-              registry, factory, Path.class);
+        super(Stage.SCAN, task.getUser(), task.id, null, new PropertiesProvider(task.args), Void.class,
+              UpstreamGate.NONE, registry, factory, Path.class);
     }
 
     @Override

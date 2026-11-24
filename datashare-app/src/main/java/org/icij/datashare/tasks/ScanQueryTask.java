@@ -25,7 +25,7 @@ public class ScanQueryTask extends StageTask<Void, Path> {
     @Inject
     public ScanQueryTask(DocumentCollectionFactory<Path> factory, final StageRegistry registry,
                          @Assisted Task<Long> taskView, @Assisted Function<Double, Void> ignored) {
-        super(Stage.SCANQUERY, taskView.getUser(), null, new PropertiesProvider(taskView.args), Void.class,
+        super(Stage.SCANQUERY, taskView.getUser(), taskView.id, null, new PropertiesProvider(taskView.args), Void.class,
               UpstreamGate.NONE, registry, factory, Path.class);
     }
 

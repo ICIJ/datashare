@@ -6,8 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
 import static org.fest.assertions.Assertions.assertThat;
+import org.icij.datashare.asynctasks.DefaultStageContext;
 import org.icij.datashare.asynctasks.StageContext;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.text.DocReference;
@@ -101,7 +101,7 @@ public class ArtifactStageTest {
     }
 
     @Test
-    public void test_the_recorded_entry_carries_the_task_id_of_the_options() throws Exception {
+    public void test_the_recorded_entry_carries_the_task_id_of_the_context() throws Exception {
         indexEmbeddedPdfUnderItsRoot();
 
         run(List.of(EMBEDDED_PDF_SHA256 + "|" + EMBEDDED_DOC_SHA256), Map.of("artifacts", "true", "taskId", "myTaskId"));
@@ -166,34 +166,8 @@ public class ArtifactStageTest {
     }
 
     private @NonNull StageContext<Void> createCtx(Map<String, Object> options) {
-        return new StageContext<>() {
-            @Override
-            public Project project() {
-                return Project.project("prj");
-            }
-
-            @Override
-            public Map<String, Object> options() {
-                HashMap<String, Object> opts = new HashMap<>(options);
-                opts.putIfAbsent("taskId", "taskId");
-                return opts;
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return false;
-            }
-
-            @Override
-            public void emit(List<Void> out) {}
-
-            @Override
-            public <R> R resource(Class<R> type, Supplier<R> factory) {
-                return factory.get();
-            }
-
-            @Override
-            public void close() {}
-        };
+        // test shortcut: the id of the context is given through this key of the options
+        return new DefaultStageContext<>(String.valueOf(options.getOrDefault("taskId", "taskId")),
+                                         Project.project("prj"), options, out -> {});
     }
 }

@@ -25,7 +25,7 @@ public class ExtractNlpTask extends StageTask<String, Void> implements Monitorab
     public ExtractNlpTask(DocumentCollectionFactory<String> factory, StageRegistry registry,
                           final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
                           @Assisted final Function<Double, Void> progressCallback) {
-        super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class,
+        super(Stage.NLP, taskView.getUser(), taskView.id, factory, new PropertiesProvider(taskView.args), String.class,
               gateFactory.forTask(taskView), registry);
         this.progressCallback = progressCallback;
     }

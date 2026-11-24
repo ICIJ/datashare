@@ -87,7 +87,7 @@ public class StageTaskEmitTest {
 
     private StageTask<Void, Path> sourceTask(MemoryDocumentCollectionFactory<Path> outputFactory,
                                              Map<String, Object> properties) {
-        return new StageTask<>(Stage.SCAN, User.local(), null, new PropertiesProvider(properties), Void.class,
+        return new StageTask<>(Stage.SCAN, User.local(), "taskId", null, new PropertiesProvider(properties), Void.class,
                                UpstreamGate.NONE, new StageRegistry().register(source), outputFactory, Path.class);
     }
 

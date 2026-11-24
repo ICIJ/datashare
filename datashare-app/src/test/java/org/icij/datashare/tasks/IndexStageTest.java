@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.icij.datashare.asynctasks.DefaultStageContext;
 import org.icij.datashare.asynctasks.ScopedStageContext;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.extract.extractor.ExtractionStatus;
@@ -48,14 +49,9 @@ public class IndexStageTest {
         when(extractor.extract(any(Path.class), any(ElasticsearchSpewer.class), any(Reporter.class)))
                 .thenReturn(ExtractionStatus.SUCCESS);
     }
-    private final ScopedStageContext<String> ctx = new ScopedStageContext<>() {
-        public Project project() {return Project.project("prj");}
-
-        public Map<String, Object> options() {return Map.of("defaultProject", "prj");}
-
+    private final ScopedStageContext<String> ctx = new DefaultStageContext<>("taskId", Project.project("prj"), Map.of("defaultProject", "prj"), out -> {}) {
+        @Override
         public boolean isCancelled() {return cancelled;}
-
-        public void emit(List<String> out) {}
     };
 
     @Test
@@ -122,15 +118,7 @@ public class IndexStageTest {
     }
 
     private ScopedStageContext<String> ctxWithReport(String reportName) {
-        return new ScopedStageContext<>() {
-            public Project project() {return Project.project("prj");}
-
-            public Map<String, Object> options() {return Map.of("defaultProject", "prj", "reportName", reportName);}
-
-            public boolean isCancelled() {return false;}
-
-            public void emit(List<String> out) {}
-        };
+        return new DefaultStageContext<>("taskId", Project.project("prj"), Map.of("defaultProject", "prj", "reportName", reportName), out -> {});
     }
 
     private IndexStage stageWithMap(MemoryDocumentCollectionFactory<Path> maps) {

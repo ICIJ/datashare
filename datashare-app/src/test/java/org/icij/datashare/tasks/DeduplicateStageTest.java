@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.icij.datashare.asynctasks.DefaultStageContext;
 import org.icij.datashare.asynctasks.ScopedStageContext;
 import org.icij.datashare.asynctasks.StageResult;
 import org.icij.datashare.text.Project;
@@ -14,15 +15,7 @@ import static org.fest.assertions.Assertions.assertThat;
 public class DeduplicateStageTest {
     private final DeduplicateStage stage = new DeduplicateStage();
     private final List<Path> emitted = new ArrayList<>();
-    private final ScopedStageContext<Path> ctx = new ScopedStageContext<>() {
-        public Project project() {return Project.project("prj");}
-
-        public Map<String, Object> options() {return Map.of();}
-
-        public boolean isCancelled() {return false;}
-
-        public void emit(List<Path> out) {emitted.addAll(out);}
-    };
+    private final ScopedStageContext<Path> ctx = new DefaultStageContext<>("taskId", Project.project("prj"), Map.of(), out -> emitted.addAll(out));
 
     @Test
     public void test_an_empty_batch_emits_nothing() {

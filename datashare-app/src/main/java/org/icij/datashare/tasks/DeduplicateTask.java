@@ -24,8 +24,8 @@ public class DeduplicateTask extends StageTask<Path, Path> {
     public DeduplicateTask(final DocumentCollectionFactory<Path> factory, final StageRegistry registry,
                            final UpstreamGate.Factory gateFactory, @Assisted Task<Long> taskView,
                            @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.DEDUPLICATE, taskView.getUser(), factory, new PropertiesProvider(taskView.args), Path.class,
-              gateFactory.forTask(taskView), registry, factory, Path.class);
+        super(Stage.DEDUPLICATE, taskView.getUser(), taskView.id, factory, new PropertiesProvider(taskView.args),
+              Path.class, gateFactory.forTask(taskView), registry, factory, Path.class);
     }
 
     /** Declared here, not only inherited: TemporalWorkflowGenerator reads the output type from the annotated class. */
