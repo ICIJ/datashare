@@ -153,6 +153,18 @@ public class ApiKeyExpirationTest {
         new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "PT0S")));
     }
 
+    @Test
+    public void test_to_expiration_date_keeps_year_9999() {
+        Instant instant = Instant.parse("9999-12-31T23:59:59Z");
+
+        assertThat(ApiKeyExpiration.toExpirationDate(instant)).isEqualTo(Date.from(instant));
+    }
+
+    @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
+    public void test_to_expiration_date_beyond_year_9999_throws() {
+        ApiKeyExpiration.toExpirationDate(Instant.parse("+10000-01-01T00:00:00Z"));
+    }
+
     private static ApiKey apiKey(String creationDate, String expirationDate) {
         Date expiration = expirationDate == null ? null : date(expirationDate);
         return new DatashareApiKey("hash", User.local(), date(creationDate), expiration);

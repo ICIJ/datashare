@@ -15,6 +15,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.API_KEY_MAX_LIFETIME_OP
 @Singleton
 public class ApiKeyExpiration {
     private static final Duration DEFAULT_LIFETIME = Duration.ofDays(30);
+    private static final Instant MAX_EXPIRATION = Instant.parse("9999-12-31T23:59:59Z");
     private final String maxLifetimeSetting;
     private final Duration maxLifetime;
 
@@ -55,6 +56,13 @@ public class ApiKeyExpiration {
                     "expiration date exceeds the maximum lifetime of " + maxLifetimeSetting);
         }
         return requested;
+    }
+
+    public static Date toExpirationDate(Instant instant) {
+        if (instant.isAfter(MAX_EXPIRATION)) {
+            throw new InvalidExpirationException("expiration date is too far in the future");
+        }
+        return Date.from(instant);
     }
 
     private Date capped(Date creationDate, Date expirationDate) {

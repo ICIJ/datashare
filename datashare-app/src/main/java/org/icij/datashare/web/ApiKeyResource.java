@@ -131,7 +131,7 @@ public class ApiKeyResource {
                 return null;
             }
             Instant instant = Instant.parse(expirationDate.asText());
-            return Date.from(instant);
+            return ApiKeyExpiration.toExpirationDate(instant);
         } catch (JsonProcessingException | DateTimeParseException e) {
             throw new ApiKeyExpiration.InvalidExpirationException(
                     "invalid expirationDate: expected an ISO-8601 instant", e);
