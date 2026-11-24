@@ -141,7 +141,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     public void test_callback_rejects_state_without_its_cookie() {
         String state = stateOf(signinWithoutRedirect());
 
-        this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + state).withFollowRedirect(false).should().respond(400);
+        assertRedirectedHome(this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + state).withFollowRedirect(false));
     }
 
     @Test
@@ -149,7 +149,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         String state = stateOf(signinWithoutRedirect());
         String otherState = stateOf(signinWithoutRedirect());
 
-        callbackWithStateCookie(state, otherState).should().respond(400);
+        assertRedirectedHome(callbackWithStateCookie(state, otherState));
     }
 
     @Test
@@ -157,7 +157,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         String state = stateOf(signinWithoutRedirect());
         String tamperedState = state.replaceFirst("\\.[0-9]+\\.", ".9999999999.");
 
-        callbackWithStateCookie(tamperedState, tamperedState).should().respond(400);
+        assertRedirectedHome(callbackWithStateCookie(tamperedState, tamperedState));
     }
 
     @Test
@@ -217,9 +217,9 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
-    public void test_callback_should_return_bad_request_when_state_is_wrong() {
+    public void test_callback_redirects_home_when_state_is_wrong() {
         this.get("/auth/signin").should().respond(200);
-        callbackWithStateCookie("unknown", "unknown").should().respond(400);
+        assertRedirectedHome(callbackWithStateCookie("unknown", "unknown"));
     }
 
     @Test
@@ -350,6 +350,13 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     private String setCookieOf(Response signinResponse) {
         String setCookie = signinResponse.header("set-cookie").get(0);
         return setCookie.split(";")[0];
+    }
+
+    private void assertRedirectedHome(RestAssert callback) {
+        Response response = callback.response();
+        assertThat(response.code()).isEqualTo(303);
+        assertThat(response.header("location").get(0)).isEqualTo("/");
+        assertThat(response.header("set-cookie")).isNull();
     }
 
     private RestAssert callbackWithStateCookie(String state, String cookieState) {

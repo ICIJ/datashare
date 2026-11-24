@@ -146,8 +146,9 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         }
         String stateCookieName = stateCookieName(state);
         String cookieState = context.cookies().value(stateCookieName);
+        // Home, not the sign-in page: if the state cookie cannot be stored, sign-in would redirect back here forever
         if (!isValidState(state, cookieState, Instant.now())) {
-            return Payload.badRequest();
+            return Payload.seeOther("/");
         }
         OAuth20Service service =
                 new ServiceBuilder(oauthClientId).apiSecret(oauthClientSecret).callback(getCallbackUrl(context))
