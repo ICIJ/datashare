@@ -2,6 +2,7 @@ package org.icij.datashare.tasks.temporal;
 
 import io.temporal.activity.ActivityExecutionContext;
 import io.temporal.client.ActivityCompletionException;
+import io.temporal.client.ActivityWorkerShutdownException;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,8 +48,11 @@ final class ActivityHeartbeat implements AutoCloseable {
     private void beat(ActivityExecutionContext activity, Thread worker) {
         try {
             activity.heartbeat(heartbeatNumber.getAndIncrement());
+        } catch (ActivityWorkerShutdownException shutdown) {
+            // let the batch finish within the shutdown grace period: interrupting it would report a partial success
+            logger.info("worker shutting down, letting the stage finish");
+            scheduler.shutdown();
         } catch (ActivityCompletionException cancellation) {
-            // cancelled, timed out, or the worker is shutting down: nothing more to beat for
             logger.info("activity stopped by the server ({}), interrupting the stage",
                         cancellation.getClass().getSimpleName());
             cancelled.set(true);
