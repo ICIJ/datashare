@@ -36,25 +36,26 @@ public class BasicAuthAdaptorFilter extends BasicAuthFilter {
         // The sign-out URL always returns unauthorized which can be used to invalidate
         // the browser's basic auth cache.
         if (uri.startsWith(AUTH_SIGNOUT_PATH)) {
-            return Payload.unauthorized("datashare").withCookie(this.emptyAuthCookie());
+            return Payload.unauthorized("datashare").withCookie(this.emptyAuthCookie(context));
         }
         // Otherwise, redirect all auth paths to home
         if (uri.startsWith(AUTH_PATH)) {
             return Payload.temporaryRedirect("/");
         }
         // We ensure the auth cookie is deleted
-        Payload payload = super.apply(uri, context, nextFilter).withCookie(this.emptyAuthCookie());
+        Payload payload = super.apply(uri, context, nextFilter).withCookie(this.emptyAuthCookie(context));
         if (postLoginEnroller != null && context.currentUser() instanceof DatashareUser user) {
             postLoginEnroller.enroll(user);
         }
         return payload;
     }
 
-    protected NewCookie emptyAuthCookie() {
+    protected NewCookie emptyAuthCookie(Context context) {
         NewCookie cookie = new NewCookie(COOKIE_NAME, "", "/", true);
         cookie.setExpiry(0);
         cookie.setDomain(null);
-        cookie.setSecure(isSessionCookieSecure);
+        boolean isSecure = isSessionCookieSecure || SessionCookies.isHttps(context);
+        cookie.setSecure(isSecure);
         return cookie;
     }
 }

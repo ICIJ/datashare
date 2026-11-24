@@ -22,7 +22,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class BasicAuthAdaptorFilterTest {
     private final Payload next = Payload.ok();
     private final PayloadSupplier nextFilter = () -> next;
-    private final Context context = mock(Context.class);
+    private final Context context = mock(Context.class, RETURNS_DEEP_STUBS);
     @Mock
     Users users;
 
@@ -63,6 +63,17 @@ public class BasicAuthAdaptorFilterTest {
     public void test_signout_cookie_is_secure_when_the_option_is_set() throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("secureSessionCookie", "true"));
         BasicAuthAdaptorFilter filter = new BasicAuthAdaptorFilter(propertiesProvider, mock(Users.class), null);
+
+        Payload payload = filter.apply("/auth/signout", context, nextFilter);
+
+        Cookie cookie = payload.cookies().get(0);
+        assertThat(cookie.isSecure()).isTrue();
+    }
+
+    @Test
+    public void test_signout_cookie_is_secure_on_https_requests() throws Exception {
+        BasicAuthAdaptorFilter filter = new BasicAuthAdaptorFilter(new PropertiesProvider(), mock(Users.class), null);
+        when(context.header("x-forwarded-proto")).thenReturn("https");
 
         Payload payload = filter.apply("/auth/signout", context, nextFilter);
 
