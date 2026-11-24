@@ -62,6 +62,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -140,7 +141,8 @@ class CliApp {
             String userName = properties.getProperty(CRE_API_KEY_OPT);
             String expirationDate = properties.getProperty(API_KEY_EXPIRATION_DATE_OPT);
             String joinedProjects = properties.getProperty(API_KEY_PROJECTS_OPT);
-            List<String> projects = joinedProjects == null ? List.of() : List.of(joinedProjects.split(","));
+            String[] splitProjects = joinedProjects == null ? new String[0] : joinedProjects.split(",");
+            List<String> projects = List.of(splitProjects);
             Repository repository = mode.get(Repository.class);
             System.exit(handleApiKeyCreate(taskFactory, repository, userName, expirationDate, projects));
         }
@@ -996,11 +998,14 @@ class CliApp {
             if (projects.isEmpty()) {
                 secretKey = taskFactory.createGenApiKey(user, expiration).call();
             } else {
-                List<String> unknown = unknownProjects(repository, projects);
+                User inventoryUser = repository.getUser(userName);
+                List<String> userProjects = inventoryUser == null ? List.of() : inventoryUser.getProjectNames();
+                List<String> unknown = unknownProjects(repository, userProjects, projects);
                 if (!unknown.isEmpty()) {
-                    return error("unknown project: " + String.join(", ", unknown), "validation", EXIT_VALIDATION,
-                                 false);
+                    String unknownNames = String.join(", ", unknown);
+                    return error("unknown project: " + unknownNames, "validation", EXIT_VALIDATION, false);
                 }
+                warnProjectsOutsideUser(userName, userProjects, projects);
                 secretKey = taskFactory.createGenApiKey(user, expiration, projects).call();
             }
         } catch (DateTimeParseException | ApiKeyExpiration.InvalidExpirationException e) {
@@ -1015,10 +1020,24 @@ class CliApp {
         return EXIT_SUCCESS;
     }
 
-    private static List<String> unknownProjects(Repository repository, List<String> projects) {
+    // OAuth users get projects from their groups, often with no project row, so a project counts
+    // as known when it has a row or when the user's inventory lists it.
+    private static List<String> unknownProjects(Repository repository, List<String> userProjects,
+                                                List<String> projects) {
         List<Project> known = repository.getProjects(projects);
-        Set<String> knownNames = known.stream().map(Project::getName).collect(Collectors.toSet());
+        Set<String> knownNames = known.stream().map(Project::getName).collect(Collectors.toCollection(HashSet::new));
+        knownNames.addAll(userProjects);
         return projects.stream().filter(name -> !knownNames.contains(name)).toList();
+    }
+
+    private static void warnProjectsOutsideUser(String userName, List<String> userProjects, List<String> projects) {
+        List<String> outside = projects.stream().filter(name -> !userProjects.contains(name)).toList();
+        if (outside.isEmpty()) {
+            return;
+        }
+        String outsideNames = String.join(", ", outside);
+        System.err.println(
+                "warning: not found in " + userName + "'s inventory, the key may not reach: " + outsideNames);
     }
 
     private static Date parseExpirationDate(String expirationDate) {

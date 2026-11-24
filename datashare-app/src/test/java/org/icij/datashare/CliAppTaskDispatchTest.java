@@ -6,6 +6,7 @@ import org.icij.datashare.session.ApiKeyExpiration;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.ApiKey;
 import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.user.User;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
@@ -20,6 +21,7 @@ import java.io.PrintStream;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -257,6 +259,23 @@ public class CliAppTaskDispatchTest {
 
         assertThat(exitCode).isEqualTo(CliApp.EXIT_SUCCESS);
         verify(taskFactory).createGenApiKey(any(), eq(null), eq(List.of("a", "b")));
+    }
+
+    @Test
+    public void test_create_with_a_project_of_the_user_without_a_project_row_adds() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenReturn("the-generated-key");
+        when(taskFactory.createGenApiKey(any(), any(), any())).thenReturn(task);
+        Repository repository = mock(Repository.class);
+        Map<String, Object> groups = Map.of("datashare", List.of("leak-a"));
+        User alice = new User("alice", "alice", "", "", Map.of("groups_by_applications", groups));
+        when(repository.getUser("alice")).thenReturn(alice);
+        when(repository.getProjects(List.of("leak-a"))).thenReturn(List.of());
+
+        int exitCode = CliApp.handleApiKeyCreate(taskFactory, repository, "alice", null, List.of("leak-a"));
+
+        assertThat(exitCode).isEqualTo(CliApp.EXIT_SUCCESS);
+        verify(taskFactory).createGenApiKey(any(), eq(null), eq(List.of("leak-a")));
     }
 
     @Test
