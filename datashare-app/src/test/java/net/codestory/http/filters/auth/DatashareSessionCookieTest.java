@@ -24,6 +24,7 @@ import java.util.Random;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 // Lives in fluent-http's package so it can call the protected CookieAuthFilter hooks every Datashare filter overrides.
 public class DatashareSessionCookieTest {
@@ -65,6 +66,20 @@ public class DatashareSessionCookieTest {
             Context context = mock(Context.class, RETURNS_DEEP_STUBS);
 
             Payload payload = filter.signout(context);
+
+            Cookie cookie = payload.cookies().get(0);
+            assertThat(cookie.isSecure()).as(filter.getClass().getSimpleName()).isTrue();
+        }
+    }
+
+    @Test
+    public void test_session_cookie_set_through_apply_is_secure_on_https_requests() throws Exception {
+        for (CookieAuthFilter filter : filtersWith(Map.of())) {
+            Context context = mock(Context.class, RETURNS_DEEP_STUBS);
+            when(context.method()).thenReturn("GET");
+            when(context.header("x-forwarded-proto")).thenReturn("https");
+
+            Payload payload = filter.apply("/auth/signout", context, Payload::ok);
 
             Cookie cookie = payload.cookies().get(0);
             assertThat(cookie.isSecure()).as(filter.getClass().getSimpleName()).isTrue();
