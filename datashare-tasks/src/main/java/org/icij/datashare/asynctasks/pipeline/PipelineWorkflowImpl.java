@@ -70,6 +70,9 @@ public class PipelineWorkflowImpl implements PipelineWorkflow, StageEmitReceiver
     private static ActivityOptions toActivityOptions(StageActivityOptions options) {
         ActivityOptions.Builder builder =
                 ActivityOptions.newBuilder().setStartToCloseTimeout(options.startToCloseTimeout());
+        if (!options.heartbeatTimeout().isZero()) {
+            builder.setHeartbeatTimeout(options.heartbeatTimeout());
+        }
         if (options.maxAttempts() > 0) {
             builder.setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(options.maxAttempts()).build());
         }

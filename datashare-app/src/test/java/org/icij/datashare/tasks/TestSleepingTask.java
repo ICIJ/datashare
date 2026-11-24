@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import java.nio.file.Path;
 import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;

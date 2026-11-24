@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks.temporal;
 
 import io.temporal.activity.Activity;
+import io.temporal.activity.ActivityExecutionContext;
 import java.util.List;
 import java.util.Map;
 import org.icij.datashare.PropertiesProvider;
@@ -35,7 +36,8 @@ public class StageActivityImpl implements StageActivity {
 
     private <I, O> StageResult process(StageProcessor<I, O> processor, Map<String, Object> options, List<?> batch,
                                        boolean hasNextStage) {
-        String workflowId = Activity.getExecutionContext().getInfo().getWorkflowId();
+        ActivityExecutionContext activity = Activity.getExecutionContext();
+        String workflowId = activity.getInfo().getWorkflowId();
         StageEmitReceiver receiver = temporal.newWorkflowStub(StageEmitReceiver.class, workflowId);
         List<I> items =
                 batch.stream().map(item -> JsonObjectMapper.getMapper().convertValue(item, processor.itemType()))
@@ -45,11 +47,12 @@ public class StageActivityImpl implements StageActivity {
         EmitBuffer<O> emitted = new EmitBuffer<>(EMIT_BATCH_SIZE, out -> receiver.onEmitted(processor.stage(),
                                                                                             List.<Object>copyOf(out)));
         // one context for the batch: what the processor builds with it is closed when the activity ends
-        try (ScopedStageContext<O> ctx = new DefaultStageContext<>(workflowId, project, options, out -> {
-            if (hasNextStage) {
-                emitted.add(out);
-            }
-        })) {
+        try (ActivityHeartbeat ignored = ActivityHeartbeat.start(activity);
+             ScopedStageContext<O> ctx = new DefaultStageContext<>(workflowId, project, options, out -> {
+                 if (hasNextStage) {
+                     emitted.add(out);
+                 }
+             })) {
             StageResult result = processor.process(items, ctx);
             // only once the batch went through: Temporal retries a failed one, which would emit twice
             emitted.flush();

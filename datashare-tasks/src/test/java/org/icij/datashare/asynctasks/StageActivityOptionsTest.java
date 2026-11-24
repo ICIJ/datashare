@@ -21,6 +21,18 @@ public class StageActivityOptionsTest {
     }
 
     @Test
+    public void test_negative_heartbeat_timeout_is_rejected() {
+        assertThrows(IllegalArgumentException.class,
+                     () -> new StageActivityOptions(Duration.ofMinutes(1), 0, Duration.ofSeconds(-1)));
+    }
+
+    @Test
+    public void test_a_stage_that_declares_no_heartbeat_gets_the_default_one() {
+        assertThat(new StageActivityOptions(Duration.ofMinutes(1), 0).heartbeatTimeout())
+                .isEqualTo(StageActivityOptions.DEFAULT_HEARTBEAT_TIMEOUT);
+    }
+
+    @Test
     public void test_json_round_trip() throws JsonProcessingException {
         StageActivityOptions options = new StageActivityOptions(Duration.ofHours(6), 3);
 
