@@ -1,13 +1,13 @@
 package org.icij.datashare;
 
-import org.simpleframework.common.buffer.BufferException;
+import java.io.IOException;
 
-/** A {@link BufferException} so simple-http drops the connection, the only refusal it offers mid-body. */
-class BodyTooLargeException extends BufferException {
-    final long size;
+public class BodyTooLargeException extends IOException {
+    public BodyTooLargeException(long size, long maxBytes) {
+        super(String.format("Request body of %s bytes is above the %s bytes limit", size, maxBytes));
+    }
 
-    BodyTooLargeException(long size, long maxBytes) {
-        super("request body of %s bytes is above the %s-byte limit", size, maxBytes);
-        this.size = size;
+    public BodyTooLargeException(long maxBytes) {
+        super(String.format("Request body is above the %s byte limit", maxBytes));
     }
 }

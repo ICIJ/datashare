@@ -16,11 +16,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class FormAuthFilterTest implements FluentRestTest {
+    private static final String EMOJI = new String(Character.toChars(0x1F600));
+    // the JSON escape of emoji, written without a unicode escape that javac would translate before compiling
+    private static final String ESCAPED_EMOJI = "\\" + "uD83D\\" + "uDE00";
     private static final WebServer server = new WebServer() {
         @Override
         protected Env createEnv() { return Env.prod(); }
@@ -211,6 +215,71 @@ public class FormAuthFilterTest implements FluentRestTest {
     @Test
     public void test_login_with_empty_body_returns_401() {
         this.postRaw("/auth/login", "application/json", "").should().respond(401);
+    }
+
+    @Test
+    public void test_login_with_a_body_of_empty_arrays_above_the_limit_returns_413() {
+        this.postRaw("/auth/login", "application/json", "[" + "[],".repeat(32 * 1024) + "[]]")
+                .should().respond(413);
+    }
+
+    @Test
+    public void test_login_with_an_oversized_password_returns_413() {
+        postLoginRaw(Map.of("username", "alice", "password", "p".repeat(64 * 1024))).should().respond(413);
+    }
+
+    @Test
+    public void test_login_with_an_oversized_body_does_not_look_up_the_user() {
+        Response response = postLoginRaw(Map.of("username", "alice", "password", "p".repeat(64 * 1024))).response();
+        assertThat(response.code()).isEqualTo(413);
+
+        verify(users, never()).find(any(), any());
+        verify(enroller, never()).enroll(any());
+        assertThat(response.header("set-cookie")).isNullOrEmpty();
+
+    }
+
+    @Test
+    public void test_login_still_works_after_an_oversized_body_was_rejected() {
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "alice");
+        }});
+        when(users.find("alice", "secret")).thenReturn(user);
+        postLoginRaw(Map.of("username", "alice", "password", "p".repeat(64 * 1024))).should().respond(413);
+
+        postLogin("alice", "secret").should().respond(200);
+    }
+
+    // The limit is the longest possible login payload: 128 characters for the login and for the password, each one
+    // an emoji on 12 bytes (😀), plus 29 bytes of JSON structure.
+    @Test
+    public void test_login_accepts_the_longest_credentials_of_exactly_the_limit() {
+        String credential = EMOJI.repeat(128);
+        DatashareUser user = new DatashareUser(new HashMap<>() {{
+            put("uid", "alice");
+        }});
+        when(users.find(credential, credential)).thenReturn(user);
+        String body = longestLoginBody();
+        assertThat(body.getBytes(UTF_8).length).isEqualTo(2 * 128 * 12 + 29);
+
+        this.postRaw("/auth/login", "application/json", body).should().respond(200);
+
+        verify(users).find(credential, credential);
+    }
+
+    @Test
+    public void test_login_rejects_a_body_one_byte_above_the_limit() {
+        String body = longestLoginBody() + " ";
+        assertThat(body.getBytes(UTF_8).length).isEqualTo(2 * 128 * 12 + 29 + 1);
+
+        this.postRaw("/auth/login", "application/json", body).should().respond(413);
+
+        verify(users, never()).find(any(), any());
+    }
+
+    private static String longestLoginBody() {
+        String escaped = ESCAPED_EMOJI.repeat(128);
+        return "{\"username\":\"" + escaped + "\",\"password\":\"" + escaped + "\"}";
     }
 
     @Test

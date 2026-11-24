@@ -11,7 +11,9 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
+import org.icij.datashare.BodyTooLargeException;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.utils.BoundedJsonBody;
 import org.icij.datashare.utils.PayloadFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,8 @@ public class FormAuthFilter extends DatashareAuthFilter {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     static final String LOGIN_PATH = "/auth/login";
     static final String SIGNOUT_PATH = "/auth/signout";
+    private static final int LOGIN_BODY_MAX_LENGTH = 128 * 12 * 2 + 29;
+            // 128 characters for login and password, worst case escaped as 12 bytes, and some characters for json structure
     private final int sessionTtl;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
@@ -51,7 +55,9 @@ public class FormAuthFilter extends DatashareAuthFilter {
     private Payload login(Context context) {
         JsonNode body;
         try {
-            body = new ObjectMapper().readTree(context.request().content());
+            body = BoundedJsonBody.boundedRead(context.request(), new ObjectMapper(), LOGIN_BODY_MAX_LENGTH);
+        } catch (BodyTooLargeException e) {
+            return PayloadFormatter.error(e.getMessage(), HttpStatus.REQUEST_ENTITY_TOO_LARGE);
         } catch (IOException e) {
             return PayloadFormatter.error("authentication required", HttpStatus.UNAUTHORIZED);
         }
