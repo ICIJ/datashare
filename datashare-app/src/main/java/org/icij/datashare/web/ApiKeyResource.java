@@ -123,6 +123,9 @@ public class ApiKeyResource {
         }
         try {
             JsonNode json = MAPPER.readTree(body);
+            if (!json.isObject()) {
+                throw new ApiKeyExpiration.InvalidExpirationException("invalid body: expected a JSON object");
+            }
             JsonNode expirationDate = json.path("expirationDate");
             if (expirationDate.isMissingNode() || expirationDate.isNull()) {
                 return null;
