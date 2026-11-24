@@ -32,7 +32,8 @@ final class SessionCookies {
     static boolean isHttps(Context context) {
         String forwardedProto = context.header(FORWARDED_PROTO_HEADER);
         if (forwardedProto != null) {
-            return "https".equalsIgnoreCase(forwardedProto);
+            String browserProto = forwardedProto.split(",")[0].trim();
+            return "https".equalsIgnoreCase(browserProto);
         }
         return context.request().isSecure();
     }

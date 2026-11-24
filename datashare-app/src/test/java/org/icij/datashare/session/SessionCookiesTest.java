@@ -1,11 +1,14 @@
 package org.icij.datashare.session;
 
+import net.codestory.http.Context;
 import org.icij.datashare.PropertiesProvider;
 import org.junit.Test;
 
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class SessionCookiesTest {
     @Test
@@ -22,5 +25,13 @@ public class SessionCookiesTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("secureSessionCookie", "yes"));
 
         SessionCookies.isSecure(propertiesProvider);
+    }
+
+    @Test
+    public void test_https_uses_the_first_entry_of_a_proxy_chain() {
+        Context context = mock(Context.class);
+        when(context.header("x-forwarded-proto")).thenReturn("https, http");
+
+        assertThat(SessionCookies.isHttps(context)).isTrue();
     }
 }
