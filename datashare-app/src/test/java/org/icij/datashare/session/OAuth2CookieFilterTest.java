@@ -25,7 +25,8 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.session.OAuth2CookieFilter.STATE_COOKIE_NAME;
+import static org.icij.datashare.session.OAuth2CookieFilter.STATE_COOKIE_PREFIX;
+import static org.icij.datashare.session.OAuth2CookieFilter.stateCookieName;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -160,13 +161,29 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
+    public void test_two_pending_signins_in_one_browser_both_complete() {
+        Response firstSignin = signinWithoutRedirect();
+        Response secondSignin = signinWithoutRedirect();
+        String browserCookies = setCookieOf(firstSignin) + "; " + setCookieOf(secondSignin);
+
+        for (Response signin : new Response[] {firstSignin, secondSignin}) {
+            String callback = "/auth/callback?code=a0b1c2d3e4f5&state=" + stateOf(signin);
+            Response response = this.get(callback).withHeader("Cookie", browserCookies).withFollowRedirect(false)
+                                    .response();
+
+            assertThat(response.code()).isEqualTo(303);
+            assertThat(response.header("set-cookie").toString()).contains("_ds_session_id=");
+        }
+    }
+
+    @Test
     public void test_callback_clears_the_state_cookie() {
         String state = stateOf(signinWithoutRedirect());
 
         Response response = callbackWithStateCookie(state, state).response();
 
         assertThat(response.code()).isEqualTo(303);
-        assertThat(response.header("set-cookie").toString()).contains(STATE_COOKIE_NAME + "=;");
+        assertThat(response.header("set-cookie").toString()).contains(stateCookieName(state) + "=;");
     }
 
     @Test
@@ -311,7 +328,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     private Cookie stateCookieIn(Payload payload) {
-        return payload.cookies().stream().filter(cookie -> STATE_COOKIE_NAME.equals(cookie.name())).findFirst()
+        return payload.cookies().stream().filter(cookie -> cookie.name().startsWith(STATE_COOKIE_PREFIX)).findFirst()
                       .orElseThrow();
     }
 
@@ -325,15 +342,19 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     private String stateCookieOf(Response signinResponse) {
-        String cookiePrefix = STATE_COOKIE_NAME + "=";
+        String cookiePrefix = stateCookieName(stateOf(signinResponse)) + "=";
+        String setCookie = setCookieOf(signinResponse);
+        return setCookie.substring(cookiePrefix.length());
+    }
+
+    private String setCookieOf(Response signinResponse) {
         String setCookie = signinResponse.header("set-cookie").get(0);
-        String cookieValue = setCookie.substring(cookiePrefix.length());
-        return cookieValue.split(";")[0];
+        return setCookie.split(";")[0];
     }
 
     private RestAssert callbackWithStateCookie(String state, String cookieState) {
         String callback = "/auth/callback?code=a0b1c2d3e4f5&state=" + state;
-        String cookie = STATE_COOKIE_NAME + "=" + cookieState;
+        String cookie = stateCookieName(cookieState) + "=" + cookieState;
         return this.get(callback).withHeader("Cookie", cookie).withFollowRedirect(false);
     }
 

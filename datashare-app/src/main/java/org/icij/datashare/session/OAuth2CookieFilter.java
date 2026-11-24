@@ -61,7 +61,8 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String REQUEST_CODE_KEY = "code";
     public static final String REQUEST_STATE_KEY = "state";
-    static final String STATE_COOKIE_NAME = "_ds_oauth_state";
+    static final String STATE_COOKIE_PREFIX = "_ds_oauth_state_";
+    private static final int STATE_COOKIE_ID_LENGTH = 8;
     private static final String HMAC_ALGO = "HmacSHA256";
     private static final String STATE_SIGNING_PREFIX = "oauth-state.";
     private static final Duration STATE_TTL = Duration.ofMinutes(10);
@@ -140,9 +141,12 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         logger.info("callback called with {}={} {}={}", REQUEST_CODE_KEY, context.get(REQUEST_CODE_KEY),
                     REQUEST_STATE_KEY, context.get(REQUEST_STATE_KEY));
         String state = context.get(REQUEST_STATE_KEY);
-        String cookieState = context.cookies().value(STATE_COOKIE_NAME);
-        if (context.get(REQUEST_CODE_KEY) == null || state == null || !"GET".equals(context.method()) ||
-            !isValidState(state, cookieState, Instant.now())) {
+        if (context.get(REQUEST_CODE_KEY) == null || state == null || !"GET".equals(context.method())) {
+            return Payload.badRequest();
+        }
+        String stateCookieName = stateCookieName(state);
+        String cookieState = context.cookies().value(stateCookieName);
+        if (!isValidState(state, cookieState, Instant.now())) {
             return Payload.badRequest();
         }
         OAuth20Service service =
@@ -161,7 +165,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         DatashareUser datashareUser = processOAuthApiResponse(oauthApiResponse);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context)))
                       .withCookie(this.authCookie(this.buildCookie(datashareUser, "/")))
-                      .withCookie(stateCookie(context, "", 0));
+                      .withCookie(stateCookie(context, stateCookieName, "", 0));
     }
 
     protected DatashareUser processOAuthApiResponse(Response oauthApiResponse) throws IOException {
@@ -200,7 +204,7 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
             oauthAuthorizeQS = oauthAuthorizeQS + "&scope=" + oauthScope;
         }
         int stateTtlSeconds = (int) STATE_TTL.toSeconds();
-        NewCookie stateCookie = stateCookie(context, state, stateTtlSeconds);
+        NewCookie stateCookie = stateCookie(context, stateCookieName(state), state, stateTtlSeconds);
         return Payload.seeOther(oauthAuthorizeUrl + oauthAuthorizeQS).withCookie(stateCookie);
     }
 
@@ -253,8 +257,15 @@ public class OAuth2CookieFilter extends DatashareAuthFilter {
         return MessageDigest.isEqual(expectedBytes, actualBytes);
     }
 
-    private NewCookie stateCookie(Context context, String state, int expirySeconds) {
-        NewCookie cookie = new NewCookie(STATE_COOKIE_NAME, state, oauthCallbackPath, true);
+    // One cookie per pending sign-in, so a second tab or a retried sign-in does not overwrite the first one's state
+    static String stateCookieName(String state) {
+        int idLength = Math.min(state.length(), STATE_COOKIE_ID_LENGTH);
+        String stateId = state.substring(0, idLength);
+        return STATE_COOKIE_PREFIX + stateId;
+    }
+
+    private NewCookie stateCookie(Context context, String name, String state, int expirySeconds) {
+        NewCookie cookie = new NewCookie(name, state, oauthCallbackPath, true);
         cookie.setSecure(isCookieSecure(context));
         return cookie.setExpiry(expirySeconds);
     }
