@@ -5,6 +5,7 @@ import net.codestory.http.Context;
 import net.codestory.http.Cookie;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
+import net.codestory.http.filters.auth.AuthData;
 import net.codestory.http.misc.Env;
 import net.codestory.http.payload.Payload;
 import net.codestory.rest.FluentRestTest;
@@ -27,7 +28,9 @@ import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.session.OAuth2CookieFilter.STATE_COOKIE_PREFIX;
 import static org.icij.datashare.session.OAuth2CookieFilter.stateCookieName;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -252,16 +255,13 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
-    public void test_state_token_cannot_be_used_as_session() throws Exception {
-        // Grab the state from /auth/signin
-        Response signinResponse = this.get("/auth/signin").response();
-        String state = getState(signinResponse.content());
-        assertThat(state).isNotEmpty();
+    public void test_state_token_cannot_be_used_as_session() {
+        AuthData stateAsSession = new AuthData();
+        stateAsSession.sessionId = oAuth2Filter.createState(Instant.now());
+        Context context = mock(Context.class, RETURNS_DEEP_STUBS);
+        when(context.cookies().value(anyString(), eq(AuthData.class))).thenReturn(stateAsSession);
 
-        // Try to use the state as a session cookie (the reported attack)
-        String fakeCookie = "{\"sessionId\":\"" + state + "\"}";
-        this.get("/api/users/me").withHeader("Cookie", "_ds_session_id=" + fakeCookie)
-                .should().respond(401);
+        assertThat(oAuth2Filter.readSessionIdInCookie(context)).isNull();
     }
 
     @Test
