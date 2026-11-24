@@ -268,8 +268,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         actAs(scopedToP1());
         UserEvent inScope = new UserEvent(User.local(), DOCUMENT, "in_scope", URI.create("in_scope_uri"));
         UserEvent unfiltered = new UserEvent(User.local(), DOCUMENT, "unfiltered", URI.create("unfiltered_uri"));
-        when(jooqRepository.getUserHistory(any(User.class), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean(), eq("p1"))).thenReturn(singletonList(inScope));
-        when(jooqRepository.getUserHistorySize(any(User.class), eq(DOCUMENT), eq("p1"))).thenReturn(1);
+        when(jooqRepository.getScopedUserHistory(any(User.class), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean(), eq(List.of("p1")), eq("p1"))).thenReturn(singletonList(inScope));
+        when(jooqRepository.getScopedUserHistorySize(any(User.class), eq(DOCUMENT), eq(List.of("p1")), eq("p1"))).thenReturn(1);
         when(jooqRepository.getUserHistory(any(User.class), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean())).thenReturn(singletonList(unfiltered));
         when(jooqRepository.getUserHistorySize(any(User.class), eq(DOCUMENT))).thenReturn(1);
 
@@ -298,7 +298,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
         delete("/api/users/me/history?type=document").should().respond(204);
 
-        verify(jooqRepository).deleteUserHistory(any(User.class), eq(DOCUMENT), eq("p1"));
+        verify(jooqRepository).deleteScopedUserHistory(any(User.class), eq(DOCUMENT), eq(List.of("p1")));
         verify(jooqRepository, never()).deleteUserHistory(any(User.class), eq(DOCUMENT));
     }
 
@@ -309,7 +309,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         delete("/api/users/me/history?type=document").should().respond(204);
 
         verify(jooqRepository, never()).deleteUserHistory(any(User.class), eq(DOCUMENT));
-        verify(jooqRepository, never()).deleteUserHistory(any(User.class), eq(DOCUMENT), any(String[].class));
+        verify(jooqRepository).deleteScopedUserHistory(any(User.class), eq(DOCUMENT), eq(List.of()));
     }
 
     @Test

@@ -720,12 +720,31 @@ public class JooqRepositoryTest {
         User user = new User("userid");
         UserEvent onP1 = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
         UserEvent onP2 = new UserEvent(user, DOCUMENT, "doc_p2", Paths.get("uri_p2").toUri());
+        UserEvent onP1AndP2 = new UserEvent(user, DOCUMENT, "doc_p1_p2", Paths.get("uri_p1_p2").toUri());
         repository.addToUserHistory(singletonList(project("p1")), onP1);
         repository.addToUserHistory(singletonList(project("p2")), onP2);
+        repository.addToUserHistory(asList(project("p1"), project("p2")), onP1AndP2);
 
-        assertThat(repository.deleteUserHistory(user, DOCUMENT, "p1")).isTrue();
+        assertThat(repository.deleteScopedUserHistory(user, DOCUMENT, List.of("p1"))).isTrue();
 
-        assertThat(repository.getUserEvents(user)).containsExactly(onP2);
+        assertThat(repository.getUserEvents(user)).containsOnly(onP2, onP1AndP2);
+    }
+
+    @Test
+    public void test_scoped_user_history_excludes_events_linked_outside_scope() {
+        User user = new User("userid");
+        UserEvent onP1 = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
+        UserEvent onP1AndP2 = new UserEvent(user, DOCUMENT, "doc_p1_p2", Paths.get("uri_p1_p2").toUri());
+        repository.addToUserHistory(singletonList(project("p1")), onP1);
+        repository.addToUserHistory(asList(project("p1"), project("p2")), onP1AndP2);
+        List<String> scope = List.of("p1");
+
+        List<UserEvent> events =
+                repository.getScopedUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, scope, "p1");
+        int total = repository.getScopedUserHistorySize(user, DOCUMENT, scope, "p1");
+
+        assertThat(events).containsExactly(onP1);
+        assertThat(total).isEqualTo(1);
     }
 
     @Test
@@ -734,7 +753,7 @@ public class JooqRepositoryTest {
         UserEvent event = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
         repository.addToUserHistory(singletonList(project("p1")), event);
 
-        assertThat(repository.deleteUserHistory(user, DOCUMENT, new String[0])).isFalse();
+        assertThat(repository.deleteScopedUserHistory(user, DOCUMENT, List.of())).isFalse();
 
         assertThat(repository.getUserEvents(user)).containsExactly(event);
     }

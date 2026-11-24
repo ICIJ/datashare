@@ -36,9 +36,14 @@ public interface Repository {
 
     int getUserHistorySize(User user, UserEvent.Type type, String... projectIds);
 
+    List<UserEvent> getScopedUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc,
+                                         List<String> scope, String... projectIds);
+
+    int getScopedUserHistorySize(User user, UserEvent.Type type, List<String> scope, String... projectIds);
+
     boolean deleteUserHistory(User user, UserEvent.Type type);
 
-    boolean deleteUserHistory(User user, UserEvent.Type type, String... projectIds);
+    boolean deleteScopedUserHistory(User user, UserEvent.Type type, List<String> scope);
 
     boolean deleteUserHistoryEvent(User user, int eventId);
 
