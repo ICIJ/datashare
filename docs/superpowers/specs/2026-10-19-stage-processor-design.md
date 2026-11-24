@@ -227,6 +227,19 @@ pipeline path.
 
 ### 4. Errors and cancellation
 
+**As built.** The executors stay as they are, and the five consumer stages (INDEX, LANGUAGE, NLP, ARTIFACT,
+CATEGORIZE) loop over their batch through `StageItems.forEach(logger, ctx, items, work)`. A stage gives the work for
+one item and returns what it did (updated, unchanged or skipped); it does not catch, count failures or read the
+cancellation. For each item the loop ends once `ctx.isCancelled()`; a `FatalStageException` (unchecked, in
+`datashare-api`; `ArtifactConfigurationException` extends it) is rethrown and stops the run, as an `Error` does;
+a cancellation (an `InterruptedException`, or one wrapped by a client that re-interrupted the thread) sets the
+interrupt flag back and counts nothing; any other exception is one `failed`, logged once with the item and
+`ctx.taskId()`, and the batch goes on. The one stage-specific case is ARTIFACT, whose producer also recognizes
+the interruptions of the extract library. What follows is the earlier target (the executors own the catch,
+Temporal splits a failing batch), not done. Not done either: a guard that treats a run of consecutive failures
+as an infrastructure outage, and resuming a run (a rerun is safe because the stages are idempotent; Temporal's
+reset keeps the batches already completed).
+
 Throw early, catch late: a processor cannot repair a failure, so it does not handle it. It lets the
 exception flow to the executor, the highest level, which owns the policy.
 
