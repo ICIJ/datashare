@@ -29,7 +29,7 @@ public class StageItemsTest {
 
     @Test
     public void test_what_each_item_did_is_summed() {
-        StageResult result = StageItems.forEach(logger, ctx, List.of("a", "b", "c"), item -> {
+        StageResult result = new StageItems(logger, ctx).forEach(List.of("a", "b", "c"), item -> {
             seen.add(item);
             return item.equals("b") ? new StageResult(0, 1, 0, 0) : UPDATED;
         });
@@ -40,7 +40,7 @@ public class StageItemsTest {
 
     @Test
     public void test_an_exception_is_one_failed_item_and_the_batch_goes_on() {
-        StageResult result = StageItems.forEach(logger, ctx, List.of("a", "bad", "c"), item -> {
+        StageResult result = new StageItems(logger, ctx).forEach(List.of("a", "bad", "c"), item -> {
             if (item.equals("bad")) {
                 throw new IllegalStateException("boom");
             }
@@ -55,7 +55,7 @@ public class StageItemsTest {
     public void test_a_fatal_exception_stops_the_run() {
         FatalStageException fatal = new FatalStageException("bad configuration");
 
-        assertThat(assertThrows(FatalStageException.class, () -> StageItems.forEach(logger, ctx, List.of("a", "b"), item -> {
+        assertThat(assertThrows(FatalStageException.class, () -> new StageItems(logger, ctx).forEach(List.of("a", "b"), item -> {
             seen.add(item);
             throw fatal;
         }))).isSameAs(fatal);
@@ -64,14 +64,14 @@ public class StageItemsTest {
 
     @Test
     public void test_an_error_is_not_caught() {
-        assertThrows(OutOfMemoryError.class, () -> StageItems.forEach(logger, ctx, List.of("a"), item -> {
+        assertThrows(OutOfMemoryError.class, () -> new StageItems(logger, ctx).forEach(List.of("a"), item -> {
             throw new OutOfMemoryError();
         }));
     }
 
     @Test
     public void test_an_interruption_ends_the_batch_counts_nothing_and_leaves_the_flag_set() {
-        StageResult result = StageItems.forEach(logger, ctx, List.of("a", "b", "c"), item -> {
+        StageResult result = new StageItems(logger, ctx).forEach(List.of("a", "b", "c"), item -> {
             seen.add(item);
             if (item.equals("b")) {
                 throw new InterruptedException();
@@ -86,7 +86,7 @@ public class StageItemsTest {
 
     @Test
     public void test_an_interruption_wrapped_by_a_client_that_interrupted_the_thread_is_a_cancellation() {
-        StageResult result = StageItems.forEach(logger, ctx, List.of("a", "b"), item -> {
+        StageResult result = new StageItems(logger, ctx).forEach(List.of("a", "b"), item -> {
             seen.add(item);
             Thread.currentThread().interrupt();
             throw new RuntimeException(new InterruptedException());
@@ -98,7 +98,7 @@ public class StageItemsTest {
 
     @Test
     public void test_an_interruption_wrapped_on_a_thread_that_was_not_interrupted_is_a_failed_item() {
-        StageResult result = StageItems.forEach(logger, ctx, List.of("a", "b"), item -> {
+        StageResult result = new StageItems(logger, ctx).forEach(List.of("a", "b"), item -> {
             seen.add(item);
             throw new RuntimeException(new InterruptedException());
         });
@@ -111,7 +111,7 @@ public class StageItemsTest {
     public void test_a_run_already_cancelled_processes_nothing() {
         Thread.currentThread().interrupt();
 
-        StageResult result = StageItems.forEach(logger, ctx, List.of("a"), item -> {
+        StageResult result = new StageItems(logger, ctx).forEach(List.of("a"), item -> {
             seen.add(item);
             return UPDATED;
         });

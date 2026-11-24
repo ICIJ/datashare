@@ -44,7 +44,7 @@ public class CategorizeStage implements StageProcessor<String, String> {
         }
         int toProcess = batchDocumentsId.size();
         logger.info("Processing {} docs to add their content type category ", toProcess);
-        StageResult result = StageItems.forEach(logger, ctx, batchDocumentsId, docId -> {
+        StageResult result = new StageItems(logger, ctx).forEach(batchDocumentsId, docId -> {
             Document retrievedFromIndexer = indexer.get(projectName, DocReference.parse(docId));
             StageResult processed = new StageResult(0, 1, 0, 0);
             if (retrievedFromIndexer != null) {

@@ -51,8 +51,8 @@ public class LanguageStage implements StageProcessor<String, Void> {
     @Override
     public StageResult process(List<String> batch, StageContext<Void> ctx) {
         int minOcrConfidence = new PropertiesProvider(ctx.options()).toRecord(LanguageOptions.class).ocrMinConfidence();
-        return StageItems.forEach(logger, ctx, batch,
-                                  queueEntry -> detect(queueEntry, ctx.project().name, minOcrConfidence));
+        return new StageItems(logger, ctx).forEach(batch, queueEntry -> detect(queueEntry, ctx.project().name,
+                                                                               minOcrConfidence));
     }
 
     private StageResult detect(String queueEntry, String project, int minOcrConfidence) throws IOException {

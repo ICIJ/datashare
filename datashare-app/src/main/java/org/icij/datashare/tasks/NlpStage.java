@@ -58,8 +58,9 @@ public class NlpStage implements StageProcessor<String, Void> {
                 ofNullable((String) ctx.options().get(MAX_CONTENT_LENGTH_OPT)).orElse(DEFAULT_MAX_CONTENT_LENGTH));
         Project project = Project.project(
                 ofNullable((String) ctx.options().get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
-        return StageItems.forEach(logger, ctx, docRefs,
-                                  docRef -> extractEntities(docRef, nlpPipeline, maxContentLengthChars, project));
+        return new StageItems(logger, ctx).forEach(docRefs,
+                                                   docRef -> extractEntities(docRef, nlpPipeline, maxContentLengthChars,
+                                                                             project));
     }
 
     private StageResult extractEntities(String docRef, Pipeline nlpPipeline, int maxContentLengthChars,

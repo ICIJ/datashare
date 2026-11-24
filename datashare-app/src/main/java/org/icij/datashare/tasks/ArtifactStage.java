@@ -49,7 +49,7 @@ public class ArtifactStage implements StageProcessor<String, Void> {
         ArtifactOptions artifactOptions = setup.options();
         ArtifactProducer producer = setup.producer();
 
-        return StageItems.forEach(logger, ctx, docRefs, docRef -> {
+        return new StageItems(logger, ctx).forEach(docRefs, docRef -> {
             try {
                 Document doc = indexer.get(artifactOptions.projectName(), DocReference.parse(docRef), SOURCE_EXCLUDES);
                 if (doc == null) {
