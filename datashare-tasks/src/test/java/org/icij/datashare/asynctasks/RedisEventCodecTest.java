@@ -3,10 +3,11 @@ package org.icij.datashare.asynctasks;
 import io.netty.buffer.ByteBuf;
 import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
-import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import org.icij.datashare.asynctasks.bus.amqp.Event;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.UriResult;
@@ -47,14 +48,22 @@ public class RedisEventCodecTest {
     public void round_trips_result_event_with_uri_result() throws Exception {
         ResultEvent<UriResult> sent = new ResultEvent<>("t", new TaskResult<>(new UriResult(URI.create("file:///x"), 3L)));
         ByteBuf encoded = codec.getValueEncoder().encode(sent);
-        Event received = (Event) codec.getValueDecoder().decode(encoded, null);
-        assertThat(((ResultEvent<?>) received).result).isEqualTo(sent.result);
+        try {
+            Event received = (Event) codec.getValueDecoder().decode(encoded, null);
+            assertThat(((ResultEvent<?>) received).result).isEqualTo(sent.result);
+        } finally {
+            encoded.release();
+        }
     }
 
     private Event decode(String json) throws IOException {
-        ByteBuf buf = ByteBufAllocator.DEFAULT.buffer();
-        buf.writeBytes(json.getBytes());
-        return (Event) codec.getValueDecoder().decode(buf, null);
+        byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+        ByteBuf buf = Unpooled.wrappedBuffer(bytes);
+        try {
+            return (Event) codec.getValueDecoder().decode(buf, null);
+        } finally {
+            buf.release();
+        }
     }
 
     public static class Holder implements Serializable {
