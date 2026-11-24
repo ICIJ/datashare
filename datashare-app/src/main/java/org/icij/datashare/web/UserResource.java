@@ -531,6 +531,15 @@ public class UserResource {
         }
         try {
             boolean descending = parseBooleanQueryArg(desc);
+            if (user instanceof ScopedUser) {
+                List<String> scope = user.getProjectNames();
+                List<UserEvent> events =
+                        repository.getScopedUserHistory(user, eventType, from, size, sortBy, descending, scope,
+                                                        projectIds);
+                int total = repository.getScopedUserHistorySize(user, eventType, scope, projectIds);
+                WebResponse<UserEvent> scopedResponse = new WebResponse<>(events, from, size, total);
+                return new Payload(scopedResponse);
+            }
             List<UserEvent> events =
                     repository.getUserHistory(user, eventType, from, size, sortBy, descending, projectIds);
             int total = repository.getUserHistorySize(user, eventType, projectIds);
@@ -613,10 +622,8 @@ public class UserResource {
         DatashareUser user = (DatashareUser) context.currentUser();
         Type eventType = Type.valueOf(type.toUpperCase());
         if (user instanceof ScopedUser) {
-            String[] projectIds = effectiveProjectIds(user, new String[0]);
-            if (projectIds.length > 0) {
-                repository.deleteUserHistory(user, eventType, projectIds);
-            }
+            List<String> scope = user.getProjectNames();
+            repository.deleteScopedUserHistory(user, eventType, scope);
             return new Payload(204);
         }
         repository.deleteUserHistory(user, eventType);
