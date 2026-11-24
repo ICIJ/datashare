@@ -160,6 +160,14 @@ public class RetroCompatibilityTest {
     }
 
     @Test
+    public void test_invalid_secure_session_cookie_is_not_turned_into_false() {
+        Properties legacy = parseLegacy("--secureSessionCookie", "yes");
+        Properties picocli = parseNew("app", "start", "--secureSessionCookie", "yes");
+        assertThat(legacy.getProperty("secureSessionCookie")).isEqualTo("yes");
+        assertThat(picocli.getProperty("secureSessionCookie")).isNull();
+    }
+
+    @Test
     public void test_parity_data_dir_default() {
         Properties legacy = parseLegacy("");
         Properties picocli = parseNew("app", "start");
