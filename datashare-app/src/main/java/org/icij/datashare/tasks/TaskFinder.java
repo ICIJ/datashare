@@ -85,8 +85,7 @@ public class TaskFinder {
         List<BatchSearchRecord> records = batchSearchRepository.getRecords(user, user.getProjectNames());
         Optional<BatchSearchRecord> record = records.stream().filter(r -> r.uuid.equals(id)).findFirst();
         Optional<Task<?>> taskified = record.map(TaskFinder::taskify);
-        Optional<Task<?>> visible = taskified.filter(t -> user.scope().allowsAll(projectIdsOf(t)));
-        return visible.orElseThrow(() -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
+        return taskified.orElseThrow(() -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
     }
 
     public static List<String> projectIdsOf(Task<?> task) {

@@ -1125,7 +1125,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         configureWithUser(new ScopedUser(cecile, List.of("p1")));
 
         put("/api/task/outside_id", taskJson("outside_id", "my.python.task", Map.of("defaultProject", "p2")))
-                .should().respond(403).contain("{\"error\":\"insufficient role\"}");
+                .should().respond(403);
 
         assertThat(taskManager.getTasks().toList()).isEmpty();
     }
@@ -1173,7 +1173,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         postRaw("/api/task/batchSearch/p2", "multipart/form-data;boundary=AaB03x",
                 batchSearchMultipartBody())
-                .should().respond(403).contain("{\"error\":\"insufficient role\"}");
+                .should().respond(403);
 
         verify(batchSearchRepository, never()).save(any());
         assertThat(taskManager.getTasks().toList()).isEmpty();
@@ -1255,7 +1255,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
 
         post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"p2\"], \"query\": \"*\" }}")
-                .should().respond(403).contain("{\"error\":\"insufficient role\"}");
+                .should().respond(403);
 
         assertThat(taskManager.getTasks().toList()).isEmpty();
     }
