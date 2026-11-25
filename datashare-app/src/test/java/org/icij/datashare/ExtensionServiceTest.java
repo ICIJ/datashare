@@ -15,6 +15,12 @@ import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -410,6 +416,34 @@ public class ExtensionServiceTest {
         extensionService.downloadAndInstallFromRemote(aJarContaining("abc"));
 
         assertThat(extensionFolder.getRoot().list()).containsOnly("my-extension-extra-2.0.0.jar", "my-extension-1.0.1.jar");
+    }
+
+    @Test
+    public void test_concurrent_installs_of_the_same_extension_all_succeed() throws Exception {
+        ExtensionService extensionService =
+                anExtensionServiceWith(aRegistryEntry(aJarContaining("abc"), SHA256_OF_ABC));
+        int concurrentInstalls = 8;
+        ExecutorService executor = Executors.newFixedThreadPool(concurrentInstalls);
+        CountDownLatch allStartTogether = new CountDownLatch(1);
+        try {
+            List<Future<Void>> installs = new ArrayList<>();
+            for (int i = 0; i < concurrentInstalls; i++) {
+                installs.add(executor.submit(() -> {
+                    allStartTogether.await();
+                    extensionService.downloadAndInstall("my-extension");
+                    return null;
+                }));
+            }
+            allStartTogether.countDown();
+            for (Future<Void> install : installs) {
+                install.get(30, TimeUnit.SECONDS); // rethrows the failure of an install
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(extensionFolder.getRoot().list()).containsOnly("my-extension-1.0.1.jar");
+        assertThat(Files.readString(installedJar().toPath())).isEqualTo("abc");
     }
 
     @Test

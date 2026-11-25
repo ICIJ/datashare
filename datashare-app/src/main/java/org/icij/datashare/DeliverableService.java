@@ -11,6 +11,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -23,7 +24,14 @@ import static org.icij.datashare.PropertiesProvider.ALLOW_INSECURE_ADDON_URL_INS
 public abstract class DeliverableService<T extends Deliverable> {
     private static final Pattern CONTROL_CHARACTERS = Pattern.compile("[\\p{Cc}\\u2028\\u2029]");
     final Logger logger = LoggerFactory.getLogger(getClass());
+    // one lock per install directory, shared by every service instance working on it
+    private static final Map<Path, Object> INSTALL_LOCKS = new ConcurrentHashMap<>();
     protected final Path deliverablesDir;
+    /**
+     * Held for a whole install (download included): two installs into the same directory run one after the
+     * other, so they cannot move or remove what the other is writing. Uninstall does not take it.
+     */
+    protected final Object installLock;
     protected final DeliverableRegistry<T> deliverableRegistry;
     private final boolean allowInsecureUrlInstall;
 
@@ -43,6 +51,7 @@ public abstract class DeliverableService<T extends Deliverable> {
 
     protected DeliverableService(Path deliverableDir, InputStream inputStream, boolean allowInsecureUrlInstall) {
         this.deliverablesDir = deliverableDir;
+        this.installLock = INSTALL_LOCKS.computeIfAbsent(deliverableDir.toAbsolutePath().normalize(), dir -> new Object());
         this.deliverableRegistry = createRegistry(inputStream);
         this.allowInsecureUrlInstall = allowInsecureUrlInstall;
     }
@@ -167,11 +176,13 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     private void downloadAndInstall(T deliverable) throws IOException {
-        File tmpFile = deliverable.download();
-        try {
-            deliverable.install(tmpFile, deliverablesDir);
-        } finally {
-            FileUtils.deleteQuietly(tmpFile);
+        synchronized (installLock) {
+            File tmpFile = deliverable.download();
+            try {
+                deliverable.install(tmpFile, deliverablesDir);
+            } finally {
+                FileUtils.deleteQuietly(tmpFile);
+            }
         }
     }
 

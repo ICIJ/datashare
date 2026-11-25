@@ -19,6 +19,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -516,6 +523,35 @@ public class PluginServiceTest {
 
         pluginService.downloadAndInstall("my-plugin");
 
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-1.1.0").toFile().list())
+                .containsOnly("main.js", "package.json");
+    }
+
+    @Test
+    public void test_concurrent_installs_of_the_same_plugin_leave_a_complete_plugin() throws Exception {
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), aRegistryOf(
+                aRegistryEntry("my-plugin", ClassLoader.getSystemResource("my-plugin-1.1.0.tgz"))));
+        int concurrentInstalls = 8;
+        ExecutorService executor = Executors.newFixedThreadPool(concurrentInstalls);
+        CountDownLatch allStartTogether = new CountDownLatch(1);
+        try {
+            List<Future<Void>> installs = new ArrayList<>();
+            for (int i = 0; i < concurrentInstalls; i++) {
+                installs.add(executor.submit(() -> {
+                    allStartTogether.await();
+                    pluginService.downloadAndInstall("my-plugin");
+                    return null;
+                }));
+            }
+            allStartTogether.countDown();
+            for (Future<Void> install : installs) {
+                install.get(30, TimeUnit.SECONDS); // rethrows the failure of an install
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(pluginFolder.getRoot().list()).containsOnly("my-plugin-1.1.0");
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-1.1.0").toFile().list())
                 .containsOnly("main.js", "package.json");
     }
