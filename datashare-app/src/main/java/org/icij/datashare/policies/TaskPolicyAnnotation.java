@@ -11,8 +11,6 @@ import org.icij.datashare.asynctasks.UnknownTask;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.ScopedUser;
-import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.utils.PayloadFormatter;
 import org.slf4j.Logger;
@@ -46,20 +44,15 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy>, 
 
     private boolean isAllowedForProjects(List<String> projectIds, TaskPolicy annotation, DatashareUser user,
                                          Domain domain, Task<Serializable> task) {
-        boolean roleAllowed =
-                projectIds.stream().allMatch(id -> authorizer.can(user.id, domain, id, annotation.role()));
+        boolean roleAllowed = projectIds.stream().allMatch(id -> authorizer.can(user, domain, id, annotation.role()));
         boolean ownershipEnabled = annotation.ownerRole() != Role.NONE;
         boolean ownerAllowed = ownershipEnabled && isTaskOwner(user, task) && projectIds.stream().allMatch(
-                id -> authorizer.can(user.id, domain, id, annotation.ownerRole()));
+                id -> authorizer.can(user, domain, id, annotation.ownerRole()));
         return roleAllowed || ownerAllowed;
     }
 
     private boolean isAllowedSingleTask(Task<Serializable> task, TaskPolicy annotation, DatashareUser user,
                                         Domain domain) {
-        List<String> scopeProjectIds = TaskFinder.projectIdsOf(task);
-        if (!ScopedUser.allows(user, scopeProjectIds)) {
-            return false;
-        }
         Object batchSearchRecord = task.args.get("batchRecord");
         Object batchDownload = task.args.get("batchDownload");
         if (batchSearchRecord instanceof BatchSearchRecord bsr) {
@@ -77,9 +70,9 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy>, 
                             "Task " + task.id + " does not have a project id in its arguments"));
             Authorizer.requireValue(projectId, false);
             // Check if user as role based rights or is owner with access rights (if ownerRole is specified)
-            boolean isAllowed = authorizer.can(user.id, domain, projectId, annotation.role());
+            boolean isAllowed = authorizer.can(user, domain, projectId, annotation.role());
             boolean ownershipEnabled = annotation.ownerRole() != Role.NONE;
-            boolean canAsOwner = authorizer.can(user.id, domain, projectId, annotation.ownerRole());
+            boolean canAsOwner = authorizer.can(user, domain, projectId, annotation.ownerRole());
             boolean hasOwnerRole = ownershipEnabled && canAsOwner && isTaskOwner(user, task);
             return isAllowed || hasOwnerRole;
         }
@@ -97,12 +90,9 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy>, 
         //TODO #DOMAIN Currently Domain is not handled so we can't check it from query params
         Domain domain = Authorizer.requireDomain(annotation.domain(), true);
         if (!annotation.singleTask()) {
-            if (!ScopedUser.allows(user, List.of("*"))) {
-                return insufficientRole();
-            }
             // either we should check for every tasks' projects
             // or we enforce wildcard project access (domain level)to do batch operation (current solution).
-            boolean isAllowed = authorizer.can(user.id, domain, "*", annotation.role());
+            boolean isAllowed = authorizer.can(user, domain, "*", annotation.role());
             return isAllowed ? payloadSupplier.apply(context) : insufficientRole();
         }
         String taskId = Authorizer.requireIdParam(context, annotation.idParam());

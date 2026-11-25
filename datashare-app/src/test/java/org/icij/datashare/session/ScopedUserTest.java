@@ -1,5 +1,6 @@
 package org.icij.datashare.session;
 
+import org.icij.datashare.user.ProjectScope;
 import org.junit.Test;
 
 import java.util.List;
@@ -57,14 +58,15 @@ public class ScopedUserTest {
     }
 
     @Test
-    public void test_allows() {
+    public void test_scope_allows() {
         DatashareUser plain = new DatashareUser("plain");
         ScopedUser scoped = new ScopedUser(original, List.of("b"));
 
-        assertThat(ScopedUser.allows(plain, List.of("*"))).isTrue();
-        assertThat(ScopedUser.allows(scoped, List.of())).isFalse();
-        assertThat(ScopedUser.allows(scoped, List.of("*"))).isFalse();
-        assertThat(ScopedUser.allows(scoped, List.of("b", "a"))).isFalse();
-        assertThat(ScopedUser.allows(scoped, List.of("b"))).isTrue();
+        assertThat(plain.scope()).isSameAs(ProjectScope.ALL);
+        assertThat(plain.scope().allowsAll(List.of("*"))).isTrue();
+        assertThat(scoped.scope().allowsAll(List.of())).isFalse();
+        assertThat(scoped.scope().allowsAll(List.of("*"))).isFalse();
+        assertThat(scoped.scope().allowsAll(List.of("b", "a"))).isFalse();
+        assertThat(scoped.scope().allowsAll(List.of("b"))).isTrue();
     }
 }

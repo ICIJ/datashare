@@ -20,7 +20,7 @@ import org.icij.datashare.batch.*;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.policies.Authorizer;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.ScopedUser;
+import org.icij.datashare.user.ProjectScope;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
@@ -332,7 +332,7 @@ public class BatchSearchResource {
     @Delete("/search")
     public Payload deleteSearches(Context context) {
         User user = (User) context.currentUser();
-        if (!ScopedUser.allows(user, List.of("*"))) {
+        if (user.scope() instanceof ProjectScope.Only) {
             return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
         batchSearchRepository.deleteAll(user);
@@ -340,7 +340,7 @@ public class BatchSearchResource {
     }
 
     private boolean isOutOfScope(User user, String batchId) {
-        if (!(user instanceof ScopedUser)) {
+        if (!(user.scope() instanceof ProjectScope.Only)) {
             return false;
         }
         BatchSearch batchSearch = batchSearchRepository.get(user, batchId);
@@ -352,7 +352,7 @@ public class BatchSearchResource {
             return false;
         }
         List<String> projectIds = batchSearch.projects.stream().map(ProjectProxy::getId).toList();
-        return !ScopedUser.allows(user, projectIds);
+        return !user.scope().allowsAll(projectIds);
     }
 
     private String docUrl(String uri, List<ProjectProxy> projects, String documentId, String rootId) {

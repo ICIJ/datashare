@@ -99,6 +99,12 @@ public final class Authorizer implements Closeable {
         return ofNullable(user).orElseThrow(UnauthorizedException::new);
     }
 
+    // the check every route should use: a scoped API key never reaches outside its projects,
+    // whatever roles its user holds
+    public boolean can(User user, Domain domain, String project, Role action) {
+        return user.scope().allows(project) && can(user.id, domain, project, action);
+    }
+
     public boolean can(String userId, Domain domain, String project, Role action) {
         return enforcer.enforce(userId, domain.id(), project, action.name());
     }

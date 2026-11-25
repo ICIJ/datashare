@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.ProjectScope;
 import org.icij.datashare.user.User;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,6 +25,12 @@ public class ScopedUser extends DatashareUser {
     public List<Project> getProjects() {
         List<Project> all = delegate.getProjects();
         return all.stream().filter(p -> scope.contains(p.getId())).collect(Collectors.toList());
+    }
+
+    @Override
+    public ProjectScope scope() {
+        Set<String> reachable = Set.copyOf(getProjectNames());
+        return new ProjectScope.Only(reachable);
     }
 
     @Override
@@ -55,15 +62,5 @@ public class ScopedUser extends DatashareUser {
             return scoped.delegate;
         }
         return user;
-    }
-
-    public static boolean allows(User user, Collection<String> projectIds) {
-        if (!(user instanceof ScopedUser)) {
-            return true;
-        }
-        if (projectIds.isEmpty() || projectIds.contains("*")) {
-            return false;
-        }
-        return projectIds.stream().allMatch(user::isGranted);
     }
 }

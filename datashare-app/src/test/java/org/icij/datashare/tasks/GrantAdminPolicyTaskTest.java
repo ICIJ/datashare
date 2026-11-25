@@ -103,7 +103,7 @@ public class GrantAdminPolicyTaskTest {
         // makes the two indistinguishable to a caller branching on the exit code
         when(authorizer.getGroupPermissions()).thenReturn(List.of());
         when(authorizer.addRoleForUserInInstance(any(), eq(Role.INSTANCE_ADMIN))).thenReturn(false);
-        when(authorizer.can(any(), any(), any(), eq(Role.INSTANCE_ADMIN))).thenReturn(false);
+        when(authorizer.can(anyString(), any(), any(), eq(Role.INSTANCE_ADMIN))).thenReturn(false);
 
         try {
             new GrantAdminPolicyTask(authorizer, User.local()).call();

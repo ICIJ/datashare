@@ -25,7 +25,7 @@ import org.icij.datashare.project.admin.ProjectDeleteOptions;
 import org.icij.datashare.project.admin.ProjectDeleted;
 import org.icij.datashare.project.admin.ValidationException;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.ScopedUser;
+import org.icij.datashare.user.ProjectScope;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
@@ -242,7 +242,7 @@ public class ProjectResource {
     @Delete("/")
     public Payload deleteProjects(Context context) throws IOException, InterruptedException {
         DatashareUser user = (DatashareUser) context.currentUser();
-        if (!ScopedUser.allows(user, List.of("*"))) {
+        if (user.scope() instanceof ProjectScope.Only) {
             return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
         Logger logger = LoggerFactory.getLogger(getClass());
