@@ -9,6 +9,7 @@ import org.casbin.jcasbin.util.BuiltInFunctions;
 import org.icij.datashare.policies.errors.InvalidValueException;
 import org.icij.datashare.policies.errors.UnknownRoleException;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.junit.Before;
@@ -18,6 +19,7 @@ import org.mockito.Mockito;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
@@ -51,6 +53,20 @@ public class AuthorizerTest {
         authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project);
         assertTrue(authorizer.can(user.id, domain, project.getId(), Role.PROJECT_ADMIN));
         assertTrue(authorizer.can(user.id, domain, project.getId(), Role.PROJECT_EDITOR));
+    }
+
+    @Test
+    public void test_can_user_is_limited_to_its_scope() {
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project);
+        authorizer.addRoleForUserInProject(user, Role.PROJECT_ADMIN, domain, project("other_project"));
+        DatashareUser scoped = new ScopedUser(new DatashareUser(Map.of(
+                "uid", user.id,
+                "groups_by_applications", Map.of("datashare", List.of(project.getId(), "other_project")))),
+                List.of(project.getId()));
+
+        assertTrue(authorizer.can(scoped, domain, project.getId(), Role.PROJECT_ADMIN));
+        assertFalse(authorizer.can(scoped, domain, "other_project", Role.PROJECT_ADMIN));
+        assertFalse(authorizer.can(scoped, domain, "*", Role.PROJECT_ADMIN));
     }
 
     @Test

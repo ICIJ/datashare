@@ -597,7 +597,7 @@ public class UserResource {
         if (currentUser instanceof ScopedUser) {
             List<String> queryProjectIds =
                     query.projects.stream().map(project -> project.name).collect(Collectors.toList());
-            if (!isNull(query.eventId) || !ScopedUser.allows(currentUser, queryProjectIds)) {
+            if (!isNull(query.eventId) || !currentUser.scope().allowsAll(queryProjectIds)) {
                 return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
             }
         }
