@@ -120,6 +120,8 @@ public class ApiKeyResource {
 
     @Operation(description = "Deletes all the apikeys of the current user. Only available in SERVER mode.")
     @ApiResponse(responseCode = "204", description = "when key has been deleted")
+    @ApiResponse(responseCode = "403",
+            description = "if the request is authenticated with an API key: a key cannot delete keys")
     @Delete("/:userId")
     public Payload deleteKey(
             @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,
@@ -194,6 +196,8 @@ public class ApiKeyResource {
     @Operation(
             description = "Deletes one key of the current user, identified by its hash. Only available in SERVER mode.")
     @ApiResponse(responseCode = "204", description = "when the key has been deleted")
+    @ApiResponse(responseCode = "403",
+            description = "if the request is authenticated with an API key: a key cannot delete keys")
     @ApiResponse(responseCode = "404", description = "if the user has no such key")
     @Delete("/:userId/keys/:hashedKey")
     public Payload deleteOneKey(
