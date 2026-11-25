@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import static org.apache.commons.io.IOUtils.copy;
 import static org.icij.datashare.PropertiesProvider.ALLOW_INSECURE_ADDON_URL_INSTALL_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.API_KEY_MAX_LIFETIME_OPT;
 import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR_OPT;
 import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR_OPT;
 
@@ -78,8 +79,8 @@ public class RootResource {
             
             These parameters are used for the client app for the init process.
             
-            The endpoint obfuscates values for keys containing password, key, secret, address, or url
-            (except allowInsecureAddonUrlInstall, a boolean the client needs to read).
+            The endpoint obfuscates values for keys containing password, key, secret, address, or url,
+            except allowInsecureAddonUrlInstall and apiKeyMaxLifetime, which the client needs to read.
             URI values with embedded credentials (e.g. scheme://user:pass@host) have user and password masked.
             """)
     @ApiResponse(responseCode = "200", description = "returns the list of public settings", useReturnTypeSchema = true)
@@ -92,7 +93,11 @@ public class RootResource {
     }
 
     private static Object obfuscateValue(String key, Object value) {
-        if (!ALLOW_INSECURE_ADDON_URL_INSTALL_OPT.equals(key) && SENSITIVE_KEY_PATTERN.matcher(key).matches()) {
+        boolean isSensitive = SENSITIVE_KEY_PATTERN.matcher(key).matches();
+        boolean isAddonUrlSetting = ALLOW_INSECURE_ADDON_URL_INSTALL_OPT.equals(key);
+        boolean isApiKeyLifetimeSetting = API_KEY_MAX_LIFETIME_OPT.equals(key);
+        boolean isClientReadable = isAddonUrlSetting || isApiKeyLifetimeSetting;
+        if (isSensitive && !isClientReadable) {
             return OBFUSCATED;
         }
         if (value instanceof String strValue) {

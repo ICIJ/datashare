@@ -63,6 +63,15 @@ public class RootResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_public_config_does_not_obfuscate_api_key_max_lifetime() {
+        Map<String, Object> settings = Map.of("apiKeyMaxLifetime", "P3D");
+        PropertiesProvider propertiesProvider = new PropertiesProvider(settings);
+        configure(routes -> routes.add(new RootResource(propertiesProvider, indexer)));
+
+        get("/settings").should().respond(200).contain("\"apiKeyMaxLifetime\":\"P3D\"");
+    }
+
+    @Test
     public void test_get_version() {
         get("/version").should().respond(200).
                 contain(Tika.getString()).
