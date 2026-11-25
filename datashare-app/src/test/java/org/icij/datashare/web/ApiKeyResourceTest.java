@@ -110,7 +110,7 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     public void test_get_key_returns_expiration_date() throws Exception {
         Date expiration = Date.from(Instant.parse("2027-02-01T00:00:00Z"));
         when(apiKeyRepository.get(User.local())).thenReturn(
-                new DatashareApiKey("hashedKeyUser", User.local(), new Date(), expiration));
+                new DatashareApiKey("hashedKeyUser", User.local(), new Date(), expiration, List.of()));
 
         get("/api/key/" + User.local().id).should().respond(200).contain("\"hashedKey\":\"hashedKeyUser\"")
                 .contain("\"expirationDate\":\"2027-02-01T00:00:00Z\"");
@@ -194,11 +194,11 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getProjects()).thenReturn(List.of(new Project("p1")));
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("privateKey");
-        when(taskFactory.createGenApiKey(User.local(), null, List.of("p1"))).thenReturn(task);
+        when(taskFactory.createGenApiKey(User.local(), null, List.of("p1", "p1"))).thenReturn(task);
 
         post("/api/key/local/keys", "{\"projects\":[\"p1\",\"p1\"]}").should().respond(201)
                 .haveType("application/json").contain("{\"apiKey\":\"privateKey\"}");
-        verify(taskFactory).createGenApiKey(User.local(), null, List.of("p1"));
+        verify(taskFactory).createGenApiKey(User.local(), null, List.of("p1", "p1"));
     }
 
     @Test
