@@ -432,7 +432,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_scoped_user_cannot_read_queries_of_batch_search_outside_scope() {
         BatchSearch outside = new BatchSearch(singletonList(project("p2")), "name", "description", asSet("query 1"), null, User.local());
-        when(batchSearchRepository.get(any(User.class), eq(outside.uuid))).thenReturn(outside);
+        when(batchSearchRepository.get(any(User.class), eq(outside.uuid), eq(false))).thenReturn(outside);
         routeAsScopedUser();
 
         get("/api/batch/search/" + outside.uuid + "/queries").should().respond(404);
@@ -441,7 +441,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_scoped_user_cannot_read_results_of_batch_search_outside_scope() {
         BatchSearch outside = new BatchSearch(singletonList(project("p2")), "name", "description", asSet("query 1"), null, User.local());
-        when(batchSearchRepository.get(any(User.class), eq(outside.uuid))).thenReturn(outside);
+        when(batchSearchRepository.get(any(User.class), eq(outside.uuid), eq(false))).thenReturn(outside);
         routeAsScopedUser();
 
         post("/api/batch/search/result/" + outside.uuid, "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\"}").should().respond(404);
