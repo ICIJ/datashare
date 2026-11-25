@@ -6,6 +6,7 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import java.nio.file.Paths;
 import java.util.Properties;
+import static org.icij.datashare.PropertiesProvider.ALLOW_INSECURE_ADDON_URL_INSTALL_OPT;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_SESSION_TTL_SECONDS;
 import static org.icij.datashare.PropertiesProvider.REPORT_NAME_OPT;
 import static org.icij.datashare.PropertiesProvider.SESSION_TTL_SECONDS_OPT;
@@ -31,6 +32,11 @@ public class ServerOptions {
     String rootHost;
     @Option(names = {"--browserOpenLink"}, description = "Open link in default browser", defaultValue = "false")
     boolean browserOpenLink;
+    @Option(names = {"--allowInsecureAddonUrlInstall"}, defaultValue = "false",
+            description = "Allow the web API to install plugins/extensions from any https URL, " +
+                          "not only the ones of the registry (insecure: runs unverified code). Command line " +
+                          "or DS_DOCKER_ALLOW_INSECURE_ADDON_URL_INSTALL only, ignored in the settings file")
+    boolean allowInsecureAddonUrlInstall;
     @Option(names = {"--protectedUriPrefix"}, description = "Protected URI prefix", defaultValue = "/api/")
     String protectedUriPrefix;
     @Option(names = {"--statusAllowedNets"}, description = "CIDR list for unauthenticated /api/status",
@@ -123,6 +129,7 @@ public class ServerOptions {
         DatashareOptions.putIfNotNull(props, CORS_OPT, cors);
         DatashareOptions.putIfNotNull(props, ROOT_HOST_OPT, rootHost);
         DatashareOptions.put(props, BROWSER_OPEN_LINK_OPT, browserOpenLink);
+        DatashareOptions.putIfTrue(props, ALLOW_INSECURE_ADDON_URL_INSTALL_OPT, allowInsecureAddonUrlInstall);
         DatashareOptions.putIfNotNull(props, PROTECTED_URI_PREFIX_OPT, protectedUriPrefix);
         DatashareOptions.putIfNotNull(props, STATUS_ALLOWED_NETS_OPT, statusAllowedNets);
         DatashareOptions.putIfNotNull(props, MAX_HTTP_BODY_SIZE_OPT, maxHttpBodySize);

@@ -108,6 +108,18 @@ public class RetroCompatibilityTest {
     }
 
     @Test
+    public void test_parity_allow_insecure_addon_url_install() {
+        // absent by default in both paths, so a DS_DOCKER_* env var is not overridden by the CLI properties
+        assertThat(parseLegacy("").containsKey("allowInsecureAddonUrlInstall")).isFalse();
+        assertThat(parseNew("app", "start").containsKey("allowInsecureAddonUrlInstall")).isFalse();
+
+        Properties legacy = parseLegacy("--allowInsecureAddonUrlInstall=true");
+        assertThat(legacy.getProperty("allowInsecureAddonUrlInstall")).isEqualTo("true");
+        assertPropertyEqual(legacy, parseNew("app", "start", "--allowInsecureAddonUrlInstall"),
+                            "allowInsecureAddonUrlInstall");
+    }
+
+    @Test
     public void test_parity_defaults() {
         Properties legacy = parseLegacy("");
         Properties picocli = parseNew("app", "start");

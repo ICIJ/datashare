@@ -638,6 +638,16 @@ public final class DatashareCliOptions {
                           "No report records are saved if not provided").withRequiredArg().ofType(String.class);
     }
 
+    static void allowInsecureAddonUrlInstall(OptionParser parser) {
+        parser.acceptsAll(singletonList(ALLOW_INSECURE_ADDON_URL_INSTALL_OPT),
+                          "allow the web API to install plugins/extensions from any https URL, " +
+                          "not only the ones of the registry (insecure: runs unverified code). Command line " +
+                          "or DS_DOCKER_ALLOW_INSECURE_ADDON_URL_INSTALL only, ignored in the settings file")
+              // No defaultsTo: JOpt would always emit false into the CLI properties, which CommonMode
+              // applies over the DS_DOCKER_* env vars, so the option could not be set from the environment.
+              .withRequiredArg().ofType(Boolean.class);
+    }
+
     static void enableBrowserOpenLink(OptionParser parser) {
         parser.acceptsAll(singletonList(BROWSER_OPEN_LINK_OPT), "try to open link in the default browser")
               .withRequiredArg().ofType(Boolean.class).defaultsTo(DEFAULT_BROWSER_OPEN_LINK);

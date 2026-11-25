@@ -42,6 +42,39 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_patch_configuration_ignores_allow_insecure_addon_url_install() throws IOException {
+        File settings = folder.newFile("file.settings");
+        Files.write(settings.toPath(), asList("foo=doe"));
+        PropertiesProvider propertiesProvider = new PropertiesProvider(settings.getAbsolutePath());
+        configure(routes -> routes.add(new SettingsResource(propertiesProvider, new TesseractOCRParserWrapper())).
+                filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
+
+        patch("/api/settings", "{\"data\": {\"foo\": \"qux\", \"allowInsecureAddonUrlInstall\":\"true\"}}").
+                withPreemptiveAuthentication("local", "pass").should().respond(200);
+
+        assertThat(propertiesProvider.get("allowInsecureAddonUrlInstall").isPresent()).isFalse();
+        Properties properties = new PropertiesProvider(settings.getAbsolutePath()).getProperties();
+        assertThat(properties).includes(entry("foo", "qux"));
+        assertThat(properties.containsKey("allowInsecureAddonUrlInstall")).isFalse();
+    }
+
+    @Test
+    public void test_patch_configuration_does_not_save_allow_insecure_addon_url_install_set_at_launch() throws IOException {
+        File settings = folder.newFile("file.settings");
+        Files.write(settings.toPath(), asList("foo=doe"));
+        PropertiesProvider propertiesProvider = new PropertiesProvider(settings.getAbsolutePath())
+                .overrideWith(PropertiesProvider.fromMap(Map.of("allowInsecureAddonUrlInstall", "true")));
+        configure(routes -> routes.add(new SettingsResource(propertiesProvider, new TesseractOCRParserWrapper())).
+                filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
+
+        patch("/api/settings", "{\"data\": {\"foo\": \"qux\"}}").
+                withPreemptiveAuthentication("local", "pass").should().respond(200);
+
+        assertThat(Files.readString(settings.toPath())).contains("foo=qux").excludes("allowInsecureAddonUrlInstall");
+        assertThat(propertiesProvider.get("allowInsecureAddonUrlInstall").orElse(null)).isEqualTo("true");
+    }
+
+    @Test
     public void test_patch_configuration_with_no_config_file() {
         configure(routes -> routes.add(new SettingsResource(new PropertiesProvider("/unwritable.conf"), new TesseractOCRParserWrapper())).
                 filter(new BasicAuthFilter("/", "icij", singleUser(local()))));

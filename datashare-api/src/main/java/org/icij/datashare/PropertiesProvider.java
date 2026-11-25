@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,6 +31,9 @@ import static java.util.stream.Collectors.toMap;
 public class PropertiesProvider {
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
     private static final String PREFIX = "DS_DOCKER_";
+    public static final String ALLOW_INSECURE_ADDON_URL_INSTALL_OPT = "allowInsecureAddonUrlInstall";
+    /** Options set at launch only (command line or DS_DOCKER_* env var): never read from nor saved to the settings file. */
+    public static final Set<String> LAUNCH_ONLY_OPTS = Set.of(ALLOW_INSECURE_ADDON_URL_INSTALL_OPT);
     public static final String SET_NAME_OPTION = "filterSet";
     public static final String SYNC_MODELS_OPTION = "syncModels";
     public static final String DATA_DIR_OPT = "dataDir";
@@ -82,7 +87,11 @@ public class PropertiesProvider {
         if (cachedProperties == null) {
             synchronized (this) {
                 if (cachedProperties == null) {
-                    Properties localProperties = getFileProperties();
+                    Properties localProperties = loadFileProperties();
+                    LAUNCH_ONLY_OPTS.stream().filter(localProperties::containsKey).forEach(opt -> logger.warn(
+                            "ignoring {} from {}: it can only be set with --{} or a DS_DOCKER_* env var", opt,
+                            settingsPath, opt));
+                    localProperties.keySet().removeAll(LAUNCH_ONLY_OPTS);
                     loadEnvVariables(localProperties);
                     cachedProperties = localProperties;
                     logger.info("properties set to {}", cachedProperties);
@@ -96,8 +105,15 @@ public class PropertiesProvider {
      * The settings file's own contents, without the DS_DOCKER_* fold-in {@link #getProperties()} adds.
      * A caller that ranks the operator's file against its own defaults needs the file alone: the env
      * vars are a separate, higher tier, and letting them ride along here promotes them silently.
+     * Launch-only options ({@link #LAUNCH_ONLY_OPTS}) are removed: a settings file cannot set them.
      */
     public Properties getFileProperties() {
+        Properties fileProperties = loadFileProperties();
+        fileProperties.keySet().removeAll(LAUNCH_ONLY_OPTS);
+        return fileProperties;
+    }
+
+    private Properties loadFileProperties() {
         Properties fileProperties = new Properties();
         if (settingsPath == null) {
             return fileProperties;
@@ -196,8 +212,11 @@ public class PropertiesProvider {
             throw new SettingsNotFound();
         }
         Properties toSave = new Properties();
-        toSave.putAll(getFilteredProperties("user.*"));
-        toSave.store(new FileOutputStream(settingsPath.toFile()), "Datashare properties");
+        toSave.putAll(getFilteredProperties(
+                Stream.concat(Stream.of("user.*"), LAUNCH_ONLY_OPTS.stream().map(Pattern::quote)).toArray(String[]::new)));
+        try (OutputStream out = new FileOutputStream(settingsPath.toFile())) {
+            toSave.store(out, "Datashare properties");
+        }
     }
 
     public static Properties fromMap(Map<String, Object> map) {

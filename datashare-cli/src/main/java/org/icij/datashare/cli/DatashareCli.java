@@ -158,6 +158,7 @@ public class DatashareCli {
         DatashareCliOptions.nlpParallelism(parser);
         DatashareCliOptions.followSymlinks(parser);
         DatashareCliOptions.enableBrowserOpenLink(parser);
+        DatashareCliOptions.allowInsecureAddonUrlInstall(parser);
         DatashareCliOptions.embeddedDocumentDownloadMaxSize(parser);
         DatashareCliOptions.batchSearchMaxTime(parser);
         DatashareCliOptions.batchThrottle(parser);

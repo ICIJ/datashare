@@ -47,6 +47,14 @@ public class RootResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_settings_does_not_obfuscate_allow_insecure_addon_url_install() {
+        configure(routes -> routes.add(new RootResource(
+                new PropertiesProvider(Map.of("allowInsecureAddonUrlInstall", "true")), indexer)));
+
+        get("/settings").should().respond(200).contain("\"allowInsecureAddonUrlInstall\":\"true\"");
+    }
+
+    @Test
     public void test_get_public_config_for_path_separator() {
         get("/settings").should()
                 .respond(200)

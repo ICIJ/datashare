@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Stream;
 import static net.codestory.http.payload.Payload.ok;
+import static org.icij.datashare.PropertiesProvider.LAUNCH_ONLY_OPTS;
 import org.icij.datashare.utils.PayloadFormatter;
 
 @Singleton
@@ -61,6 +62,8 @@ public class SettingsResource {
      * - if none of the two above cases is fulfilled we are taking the default CLI parameters (and those given by the user)
      * - if parameters are common between CLI and settings file, the CLI "wins"
      * - if a settings file is not writable then 404 will be returned (and a WARN will be logged at start)
+     * - launch-only options (PropertiesProvider.LAUNCH_ONLY_OPTS, e.g. allowInsecureAddonUrlInstall) are ignored
+     *   here and never saved: they can only be set on the command line or with a DS_DOCKER_* variable
      *
      * @return 200 or 404 or 403
      *
@@ -74,7 +77,15 @@ public class SettingsResource {
         }
         logger.info("user {} is updating the settings", context.currentUser().login());
         try {
-            propertiesProvider.overrideWith(data.asProperties()).save();
+            Properties patch = data.asProperties();
+            for (String launchOnlyOpt : LAUNCH_ONLY_OPTS) {
+                Object sent = patch.remove(launchOnlyOpt);
+                // the client sends every setting back: only a changed value is worth a warning
+                if (sent != null && !String.valueOf(sent).equals(propertiesProvider.get(launchOnlyOpt).orElse(null))) {
+                    logger.warn("ignoring {} in settings update: it can only be set at launch", launchOnlyOpt);
+                }
+            }
+            propertiesProvider.overrideWith(patch).save();
         } catch (PropertiesProvider.SettingsNotFound e) {
             return Payload.notFound();
         }

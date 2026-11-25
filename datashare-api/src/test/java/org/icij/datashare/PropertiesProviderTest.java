@@ -36,6 +36,28 @@ public class PropertiesProviderTest {
     }
 
     @Test
+    public void test_allow_insecure_addon_url_install_is_ignored_from_stgs_file() throws Exception {
+        File settings = folder.newFile("file.conf");
+        Files.write(settings.toPath(), asList("kept=doe", "allowInsecureAddonUrlInstall=true"));
+
+        Properties properties = new PropertiesProvider(settings.getAbsolutePath()).getProperties();
+
+        assertThat(properties).includes(entry("kept", "doe"));
+        assertThat(properties.containsKey("allowInsecureAddonUrlInstall")).isFalse();
+    }
+
+    @Test
+    public void test_allow_insecure_addon_url_install_is_not_saved_to_stgs_file() throws Exception {
+        File settings = folder.newFile("file.conf");
+        PropertiesProvider propertiesProvider = new PropertiesProvider(settings.getAbsolutePath());
+        propertiesProvider.overrideWith(PropertiesProvider.fromMap(Map.of("kept", "doe", "allowInsecureAddonUrlInstall", "true")));
+
+        propertiesProvider.save();
+
+        assertThat(readAllLines(settings.toPath())).contains("kept=doe").excludes("allowInsecureAddonUrlInstall=true");
+    }
+
+    @Test
     public void test_read_properties_from_classpath() {
         assertThat(new PropertiesProvider((String) null).getProperties().getProperty("foo")).isEqualTo("bar");
     }
