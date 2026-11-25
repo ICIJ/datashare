@@ -23,11 +23,7 @@ public class DatashareApiKey implements ApiKey {
     }
 
     public DatashareApiKey(SecretKey secretKey, User user) {
-        this(secretKey, user, null);
-    }
-
-    public DatashareApiKey(SecretKey secretKey, User user, Date expirationDate) {
-        this(secretKey, user, expirationDate, List.of());
+        this(secretKey, user, null, List.of());
     }
 
     public DatashareApiKey(SecretKey secretKey, User user, Date expirationDate, List<String> projects) {
@@ -44,11 +40,7 @@ public class DatashareApiKey implements ApiKey {
     }
 
     public DatashareApiKey(String hashedKey, User user, Date creationDate) {
-        this(hashedKey, user, creationDate, null);
-    }
-
-    public DatashareApiKey(String hashedKey, User user, Date creationDate, Date expirationDate) {
-        this(hashedKey, user, creationDate, expirationDate, List.of());
+        this(hashedKey, user, creationDate, null, List.of());
     }
 
     public DatashareApiKey(String hashedKey, User user, Date creationDate, Date expirationDate, List<String> projects) {

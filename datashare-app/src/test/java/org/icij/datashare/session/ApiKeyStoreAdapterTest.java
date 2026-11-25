@@ -38,7 +38,7 @@ public class ApiKeyStoreAdapterTest {
     @Test
     public void test_get_returns_null_for_expired_key() {
         Date expiration = Date.from(Instant.parse("2025-12-31T00:00:00Z"));
-        when(repository.get("key")).thenReturn(new DatashareApiKey("hash", User.local(), time.now(), expiration));
+        when(repository.get("key")).thenReturn(new DatashareApiKey("hash", User.local(), time.now(), expiration, List.of()));
 
         assertThat(adapter.get("key")).isNull();
     }

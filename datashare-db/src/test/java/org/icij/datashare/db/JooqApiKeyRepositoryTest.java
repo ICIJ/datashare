@@ -148,7 +148,7 @@ public class JooqApiKeyRepositoryTest {
     public void test_save_and_get_expiration_date() throws NoSuchAlgorithmException {
         SecretKey secretKey = DatashareApiKey.generateSecretKey();
         Date expiration = Date.from(Instant.parse("2020-08-01T00:00:00Z"));
-        repository.save(new DatashareApiKey(secretKey, User.local(), expiration));
+        repository.save(new DatashareApiKey(secretKey, User.local(), expiration, List.of()));
 
         assertThat(repository.get(getBase64Encoded(secretKey)).getExpirationDate()).isEqualTo(expiration);
     }
@@ -162,7 +162,7 @@ public class JooqApiKeyRepositoryTest {
     @Test
     public void test_save_again_resets_expiration_date() throws NoSuchAlgorithmException {
         Date expiration = Date.from(Instant.parse("2020-08-01T00:00:00Z"));
-        repository.save(new DatashareApiKey(DatashareApiKey.generateSecretKey(), User.local(), expiration));
+        repository.save(new DatashareApiKey(DatashareApiKey.generateSecretKey(), User.local(), expiration, List.of()));
         DatashareTime.getInstance().addMilliseconds(1000);
         repository.save(new DatashareApiKey(User.local()));
 
