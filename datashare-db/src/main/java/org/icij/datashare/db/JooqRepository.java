@@ -306,28 +306,14 @@ public class JooqRepository implements Repository {
     @Override
     public boolean deleteUserHistory(User user, UserEvent.Type type) {
         DSLContext ctx = using(connectionProvider, dialect);
-        if (user.scope() instanceof ProjectScope.Only) {
-            return ctx.transactionResult(configuration -> {
-                DSLContext inner = using(configuration);
-                Condition doomed = userHistoryOf(inner, user, type);
-                List<Integer> doomedIds =
-                        inner.select(USER_HISTORY.ID).from(USER_HISTORY).where(doomed).fetch(USER_HISTORY.ID);
-                inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(doomedIds))
-                     .execute();
-                return inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(doomedIds)).execute() > 0;
-            });
-        }
         return ctx.transactionResult(configuration -> {
-            DSLContext inner = using(connectionProvider, dialect);
-            SelectSelectStep<Record1<Integer>> innerSelect = inner.select(USER_HISTORY.ID);
-            inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
-                    innerSelect.from(USER_HISTORY).where(USER_HISTORY.TYPE.eq(type.id))
-                               .and(USER_HISTORY.USER_ID.eq(user.id)))).execute();
-            return inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.USER_ID.eq(user.id))
-                        .and(USER_HISTORY.TYPE.eq(type.id)).execute() > 0;
-
+            DSLContext inner = using(configuration);
+            Condition doomed = userHistoryOf(inner, user, type);
+            List<Integer> doomedIds =
+                    inner.select(USER_HISTORY.ID).from(USER_HISTORY).where(doomed).fetch(USER_HISTORY.ID);
+            inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(doomedIds)).execute();
+            return inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(doomedIds)).execute() > 0;
         });
-
     }
 
     @Override
