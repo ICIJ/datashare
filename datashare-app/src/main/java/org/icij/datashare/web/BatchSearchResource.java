@@ -343,7 +343,7 @@ public class BatchSearchResource {
         if (!(user.scope() instanceof ProjectScope.Only)) {
             return false;
         }
-        BatchSearch batchSearch = batchSearchRepository.get(user, batchId);
+        BatchSearch batchSearch = batchSearchRepository.get(user, batchId, false);
         return isOutOfScope(user, batchSearch);
     }
 
