@@ -288,6 +288,21 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_list_keys_refused_with_scoped_api_key() {
+        Users users = mock(Users.class);
+        when(users.find("local")).thenReturn(new DatashareUser(User.local()));
+        ApiKeyResource resource = new ApiKeyResource(taskFactory, apiKeyRepository,
+                                                     new ApiKeyExpiration(new PropertiesProvider()));
+        Date creation = new Date();
+        DatashareApiKey scopedKey = new DatashareApiKey("hash", User.local(), creation, null, List.of("p1"));
+        ApiKeyFilter apiKeyFilter = new ApiKeyFilter(users, key -> scopedKey, null);
+        configure(routes -> routes.add(resource).filter(apiKeyFilter));
+
+        get("/api/key/local/keys").withHeader("Authorization", "Bearer some-key").should().respond(403);
+        verify(apiKeyRepository, never()).getAll(any());
+    }
+
+    @Test
     public void test_other_user_keys_forbidden() {
         get("/api/key/bob/keys").should().respond(403);
         post("/api/key/bob/keys").should().respond(403);

@@ -22,6 +22,7 @@ import org.icij.datashare.session.ApiKeyFilter;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.user.ApiKey;
 import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.user.ProjectScope;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 import java.time.Instant;
@@ -134,11 +135,17 @@ public class ApiKeyResource {
     @ApiResponse(responseCode = "200", description = "returns the list of keys", content = {@Content(examples = {
             @ExampleObject(
                     value = "[{\"hashedKey\":\"c3e7766f\",\"projects\":[\"p1\"],\"creationDate\":\"2026-01-01T00:00:00Z\",\"expirationDate\":\"2027-02-01T00:00:00Z\"}]")})})
+    @ApiResponse(responseCode = "403",
+            description = "if the request is authenticated with a scoped API key: it must not see the projects of the other keys")
     @Get("/:userId/keys")
     public Payload listKeys(
             @Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,
             Context context) {
         verifyOwnership(userId, context);
+        User currentUser = (User) context.currentUser();
+        if (currentUser.scope() instanceof ProjectScope.Only) {
+            throw new ForbiddenException();
+        }
         List<Map<String, Object>> keys = new ArrayList<>();
         List<ApiKey> userKeys = apiKeyRepository.getAll(new User(userId));
         for (ApiKey apiKey : userKeys) {
