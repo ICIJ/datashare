@@ -49,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -496,7 +497,14 @@ public class UserResource {
             return rules;
         }
         List<String> scope = datashareUser.getProjectNames();
-        return rules.stream().filter(rule -> scope.contains(projectOf(rule))).collect(Collectors.toList());
+        List<CasbinRule> inScope = new ArrayList<>();
+        for (CasbinRule rule : rules) {
+            String project = projectOf(rule);
+            if (scope.contains(project)) {
+                inScope.add(rule);
+            }
+        }
+        return inScope;
     }
 
     @Operation(description = "Preflight request for history")

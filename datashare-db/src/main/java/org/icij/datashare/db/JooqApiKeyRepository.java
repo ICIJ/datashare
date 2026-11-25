@@ -80,8 +80,9 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
         DSLContext ctx = using(connectionProvider, dialect);
         return ctx.transactionResult(config -> {
             DSLContext tx = using(config);
-            int deleted =
-                    tx.deleteFrom(API_KEY).where(API_KEY.ID.eq(hashedKey).and(API_KEY.USER_ID.eq(user.id))).execute();
+            Condition isKey = API_KEY.ID.eq(hashedKey);
+            Condition ofUser = API_KEY.USER_ID.eq(user.id);
+            int deleted = tx.deleteFrom(API_KEY).where(isKey.and(ofUser)).execute();
             if (deleted == 0) {
                 return false;
             }
