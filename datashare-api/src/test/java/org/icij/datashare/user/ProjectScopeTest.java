@@ -29,6 +29,8 @@ public class ProjectScopeTest {
 
         assertThat(only.allows("a")).isFalse();
         assertThat(only.allows("*")).isFalse();
+        assertThat(only.allows(null)).isFalse();
+        assertThat(new ProjectScope.Only(Set.of("*")).allows("*")).isFalse();
         assertThat(only.allowsAll(List.of("b", "a"))).isFalse();
         assertThat(only.allowsAll(List.of())).isFalse();
     }

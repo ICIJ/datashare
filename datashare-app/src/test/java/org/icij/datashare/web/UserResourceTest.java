@@ -56,6 +56,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -268,8 +269,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         ScopedUser scoped = scopedToP1();
         actAs(scoped);
         UserEvent inScope = new UserEvent(User.local(), DOCUMENT, "in_scope", URI.create("in_scope_uri"));
-        when(jooqRepository.getUserHistory(eq(scoped), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean(), eq("p1"))).thenReturn(singletonList(inScope));
-        when(jooqRepository.getUserHistorySize(eq(scoped), eq(DOCUMENT), eq("p1"))).thenReturn(1);
+        when(jooqRepository.getUserHistory(same(scoped), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean(), eq("p1"))).thenReturn(singletonList(inScope));
+        when(jooqRepository.getUserHistorySize(same(scoped), eq(DOCUMENT), eq("p1"))).thenReturn(1);
 
         get("/api/users/me/history?type=document&from=0&size=10&projects=p1").should().respond(200)
                 .contain("in_scope_uri").contain("\"total\":1");
@@ -282,7 +283,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
         delete("/api/users/me/history?type=document").should().respond(204);
 
-        verify(jooqRepository).deleteUserHistory(scoped, DOCUMENT);
+        verify(jooqRepository).deleteUserHistory(same(scoped), eq(DOCUMENT));
     }
 
     @Test
