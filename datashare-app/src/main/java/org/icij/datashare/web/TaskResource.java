@@ -196,7 +196,7 @@ public class TaskResource {
         }
         List<String> projectIds = TaskFinder.projectIdsOf(taskView);
         User creator = (User) context.currentUser();
-        if (!ScopedUser.allows(creator, projectIds)) {
+        if (!creator.scope().allowsAll(projectIds)) {
             return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
         Task<V> task = new Task<>(taskView.id, taskView.name, taskUser(context), taskView.args);
@@ -292,7 +292,8 @@ public class TaskResource {
     public Payload search(String comaSeparatedProjects, Context context) throws IOException {
         List<String> requestedProjectIds = List.of(comaSeparatedProjects.split(","));
         User requester = (User) context.currentUser();
-        if (!ScopedUser.allows(requester, requestedProjectIds)) {
+        // no current user when the route is mounted without an authentication filter
+        if (requester != null && !requester.scope().allowsAll(requestedProjectIds)) {
             return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
         List<Part> parts = context.parts();
@@ -365,7 +366,7 @@ public class TaskResource {
         boolean readable = ownsSource || sourceBatchSearch.published;
         List<String> sourceProjectIds = sourceBatchSearch.projects.stream().map(ProjectProxy::getId).toList();
         boolean granted = sourceProjectIds.stream().allMatch(user::isGranted);
-        if (!readable || !granted || !ScopedUser.allows(user, sourceProjectIds)) {
+        if (!readable || !granted || !user.scope().allowsAll(sourceProjectIds)) {
             throw new NotFoundException();
         }
         HashMap<String, String> overriddenParameters = context.extract(HashMap.class);
@@ -419,7 +420,7 @@ public class TaskResource {
         List<String> projectIds = (List<String>) options.get("projectIds");
 
         User downloader = (User) context.currentUser();
-        if (!ScopedUser.allows(downloader, projectIds)) {
+        if (!downloader.scope().allowsAll(projectIds)) {
             return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
 

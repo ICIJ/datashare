@@ -26,7 +26,6 @@ import org.icij.datashare.Repository.Aggregate;
 import org.icij.datashare.Repository.AggregateList;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.artifact.PageArtifact;
 import org.icij.datashare.text.indexing.ExtractedText;
@@ -443,7 +442,7 @@ public class DocumentResource {
 
     private static boolean isInScope(DatashareUser user, Document document) {
         List<String> projectIds = List.of(document.getProject().getId());
-        return ScopedUser.allows(user, projectIds);
+        return user.scope().allowsAll(projectIds);
     }
 
     @Operation(description = "Retrieves the list of starred document for all projects for the current user.")

@@ -40,7 +40,7 @@ public class PostLoginEnrollerTest {
     @Test
     public void test_enroll_skips_when_user_already_has_role() {
         Authorizer authorizer = mock(Authorizer.class);
-        when(authorizer.can(any(), eq(Domain.DEFAULT), eq("project-a"), eq(Role.PROJECT_VISITOR))).thenReturn(true);
+        when(authorizer.can(anyString(), eq(Domain.DEFAULT), eq("project-a"), eq(Role.PROJECT_VISITOR))).thenReturn(true);
         PostLoginEnroller enroller = new PostLoginEnroller(authorizer);
         DatashareUser user = userWithProjects("project-a");
 
@@ -78,7 +78,7 @@ public class PostLoginEnrollerTest {
     @Test
     public void test_enroll_skipped_when_user_already_has_existing_role() {
         Authorizer authorizer = mock(Authorizer.class);
-        when(authorizer.can(any(), eq(Domain.DEFAULT), eq("project-a"), eq(Role.PROJECT_VISITOR))).thenReturn(true);
+        when(authorizer.can(anyString(), eq(Domain.DEFAULT), eq("project-a"), eq(Role.PROJECT_VISITOR))).thenReturn(true);
         PostLoginEnroller enroller = new PostLoginEnroller(authorizer);
         DatashareUser user = userWithProjects("project-a", "project-b");
 

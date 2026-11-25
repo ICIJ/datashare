@@ -8,7 +8,6 @@ import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import java.io.IOException;
@@ -55,7 +54,7 @@ public class TaskFinder {
                 batchSearchRecords.stream().map(TaskFinder::taskify).filter(filtersWithoutUser::filter);
         // Merge the list of tasks and deduplicate them by id
         Stream<Task<?>> allTasks = Stream.concat(userTasks, batchSearchTasks);
-        Stream<Task<?>> inScope = allTasks.filter(t -> ScopedUser.allows(user, projectIdsOf(t)));
+        Stream<Task<?>> inScope = allTasks.filter(t -> user.scope().allowsAll(projectIdsOf(t)));
         return inScope.collect(toMap(
                 // We deduplicate tasks by id
                 Entity::getId, task -> task,
@@ -79,14 +78,14 @@ public class TaskFinder {
     public Task<?> findVisibleTaskFor(User user, String id) throws IOException {
         Optional<Task<?>> managed = getTaskFromManager(id);
         Optional<Task<?>> owned = managed.filter(t -> Objects.equals(t.getUser(), user));
-        Optional<Task<?>> inScope = owned.filter(t -> ScopedUser.allows(user, projectIdsOf(t)));
+        Optional<Task<?>> inScope = owned.filter(t -> user.scope().allowsAll(projectIdsOf(t)));
         if (inScope.isPresent()) {
             return managed.get();
         }
         List<BatchSearchRecord> records = batchSearchRepository.getRecords(user, user.getProjectNames());
         Optional<BatchSearchRecord> record = records.stream().filter(r -> r.uuid.equals(id)).findFirst();
         Optional<Task<?>> taskified = record.map(TaskFinder::taskify);
-        Optional<Task<?>> visible = taskified.filter(t -> ScopedUser.allows(user, projectIdsOf(t)));
+        Optional<Task<?>> visible = taskified.filter(t -> user.scope().allowsAll(projectIdsOf(t)));
         return visible.orElseThrow(() -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
     }
 
