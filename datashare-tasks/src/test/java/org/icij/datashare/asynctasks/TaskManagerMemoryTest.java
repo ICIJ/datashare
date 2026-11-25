@@ -120,7 +120,7 @@ public class TaskManagerMemoryTest {
         Task<Integer> queuedTask = new Task<>("sleep", User.local(), Map.of("intParameter", 12));
         Task<Integer> cancelledTask = new Task<>("sleep", User.local(), Map.of("intParameter", 0));
 
-        taskManager.startTask(queuedTask, new Group(TaskGroupType.Test));
+        taskManager.insert(queuedTask, new Group(TaskGroupType.Test));
         taskManager.startTask(cancelledTask, new Group(TaskGroupType.Test));
         taskManager.stopTask(cancelledTask.getId());
 
@@ -135,7 +135,7 @@ public class TaskManagerMemoryTest {
         Task<Integer> cancelledTask = new Task<>("sleep", User.local(), Map.of("intParameter", 0));
         TaskFilters filters = new TaskFilters().with("sleep");
 
-        taskManager.startTask(queuedTask, new Group(TaskGroupType.Test));
+        taskManager.insert(queuedTask, new Group(TaskGroupType.Test));
         taskManager.startTask(cancelledTask, new Group(TaskGroupType.Test));
         taskManager.stopTask(cancelledTask.getId());
 
