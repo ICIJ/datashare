@@ -30,7 +30,6 @@ import org.icij.datashare.project.admin.ProjectNotFoundException;
 import org.icij.datashare.project.admin.ProjectRevoked;
 import org.icij.datashare.project.admin.WideRoleHeldException;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.ProjectScope;
 import org.icij.datashare.user.User;
@@ -525,22 +524,9 @@ public class UserResource {
         DatashareUser user = (DatashareUser) context.currentUser();
         Type eventType = Type.valueOf(type.toUpperCase());
         String sortBy = getStringValue(sort).orElse(USER_HISTORY.MODIFICATION_DATE.getName());
-        String[] projectIds = effectiveProjectIds(user, parseProjectIdsQueryArg(projects));
-        if (isScopedToNothing(user, projectIds)) {
-            WebResponse<UserEvent> emptyHistory = new WebResponse<>(Collections.emptyList(), from, size, 0);
-            return new Payload(emptyHistory);
-        }
+        String[] projectIds = parseProjectIdsQueryArg(projects);
         try {
             boolean descending = parseBooleanQueryArg(desc);
-            if (user instanceof ScopedUser) {
-                List<String> scope = user.getProjectNames();
-                List<UserEvent> events =
-                        repository.getScopedUserHistory(user, eventType, from, size, sortBy, descending, scope,
-                                                        projectIds);
-                int total = repository.getScopedUserHistorySize(user, eventType, scope, projectIds);
-                WebResponse<UserEvent> scopedResponse = new WebResponse<>(events, from, size, total);
-                return new Payload(scopedResponse);
-            }
             List<UserEvent> events =
                     repository.getUserHistory(user, eventType, from, size, sortBy, descending, projectIds);
             int total = repository.getUserHistorySize(user, eventType, projectIds);
@@ -558,21 +544,6 @@ public class UserResource {
     private static String projectOf(CasbinRule rule) {
         String[] domainAndProject = rule.getV2().split("::");
         return domainAndProject[domainAndProject.length - 1];
-    }
-
-    private static String[] effectiveProjectIds(DatashareUser user, String[] requested) {
-        if (!(user instanceof ScopedUser)) {
-            return requested;
-        }
-        List<String> scope = user.getProjectNames();
-        if (requested.length == 0) {
-            return scope.toArray(new String[0]);
-        }
-        return Stream.of(requested).filter(scope::contains).toArray(String[]::new);
-    }
-
-    private static boolean isScopedToNothing(DatashareUser user, String[] projectIds) {
-        return user instanceof ScopedUser && projectIds.length == 0;
     }
 
     @NotNull
@@ -622,11 +593,6 @@ public class UserResource {
             Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         Type eventType = Type.valueOf(type.toUpperCase());
-        if (user instanceof ScopedUser) {
-            List<String> scope = user.getProjectNames();
-            repository.deleteScopedUserHistory(user, eventType, scope);
-            return new Payload(204);
-        }
         repository.deleteUserHistory(user, eventType);
         return new Payload(204);
     }

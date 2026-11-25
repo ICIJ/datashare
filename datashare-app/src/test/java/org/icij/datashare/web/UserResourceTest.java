@@ -264,52 +264,25 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_history_of_scoped_user_is_limited_to_scope() {
-        actAs(scopedToP1());
+    public void test_history_of_scoped_user_is_read_for_the_scoped_user() {
+        ScopedUser scoped = scopedToP1();
+        actAs(scoped);
         UserEvent inScope = new UserEvent(User.local(), DOCUMENT, "in_scope", URI.create("in_scope_uri"));
-        UserEvent unfiltered = new UserEvent(User.local(), DOCUMENT, "unfiltered", URI.create("unfiltered_uri"));
-        when(jooqRepository.getScopedUserHistory(any(User.class), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean(), eq(List.of("p1")), eq("p1"))).thenReturn(singletonList(inScope));
-        when(jooqRepository.getScopedUserHistorySize(any(User.class), eq(DOCUMENT), eq(List.of("p1")), eq("p1"))).thenReturn(1);
-        when(jooqRepository.getUserHistory(any(User.class), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean())).thenReturn(singletonList(unfiltered));
-        when(jooqRepository.getUserHistorySize(any(User.class), eq(DOCUMENT))).thenReturn(1);
+        when(jooqRepository.getUserHistory(eq(scoped), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean(), eq("p1"))).thenReturn(singletonList(inScope));
+        when(jooqRepository.getUserHistorySize(eq(scoped), eq(DOCUMENT), eq("p1"))).thenReturn(1);
 
-        get("/api/users/me/history?type=document&from=0&size=10").should().respond(200)
+        get("/api/users/me/history?type=document&from=0&size=10&projects=p1").should().respond(200)
                 .contain("in_scope_uri").contain("\"total\":1");
-        get("/api/users/me/history?type=document&from=0&size=10").should().respond(200)
-                .not().contain("unfiltered_uri");
-        get("/api/users/me/history?type=document&from=0&size=10&projects=p2").should().respond(200)
-                .contain("\"total\":0").not().contain("unfiltered_uri");
     }
 
     @Test
-    public void test_history_of_scoped_user_with_no_project_left_is_empty() {
-        actAs(scopedTo("z", "p1"));
-        UserEvent unfiltered = new UserEvent(User.local(), DOCUMENT, "unfiltered", URI.create("unfiltered_uri"));
-        when(jooqRepository.getUserHistory(any(User.class), eq(DOCUMENT), eq(0), eq(10), anyString(), anyBoolean())).thenReturn(singletonList(unfiltered));
-        when(jooqRepository.getUserHistorySize(any(User.class), eq(DOCUMENT))).thenReturn(1);
-
-        get("/api/users/me/history?type=document&from=0&size=10").should().respond(200)
-                .contain("\"total\":0").not().contain("unfiltered_uri");
-    }
-
-    @Test
-    public void test_scoped_user_bulk_delete_only_deletes_scope() {
-        actAs(scopedToP1());
+    public void test_scoped_user_bulk_delete_is_done_for_the_scoped_user() {
+        ScopedUser scoped = scopedToP1();
+        actAs(scoped);
 
         delete("/api/users/me/history?type=document").should().respond(204);
 
-        verify(jooqRepository).deleteScopedUserHistory(any(User.class), eq(DOCUMENT), eq(List.of("p1")));
-        verify(jooqRepository, never()).deleteUserHistory(any(User.class), eq(DOCUMENT));
-    }
-
-    @Test
-    public void test_scoped_user_with_no_project_left_bulk_delete_deletes_nothing() {
-        actAs(scopedTo("z", "p1"));
-
-        delete("/api/users/me/history?type=document").should().respond(204);
-
-        verify(jooqRepository, never()).deleteUserHistory(any(User.class), eq(DOCUMENT));
-        verify(jooqRepository).deleteScopedUserHistory(any(User.class), eq(DOCUMENT), eq(List.of()));
+        verify(jooqRepository).deleteUserHistory(scoped, DOCUMENT);
     }
 
     @Test

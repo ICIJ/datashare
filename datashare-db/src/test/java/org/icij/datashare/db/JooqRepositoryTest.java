@@ -10,6 +10,7 @@ import org.icij.datashare.tabular.ExtractionMapping;
 import org.icij.datashare.tabular.RowSourceOptions;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.*;
+import org.icij.datashare.user.ProjectScope;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserFilter;
 import org.junit.Rule;
@@ -715,6 +716,15 @@ public class JooqRepositoryTest {
     }
 
 
+    private static User scopedTo(String... projectIds) {
+        return new User("userid") {
+            @Override
+            public ProjectScope scope() {
+                return new ProjectScope.Only(Set.of(projectIds));
+            }
+        };
+    }
+
     @Test
     public void test_delete_user_history_by_projects() {
         User user = new User("userid");
@@ -725,37 +735,79 @@ public class JooqRepositoryTest {
         repository.addToUserHistory(singletonList(project("p2")), onP2);
         repository.addToUserHistory(asList(project("p1"), project("p2")), onP1AndP2);
 
-        assertThat(repository.deleteScopedUserHistory(user, DOCUMENT, List.of("p1"))).isTrue();
+        assertThat(repository.deleteUserHistory(scopedTo("p1"), DOCUMENT)).isTrue();
 
         assertThat(repository.getUserEvents(user)).containsOnly(onP2, onP1AndP2);
     }
 
     @Test
     public void test_scoped_user_history_excludes_events_linked_outside_scope() {
-        User user = new User("userid");
+        User user = scopedTo("p1");
         UserEvent onP1 = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
         UserEvent onP1AndP2 = new UserEvent(user, DOCUMENT, "doc_p1_p2", Paths.get("uri_p1_p2").toUri());
         repository.addToUserHistory(singletonList(project("p1")), onP1);
         repository.addToUserHistory(asList(project("p1"), project("p2")), onP1AndP2);
-        List<String> scope = List.of("p1");
 
-        List<UserEvent> events =
-                repository.getScopedUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, scope, "p1");
-        int total = repository.getScopedUserHistorySize(user, DOCUMENT, scope, "p1");
+        List<UserEvent> events = repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, "p1");
+        int total = repository.getUserHistorySize(user, DOCUMENT, "p1");
 
         assertThat(events).containsExactly(onP1);
         assertThat(total).isEqualTo(1);
     }
 
     @Test
-    public void test_delete_user_history_without_project_ids_deletes_nothing() {
-        User user = new User("userid");
+    public void test_scoped_user_history_without_requested_project_is_limited_to_scope() {
+        User user = scopedTo("p1");
+        UserEvent onP1 = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
+        UserEvent onP2 = new UserEvent(user, DOCUMENT, "doc_p2", Paths.get("uri_p2").toUri());
+        UserEvent onP1AndP2 = new UserEvent(user, DOCUMENT, "doc_p1_p2", Paths.get("uri_p1_p2").toUri());
+        repository.addToUserHistory(singletonList(project("p1")), onP1);
+        repository.addToUserHistory(singletonList(project("p2")), onP2);
+        repository.addToUserHistory(asList(project("p1"), project("p2")), onP1AndP2);
+
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true)).containsExactly(onP1);
+        assertThat(repository.getUserHistorySize(user, DOCUMENT)).isEqualTo(1);
+    }
+
+    @Test
+    public void test_scoped_user_history_still_applies_the_requested_projects() {
+        User user = scopedTo("p1", "p2");
+        UserEvent onP1 = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
+        UserEvent onP2 = new UserEvent(user, DOCUMENT, "doc_p2", Paths.get("uri_p2").toUri());
+        repository.addToUserHistory(singletonList(project("p1")), onP1);
+        repository.addToUserHistory(singletonList(project("p2")), onP2);
+
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, "p2")).containsExactly(onP2);
+        assertThat(repository.getUserHistorySize(user, DOCUMENT, "p2")).isEqualTo(1);
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, "p3")).isEmpty();
+    }
+
+    @Test
+    public void test_scoped_user_with_empty_scope_sees_and_deletes_nothing() {
+        User user = scopedTo();
         UserEvent event = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
         repository.addToUserHistory(singletonList(project("p1")), event);
 
-        assertThat(repository.deleteScopedUserHistory(user, DOCUMENT, List.of())).isFalse();
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true)).isEmpty();
+        assertThat(repository.getUserHistorySize(user, DOCUMENT)).isEqualTo(0);
+        assertThat(repository.deleteUserHistory(user, DOCUMENT)).isFalse();
 
         assertThat(repository.getUserEvents(user)).containsExactly(event);
+    }
+
+    @Test
+    public void test_unscoped_user_sees_and_deletes_all_history() {
+        User user = new User("userid");
+        UserEvent onP1 = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
+        UserEvent onP1AndP2 = new UserEvent(user, DOCUMENT, "doc_p1_p2", Paths.get("uri_p1_p2").toUri());
+        repository.addToUserHistory(singletonList(project("p1")), onP1);
+        repository.addToUserHistory(asList(project("p1"), project("p2")), onP1AndP2);
+
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true)).containsOnly(onP1, onP1AndP2);
+        assertThat(repository.getUserHistorySize(user, DOCUMENT)).isEqualTo(2);
+        assertThat(repository.deleteUserHistory(user, DOCUMENT)).isTrue();
+
+        assertThat(repository.getUserEvents(user)).isEmpty();
     }
 
     @Test
