@@ -11,6 +11,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.ProjectScope;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserFilter;
 import org.jooq.*;
@@ -248,25 +249,14 @@ public class JooqRepository implements Repository {
         return ctx.fetchCount(USER_HISTORY, condition);
     }
 
-    @Override
-    public List<UserEvent> getScopedUserHistory(User user, UserEvent.Type type, int from, int size, String sort,
-                                                boolean desc, List<String> scope, String... projectIds) {
-        DSLContext ctx = using(connectionProvider, dialect);
-        Condition condition = scopedUserHistoryOf(ctx, user, type, scope, projectIds);
-        return fetchUserHistory(ctx, condition, from, size, sort, desc);
-    }
-
-    @Override
-    public int getScopedUserHistorySize(User user, UserEvent.Type type, List<String> scope, String... projectIds) {
-        DSLContext ctx = using(connectionProvider, dialect);
-        Condition condition = scopedUserHistoryOf(ctx, user, type, scope, projectIds);
-        return ctx.fetchCount(USER_HISTORY, condition);
-    }
-
     private static Condition userHistoryOf(DSLContext ctx, User user, UserEvent.Type type, String... projectIds) {
         Condition ofUser = USER_HISTORY.USER_ID.eq(user.id);
         Condition ofType = USER_HISTORY.TYPE.eq(type.id);
         Condition condition = ofUser.and(ofType);
+        if (user.scope() instanceof ProjectScope.Only only) {
+            Condition inScope = visibleInScope(ctx, only.projectIds());
+            condition = condition.and(inScope);
+        }
         if (projectIds.length == 0) {
             return condition;
         }
@@ -279,15 +269,20 @@ public class JooqRepository implements Repository {
 
     // An event linked to a project outside the scope would leak that project to a scoped key, so
     // every linked project must be in scope, not just one of them.
-    private static Condition scopedUserHistoryOf(DSLContext ctx, User user, UserEvent.Type type, List<String> scope,
-                                                 String... projectIds) {
-        Condition requested = userHistoryOf(ctx, user, type, projectIds);
+    private static Condition visibleInScope(DSLContext ctx, Set<String> scope) {
+        if (scope.isEmpty()) {
+            return falseCondition();
+        }
+        Condition inScope = USER_HISTORY_PROJECT.PRJ_ID.in(scope);
+        SelectConditionStep<Record1<Integer>> linkedInside =
+                ctx.select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(inScope);
+        Condition linkedToScope = USER_HISTORY.ID.in(linkedInside);
         Condition linkedToEvent = USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(USER_HISTORY.ID);
         Condition outsideScope = USER_HISTORY_PROJECT.PRJ_ID.notIn(scope);
         SelectConditionStep<Record1<Integer>> linkedOutside =
                 ctx.selectOne().from(USER_HISTORY_PROJECT).where(linkedToEvent).and(outsideScope);
         Condition noneOutside = notExists(linkedOutside);
-        return requested.and(noneOutside);
+        return linkedToScope.and(noneOutside);
     }
 
     private List<UserEvent> fetchUserHistory(DSLContext ctx, Condition condition, int from, int size, String sort,
@@ -311,6 +306,17 @@ public class JooqRepository implements Repository {
     @Override
     public boolean deleteUserHistory(User user, UserEvent.Type type) {
         DSLContext ctx = using(connectionProvider, dialect);
+        if (user.scope() instanceof ProjectScope.Only) {
+            return ctx.transactionResult(configuration -> {
+                DSLContext inner = using(configuration);
+                Condition doomed = userHistoryOf(inner, user, type);
+                List<Integer> doomedIds =
+                        inner.select(USER_HISTORY.ID).from(USER_HISTORY).where(doomed).fetch(USER_HISTORY.ID);
+                inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(doomedIds))
+                     .execute();
+                return inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(doomedIds)).execute() > 0;
+            });
+        }
         return ctx.transactionResult(configuration -> {
             DSLContext inner = using(connectionProvider, dialect);
             SelectSelectStep<Record1<Integer>> innerSelect = inner.select(USER_HISTORY.ID);
@@ -322,23 +328,6 @@ public class JooqRepository implements Repository {
 
         });
 
-    }
-
-    @Override
-    public boolean deleteScopedUserHistory(User user, UserEvent.Type type, List<String> scope) {
-        if (scope.isEmpty()) {
-            return false;
-        }
-        String[] scopeIds = scope.toArray(new String[0]);
-        DSLContext ctx = using(connectionProvider, dialect);
-        return ctx.transactionResult(configuration -> {
-            DSLContext inner = using(configuration);
-            Condition doomed = scopedUserHistoryOf(inner, user, type, scope, scopeIds);
-            List<Integer> doomedIds =
-                    inner.select(USER_HISTORY.ID).from(USER_HISTORY).where(doomed).fetch(USER_HISTORY.ID);
-            inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(doomedIds)).execute();
-            return inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(doomedIds)).execute() > 0;
-        });
     }
 
     @Override
