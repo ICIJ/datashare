@@ -70,7 +70,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -1019,8 +1018,10 @@ class CliApp {
     private static List<String> unknownProjects(Repository repository, List<String> userProjects,
                                                 List<String> projects) {
         List<Project> known = repository.getProjects(projects);
-        Set<String> knownNames = known.stream().map(Project::getName).collect(Collectors.toCollection(HashSet::new));
-        knownNames.addAll(userProjects);
+        Set<String> knownNames = new HashSet<>(userProjects);
+        for (Project project : known) {
+            knownNames.add(project.getName());
+        }
         return projects.stream().filter(name -> !knownNames.contains(name)).toList();
     }
 
