@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BUS_TYPE;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PARALLELISM;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_QUEUE_TYPE;
@@ -49,6 +50,17 @@ public class CommonModeTest {
 
         assertThat(CommonMode.getQueueType(modeWithRedis.propertiesProvider,"busType", DEFAULT_BUS_TYPE)).isEqualTo(QueueType.REDIS);
         assertThat(CommonMode.getQueueType(modeWithoutRedis.propertiesProvider,"queueType", DEFAULT_QUEUE_TYPE)).isEqualTo(QueueType.MEMORY);
+    }
+
+    @Test
+    public void test_invalid_allow_insecure_addon_url_install_stops_the_launch() {
+        IllegalArgumentException invalid = assertThrows(IllegalArgumentException.class,
+                () -> CommonMode.create(new HashMap<>() {{
+                    put("mode", Mode.LOCAL.name());
+                    put("allowInsecureAddonUrlInstall", "1");
+                }}));
+
+        assertThat(invalid.getMessage()).contains("allowInsecureAddonUrlInstall must be true or false, got: 1");
     }
 
     @Test

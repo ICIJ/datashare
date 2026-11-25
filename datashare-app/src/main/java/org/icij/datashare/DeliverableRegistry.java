@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.net.URL;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -21,6 +22,11 @@ public class DeliverableRegistry<T extends Deliverable> {
     public T get(String deliverableId) {
         return ofNullable(deliverableMap.get(deliverableId)).orElseThrow(
                 () -> new UnknownDeliverableException(deliverableId));
+    }
+
+    public Optional<T> findByUrl(URL url) {
+        return deliverableMap.values().stream().filter(
+                d -> d.getUrl() != null && d.getUrl().toString().equals(url.toString())).findFirst();
     }
 
     public Set<T> search(String patternString) {

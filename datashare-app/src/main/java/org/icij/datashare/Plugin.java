@@ -2,9 +2,6 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.file.Files;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
@@ -60,13 +57,7 @@ public class Plugin extends Extension {
 
     @NotNull
     public File download() throws IOException {
-        ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
-        File tmpFile = Files.createTempFile(TMP_PREFIX, "." + getExtension(url.toString())).toFile();
-        logger.info("downloading from url {}", url);
-        try (FileOutputStream fileOutputStream = new FileOutputStream(tmpFile)) {
-            fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-            return tmpFile;
-        }
+        return download(url, "." + getExtension(url.toString()), MAX_DOWNLOAD_SIZE);
     }
 
     @Override

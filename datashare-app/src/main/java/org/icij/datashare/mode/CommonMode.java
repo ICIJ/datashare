@@ -16,6 +16,7 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.DeliverableService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.asyncsearch.AsyncSearchStore;
@@ -152,6 +153,7 @@ public abstract class CommonMode extends AbstractModule implements Closeable {
         propertiesProvider = properties == null ? new PropertiesProvider() : new PropertiesProvider(
                 properties.getProperty(PropertiesProvider.SETTINGS_OPT)).overrideWith(properties);
         this.mode = getMode(properties);
+        DeliverableService.allowsInsecureUrlInstall(propertiesProvider); // fail at launch on an invalid value
 
         JsonObjectMapper.registerSubtypes(TaskResultSubtypes.getClasses());
 

@@ -19,7 +19,9 @@ public class ExtensionService extends DeliverableService<Extension> {
 
     @Inject
     public ExtensionService(PropertiesProvider propertiesProvider) {
-        this(Paths.get(propertiesProvider.get(PropertiesProvider.EXTENSIONS_DIR_OPT).orElse("." + EXTENSION_BASE_URL)));
+        super(Paths.get(propertiesProvider.get(PropertiesProvider.EXTENSIONS_DIR_OPT).orElse("." + EXTENSION_BASE_URL)),
+              ClassLoader.getSystemResourceAsStream(DEFAULT_EXTENSION_REGISTRY_FILENAME),
+              allowsInsecureUrlInstall(propertiesProvider));
     }
 
     public ExtensionService(Path extensionsDir) {

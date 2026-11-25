@@ -9,13 +9,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
-import org.apache.commons.compress.archivers.ArchiveException;
 import org.icij.datashare.DeliverablePackage;
 import org.icij.datashare.DeliverableRegistry;
 import org.icij.datashare.PluginService;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import static java.util.Optional.ofNullable;
@@ -52,31 +49,27 @@ public class PluginResource {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
-    @Operation(description = "Download (if necessary) and install plugin specified by its id or url." +
-                             "Request parameter `id` or `url` must be present.",
+    @Operation(description = "Download (if necessary) and install plugin specified by its id or url. " +
+                             "Request parameter `id` or `url` must be present. If both are present, `url` takes " +
+                             "precedence. A `url` must be the url of a registry entry, unless Datashare was " +
+                             "started with allowInsecureAddonUrlInstall: then any https url without user info " +
+                             "is accepted.",
             parameters = {@Parameter(name = "id", description = "id of the plugin", in = ParameterIn.QUERY),
                     @Parameter(name = "url", description = "url of the plugin", in = ParameterIn.QUERY)})
     @ApiResponse(responseCode = "200", description = "returns 200 if the plugin is installed")
-    @ApiResponse(responseCode = "400", description = "returns 400 if neither id nor url is provided")
-    @ApiResponse(responseCode = "404", description = "returns 404 if the plugin is not found by the provided id or url")
+    @ApiResponse(responseCode = "400", description = "returns 400 if neither id nor url is provided, " +
+                                                     "or if the url is malformed or not allowed")
+    @ApiResponse(responseCode = "404", description = "returns 404 if the plugin is not found by the provided id")
+    @ApiResponse(responseCode = "502", description = "returns 502 if the download fails, is larger than the " +
+                                                     "size limit, does not match the sha256 of the registry, or " +
+                                                     "is a refused archive (not an archive, entry outside the " +
+                                                     "target, size or entry limits)")
+    @ApiResponse(responseCode = "500", description = "returns 500 if the install fails locally (the detail is in " +
+                                                     "the server log)")
     @Put("/install")
-    public Payload installPlugin(Context context) throws IOException, ArchiveException {
-        String pluginUrlString = context.request().query().get("url");
-        try {
-            pluginService.downloadAndInstall(new URL(pluginUrlString));
-            return Payload.ok();
-        } catch (MalformedURLException not_url) {
-            String pluginId = context.request().query().get("id");
-            if (pluginId == null) {
-                return Payload.badRequest();
-            }
-            try {
-                pluginService.downloadAndInstall(pluginId);
-                return Payload.ok();
-            } catch (DeliverableRegistry.UnknownDeliverableException unknownDeliverableException) {
-                return Payload.notFound();
-            }
-        }
+    public Payload installPlugin(Context context) {
+        return DeliverableInstall.install(pluginService, context.request().query().get("url"),
+                                          context.request().query().get("id"));
     }
 
     @Operation(description = "Preflight request")

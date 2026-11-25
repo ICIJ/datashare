@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,8 +29,10 @@ public class PluginService extends DeliverableService<Plugin> {
 
     @Inject
     public PluginService(PropertiesProvider propertiesProvider, ExtensionService extensionService) {
-        this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR_OPT).orElse("." + PLUGINS_BASE_URL)),
-             extensionService);
+        super(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR_OPT).orElse("." + PLUGINS_BASE_URL)),
+              ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME),
+              allowsInsecureUrlInstall(propertiesProvider));
+        this.extensionService = extensionService;
     }
 
     public PluginService(Path pluginsDir) {
@@ -75,13 +78,17 @@ public class PluginService extends DeliverableService<Plugin> {
 
     private void downloadAndInstallWithExtension(Plugin plugin) throws IOException {
         if (!plugin.extensions.isEmpty() && extensionService == null) {
-            throw new NullPointerException("extensionService is required to install plugin with extensions");
+            throw new IllegalStateException("extensionService is required to install plugin with extensions");
         }
         for (String extension : plugin.extensions) {
             extensionService.downloadAndInstall(extension);
         }
         File tmpFile = plugin.download();
-        plugin.install(tmpFile, deliverablesDir);
+        try {
+            plugin.install(tmpFile, deliverablesDir);
+        } finally {
+            FileUtils.deleteQuietly(tmpFile);
+        }
     }
 
     public String addPlugins(String stringContent, List<String> userProjects) {
