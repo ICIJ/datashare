@@ -770,16 +770,16 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_scoped_user_history_still_applies_the_requested_projects() {
-        User user = scopedTo("p1", "p2");
+    public void test_scoped_user_history_requested_project_outside_scope_returns_nothing() {
+        User user = scopedTo("p1");
         UserEvent onP1 = new UserEvent(user, DOCUMENT, "doc_p1", Paths.get("uri_p1").toUri());
         UserEvent onP2 = new UserEvent(user, DOCUMENT, "doc_p2", Paths.get("uri_p2").toUri());
         repository.addToUserHistory(singletonList(project("p1")), onP1);
         repository.addToUserHistory(singletonList(project("p2")), onP2);
 
-        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, "p2")).containsExactly(onP2);
-        assertThat(repository.getUserHistorySize(user, DOCUMENT, "p2")).isEqualTo(1);
-        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, "p3")).isEmpty();
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, "p1")).containsExactly(onP1);
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true, "p2")).isEmpty();
+        assertThat(repository.getUserHistorySize(user, DOCUMENT, "p2")).isEqualTo(0);
     }
 
     @Test

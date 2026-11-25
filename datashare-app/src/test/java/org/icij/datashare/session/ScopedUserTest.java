@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -55,6 +56,13 @@ public class ScopedUserTest {
 
         assertThat(ScopedUser.unscoped(scoped)).isSameAs(original);
         assertThat(ScopedUser.unscoped(plain)).isSameAs(plain);
+    }
+
+    @Test
+    public void test_scope_is_the_projects_still_granted() {
+        ScopedUser scoped = new ScopedUser(original, List.of("b", "z"));
+
+        assertThat(scoped.scope()).isEqualTo(new ProjectScope.Only(Set.of("b")));
     }
 
     @Test

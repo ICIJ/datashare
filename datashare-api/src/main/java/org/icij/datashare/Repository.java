@@ -29,6 +29,8 @@ public interface Repository {
 
     boolean renameSavedSearch(User user, int eventId, String newName);
 
+    // getUserHistory, getUserHistorySize and deleteUserHistory(User, UserEvent.Type) apply user.scope(): a user
+    // restricted to some projects only sees and deletes events whose every linked project is in that scope.
     List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc,
                                    String... projectIds);
 

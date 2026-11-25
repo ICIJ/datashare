@@ -28,10 +28,10 @@ public sealed interface ProjectScope {
             projectIds = Set.copyOf(projectIds);
         }
 
-        // "*" is not a project id, so instance-wide and domain-wide checks are refused
+        // "*" is never allowed: instance-wide and domain-wide checks are refused
         @Override
         public boolean allows(String projectId) {
-            return projectIds.contains(projectId);
+            return projectId != null && !"*".equals(projectId) && projectIds.contains(projectId);
         }
 
         // naming no project at all asks for something that is not tied to a project
