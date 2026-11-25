@@ -13,18 +13,18 @@ import java.util.stream.Collectors;
 
 public class ScopedUser extends DatashareUser {
     private final DatashareUser delegate;
-    private final Set<String> scope;
+    private final Set<String> keyProjectIds;
 
     public ScopedUser(DatashareUser user, Collection<String> projectIds) {
         super(user);
         this.delegate = user;
-        this.scope = Set.copyOf(projectIds);
+        this.keyProjectIds = Set.copyOf(projectIds);
     }
 
     @Override
     public List<Project> getProjects() {
         List<Project> all = delegate.getProjects();
-        return all.stream().filter(p -> scope.contains(p.getId())).collect(Collectors.toList());
+        return all.stream().filter(p -> keyProjectIds.contains(p.getId())).collect(Collectors.toList());
     }
 
     @Override
@@ -48,7 +48,7 @@ public class ScopedUser extends DatashareUser {
         boolean last = depth == keys.length - 1;
         if (last && value instanceof List<?> projects) {
             List<Object> kept = new ArrayList<>(projects);
-            kept.retainAll(scope);
+            kept.retainAll(keyProjectIds);
             node.put(keys[depth], kept);
         } else if (!last && value instanceof Map<?, ?> child) {
             Map<String, Object> copy = new HashMap<>((Map<String, Object>) child);
