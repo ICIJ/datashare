@@ -27,7 +27,7 @@ public class FormAuthFilter extends DatashareAuthFilter {
     static final String LOGIN_PATH = "/auth/login";
     static final String SIGNOUT_PATH = "/auth/signout";
     private static final int LOGIN_BODY_MAX_LENGTH = 128 * 12 * 2 + 29;
-            // 128 characters for login and password, worst case escaped as 12 bytes, and some characters for json structure
+    // 128 characters for login and password, worst case escaped as 12 bytes, and some characters for json structure
     private final int sessionTtl;
     @Nullable
     private final PostLoginEnroller postLoginEnroller;
