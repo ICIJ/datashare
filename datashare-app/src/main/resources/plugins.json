@@ -5,6 +5,7 @@
       "name": "Site Alert",
       "description": "A plugin to display an alert banner.",
       "url": "https://github.com/ICIJ/datashare-plugin-site-alert/releases/download/v2.1.0/datashare-plugin-site-alert-v2.1.0.tgz",
+      "sha256": "2bf90352f0ed680f2efb4d1372046f0a5259c4708c6ce32e27924ce3a5dd71ab",
       "homepage": "https://github.com/ICIJ/datashare-plugin-site-alert",
       "version": "2.1.0",
       "type": "PLUGIN"
@@ -14,6 +15,7 @@
       "name": "Google Analytics",
       "description": "A Datashare plugin to add Google Analytics tracking.",
       "url": "https://github.com/ICIJ/datashare-plugin-ga/releases/download/v1.0.0/datashare-plugin-ga-v1.0.0.tgz",
+      "sha256": "24192d066b448ea49e3debd937c2f95470609448d56292a69fbbbc09c3ba7e0f",
       "homepage": "https://github.com/ICIJ/datashare-plugin-ga",
       "version": "1.0.0",
       "type": "PLUGIN"
@@ -23,6 +25,7 @@
       "name": "Sentence Case",
       "description": "A Datashare plugin to add a sentence case button to the extracted text view.",
       "url": "https://github.com/ICIJ/datashare-plugin-sentence-case/releases/download/v1.1.1/datashare-plugin-sentence-case-v1.1.1.tgz",
+      "sha256": "fd30d8e7b5624ed532a3494284674a74c431c440c1aa0cf2b0e28886877915b3",
       "homepage": "https://github.com/ICIJ/datashare-plugin-sentence-case",
       "version": "1.1.1",
       "type": "PLUGIN"
@@ -32,6 +35,7 @@
       "name": "Dataconnect",
       "description": "A Datashare plugin to create Dataconnect, a bridge between Datashare and ICIJ I-Hub.",
       "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/releases/download/v3.0.5/datashare-plugin-dataconnect-v3.0.5.tgz",
+      "sha256": "c5a4973ff7aed804d3829cc303514b4d1522310b8f248559a263c7550517c36c",
       "homepage": "https://github.com/ICIJ/datashare-plugin-dataconnect",
       "version": "3.0.5",
       "type": "PLUGIN"
@@ -41,6 +45,7 @@
       "name": "Tour",
       "description": "A Datashare plugin to build a tour guide on it.",
       "url": "https://github.com/ICIJ/datashare-plugin-tour/releases/download/v2.0.1/datashare-plugin-tour-v2.0.1.tgz",
+      "sha256": "e96c48432f4520f457582b849e07b287c4b05c9cd9ef39df45a4a4fe44dc95b3",
       "homepage": "https://github.com/ICIJ/datashare-plugin-tour",
       "version": "2.0.1",
       "type": "PLUGIN"
@@ -49,7 +54,8 @@
       "id": "datashare-plugin-neo4j-graph-widget",
       "name": "Neo4j Graph Widget",
       "description": "A Datashare plugin to create a neo4j graph from Datashare's projects",
-      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/1.1.5/datashare-plugin-neo4j-graph-widget-1.1.5.tgz",
+      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/1.1.6/datashare-plugin-neo4j-graph-widget-1.1.6.tgz",
+      "sha256": "f824816bb19dc5e1394eb5d2bf03e11f0102b4f31ec7c95efd3928120d584821",
       "homepage": "https://github.com/ICIJ/datashare-extension-neo4j",
       "version": "1.1.6",
       "extensions": ["datashare-extension-neo4j"],
@@ -60,6 +66,7 @@
       "name": "ASR",
       "description": "A Datashare plugin for audio and video transcription using speech recognition",
       "url": "https://github.com/ICIJ/datashare-extension-asr/releases/download/1.0.3/datashare-plugin-asr-1.0.3.tgz",
+      "sha256": "6a5986de18d46cf21d67ba63580c69eec499aee2d069bc24acc164a88da9cc07",
       "homepage": "https://github.com/ICIJ/datashare-extension-asr",
       "version": "1.0.3",
       "extensions": ["datashare-extension-asr"],

@@ -5,6 +5,7 @@
       "name": "OPENNLP Pipeline",
       "description": "Extension to extract NER entities with OPENNLP",
       "url": "https://github.com/ICIJ/datashare-extension-nlp-opennlp/releases/download/9.0.7/datashare-nlp-opennlp-9.0.7-jar-with-dependencies.jar",
+      "sha256": "cfa07d88bec700dac389b8eaf65b383abe12834460cc67b9241e4b3682b20c15",
       "homepage": "https://github.com/ICIJ/datashare-extension-nlp-opennlp",
       "version": "9.0.7",
       "type": "NLP"
@@ -14,6 +15,7 @@
       "name": "Dataconnect",
       "description": "A Datashare extension to create Dataconnect, a bridge between Datashare and I-Hub.",
       "url": "https://github.com/ICIJ/datashare-extension-dataconnect/releases/download/1.1.1/datashare-extension-dataconnect-1.1.1-jar-with-dependencies.jar",
+      "sha256": "2bfddf2db1371cc6b8ccb40fe60ff274f08eb3d2f164df8dd36a5ac0e6624739",
       "homepage": "https://github.com/ICIJ/datashare-extension-dataconnect",
       "version": "1.1.1",
       "type": "WEB"
@@ -22,7 +24,8 @@
       "id": "datashare-extension-neo4j",
       "name": "Neo4j",
       "description": "A Datashare extension to perform graph analysis using neo4j",
-      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/1.1.5/datashare-extension-neo4j-1.1.5-jar-with-dependencies.jar",
+      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/1.1.6/datashare-extension-neo4j-1.1.6-jar-with-dependencies.jar",
+      "sha256": "eda19ff2b04a0870e6183d2a7f49518520e6d8bd4fcdc55cf947b8c49dbfecfc",
       "homepage": "https://github.com/ICIJ/datashare-extension-neo4j",
       "version": "1.1.6",
       "type": "WEB"
@@ -32,6 +35,7 @@
       "name": "ASR",
       "description": "A Datashare extension to transcribe audio and video documents using speech recognition",
       "url": "https://github.com/ICIJ/datashare-extension-asr/releases/download/1.0.3/datashare-extension-asr-1.0.3-jar-with-dependencies.jar",
+      "sha256": "422c66dc988c196562c17f228963986d816a21caa74fd9e6f77639510d068f93",
       "homepage": "https://github.com/ICIJ/datashare-extension-asr",
       "version": "1.0.3",
       "type": "WEB"
