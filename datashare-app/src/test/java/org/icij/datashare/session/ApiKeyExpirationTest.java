@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -178,7 +179,7 @@ public class ApiKeyExpirationTest {
 
     private static ApiKey apiKey(String creationDate, String expirationDate) {
         Date expiration = expirationDate == null ? null : date(expirationDate);
-        return new DatashareApiKey("hash", User.local(), date(creationDate), expiration);
+        return new DatashareApiKey("hash", User.local(), date(creationDate), expiration, List.of());
     }
 
     private static Date date(String instant) {
