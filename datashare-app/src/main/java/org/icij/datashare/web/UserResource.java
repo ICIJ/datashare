@@ -32,6 +32,7 @@ import org.icij.datashare.project.admin.WideRoleHeldException;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.ProjectScope;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.admin.UserAdminService;
 import org.icij.datashare.user.admin.UserCreateRequest;
@@ -492,7 +493,7 @@ public class UserResource {
     public List<CasbinRule> getUserPermissions(Context context) {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
         List<CasbinRule> rules = authorizer.getGroupPermissions(User.localUser(datashareUser.id));
-        if (!(datashareUser instanceof ScopedUser)) {
+        if (!(datashareUser.scope() instanceof ProjectScope.Only)) {
             return rules;
         }
         List<String> scope = datashareUser.getProjectNames();
@@ -594,7 +595,7 @@ public class UserResource {
     public Payload addToUserHistory(@Parameter(name = "query", description = "user history query to save",
             in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
         User currentUser = (User) context.currentUser();
-        if (currentUser instanceof ScopedUser) {
+        if (currentUser.scope() instanceof ProjectScope.Only) {
             List<String> queryProjectIds =
                     query.projects.stream().map(project -> project.name).collect(Collectors.toList());
             if (!isNull(query.eventId) || !currentUser.scope().allowsAll(queryProjectIds)) {
@@ -642,10 +643,11 @@ public class UserResource {
     @Delete("/me/history/event?id=:eventId")
     public Payload deleteUserEvent(@Parameter(name = "eventId", description = "user history event id to delete",
             in = ParameterIn.QUERY) String eventId, Context context) {
-        if (context.currentUser() instanceof ScopedUser) {
+        DatashareUser currentUser = (DatashareUser) context.currentUser();
+        if (currentUser.scope() instanceof ProjectScope.Only) {
             return PayloadFormatter.error(Authorizer.INSUFFICIENT_ROLE, HttpStatus.FORBIDDEN);
         }
-        repository.deleteUserHistoryEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
+        repository.deleteUserHistoryEvent(currentUser, Integer.parseInt(eventId));
         return new Payload(204);
     }
 
