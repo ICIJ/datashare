@@ -194,8 +194,6 @@ public class Extension implements Deliverable {
         }
         logger.info("installing extension from file {} into {}", extensionFile, extensionsDir);
         copy(extensionFile.toPath(), extensionsDir.resolve(getUrlFileName()));
-        if (isTemporaryFile(extensionFile))
-            extensionFile.delete();
         extensionsDir.resolve(getUrlFileName()).toFile().setExecutable(true);
     }
 
@@ -292,10 +290,6 @@ public class Extension implements Deliverable {
 
     protected String getUrlFileName() {
         return DeliverableHelper.getUrlFileName(url);
-    }
-
-    protected boolean isTemporaryFile(File extensionFile) {
-        return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);
     }
 
     @Override

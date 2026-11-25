@@ -7,13 +7,19 @@ import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.function.IORunnable;
 import java.io.*;
 import java.net.URL;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipException;
 import org.jetbrains.annotations.NotNull;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
@@ -62,57 +68,143 @@ public class Plugin extends Extension {
 
     @Override
     public void install(File pluginFile, Path pluginsDir) throws IOException {
+        install(pluginFile, pluginsDir, () -> {});
+    }
+
+    /**
+     * Extracts and checks the archive in a staging directory, runs beforeInstall, then installs the content.
+     * A refused archive or a failing beforeInstall leaves the plugins directory untouched.
+     */
+    void install(File pluginFile, Path pluginsDir, IORunnable beforeInstall) throws IOException {
+        Path stagingDir = Files.createTempDirectory(temporaryDirectory(), TMP_PREFIX);
+        try {
+            extract(pluginFile, stagingDir);
+            beforeInstall.run();
+            installExtracted(stagingDir, pluginsDir);
+        } finally {
+            FileUtils.deleteQuietly(stagingDir.toFile());
+        }
+    }
+
+    private void extract(File pluginFile, Path targetDir) throws IOException {
+        Path canonicalTargetDir = targetDir.toAbsolutePath().normalize();
+        long totalExtractedSize = 0;
+        int entryCount = 0;
+
+        try (InputStream file = new BufferedInputStream(new FileInputStream(pluginFile));
+             InputStream is = pluginFile.getName().endsWith("gz") ?
+                     new BufferedInputStream(new GZIPInputStream(file)) : file;
+             ArchiveInputStream<?> archive = new ArchiveStreamFactory().createArchiveInputStream(is)) {
+            ArchiveEntry entry;
+            while ((entry = nextEntry(archive)) != null) {
+                if (++entryCount > MAX_ENTRY_COUNT) {
+                    throw new InvalidDeliverableException(
+                            "Archive contains too many entries (limit: " + MAX_ENTRY_COUNT + ")");
+                }
+                Path resolvedPath = resolve(canonicalTargetDir, entry);
+                try {
+                    if (entry.isDirectory()) {
+                        Files.createDirectories(resolvedPath);
+                    } else {
+                        Files.createDirectories(resolvedPath.getParent()); // archives may have no directory entries
+                        try (OutputStream outputFileStream = new FileOutputStream(resolvedPath.toFile())) {
+                            totalExtractedSize += copyBounded(archive, outputFileStream, MAX_ENTRY_SIZE);
+                        }
+                    }
+                } catch (FileAlreadyExistsException | FileNotFoundException conflict) {
+                    // a file entry and a directory entry with the same path. No cause: its message is the temp
+                    // path with the entry name, and the web handler logs the cause with the stack trace
+                    throw new InvalidDeliverableException("Archive entries conflict with each other");
+                }
+                if (totalExtractedSize > MAX_TOTAL_SIZE) {
+                    throw new InvalidDeliverableException(
+                            "Archive total extracted size exceeds limit (" + MAX_TOTAL_SIZE + " bytes)");
+                }
+            }
+            if (entryCount == 0) {
+                // nothing to install: refusing here keeps the installed version and its extensions untouched
+                throw new InvalidDeliverableException("Archive has no entry");
+            }
+        } catch (ArchiveException | ZipException | EOFException e) {
+            throw notReadable(e);
+        }
+    }
+
+    private static ArchiveEntry nextEntry(ArchiveInputStream<?> archive) throws InvalidDeliverableException {
+        try {
+            return archive.getNextEntry();
+        } catch (IOException e) {
+            throw notReadable(e);
+        }
+    }
+
+    /** The entry name comes from the archive: it is never put in a message, it could forge log lines. */
+    private static Path resolve(Path canonicalTargetDir, ArchiveEntry entry) throws InvalidDeliverableException {
+        try {
+            Path resolvedPath = canonicalTargetDir.resolve(entry.getName()).normalize();
+            if (!resolvedPath.startsWith(canonicalTargetDir)) {
+                throw new InvalidDeliverableException("Archive entry escapes target directory");
+            }
+            return resolvedPath;
+        } catch (InvalidPathException e) {
+            throw new InvalidDeliverableException("Archive entry has an invalid name");
+        }
+    }
+
+    private static InvalidDeliverableException notReadable(Exception cause) {
+        return new InvalidDeliverableException("not a readable plugin archive", cause);
+    }
+
+    /**
+     * Installs the extracted content, then removes the previous versions. An existing directory with the same
+     * name is replaced, not merged. If a copy fails, what was created is removed and what was replaced is put
+     * back, so the plugins directory is left as it was.
+     */
+    private void installExtracted(Path extractedDir, Path pluginsDir) throws IOException {
+        logger.info("installing plugin {} into {}", id, pluginsDir);
+        List<String> names = List.of(ofNullable(extractedDir.toFile().list()).orElse(new String[0]));
+        Path replacedDir = Files.createTempDirectory(temporaryDirectory(), TMP_PREFIX);
+        List<String> created = new ArrayList<>();
+        try {
+            for (String name : names) {
+                File target = pluginsDir.resolve(name).toFile();
+                if (target.exists()) {
+                    FileUtils.moveToDirectory(target, replacedDir.toFile(), false);
+                }
+                created.add(name);
+                File extracted = extractedDir.resolve(name).toFile();
+                if (extracted.isDirectory()) {
+                    FileUtils.copyDirectory(extracted, target);
+                } else {
+                    FileUtils.copyFile(extracted, target);
+                }
+            }
+        } catch (IOException | RuntimeException copyFailed) {
+            created.forEach(name -> FileUtils.deleteQuietly(pluginsDir.resolve(name).toFile()));
+            for (File replaced : ofNullable(replacedDir.toFile().listFiles()).orElse(new File[0])) {
+                try {
+                    FileUtils.moveToDirectory(replaced, pluginsDir.toFile(), false);
+                } catch (IOException restoreFailed) {
+                    logger.error("cannot put back {} after a failed install of {}", replaced.getName(), id, restoreFailed);
+                }
+            }
+            throw copyFailed;
+        } finally {
+            FileUtils.deleteQuietly(replacedDir.toFile());
+        }
+
         File[] pluginDirDirectories =
                 pluginsDir.toFile().listFiles((dir, fileName) -> dir.toPath().resolve(fileName).toFile().isDirectory());
         File[] candidateFiles = ofNullable(pluginDirDirectories).orElse(new File[0]);
         List<File> previousVersionInstalled =
-                getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
-        if (previousVersionInstalled.size() > 0) {
+                getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName())).stream()
+                        .filter(previous -> !names.contains(previous.getName())).toList();
+        if (!previousVersionInstalled.isEmpty()) {
             logger.info("removing previous versions {}", previousVersionInstalled);
             for (File file : previousVersionInstalled) {
                 FileUtils.deleteDirectory(file);
             }
         }
-        logger.info("installing plugin from file {} into {}", pluginFile, pluginsDir);
-
-        Path canonicalPluginsDir = pluginsDir.toAbsolutePath().normalize();
-        long totalExtractedSize = 0;
-        int entryCount = 0;
-
-        InputStream is = new BufferedInputStream(new FileInputStream(pluginFile));
-        if (pluginFile.getName().endsWith("gz")) {
-            is = new BufferedInputStream(new GZIPInputStream(is));
-        }
-        try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
-            ArchiveEntry entry;
-            while ((entry = zippedArchiveInputStream.getNextEntry()) != null) {
-                if (++entryCount > MAX_ENTRY_COUNT) {
-                    throw new IOException("Archive contains too many entries (limit: " + MAX_ENTRY_COUNT + ")");
-                }
-                Path resolvedPath = canonicalPluginsDir.resolve(entry.getName()).normalize();
-                if (!resolvedPath.startsWith(canonicalPluginsDir)) {
-                    throw new IOException("Archive entry escapes target directory: " + entry.getName());
-                }
-                final File outputFile = resolvedPath.toFile();
-                if (entry.isDirectory()) {
-                    if (!outputFile.exists() && !outputFile.mkdirs()) {
-                        throw new IllegalStateException("Couldn't create directory " + outputFile.getAbsolutePath());
-                    }
-                } else {
-                    try (OutputStream outputFileStream = new FileOutputStream(outputFile)) {
-                        totalExtractedSize += copyBounded(zippedArchiveInputStream, outputFileStream, MAX_ENTRY_SIZE);
-                    }
-                    if (totalExtractedSize > MAX_TOTAL_SIZE) {
-                        throw new IOException(
-                                "Archive total extracted size exceeds limit (" + MAX_TOTAL_SIZE + " bytes)");
-                    }
-                }
-            }
-        } catch (ArchiveException e) {
-            throw new RuntimeException(e);
-        }
-        if (isTemporaryFile(pluginFile))
-            pluginFile.delete();
     }
 
     @Override
@@ -134,13 +226,22 @@ public class Plugin extends Extension {
         byte[] buf = new byte[8192];
         long total = 0;
         int n;
-        while ((n = in.read(buf)) != -1) {
+        while ((n = readArchive(in, buf)) != -1) {
             total += n;
             if (total > maxBytes) {
-                throw new IOException("Archive entry exceeds size limit (" + maxBytes + " bytes)");
+                throw new InvalidDeliverableException("Archive entry exceeds size limit (" + maxBytes + " bytes)");
             }
             out.write(buf, 0, n);
         }
         return total;
+    }
+
+    /** A failing read is the archive's fault (truncated, corrupt), unlike a failing write. */
+    private static int readArchive(InputStream in, byte[] buf) throws InvalidDeliverableException {
+        try {
+            return in.read(buf);
+        } catch (IOException e) {
+            throw notReadable(e);
+        }
     }
 }

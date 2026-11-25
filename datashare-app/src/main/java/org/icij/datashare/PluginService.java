@@ -80,12 +80,13 @@ public class PluginService extends DeliverableService<Plugin> {
         if (!plugin.extensions.isEmpty() && extensionService == null) {
             throw new IllegalStateException("extensionService is required to install plugin with extensions");
         }
-        for (String extension : plugin.extensions) {
-            extensionService.downloadAndInstall(extension);
-        }
         File tmpFile = plugin.download();
         try {
-            plugin.install(tmpFile, deliverablesDir);
+            plugin.install(tmpFile, deliverablesDir, () -> {
+                for (String extension : plugin.extensions) {
+                    extensionService.downloadAndInstall(extension);
+                }
+            });
         } finally {
             FileUtils.deleteQuietly(tmpFile);
         }
