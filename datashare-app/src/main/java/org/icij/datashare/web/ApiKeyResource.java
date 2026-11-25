@@ -29,7 +29,6 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import static net.codestory.http.payload.Payload.ok;
@@ -179,7 +178,7 @@ public class ApiKeyResource {
                 return PayloadFormatter.error("projects not granted: " + refusedNames, HttpStatus.BAD_REQUEST);
             }
             apiKey = taskFactory.createGenApiKey(new User(userId), expirationDate, projects).call();
-        } catch (ApiKeyExpiration.InvalidExpirationException | InvalidProjectsException e) {
+        } catch (IllegalArgumentException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
         return new Payload("application/json", Map.of("apiKey", apiKey), 201);
@@ -235,28 +234,22 @@ public class ApiKeyResource {
             return List.of();
         }
         if (!projects.isArray()) {
-            throw new InvalidProjectsException("invalid projects: expected an array of strings");
+            throw new IllegalArgumentException("invalid projects: expected an array of strings");
         }
-        LinkedHashSet<String> ids = new LinkedHashSet<>();
+        List<String> ids = new ArrayList<>();
         for (JsonNode project : projects) {
             if (!project.isTextual()) {
-                throw new InvalidProjectsException("invalid projects: expected an array of strings");
+                throw new IllegalArgumentException("invalid projects: expected an array of strings");
             }
             ids.add(project.asText());
         }
-        return List.copyOf(ids);
+        return ids;
     }
 
     // a key must not mint its successor, otherwise a leaked key outlives its own expiration
     private static void refuseApiKeyAuthentication(Context context) {
         if (ApiKeyFilter.isAuthenticated(context)) {
             throw new ForbiddenException();
-        }
-    }
-
-    private static class InvalidProjectsException extends RuntimeException {
-        InvalidProjectsException(String message) {
-            super(message);
         }
     }
 
