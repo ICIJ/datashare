@@ -8,10 +8,8 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.UnknownTask;
-import org.icij.datashare.batch.BatchDownload;
-import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.text.ProjectProxy;
+import org.icij.datashare.tasks.TaskFinder;
 import org.icij.datashare.utils.PayloadFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +18,6 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 
 public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy>, TaskPolicyChecker {
     private final Authorizer authorizer;
@@ -53,29 +49,12 @@ public class TaskPolicyAnnotation implements ApplyAroundAnnotation<TaskPolicy>, 
 
     private boolean isAllowedSingleTask(Task<Serializable> task, TaskPolicy annotation, DatashareUser user,
                                         Domain domain) {
-        Object batchSearchRecord = task.args.get("batchRecord");
-        Object batchDownload = task.args.get("batchDownload");
-        if (batchSearchRecord instanceof BatchSearchRecord bsr) {
-            // BatchSearches are linked to multiple projects
-            return isAllowedForProjects(bsr.projects.stream().map(ProjectProxy::getId).toList(), annotation, user,
-                                        domain, task);
-        } else if (batchDownload instanceof BatchDownload bd) {
-            // BatchDownloads are linked to multiple projects
-            return isAllowedForProjects(bd.projects.stream().map(ProjectProxy::getId).toList(), annotation, user,
-                                        domain, task);
-        } else {
-            // Tasks are linked to ONE project at a time
-            String projectId = ofNullable((String) task.args.get(DEFAULT_PROJECT_OPT)).orElseThrow(
-                    () -> new IllegalStateException(
-                            "Task " + task.id + " does not have a project id in its arguments"));
-            Authorizer.requireValue(projectId, false);
-            // Check if user as role based rights or is owner with access rights (if ownerRole is specified)
-            boolean isAllowed = authorizer.can(user, domain, projectId, annotation.role());
-            boolean ownershipEnabled = annotation.ownerRole() != Role.NONE;
-            boolean canAsOwner = authorizer.can(user, domain, projectId, annotation.ownerRole());
-            boolean hasOwnerRole = ownershipEnabled && canAsOwner && isTaskOwner(user, task);
-            return isAllowed || hasOwnerRole;
+        List<String> projectIds = TaskFinder.projectIdsOf(task);
+        if (projectIds.isEmpty()) {
+            throw new IllegalStateException("Task " + task.id + " does not have a project id in its arguments");
         }
+        projectIds.forEach(projectId -> Authorizer.requireValue(projectId, false));
+        return isAllowedForProjects(projectIds, annotation, user, domain, task);
     }
 
     @Override

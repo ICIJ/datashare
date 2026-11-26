@@ -547,4 +547,21 @@ public class TaskPolicyAnnotationTest {
         assertEquals(false, annotation.isAllowed(scoped, taskManager.getTask(taskId), adminTaskPolicy));
     }
 
+    @Test
+    public void test_scoped_user_refused_when_project_arg_is_out_of_scope() throws IOException {
+        Context context = mock(Context.class);
+        authorizer.addRoleForUserInProject(localUser("cecile"), Role.PROJECT_ADMIN, Domain.DEFAULT, project("p2"));
+        String taskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
+            put("defaultProject", projectId);
+            put("project", "p2");
+        }});
+        ScopedUser scoped = new ScopedUser(new DatashareUser(User.localUser("cecile", projectId, "p2")), List.of(projectId));
+
+        when(context.currentUser()).thenReturn(scoped);
+        when(context.pathParam("taskName:")).thenReturn(taskId);
+
+        Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
+        assertEquals(403, result.code());
+    }
+
 }
