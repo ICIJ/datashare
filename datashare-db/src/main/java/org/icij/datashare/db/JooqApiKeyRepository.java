@@ -1,6 +1,5 @@
 package org.icij.datashare.db;
 
-import org.icij.datashare.db.tables.records.ApiKeyProjectRecord;
 import org.icij.datashare.db.tables.records.ApiKeyRecord;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.ApiKey;
@@ -21,7 +20,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -136,13 +134,9 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
             return List.of();
         }
         List<String> ids = records.stream().map(ApiKeyRecord::getId).collect(Collectors.toList());
-        Map<String, List<String>> projectsByKey = new HashMap<>();
         Condition ofKeys = API_KEY_PROJECT.API_KEY_ID.in(ids);
-        List<ApiKeyProjectRecord> rows = ctx.selectFrom(API_KEY_PROJECT).where(ofKeys).fetch();
-        for (ApiKeyProjectRecord row : rows) {
-            List<String> projects = projectsByKey.computeIfAbsent(row.getApiKeyId(), id -> new ArrayList<>());
-            projects.add(row.getPrjId());
-        }
+        Map<String, List<String>> projectsByKey = ctx.selectFrom(API_KEY_PROJECT).where(ofKeys)
+                                                     .fetchGroups(API_KEY_PROJECT.API_KEY_ID, API_KEY_PROJECT.PRJ_ID);
         List<ApiKey> apiKeys = new ArrayList<>();
         for (ApiKeyRecord apiKeyRecord : records) {
             List<String> projects = projectsByKey.getOrDefault(apiKeyRecord.getId(), List.of());
