@@ -11,7 +11,7 @@ public class ApiKeyCommandTest extends AbstractDatashareCommandTest {
 
     @Test
     public void test_api_key_create_with_expiration_date() {
-        Properties props = parse("api-key", "create", "alice", "--expiration-date", "2027-02-01");
+        Properties props = parse("api-key", "create", "alice", "--expirationDate", "2027-02-01");
         assertThat(props).includes(entry("apiKeyExpirationDate", "2027-02-01"));
     }
 
