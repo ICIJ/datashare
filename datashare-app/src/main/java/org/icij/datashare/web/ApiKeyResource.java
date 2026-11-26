@@ -175,19 +175,25 @@ public class ApiKeyResource {
             Context context) throws Exception {
         verifyOwnership(userId, context);
         refuseApiKeyAuthentication(context);
-        String apiKey;
+        Date expirationDate;
+        List<String> projects;
         try {
             String body = context.request().content();
-            Date expirationDate = requestedExpirationDate(body);
-            List<String> projects = requestedProjects(body);
-            User currentUser = (User) context.currentUser();
-            List<String> refused = projects.stream().filter(id -> !currentUser.isGranted(id)).toList();
-            if (!refused.isEmpty()) {
-                String refusedNames = String.join(", ", refused);
-                return PayloadFormatter.error("projects not granted: " + refusedNames, HttpStatus.BAD_REQUEST);
-            }
-            apiKey = taskFactory.createGenApiKey(new User(userId), expirationDate, projects).call();
+            expirationDate = requestedExpirationDate(body);
+            projects = requestedProjects(body);
         } catch (IllegalArgumentException e) {
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+        }
+        User currentUser = (User) context.currentUser();
+        List<String> refused = projects.stream().filter(id -> !currentUser.isGranted(id)).toList();
+        if (!refused.isEmpty()) {
+            String refusedNames = String.join(", ", refused);
+            return PayloadFormatter.error("projects not granted: " + refusedNames, HttpStatus.BAD_REQUEST);
+        }
+        String apiKey;
+        try {
+            apiKey = taskFactory.createGenApiKey(new User(userId), expirationDate, projects).call();
+        } catch (ApiKeyExpiration.InvalidExpirationException e) {
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
         return new Payload("application/json", Map.of("apiKey", apiKey), 201);
