@@ -54,10 +54,10 @@ public class CliAppTaskDispatchTest {
     }
 
     @Test
-    public void test_create_api_key_with_expiration_date() throws Exception {
+    public void test_create_api_key_with_expiration_date_is_valid_through_that_day() throws Exception {
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("the-generated-key");
-        Date expiration = Date.from(Instant.parse("2027-02-01T00:00:00Z"));
+        Date expiration = Date.from(Instant.parse("2027-02-02T00:00:00Z"));
         when(taskFactory.createGenApiKey(any(), eq(expiration))).thenReturn(task);
 
         assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", "2027-02-01")).isEqualTo(CliApp.EXIT_SUCCESS);
