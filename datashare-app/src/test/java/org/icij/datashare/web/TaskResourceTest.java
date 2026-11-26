@@ -1141,6 +1141,17 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_scoped_user_cannot_create_task_with_project_arg_outside_scope() throws Exception {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        configureWithUser(new ScopedUser(cecile, List.of("p1")));
+        Map<String, Object> args = Map.of("defaultProject", "p1", "project", "p2");
+
+        put("/api/task/outside_id", taskJson("outside_id", "my.python.task", args)).should().respond(403);
+
+        assertThat(taskManager.getTasks().toList()).isEmpty();
+    }
+
+    @Test
     public void test_task_started_by_scoped_user_stores_unscoped_user() throws Exception {
         DatashareUser cecile = memberOf("cecile", "p1", "p2");
         configureWithUser(new ScopedUser(cecile, List.of("p1")));
