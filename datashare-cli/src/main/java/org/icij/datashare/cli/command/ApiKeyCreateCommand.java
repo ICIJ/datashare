@@ -12,12 +12,12 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
 
 @Command(name = "create", mixinStandardHelpOptions = true,
         description = {"Generate and store a new API key for a user.", "", "Examples:",
-                "  datashare api-key create alice", "  datashare api-key create alice --expiration-date 2027-02-01",
+                "  datashare api-key create alice", "  datashare api-key create alice --expirationDate 2027-02-01",
                 "  datashare -s /etc/datashare/settings.properties api-key create alice"})
 public class ApiKeyCreateCommand implements Runnable, DatashareSubcommand {
     @Parameters(index = "0", description = "Username")
     String user;
-    @Option(names = {"--expiration-date"},
+    @Option(names = {"--expirationDate"},
             description = "Last day the key is valid (YYYY-MM-DD, UTC), it expires at the end of that day. Defaults to 30 days from now.")
     String expirationDate;
     @Option(names = {"--apiKeyMaxLifetime"},
