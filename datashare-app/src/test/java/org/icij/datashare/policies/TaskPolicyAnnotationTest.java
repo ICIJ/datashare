@@ -522,9 +522,8 @@ public class TaskPolicyAnnotationTest {
     }
 
     @Test
-    public void test_scoped_user_allowed_on_own_task_in_scope() throws IOException {
+    public void test_scoped_user_allowed_as_project_admin_in_scope() throws IOException {
         Context context = mock(Context.class);
-        DatashareUser cecile = new DatashareUser("cecile");
         String taskId = taskManager.startTask(TestSleepingTask.class, User.local(), new HashMap<>() {{
             put("defaultProject", projectId);
         }});
