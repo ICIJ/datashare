@@ -588,6 +588,10 @@ public class PluginServiceTest {
 
         assertThat(refused.getMessage()).isEqualTo("Archive entries conflict with each other");
         assertThat(refused.getCause()).isNull(); // the cause would carry the temp path and the entry name into the log
+        URL reversed = aZipWithEntries("reversed.zip", "a/", "a");
+        assertThat(assertThrows(Extension.InvalidDeliverableException.class,
+                () -> new Plugin(reversed).install(new File(reversed.toURI()), pluginFolder.getRoot().toPath()))
+                .getMessage()).isEqualTo("Archive entries conflict with each other");
         assertThat(pluginFolder.getRoot().list()).isEmpty();
     }
 

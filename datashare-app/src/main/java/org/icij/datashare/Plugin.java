@@ -107,14 +107,16 @@ public class Plugin extends Extension {
                         Files.createDirectories(resolvedPath);
                     } else {
                         Files.createDirectories(resolvedPath.getParent()); // archives may have no directory entries
+                        if (Files.isDirectory(resolvedPath)) {
+                            throw conflictingEntries();
+                        }
+                        // any other failed open is a local failure (permission, disk full), not the archive's fault
                         try (OutputStream outputFileStream = new FileOutputStream(resolvedPath.toFile())) {
                             totalExtractedSize += copyBounded(archive, outputFileStream, MAX_ENTRY_SIZE);
                         }
                     }
-                } catch (FileAlreadyExistsException | FileNotFoundException conflict) {
-                    // a file entry and a directory entry with the same path. No cause: its message is the temp
-                    // path with the entry name, and the web handler logs the cause with the stack trace
-                    throw new InvalidDeliverableException("Archive entries conflict with each other");
+                } catch (FileAlreadyExistsException fileWhereDirectoryIsNeeded) {
+                    throw conflictingEntries();
                 }
                 if (totalExtractedSize > MAX_TOTAL_SIZE) {
                     throw new InvalidDeliverableException(
@@ -149,6 +151,11 @@ public class Plugin extends Extension {
         } catch (InvalidPathException e) {
             throw new InvalidDeliverableException("Archive entry has an invalid name");
         }
+    }
+
+    /** A file entry and a directory entry with the same path. No cause nor path: they hold the raw entry name. */
+    private static InvalidDeliverableException conflictingEntries() {
+        return new InvalidDeliverableException("Archive entries conflict with each other");
     }
 
     private static InvalidDeliverableException notReadable(Exception cause) {
