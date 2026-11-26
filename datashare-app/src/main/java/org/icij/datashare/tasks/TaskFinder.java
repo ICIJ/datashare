@@ -98,11 +98,13 @@ public class TaskFinder {
         if (batchDownload instanceof BatchDownload bd) {
             return bd.projects.stream().map(ProjectProxy::getId).toList();
         }
-        Object defaultProject = task.args.get(DEFAULT_PROJECT_OPT);
-        if (defaultProject instanceof String projectId) {
-            return List.of(projectId);
+        List<String> projectIds = new ArrayList<>();
+        for (String key : List.of(DEFAULT_PROJECT_OPT, "project")) {
+            if (task.args.get(key) instanceof String projectId) {
+                projectIds.add(projectId);
+            }
         }
-        return List.of();
+        return projectIds;
     }
 
     private Optional<Task<?>> getTaskFromManager(String id) throws IOException {
