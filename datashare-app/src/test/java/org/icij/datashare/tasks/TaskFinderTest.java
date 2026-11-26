@@ -287,6 +287,37 @@ public class TaskFinderTest {
     }
 
     @Test
+    public void test_scoped_user_sees_owned_tasks_with_narrowed_details() throws IOException {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        ownedTaskOn(cecile, "p1");
+        when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of());
+
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(new ScopedUser(cecile, List.of("p1")), new TaskFilters()).toList();
+
+        assertThat(tasks.get(0).getUser().getProjectNames()).containsOnly("p1");
+    }
+
+    @Test
+    public void test_scoped_user_finds_owned_task_with_narrowed_details() throws IOException {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        Task<String> inside = ownedTaskOn(cecile, "p1");
+
+        Task<?> found = taskFinder.findVisibleTaskFor(new ScopedUser(cecile, List.of("p1")), inside.id);
+
+        assertThat(found.getUser().getProjectNames()).containsOnly("p1");
+    }
+
+    @Test
+    public void test_scoped_lookup_keeps_stored_owner_details() throws IOException {
+        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        Task<String> inside = ownedTaskOn(cecile, "p1");
+
+        taskFinder.findVisibleTaskFor(new ScopedUser(cecile, List.of("p1")), inside.id);
+
+        assertThat(taskManager.getTask(inside.id).getUser().getProjectNames()).containsOnly("p1", "p2");
+    }
+
+    @Test
     public void test_unscoped_user_still_sees_all_owned_tasks() throws IOException {
         DatashareUser cecile = memberOf("cecile", "p1", "p2");
         Task<String> onP2 = ownedTaskOn(cecile, "p2");

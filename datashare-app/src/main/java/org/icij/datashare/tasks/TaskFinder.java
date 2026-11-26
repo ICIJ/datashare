@@ -8,9 +8,12 @@ import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Stream;
 import static java.util.stream.Collectors.toMap;
@@ -59,7 +62,7 @@ public class TaskFinder {
                 // We deduplicate tasks by id
                 Entity::getId, task -> task,
                 // Get the first in priority
-                (first, second) -> first, LinkedHashMap::new)).values().stream().map(t -> (Task<?>) t);
+                (first, second) -> first, LinkedHashMap::new)).values().stream().map(t -> seenBy(user, t));
 
     }
 
@@ -80,12 +83,13 @@ public class TaskFinder {
         Optional<Task<?>> owned = managed.filter(t -> Objects.equals(t.getUser(), user));
         Optional<Task<?>> inScope = owned.filter(t -> user.scope().allowsAll(projectIdsOf(t)));
         if (inScope.isPresent()) {
-            return managed.get();
+            return seenBy(user, managed.get());
         }
         List<BatchSearchRecord> records = batchSearchRepository.getRecords(user, user.getProjectNames());
         Optional<BatchSearchRecord> record = records.stream().filter(r -> r.uuid.equals(id)).findFirst();
         Optional<Task<?>> taskified = record.map(TaskFinder::taskify);
-        Optional<Task<?>> visible = taskified.filter(t -> user.scope().allowsAll(projectIdsOf(t)));
+        Optional<Task<?>> inScopeRecord = taskified.filter(t -> user.scope().allowsAll(projectIdsOf(t)));
+        Optional<Task<?>> visible = inScopeRecord.map(t -> seenBy(user, t));
         return visible.orElseThrow(() -> managed.isPresent() ? new ForbiddenException() : new UnknownTask(id));
     }
 
@@ -105,6 +109,18 @@ public class TaskFinder {
             }
         }
         return projectIds;
+    }
+
+    // the stored owner keeps all its projects: the task needs them when it runs
+    private static <V extends Serializable> Task<?> seenBy(User user, Task<V> task) {
+        if (!(user instanceof ScopedUser scoped) || !Objects.equals(task.getUser(), user)) {
+            return task;
+        }
+        DatashareUser narrowed = new DatashareUser(scoped.getDetails());
+        Map<String, Object> args = new HashMap<>(task.args);
+        args.put(Task.USER_KEY, narrowed);
+        return new Task<>(task.id, task.name, task.getState(), task.getProgress(), task.createdAt,
+                          task.getRetriesLeft(), task.getCompletedAt(), args, task.getResult(), task.getError());
     }
 
     private Optional<Task<?>> getTaskFromManager(String id) throws IOException {
