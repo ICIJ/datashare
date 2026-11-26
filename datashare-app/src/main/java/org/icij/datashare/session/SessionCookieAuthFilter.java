@@ -3,6 +3,7 @@ package org.icij.datashare.session;
 import net.codestory.http.Context;
 import net.codestory.http.Cookie;
 import net.codestory.http.NewCookie;
+import net.codestory.http.SameSite;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
@@ -57,7 +58,8 @@ abstract class SessionCookieAuthFilter extends CookieAuthFilter {
     @Override
     protected Cookie authCookie(String value) {
         NewCookie cookie = (NewCookie) super.authCookie(value);
-        return cookie.setSecure(isSessionCookieSecure);
+        // Lax rather than Strict so a link to Datashare from another site still arrives signed in
+        return cookie.setSecure(isSessionCookieSecure).setSameSite(SameSite.LAX);
     }
 
     @Override

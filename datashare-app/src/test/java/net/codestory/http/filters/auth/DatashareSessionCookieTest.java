@@ -2,6 +2,7 @@ package net.codestory.http.filters.auth;
 
 import net.codestory.http.Context;
 import net.codestory.http.Cookie;
+import net.codestory.http.SameSite;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
@@ -39,6 +40,15 @@ public class DatashareSessionCookieTest {
             Cookie cookie = filter.authCookie("value");
 
             assertThat(cookie.isHttpOnly()).as(filter.getClass().getSimpleName()).isFalse();
+        }
+    }
+
+    @Test
+    public void test_session_cookie_is_not_sent_on_cross_site_requests() {
+        for (CookieAuthFilter filter : filtersWith(Map.of())) {
+            Cookie cookie = filter.authCookie("value");
+
+            assertThat(cookie.sameSite()).as(filter.getClass().getSimpleName()).isEqualTo(SameSite.LAX);
         }
     }
 
