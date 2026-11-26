@@ -313,6 +313,31 @@ public class TaskFinderTest {
     }
 
     @Test
+    public void test_scoped_user_cannot_filter_on_projects_outside_scope() throws IOException {
+        DatashareUser cecile = new DatashareUser(User.localUser("cecile", "p1", "p2"));
+        ownedTaskOn(cecile, "p1");
+        when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of());
+        TaskFilters.ArgsFilter onOtherProject = new TaskFilters.ArgsFilter("user.details.groups_by_applications.datashare", "p2");
+        TaskFilters filters = new TaskFilters().with(onOtherProject);
+
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(new ScopedUser(cecile, List.of("p1")), filters).toList();
+
+        assertThat(tasks).isEmpty();
+    }
+
+    @Test
+    public void test_scoped_user_can_filter_on_visible_args() throws IOException {
+        DatashareUser cecile = new DatashareUser(User.localUser("cecile", "p1", "p2"));
+        Task<String> inside = ownedTaskOn(cecile, "p1");
+        when(batchSearchRepository.getRecords(any(User.class), anyList())).thenReturn(List.of());
+        TaskFilters filters = new TaskFilters().with(new TaskFilters.ArgsFilter("defaultProject", "p1"));
+
+        List<Task<?>> tasks = taskFinder.findVisibleTasksFor(new ScopedUser(cecile, List.of("p1")), filters).toList();
+
+        assertThat(tasks.stream().map(t -> t.id).toList()).containsOnly(inside.id);
+    }
+
+    @Test
     public void test_unscoped_user_still_sees_all_owned_tasks() throws IOException {
         DatashareUser cecile = new DatashareUser(User.localUser("cecile", "p1", "p2"));
         Task<String> onP2 = ownedTaskOn(cecile, "p2");
