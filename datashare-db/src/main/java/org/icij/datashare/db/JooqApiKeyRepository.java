@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 import static org.icij.datashare.db.tables.ApiKey.API_KEY;
 import static org.icij.datashare.db.tables.ApiKeyProject.API_KEY_PROJECT;
 import static org.jooq.impl.DSL.using;
@@ -40,11 +40,11 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
     public ApiKey get(String base64Key) {
         DSLContext ctx = using(connectionProvider, dialect);
         String hashedKey = ApiKey.DEFAULT_DIGESTER.hash(base64Key);
-        ApiKeyRecord apiKeyRecord = ctx.selectFrom(API_KEY).where(API_KEY.ID.eq(hashedKey)).fetchOne();
-        if (apiKeyRecord == null) {
+        List<ApiKey> apiKeys = fetchWithProjects(ctx, API_KEY.ID.eq(hashedKey));
+        if (apiKeys.isEmpty()) {
             return null;
         }
-        return toApiKeys(ctx, List.of(apiKeyRecord)).get(0);
+        return apiKeys.get(0);
     }
 
     @Override
@@ -59,9 +59,7 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
     @Override
     public List<ApiKey> getAll(User user) {
         DSLContext ctx = using(connectionProvider, dialect);
-        List<ApiKeyRecord> records = ctx.selectFrom(API_KEY).where(API_KEY.USER_ID.eq(user.id))
-                                        .orderBy(API_KEY.CREATION_DATE.desc(), API_KEY.ID.desc()).fetch();
-        return toApiKeys(ctx, records);
+        return fetchWithProjects(ctx, API_KEY.USER_ID.eq(user.id));
     }
 
     @Override
@@ -129,20 +127,23 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
         return inserted > 0;
     }
 
-    private List<ApiKey> toApiKeys(DSLContext ctx, List<ApiKeyRecord> records) {
-        if (records.isEmpty()) {
-            return List.of();
-        }
-        List<String> ids = records.stream().map(ApiKeyRecord::getId).collect(Collectors.toList());
-        Condition ofKeys = API_KEY_PROJECT.API_KEY_ID.in(ids);
-        Map<String, List<String>> projectsByKey = ctx.selectFrom(API_KEY_PROJECT).where(ofKeys)
-                                                     .fetchGroups(API_KEY_PROJECT.API_KEY_ID, API_KEY_PROJECT.PRJ_ID);
+    // one statement: a key read without its projects would count as unscoped while it is being revoked
+    private List<ApiKey> fetchWithProjects(DSLContext ctx, Condition condition) {
+        Condition ofKey = API_KEY_PROJECT.API_KEY_ID.eq(API_KEY.ID);
+        Map<ApiKeyRecord, List<String>> projectsByKey =
+                ctx.select(API_KEY.fields()).select(API_KEY_PROJECT.PRJ_ID).from(API_KEY).leftJoin(API_KEY_PROJECT)
+                   .on(ofKey).where(condition).orderBy(API_KEY.CREATION_DATE.desc(), API_KEY.ID.desc())
+                   .fetchGroups(r -> r.into(API_KEY), r -> r.get(API_KEY_PROJECT.PRJ_ID));
         List<ApiKey> apiKeys = new ArrayList<>();
-        for (ApiKeyRecord apiKeyRecord : records) {
-            List<String> projects = projectsByKey.getOrDefault(apiKeyRecord.getId(), List.of());
-            apiKeys.add(createApiKey(apiKeyRecord, projects));
+        for (Map.Entry<ApiKeyRecord, List<String>> keyWithProjects : projectsByKey.entrySet()) {
+            List<String> projects = withoutNulls(keyWithProjects.getValue());
+            apiKeys.add(createApiKey(keyWithProjects.getKey(), projects));
         }
         return apiKeys;
+    }
+
+    private static List<String> withoutNulls(List<String> projects) {
+        return projects.stream().filter(Objects::nonNull).toList();
     }
 
     private ApiKey createApiKey(ApiKeyRecord apiKeyRecord, List<String> projects) {
