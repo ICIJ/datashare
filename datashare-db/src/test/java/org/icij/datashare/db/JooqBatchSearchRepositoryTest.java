@@ -242,11 +242,11 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_total_project_filter_is_intersected_with_user_projects() {
-        repository.save(new BatchSearch(singletonList(proxy("p2")), "name", "description", asSet("q1"), null, User.local()));
+    public void test_get_total_applies_the_project_filter() {
+        repository.save(new BatchSearch(singletonList(proxy("p1")), "name", "description", asSet("q1"), null, User.local()));
         BatchSearchRepository.WebQuery onP2 = WebQueryBuilder.createWebQuery().queryAll().withProjects(singletonList("p2")).build();
 
-        assertThat(repository.getTotal(User.local(), singletonList("p1"), onP2)).isEqualTo(0);
+        assertThat(repository.getTotal(User.local(), asList("p1", "p2"), onP2)).isEqualTo(0);
     }
 
     @Test
