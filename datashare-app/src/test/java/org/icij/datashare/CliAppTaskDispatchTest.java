@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import com.google.inject.ProvisionException;
 import org.icij.datashare.session.ApiKeyExpiration;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.DelApiKeyTask;
@@ -100,7 +99,7 @@ public class CliAppTaskDispatchTest {
     public void test_create_api_key_with_invalid_max_lifetime_exits_validation() throws Exception {
         ApiKeyExpiration.InvalidExpirationException cause =
                 new ApiKeyExpiration.InvalidExpirationException("invalid apiKeyMaxLifetime: 90d");
-        when(taskFactory.createGenApiKey(any(), any())).thenThrow(new ProvisionException("guice", cause));
+        when(taskFactory.createGenApiKey(any(), any())).thenThrow(cause);
 
         assertThat(CliApp.handleApiKeyCreate(taskFactory, "alice", null)).isEqualTo(CliApp.EXIT_VALIDATION);
         assertThat(err.toString()).contains("error: invalid apiKeyMaxLifetime: 90d");

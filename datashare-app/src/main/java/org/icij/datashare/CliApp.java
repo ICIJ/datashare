@@ -1,7 +1,6 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.ProvisionException;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.Prompter;
 import org.icij.datashare.cli.Validators;
@@ -974,11 +973,6 @@ class CliApp {
             secretKey = taskFactory.createGenApiKey(user, expiration).call();
         } catch (DateTimeParseException | ApiKeyExpiration.InvalidExpirationException e) {
             return error(e.getMessage(), "validation", EXIT_VALIDATION, false);
-        } catch (ProvisionException e) {
-            if (!(e.getCause() instanceof ApiKeyExpiration.InvalidExpirationException)) {
-                throw e;
-            }
-            return error(e.getCause().getMessage(), "validation", EXIT_VALIDATION, false);
         }
         System.out.println(secretKey);
         return EXIT_SUCCESS;
