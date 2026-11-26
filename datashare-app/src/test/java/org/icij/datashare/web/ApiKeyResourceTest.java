@@ -202,6 +202,15 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_add_key_internal_illegal_argument_is_server_error() throws Exception {
+        GenApiKeyTask task = mock(GenApiKeyTask.class);
+        when(task.call()).thenThrow(new IllegalArgumentException("internal detail"));
+        when(taskFactory.createGenApiKey(User.local(), null, List.of())).thenReturn(task);
+
+        post("/api/key/local/keys").should().respond(500);
+    }
+
+    @Test
     public void test_add_key_without_body_adds_unscoped() throws Exception {
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("privateKey");
