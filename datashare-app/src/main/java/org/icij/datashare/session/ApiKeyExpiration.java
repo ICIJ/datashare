@@ -59,6 +59,9 @@ public class ApiKeyExpiration {
     }
 
     public static Date toExpirationDate(Instant instant) {
+        if (instant.isBefore(Instant.EPOCH)) {
+            throw new InvalidExpirationException("expiration date must be in the future");
+        }
         if (instant.isAfter(MAX_EXPIRATION)) {
             throw new InvalidExpirationException("expiration date is too far in the future");
         }

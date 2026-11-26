@@ -80,6 +80,11 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_generate_key_with_date_far_in_the_past_is_bad_request() {
+        put("/api/key/" + User.local().id, "{\"expirationDate\":\"-300000000-01-01T00:00:00Z\"}").should().respond(400);
+    }
+
+    @Test
     public void test_generate_key_rejected_by_policy_is_bad_request() throws Exception {
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenThrow(

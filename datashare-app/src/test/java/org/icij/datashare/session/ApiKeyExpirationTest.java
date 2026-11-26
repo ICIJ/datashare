@@ -142,6 +142,16 @@ public class ApiKeyExpirationTest {
         new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "PT0S")));
     }
 
+    @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
+    public void test_to_expiration_date_before_1970_throws() {
+        ApiKeyExpiration.toExpirationDate(Instant.parse("1969-12-31T23:59:59Z"));
+    }
+
+    @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
+    public void test_to_expiration_date_far_in_the_past_throws() {
+        ApiKeyExpiration.toExpirationDate(Instant.parse("-300000000-01-01T00:00:00Z"));
+    }
+
     @Test
     public void test_to_expiration_date_keeps_year_9999() {
         Instant instant = Instant.parse("9999-12-31T23:59:59Z");
