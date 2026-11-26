@@ -143,6 +143,18 @@ public class ApiKeyExpirationTest {
     }
 
     @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
+    public void test_max_lifetime_beyond_10_years_throws() {
+        new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "P3651D")));
+    }
+
+    @Test
+    public void test_max_lifetime_of_10_years_is_allowed() {
+        ApiKeyExpiration cap10Years = new ApiKeyExpiration(new PropertiesProvider(Map.of("apiKeyMaxLifetime", "P3650D")));
+
+        assertThat(cap10Years.expirationForNewKey(date("2035-12-29T00:00:00Z"))).isEqualTo(date("2035-12-29T00:00:00Z"));
+    }
+
+    @Test(expected = ApiKeyExpiration.InvalidExpirationException.class)
     public void test_to_expiration_date_before_1970_throws() {
         ApiKeyExpiration.toExpirationDate(Instant.parse("1969-12-31T23:59:59Z"));
     }

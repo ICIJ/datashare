@@ -410,7 +410,7 @@ public final class DatashareCliOptions {
 
     static void apiKeyMaxLifetime(OptionParser parser) {
         parser.acceptsAll(singletonList(API_KEY_MAX_LIFETIME_OPT),
-                          "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H). Unset means any requested date is allowed; keys created without a date still expire after 30 days.")
+                          "Maximum lifetime of API keys as an ISO-8601 duration in days or smaller units (e.g. P90D, PT12H), at most P3650D. Unset means any requested date is allowed; keys created without a date still expire after 30 days.")
               .withRequiredArg().ofType(String.class);
     }
 
