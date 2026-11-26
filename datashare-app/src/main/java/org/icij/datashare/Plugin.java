@@ -158,7 +158,8 @@ public class Plugin extends Extension {
     /**
      * Installs the extracted content, then removes the previous versions. An existing directory with the same
      * name is replaced, not merged. If a copy fails, what was created is removed and what was replaced is put
-     * back, so the plugins directory is left as it was.
+     * back, so the plugins directory is left as it was. If putting it back fails too, the replaced version is
+     * kept in its temp directory, whose path is logged, so it can be recovered by hand.
      */
     private void installExtracted(Path extractedDir, Path pluginsDir) throws IOException {
         logger.info("installing plugin {} into {}", id, pluginsDir);
@@ -181,17 +182,22 @@ public class Plugin extends Extension {
             }
         } catch (IOException | RuntimeException copyFailed) {
             created.forEach(name -> FileUtils.deleteQuietly(pluginsDir.resolve(name).toFile()));
+            boolean restored = true;
             for (File replaced : ofNullable(replacedDir.toFile().listFiles()).orElse(new File[0])) {
                 try {
                     FileUtils.moveToDirectory(replaced, pluginsDir.toFile(), false);
                 } catch (IOException restoreFailed) {
-                    logger.error("cannot put back {} after a failed install of {}", replaced.getName(), id, restoreFailed);
+                    restored = false;
+                    logger.error("cannot put back {} after a failed install of {}, it is kept in {}",
+                                 replaced.getName(), id, replacedDir, restoreFailed);
                 }
             }
+            if (restored) {
+                FileUtils.deleteQuietly(replacedDir.toFile());
+            }
             throw copyFailed;
-        } finally {
-            FileUtils.deleteQuietly(replacedDir.toFile());
         }
+        FileUtils.deleteQuietly(replacedDir.toFile());
 
         File[] pluginDirDirectories =
                 pluginsDir.toFile().listFiles((dir, fileName) -> dir.toPath().resolve(fileName).toFile().isDirectory());
