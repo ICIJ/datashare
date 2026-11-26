@@ -84,6 +84,10 @@ public final class TaskFilters {
         return new TaskFilters(List.of(taskArgs), states, types, name, user, regexFlags);
     }
 
+    public TaskFilters withoutArgs() {
+        return new TaskFilters(null, states, types, name, user, regexFlags);
+    }
+
     public TaskFilters with(Integer flag) {
         return new TaskFilters(args, states, types, name, user, flag);
     }

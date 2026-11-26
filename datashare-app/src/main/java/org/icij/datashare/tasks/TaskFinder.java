@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.errors.ForbiddenException;
@@ -8,6 +9,7 @@ import org.icij.datashare.asynctasks.*;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.ScopedUser;
 import org.icij.datashare.text.ProjectProxy;
@@ -23,6 +25,7 @@ import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 public class TaskFinder {
     private final TaskManager taskManager;
     private final BatchSearchRepository batchSearchRepository;
+    private static final TypeReference<Map<String, Object>> VISIBLE_ARGS_TYPE = new TypeReference<>() {};
     private static final Map<BatchSearchRecord.State, Task.State> STATE_MAP = new EnumMap<>(
             Map.of(BatchSearchRecord.State.QUEUED, Task.State.QUEUED, BatchSearchRecord.State.RUNNING,
                    Task.State.RUNNING, BatchSearchRecord.State.SUCCESS, Task.State.DONE,
@@ -47,10 +50,11 @@ public class TaskFinder {
         if (user == null) {
             throw new IllegalArgumentException("Cannot retrieve Tasks of a null user");
         }
-        filters = filters.with(user); //Ensure only the tasks of the user are returned
-        Stream<Task<?>> userTasks = taskManager.getTasks(filters);
+        TaskFilters storedFilters =
+                filtersOnStoredTasks(user, filters).with(user); //Ensure only the tasks of the user are returned
+        Stream<Task<?>> userTasks = taskManager.getTasks(storedFilters);
         // Use this filter to retrieve the BatchSearches of the project
-        TaskFilters filtersWithoutUser = filters.with((User) null);
+        TaskFilters filtersWithoutUser = storedFilters.with((User) null);
         List<BatchSearchRecord> batchSearchRecords = batchSearchRepository.getRecords(user, user.getProjectNames());
 
         Stream<Task<Integer>> batchSearchTasks =
@@ -58,12 +62,30 @@ public class TaskFinder {
         // Merge the list of tasks and deduplicate them by id
         Stream<Task<?>> allTasks = Stream.concat(userTasks, batchSearchTasks);
         Stream<Task<?>> inScope = allTasks.filter(t -> user.scope().allowsAll(projectIdsOf(t)));
-        return inScope.collect(toMap(
+        Map<String, Task<?>> uniqueTasks = inScope.collect(toMap(
                 // We deduplicate tasks by id
                 Entity::getId, task -> task,
                 // Get the first in priority
-                (first, second) -> first, LinkedHashMap::new)).values().stream().map(t -> seenBy(user, t));
+                (first, second) -> first, LinkedHashMap::new));
+        Stream<Task<?>> seen = uniqueTasks.values().stream().map(t -> seenBy(user, t));
+        return seen.filter(t -> matchesVisibleArgs(user, filters, t));
+    }
 
+    // the stored owner keeps all its projects, so a scoped key filtering on it could guess them:
+    // its args filters run on what it can read instead
+    private static TaskFilters filtersOnStoredTasks(User user, TaskFilters filters) {
+        if (user instanceof ScopedUser) {
+            return filters.withoutArgs();
+        }
+        return filters;
+    }
+
+    private static boolean matchesVisibleArgs(User user, TaskFilters filters, Task<?> task) {
+        if (!(user instanceof ScopedUser)) {
+            return true;
+        }
+        Map<String, Object> visibleArgs = JsonObjectMapper.convertValue(task.args, VISIBLE_ARGS_TYPE);
+        return filters.filter(visibleArgs);
     }
 
     /**
