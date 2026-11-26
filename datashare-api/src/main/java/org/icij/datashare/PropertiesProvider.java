@@ -213,7 +213,8 @@ public class PropertiesProvider {
         }
         Properties toSave = new Properties();
         toSave.putAll(getFilteredProperties(
-                Stream.concat(Stream.of("user.*"), LAUNCH_ONLY_OPTS.stream().map(Pattern::quote)).toArray(String[]::new)));
+                Stream.concat(Stream.of("user.*"), LAUNCH_ONLY_OPTS.stream().map(Pattern::quote))
+                      .toArray(String[]::new)));
         try (OutputStream out = new FileOutputStream(settingsPath.toFile())) {
             toSave.store(out, "Datashare properties");
         }

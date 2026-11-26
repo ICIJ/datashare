@@ -51,7 +51,8 @@ public abstract class DeliverableService<T extends Deliverable> {
 
     protected DeliverableService(Path deliverableDir, InputStream inputStream, boolean allowInsecureUrlInstall) {
         this.deliverablesDir = deliverableDir;
-        this.installLock = INSTALL_LOCKS.computeIfAbsent(deliverableDir.toAbsolutePath().normalize(), dir -> new Object());
+        this.installLock =
+                INSTALL_LOCKS.computeIfAbsent(deliverableDir.toAbsolutePath().normalize(), dir -> new Object());
         this.deliverableRegistry = createRegistry(inputStream);
         this.allowInsecureUrlInstall = allowInsecureUrlInstall;
     }
@@ -142,9 +143,10 @@ public abstract class DeliverableService<T extends Deliverable> {
             logger.warn("installing from unregistered url {} ({} is set)", url, ALLOW_INSECURE_ADDON_URL_INSTALL_OPT);
             downloadAndInstall(url);
         } else {
-            throw new UrlNotAllowedException(url, allowInsecureUrlInstall ?
-                    "an unregistered url must be https, without user info or control characters" :
-                    "it is not a url of the registry");
+            String reason = allowInsecureUrlInstall ?
+                            "an unregistered url must be https, without user info or control characters" :
+                            "it is not a url of the registry";
+            throw new UrlNotAllowedException(url, reason);
         }
     }
 

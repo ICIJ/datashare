@@ -107,8 +107,7 @@ public class Extension implements Deliverable {
         return download(url, ext.isEmpty() ? "" : "." + ext, MAX_DOWNLOAD_SIZE);
     }
 
-    @NotNull
-    File download(URL url, String suffix, long maxBytes) throws IOException {
+    @NotNull File download(URL url, String suffix, long maxBytes) throws IOException {
         MessageDigest digest = sha256Digest();
         File tmpFile = Files.createTempFile(temporaryDirectory(), TMP_PREFIX, suffix).toFile();
         logger.info("downloading from url {}", url);

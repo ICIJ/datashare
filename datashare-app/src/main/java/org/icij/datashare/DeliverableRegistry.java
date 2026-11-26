@@ -25,8 +25,9 @@ public class DeliverableRegistry<T extends Deliverable> {
     }
 
     public Optional<T> findByUrl(URL url) {
-        return deliverableMap.values().stream().filter(
-                d -> d.getUrl() != null && d.getUrl().toString().equals(url.toString())).findFirst();
+        return deliverableMap.values().stream()
+                             .filter(d -> d.getUrl() != null && d.getUrl().toString().equals(url.toString()))
+                             .findFirst();
     }
 
     public Set<T> search(String patternString) {

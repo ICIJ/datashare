@@ -92,8 +92,8 @@ public class Plugin extends Extension {
         int entryCount = 0;
 
         try (InputStream file = new BufferedInputStream(new FileInputStream(pluginFile));
-             InputStream is = pluginFile.getName().endsWith("gz") ?
-                     new BufferedInputStream(new GZIPInputStream(file)) : file;
+             InputStream is = pluginFile.getName().endsWith("gz") ? new BufferedInputStream(new GZIPInputStream(file)) :
+                              file;
              ArchiveInputStream<?> archive = new ArchiveStreamFactory().createArchiveInputStream(is)) {
             ArchiveEntry entry;
             while ((entry = nextEntry(archive)) != null) {
@@ -209,9 +209,9 @@ public class Plugin extends Extension {
         File[] pluginDirDirectories =
                 pluginsDir.toFile().listFiles((dir, fileName) -> dir.toPath().resolve(fileName).toFile().isDirectory());
         File[] candidateFiles = ofNullable(pluginDirDirectories).orElse(new File[0]);
+        List<File> sameId = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
         List<File> previousVersionInstalled =
-                getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName())).stream()
-                        .filter(previous -> !names.contains(previous.getName())).toList();
+                sameId.stream().filter(previous -> !names.contains(previous.getName())).toList();
         if (!previousVersionInstalled.isEmpty()) {
             logger.info("removing previous versions {}", previousVersionInstalled);
             for (File file : previousVersionInstalled) {

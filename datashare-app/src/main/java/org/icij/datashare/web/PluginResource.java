@@ -64,8 +64,8 @@ public class PluginResource {
                                                      "size limit, does not match the sha256 of the registry, or " +
                                                      "is a refused archive (not an archive, entry outside the " +
                                                      "target, size or entry limits)")
-    @ApiResponse(responseCode = "500", description = "returns 500 if the install fails locally (the detail is in " +
-                                                     "the server log)")
+    @ApiResponse(responseCode = "500",
+            description = "returns 500 if the install fails locally (the detail is in the server log)")
     @Put("/install")
     public Payload installPlugin(Context context) {
         return DeliverableInstall.install(pluginService, context.request().query().get("url"),

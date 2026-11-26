@@ -63,8 +63,8 @@ public class ExtensionResource {
                                                      "size limit, does not match the sha256 of the registry, or " +
                                                      "is a refused archive (not an archive, entry outside the " +
                                                      "target, size or entry limits)")
-    @ApiResponse(responseCode = "500", description = "returns 500 if the install fails locally (the detail is in " +
-                                                     "the server log)")
+    @ApiResponse(responseCode = "500",
+            description = "returns 500 if the install fails locally (the detail is in the server log)")
     @Put("/install")
     public Payload installExtension(Context context) {
         return DeliverableInstall.install(extensionService, context.request().query().get("url"),
