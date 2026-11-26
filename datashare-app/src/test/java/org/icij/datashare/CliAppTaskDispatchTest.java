@@ -238,6 +238,16 @@ public class CliAppTaskDispatchTest {
     }
 
     @Test
+    public void test_split_projects_keeps_blank_names() {
+        assertThat(CliApp.splitProjects(",")).containsExactly("", "");
+    }
+
+    @Test
+    public void test_split_projects_without_option_is_empty() {
+        assertThat(CliApp.splitProjects(null)).isEmpty();
+    }
+
+    @Test
     public void test_create_without_projects_rotates() throws Exception {
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("the-generated-key");

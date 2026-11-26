@@ -139,8 +139,7 @@ class CliApp {
             String userName = properties.getProperty(CRE_API_KEY_OPT);
             String expirationDate = properties.getProperty(API_KEY_EXPIRATION_DATE_OPT);
             String joinedProjects = properties.getProperty(API_KEY_PROJECTS_OPT);
-            String[] splitProjects = joinedProjects == null ? new String[0] : joinedProjects.split(",");
-            List<String> projects = List.of(splitProjects);
+            List<String> projects = splitProjects(joinedProjects);
             Repository repository = mode.get(Repository.class);
             System.exit(handleApiKeyCreate(taskFactory, repository, userName, expirationDate, projects));
         }
@@ -979,6 +978,11 @@ class CliApp {
             // "already provisioned, carry on" must not swallow a persistence failure
             return error(e.getMessage(), "runtime", EXIT_RUNTIME, false);
         }
+    }
+
+    static List<String> splitProjects(String joinedProjects) {
+        String[] splitProjects = joinedProjects == null ? new String[0] : joinedProjects.split(",", -1);
+        return List.of(splitProjects);
     }
 
     /**
