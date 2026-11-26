@@ -983,8 +983,9 @@ class CliApp {
             return null;
         }
         LocalDate date = LocalDate.parse(expirationDate);
-        ZonedDateTime startOfDay = date.atStartOfDay(ZoneOffset.UTC);
-        Instant instant = startOfDay.toInstant();
+        LocalDate nextDay = date.plusDays(1);
+        ZonedDateTime endOfDay = nextDay.atStartOfDay(ZoneOffset.UTC);
+        Instant instant = endOfDay.toInstant();
         return ApiKeyExpiration.toExpirationDate(instant);
     }
 
