@@ -157,11 +157,6 @@ public class TaskPolicyAnnotationTest {
         annotation = new TaskPolicyAnnotation(authorizer, taskManager);
     }
 
-    private static DatashareUser memberOf(String uid, String... projects) {
-        Map<String, Object> groups = Map.of("datashare", List.of(projects));
-        return new DatashareUser(Map.of("uid", uid, "groups_by_applications", groups));
-    }
-
     @After
     public void tearDown() throws Exception {
         taskManager.stopTasks(User.local());
@@ -502,7 +497,7 @@ public class TaskPolicyAnnotationTest {
         Context context = mock(Context.class);
         DatashareUser cecile = new DatashareUser("cecile");
         authorizer.addRoleForUserInDomain(cecile, Role.DOMAIN_ADMIN, Domain.DEFAULT);
-        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+        when(context.currentUser()).thenReturn(new ScopedUser(new DatashareUser(User.localUser("cecile", projectId, "p2")), List.of(projectId)));
 
         Payload result = annotation.apply(batchTaskPolicy, context, c -> Payload.ok());
         assertEquals(403, result.code());
@@ -519,7 +514,7 @@ public class TaskPolicyAnnotationTest {
             put("batchDownload", batchDownload);
         }});
 
-        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+        when(context.currentUser()).thenReturn(new ScopedUser(new DatashareUser(User.localUser("cecile", projectId, "p2")), List.of(projectId)));
         when(context.pathParam("taskName:")).thenReturn(taskId);
 
         Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
@@ -534,7 +529,7 @@ public class TaskPolicyAnnotationTest {
             put("defaultProject", projectId);
         }});
 
-        when(context.currentUser()).thenReturn(new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId)));
+        when(context.currentUser()).thenReturn(new ScopedUser(new DatashareUser(User.localUser("cecile", projectId, "p2")), List.of(projectId)));
         when(context.pathParam("taskName:")).thenReturn(taskId);
 
         Payload result = annotation.apply(adminTaskPolicy, context, c -> Payload.ok());
@@ -548,7 +543,7 @@ public class TaskPolicyAnnotationTest {
         String taskId = taskManager.startTask(TestSleepingTask.class, localUser("cecile"), new HashMap<>() {{
             put("defaultProject", "p2");
         }});
-        ScopedUser scoped = new ScopedUser(memberOf("cecile", projectId, "p2"), List.of(projectId));
+        ScopedUser scoped = new ScopedUser(new DatashareUser(User.localUser("cecile", projectId, "p2")), List.of(projectId));
 
         assertEquals(false, annotation.isAllowed(scoped, taskManager.getTask(taskId), adminTaskPolicy));
     }

@@ -1105,11 +1105,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         return JsonObjectMapper.writeValueAsString(new Task<>(id, name, local(), args));
     }
 
-    private static DatashareUser memberOf(String uid, String... projects) {
-        Map<String, Object> groups = Map.of("datashare", List.of(projects));
-        return new DatashareUser(Map.of("uid", uid, "groups_by_applications", groups));
-    }
-
     private void configureWithUser(DatashareUser user) {
         configure(routes -> routes
                 .add(new TaskResource(taskFactory, taskManager, getDefaultPropertiesProvider(), batchSearchRepository, taskFinder))
@@ -1121,7 +1116,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scoped_user_cannot_create_task_on_project_outside_scope() throws Exception {
-        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        DatashareUser cecile = new DatashareUser(User.localUser("cecile", "p1", "p2"));
         configureWithUser(new ScopedUser(cecile, List.of("p1")));
 
         put("/api/task/outside_id", taskJson("outside_id", "my.python.task", Map.of("defaultProject", "p2")))
@@ -1132,7 +1127,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scoped_user_cannot_create_task_without_project() throws Exception {
-        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        DatashareUser cecile = new DatashareUser(User.localUser("cecile", "p1", "p2"));
         configureWithUser(new ScopedUser(cecile, List.of("p1")));
 
         put("/api/task/no_project_id", taskJson("no_project_id", "my.python.task", Map.of("key", "val"))).should().respond(403);
@@ -1142,7 +1137,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scoped_user_cannot_create_task_with_project_arg_outside_scope() throws Exception {
-        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        DatashareUser cecile = new DatashareUser(User.localUser("cecile", "p1", "p2"));
         configureWithUser(new ScopedUser(cecile, List.of("p1")));
         Map<String, Object> args = Map.of("defaultProject", "p1", "project", "p2");
 
@@ -1153,7 +1148,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_task_started_by_scoped_user_stores_unscoped_user() throws Exception {
-        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        DatashareUser cecile = new DatashareUser(User.localUser("cecile", "p1", "p2"));
         configureWithUser(new ScopedUser(cecile, List.of("p1")));
 
         put("/api/task/inside_id", taskJson("inside_id", "my.python.task", Map.of("defaultProject", "p1"))).should().respond(201);
@@ -1164,7 +1159,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scoped_user_cannot_read_result_of_task_outside_scope() throws Exception {
-        DatashareUser cecile = memberOf("cecile", "p1", "p2");
+        DatashareUser cecile = new DatashareUser(User.localUser("cecile", "p1", "p2"));
         String taskId = taskManager.startTask(TestSleepingTask.class, cecile, new HashMap<>(Map.of("defaultProject", "p2")));
         taskManager.stopTask(taskId);
         configureWithUser(new ScopedUser(cecile, List.of("p1")));
@@ -1180,7 +1175,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scoped_user_cannot_start_batch_search_on_project_outside_scope() throws Exception {
-        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        configureWithUser(new ScopedUser(new DatashareUser(User.localUser("cecile", "p1", "p2")), List.of("p1")));
 
         postRaw("/api/task/batchSearch/p2", "multipart/form-data;boundary=AaB03x",
                 batchSearchMultipartBody())
@@ -1192,7 +1187,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scoped_user_can_start_batch_search_on_project_in_scope() throws Exception {
-        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        configureWithUser(new ScopedUser(new DatashareUser(User.localUser("cecile", "p1", "p2")), List.of("p1")));
         when(batchSearchRepository.save(any())).thenReturn(true);
 
         postRaw("/api/task/batchSearch/p1", "multipart/form-data;boundary=AaB03x",
@@ -1204,7 +1199,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_scoped_user_cannot_copy_batch_search_outside_scope() throws Exception {
         BatchSearch outside = new BatchSearch(List.of(project("p2")), "name", "description", asSet("query 1"), null, local());
         when(batchSearchRepository.get(any(User.class), eq(outside.uuid))).thenReturn(outside);
-        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        configureWithUser(new ScopedUser(new DatashareUser(User.localUser("cecile", "p1", "p2")), List.of("p1")));
 
         post("/api/task/batchSearch/copy/" + outside.uuid, "{\"name\": \"copy\"}").should().respond(404);
 
@@ -1216,7 +1211,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         BatchSearch source = new BatchSearch(List.of(project("p1")), "name", "description", asSet("query 1"), null, local(), true);
         when(batchSearchRepository.get(any(User.class), eq(source.uuid))).thenReturn(source);
         when(batchSearchRepository.save(any())).thenReturn(true);
-        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        configureWithUser(new ScopedUser(new DatashareUser(User.localUser("cecile", "p1", "p2")), List.of("p1")));
 
         post("/api/task/batchSearch/copy/" + source.uuid, "{\"name\": \"copy\"}").should().respond(200);
 
@@ -1227,9 +1222,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_user_cannot_copy_private_batch_search_of_another_user() throws Exception {
-        BatchSearch alices = new BatchSearch(List.of(project("p1")), "name", "description", asSet("query 1"), null, memberOf("alice", "p1"));
+        BatchSearch alices = new BatchSearch(List.of(project("p1")), "name", "description", asSet("query 1"), null, new DatashareUser(User.localUser("alice", "p1")));
         when(batchSearchRepository.get(any(User.class), eq(alices.uuid))).thenReturn(alices);
-        configureWithUser(memberOf("bob", "p1"));
+        configureWithUser(new DatashareUser(User.localUser("bob", "p1")));
 
         post("/api/task/batchSearch/copy/" + alices.uuid, "{\"name\": \"copy\"}").should().respond(404);
 
@@ -1238,9 +1233,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_user_cannot_copy_published_batch_search_on_project_not_granted() throws Exception {
-        BatchSearch published = new BatchSearch(List.of(project("p2")), "name", "description", asSet("query 1"), null, memberOf("alice", "p2"), true);
+        BatchSearch published = new BatchSearch(List.of(project("p2")), "name", "description", asSet("query 1"), null, new DatashareUser(User.localUser("alice", "p2")), true);
         when(batchSearchRepository.get(any(User.class), eq(published.uuid))).thenReturn(published);
-        configureWithUser(memberOf("bob", "p1"));
+        configureWithUser(new DatashareUser(User.localUser("bob", "p1")));
 
         post("/api/task/batchSearch/copy/" + published.uuid, "{\"name\": \"copy\"}").should().respond(404);
 
@@ -1249,10 +1244,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_user_copying_published_batch_search_owns_the_copy() throws Exception {
-        BatchSearch published = new BatchSearch(List.of(project("p1")), "name", "description", asSet("query 1"), null, memberOf("alice", "p1"), true);
+        BatchSearch published = new BatchSearch(List.of(project("p1")), "name", "description", asSet("query 1"), null, new DatashareUser(User.localUser("alice", "p1")), true);
         when(batchSearchRepository.get(any(User.class), eq(published.uuid))).thenReturn(published);
         when(batchSearchRepository.save(any())).thenReturn(true);
-        configureWithUser(memberOf("bob", "p1"));
+        configureWithUser(new DatashareUser(User.localUser("bob", "p1")));
 
         post("/api/task/batchSearch/copy/" + published.uuid, "{\"name\": \"copy\"}").should().respond(200);
 
@@ -1263,7 +1258,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scoped_user_cannot_start_batch_download_on_project_outside_scope() throws Exception {
-        configureWithUser(new ScopedUser(memberOf("cecile", "p1", "p2"), List.of("p1")));
+        configureWithUser(new ScopedUser(new DatashareUser(User.localUser("cecile", "p1", "p2")), List.of("p1")));
 
         post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"p2\"], \"query\": \"*\" }}")
                 .should().respond(403).contain("{\"error\":\"insufficient role\"}");
