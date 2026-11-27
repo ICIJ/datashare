@@ -49,7 +49,13 @@ public class TaskRepositoryRedis extends RedissonMap<String, TaskGroupMetadata<?
 
     @Override
     public <V extends Serializable> void update(Task<V> task) throws IOException, UnknownTask {
-        put(task.id, super.get(task.id).withTask(task));
+        TaskGroupMetadata<?> current = super.get(task.id);
+        if (current == null) {
+            throw new UnknownTask(task.id);
+        }
+        if (replace(task.id, current.withTask(task)) == null) {
+            throw new UnknownTask(task.id);
+        }
     }
 
     @Override
