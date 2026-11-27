@@ -1065,6 +1065,27 @@ public class ElasticsearchIndexerTest {
         }
     }
 
+    @Test
+    public void test_create_index_on_a_read_only_index_is_a_no_op() throws Exception {
+        String index = ElasticsearchRule.generateIndexName();
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        Request create = new Request("PUT", "/" + index);
+        create.setJsonEntity("{" + FOLDING_SETTINGS + "}");
+        restClient.performRequest(create);
+        Request block = new Request("PUT", "/" + index + "/_block/read_only");
+        restClient.performRequest(block);
+        try {
+            assertThat(indexer.createIndex(index)).isFalse();
+
+            assertThat(qrCodesMapping(restClient, index).isMissingNode()).isTrue();
+        } finally {
+            Request unblock = new Request("PUT", "/" + index + "/_settings");
+            unblock.setJsonEntity("{\"index.blocks.read_only\":false}");
+            restClient.performRequest(unblock);
+            es.delete(index);
+        }
+    }
+
     private static final String FOLDING_SETTINGS =
             "\"settings\":{\"analysis\":{\"analyzer\":{\"folding\":{\"type\":\"custom\"," +
             "\"tokenizer\":\"standard\",\"filter\":[\"lowercase\",\"asciifolding\"]}}}}";

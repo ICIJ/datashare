@@ -19,7 +19,6 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.client.Request;
-import org.elasticsearch.client.ResponseException;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.PropertiesProvider;
@@ -159,8 +158,8 @@ public class ElasticsearchConfiguration {
     }
 
     /**
-     * Adds the qr codes field to an index created before it was mapped. A field that dynamic mapping
-     * already typed cannot be changed, so that index keeps its mapping and only a warning is logged.
+     * Adds the qr codes field to an index created before it was mapped. Any failure, such as a field that
+     * dynamic mapping already typed or a read-only index, only logs a warning: the index keeps its mapping.
      */
     public static void addQrCodesMapping(ElasticsearchClient client, String indexName) {
         ObjectMapper mapper = JsonObjectMapper.getMapper();
@@ -176,13 +175,8 @@ public class ElasticsearchConfiguration {
             metadataProperties.set(QR_CODES_FIELD, field);
             request.setJsonEntity(mapper.writeValueAsString(body));
             restClient.performRequest(request);
-        } catch (ResponseException e) {
-            if (e.getResponse().getStatusLine().getStatusCode() != 400) {
-                throw new ConfigurationException(e);
-            }
-            LOGGER.warn("index {} keeps its existing {} mapping", indexName, QR_CODES_FIELD, e);
         } catch (IOException e) {
-            throw new ConfigurationException(e);
+            LOGGER.warn("index {} keeps its existing {} mapping: {}", indexName, QR_CODES_FIELD, e.getMessage());
         }
     }
 
