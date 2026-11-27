@@ -7,6 +7,7 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
@@ -69,6 +70,8 @@ public class QRCodeTask extends DefaultTask<Long> implements UserTask, Cancellab
     private final String scrollDuration;
     private final int scrollSize;
     private volatile Thread taskThread;
+    private volatile boolean cancelAsked;
+    private volatile boolean requeue;
 
     record Counters(AtomicLong updated, AtomicLong noCode, AtomicLong alreadyDecoded, AtomicLong failed) {
         Counters() {
@@ -79,19 +82,26 @@ public class QRCodeTask extends DefaultTask<Long> implements UserTask, Cancellab
     @Inject
     public QRCodeTask(DocumentCollectionFactory<String> factory, Indexer indexer, @Assisted Task<Long> taskView,
                       @Assisted Function<Double, Void> updateCallback) {
-        this(factory, indexer, new SourceExtractor(new PropertiesProvider(taskView.args)), taskView, updateCallback);
+        this(factory, indexer, sourceExtractor(taskView), taskView, updateCallback);
+    }
+
+    private static SourceExtractor sourceExtractor(Task<Long> taskView) {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(taskView.args);
+        return new SourceExtractor(propertiesProvider);
     }
 
     QRCodeTask(DocumentCollectionFactory<String> factory, Indexer indexer, SourceExtractor sourceExtractor,
                Task<Long> taskView, Function<Double, Void> updateCallback) {
         this.user = taskView.getUser();
         this.propertiesProvider = new PropertiesProvider(taskView.args);
-        String queueName = new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.QRCODES);
-        this.inputQueue = factory.createQueue(queueName, String.class);
+        this.project = (String) taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT);
+        PipelineHelper pipelineHelper = new PipelineHelper(propertiesProvider);
+        String stageQueueName = pipelineHelper.getQueueNameFor(Stage.QRCODES);
+        // each run clears its queue first, so a run on another project must not share it
+        this.inputQueue = factory.createQueue(stageQueueName + ":" + project, String.class);
         this.indexer = indexer;
         this.sourceExtractor = sourceExtractor;
         this.updateCallback = updateCallback;
-        this.project = (String) taskView.args.getOrDefault(DEFAULT_PROJECT_OPT, DEFAULT_DEFAULT_PROJECT);
         this.projectRef = Project.project(project);
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         String scrollSizeValue = propertiesProvider.get(SCROLL_SIZE_OPT).orElse(String.valueOf(DEFAULT_SCROLL_SIZE));
@@ -112,7 +122,9 @@ public class QRCodeTask extends DefaultTask<Long> implements UserTask, Cancellab
         long seen = 0;
         String entry = inputQueue.poll();
         while (entry != null) {
-            processReference(DocReference.parse(entry), pendingGroup, counters);
+            throwIfCancelled();
+            DocReference reference = DocReference.parse(entry);
+            processReference(reference, pendingGroup, counters);
             seen++;
             if (seen % scrollSize == 0 || seen == total) {
                 updateCallback.apply((double) seen / total);
@@ -126,7 +138,16 @@ public class QRCodeTask extends DefaultTask<Long> implements UserTask, Cancellab
 
     @Override
     public void cancel(boolean requeue) {
+        this.requeue = requeue;
+        cancelAsked = true;
         ofNullable(taskThread).ifPresent(Thread::interrupt);
+    }
+
+    private void throwIfCancelled() {
+        boolean interrupted = Thread.interrupted();
+        if (interrupted || cancelAsked) {
+            throw new CancelException(requeue);
+        }
     }
 
     @Override
@@ -149,8 +170,9 @@ public class QRCodeTask extends DefaultTask<Long> implements UserTask, Cancellab
             }
             page = searcher.scroll(scrollDuration).toList();
         }
+        long total = searcher.totalHits();
         searcher.clearScroll();
-        return searcher.totalHits();
+        return total;
     }
 
     private void processReference(DocReference reference, List<Document> pendingGroup, Counters counters) {
@@ -197,13 +219,15 @@ public class QRCodeTask extends DefaultTask<Long> implements UserTask, Cancellab
             counters.failed().incrementAndGet();
             return;
         }
-        save(document, QRCodeDecoder.decode(path), counters);
+        List<String> values = QRCodeDecoder.decode(path);
+        save(document, values, counters);
     }
 
     private void processEmbedded(Document document, List<Document> pendingGroup, Counters counters) {
         Path cached = sourceExtractor.cachedEmbeddedSourcePath(projectRef, document);
         if (cached != null) {
-            save(document, QRCodeDecoder.decode(cached), counters);
+            List<String> values = QRCodeDecoder.decode(cached);
+            save(document, values, counters);
             return;
         }
         // the scroll is sorted by root, so a new root means the pending one has all its images
@@ -249,8 +273,9 @@ public class QRCodeTask extends DefaultTask<Long> implements UserTask, Cancellab
             return;
         }
         String content = appendLines(document.getContent(), values);
+        Map<String, Object> metadata = Map.of(QR_KEY, values);
         Map<String, Object> fields =
-                Map.of("content", content, "contentTextLength", content.length(), "metadata", Map.of(QR_KEY, values));
+                Map.of("content", content, "contentTextLength", content.length(), "metadata", metadata);
         try {
             indexer.update(project, document.getId(), fields, document.getRootDocument());
             counters.updated().incrementAndGet();

@@ -8,6 +8,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.CancelException;
 import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -55,7 +57,7 @@ public class QRCodeTaskIntTest {
     private static final String QR_VALUE = "https://example.org/qr";
     private static final Function<Double, Void> NO_PROGRESS = progress -> null;
 
-    @Rule public ElasticsearchRule es = new ElasticsearchRule();
+    @Rule public ElasticsearchRule es = new ElasticsearchRule(2);
     @Rule public TemporaryFolder corpus = new TemporaryFolder();
     @Rule public TemporaryFolder attachments = new TemporaryFolder();
     @Rule public TemporaryFolder artifactDir = new TemporaryFolder();
@@ -238,6 +240,75 @@ public class QRCodeTaskIntTest {
 
         assertThat(documentAt(qr).getContent()).endsWith("QR code: " + QR_VALUE + "\n");
         assertThat(documentAt(rejected).getMetadata().containsKey(QR_KEY)).isFalse();
+    }
+
+    @Test(timeout = 120_000)
+    public void test_reports_progress_up_to_one() throws Exception {
+        Path first = png(corpus.getRoot().toPath().resolve("a.png"), "a");
+        Path second = png(corpus.getRoot().toPath().resolve("b.png"), "b");
+        index(Map.of(), first, second);
+        List<Double> progress = new ArrayList<>();
+
+        qrCodeTask(Map.of("scrollSize", "1"), value -> {
+            progress.add(value);
+            return null;
+        }).call();
+
+        assertThat(progress).isEqualTo(List.of(0.5, 1.0));
+    }
+
+    @Test(timeout = 120_000)
+    public void test_a_cancelled_run_stops_and_clears_the_interrupt() throws Exception {
+        Path first = png(corpus.getRoot().toPath().resolve("a.png"), "a");
+        Path second = png(corpus.getRoot().toPath().resolve("b.png"), "b");
+        index(Map.of(), first, second);
+        List<QRCodeTask> task = new ArrayList<>();
+        task.add(qrCodeTask(Map.of("scrollSize", "1"), value -> {
+            task.get(0).cancel(false);
+            return null;
+        }));
+
+        assertThrows(CancelException.class, () -> task.get(0).call());
+
+        assertThat(Thread.interrupted()).isFalse();
+        assertThat(documentsWithMetadataKey()).hasSize(1);
+    }
+
+    @Test(timeout = 120_000)
+    public void test_runs_on_two_projects_do_not_share_spooled_references() throws Exception {
+        String otherProject = es.getIndexNames()[1];
+        Path first = png(corpus.getRoot().toPath().resolve("a.png"), "a");
+        Path second = png(corpus.getRoot().toPath().resolve("b.png"), "b");
+        Path other = png(corpus.getRoot().toPath().resolve("other.png"), "other");
+        index(Map.of(), first, second);
+        index(Map.of("defaultProject", otherProject), other);
+        QRCodeTask otherRun = qrCodeTask(Map.of("defaultProject", otherProject));
+        List<Double> progress = new ArrayList<>();
+
+        qrCodeTask(Map.of("scrollSize", "1"), value -> {
+            if (progress.isEmpty()) {
+                callUnchecked(otherRun);
+            }
+            progress.add(value);
+            return null;
+        }).call();
+
+        assertThat(documentsWithMetadataKey()).hasSize(2);
+    }
+
+    private static void callUnchecked(QRCodeTask task) {
+        try {
+            task.call();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private QRCodeTask qrCodeTask(Map<String, Object> extraArgs, Function<Double, Void> updateCallback) {
+        Map<String, Object> args = new HashMap<>(Map.of("defaultProject", es.getIndexName()));
+        args.putAll(extraArgs);
+        Task<Long> taskView = new Task<>(QRCodeTask.class.getName(), User.local(), args);
+        return new QRCodeTask(stringQueueFactory, indexer, taskView, updateCallback);
     }
 
     private QRCodeTask qrCodeTask(Map<String, Object> extraArgs) {
