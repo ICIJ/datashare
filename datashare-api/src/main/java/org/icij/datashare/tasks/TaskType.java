@@ -17,7 +17,8 @@ public enum TaskType {
     GEN_API_KEY("org.icij.datashare.tasks.GenApiKeyTask"), DEL_API_KEY("org.icij.datashare.tasks.DelApiKeyTask"),
     GET_API_KEY("org.icij.datashare.tasks.GetApiKeyTask"),
     GRANT_ADMIN_POLICY("org.icij.datashare.tasks.GrantAdminPolicyTask"),
-    STRUCTURED_ENTITY_EXTRACTION("org.icij.datashare.tasks.StructuredEntityExtractionTask");
+    STRUCTURED_ENTITY_EXTRACTION("org.icij.datashare.tasks.StructuredEntityExtractionTask"),
+    QR_CODES("org.icij.datashare.tasks.QRCodeTask");
     private final Set<String> names;
 
     TaskType(String... names) {

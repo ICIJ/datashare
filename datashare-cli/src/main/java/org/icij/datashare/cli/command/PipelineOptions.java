@@ -68,6 +68,9 @@ public class PipelineOptions {
     @Option(names = {"--ocrStrategy"},
             description = "PDF OCR strategy: NO_OCR (default), AUTO, OCR_AND_TEXT_EXTRACTION, OCR_ONLY. Rendering strategies OCR whole pages for scanned/MRC PDFs; only applies when OCR is enabled.")
     OcrStrategy ocrStrategy;
+    // No defaultValue: it would clobber a qrCodes=true set in the settings file (see --artifactsForce).
+    @Option(names = {"--qrCodes"}, arity = "1", description = QR_CODES_DESC)
+    Boolean qrCodes;
     // The same default as the legacy CLI (the number of processors): a stage without it would run one worker. It is
     // computed at run time, so it is the initial value of the field, not a (constant) defaultValue.
     @Option(names = {"--parallelism"}, description = "Number of task management threads (default: ${DEFAULT-VALUE})")
@@ -126,6 +129,7 @@ public class PipelineOptions {
         DatashareOptions.putIfNotNull(props, OCR_PAGE_SEG_MODE_OPT, ocrPageSegMode);
         DatashareOptions.putIfNotNull(props, OCR_MIN_CONFIDENCE_OPT, ocrMinConfidence);
         DatashareOptions.putIfNotNull(props, OCR_STRATEGY_OPT, ocrStrategy);
+        DatashareOptions.putIfNotNull(props, QR_CODES_OPT, qrCodes);
         DatashareOptions.putIfNotNull(props, PARALLELISM_OPT, parallelism);
         DatashareOptions.put(props, PARSER_PARALLELISM_OPT, parserParallelism);
         DatashareOptions.put(props, MAX_EMBED_DEPTH_OPT, maxEmbedDepth);

@@ -36,9 +36,11 @@ public class PipelineHelper {
         }
         // runPipeline starts stages side by side and the extraction task waits on no upstream task,
         // so it would read a document another stage has not indexed yet.
-        if (stages.contains(Stage.ENTITIES) && stages.stream().anyMatch(stage -> stage != Stage.ENTITIES)) {
-            throw new IllegalArgumentException(
-                    String.format("%s runs alone: remove the other stages from --stages", Stage.ENTITIES));
+        for (Stage alone : List.of(Stage.ENTITIES, Stage.QRCODES)) {
+            if (stages.contains(alone) && stages.stream().anyMatch(stage -> stage != alone)) {
+                throw new IllegalArgumentException(
+                        String.format("%s runs alone: remove the other stages from --stages", alone));
+            }
         }
     }
 

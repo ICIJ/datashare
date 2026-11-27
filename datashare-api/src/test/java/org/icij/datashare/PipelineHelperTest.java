@@ -126,6 +126,13 @@ public class PipelineHelperTest {
         }}));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void test_rejects_qrcodes_together_with_another_stage() {
+        new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "INDEX,QRCODES");
+        }}));
+    }
+
     @Test
     public void test_accepts_entities_alone() {
         assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() {{

@@ -658,8 +658,9 @@ public class ElasticsearchIndexer implements Indexer {
             return createEntitiesIndex(baseProject(indexName));
         }
         if (!ElasticsearchConfiguration.createIndex(client, indexName)) {
-            // an existing index keeps this call a side-effect-free no-op, as IndexTask relies on:
+            // an existing index only gets the mapping fields added after its creation, as IndexTask relies on:
             // retrofitting an entities index onto an older project is EntitiesIndexRebuilder's job
+            ElasticsearchConfiguration.addQrCodesMapping(client, indexName);
             return false;
         }
         try {

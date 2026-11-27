@@ -20,7 +20,8 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
                 "  NLP            Run named-entity recognition on indexed documents",
                 "  ARTIFACT       Generate document artifacts (thumbnails, etc.)",
                 "  ENTITIES       Save a tabular extraction mapping and build the entities it describes (runs alone)",
-                "", "Examples:", "  datashare stage run --stages SCAN,INDEX",
+                "  QRCODES        Add QR code values to images already indexed (runs alone)", "", "Examples:",
+                "  datashare stage run --stages SCAN,INDEX",
                 "  datashare stage run --stages SCAN,INDEX,NLP --nlpPipeline OPENNLP",
                 "  datashare stage run --stages ENQUEUEIDX,CATEGORIZE",
                 "  datashare stage run --stages ENQUEUEIDX --nextStage ARTIFACT",
@@ -29,6 +30,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.MODE_OPT;
                 "  datashare stage run --stages SCANQUERY,DEDUPLICATE,INDEX --searchQuery \"language:WELSH\" " +
                 "--ocrLanguage cym",
                 "  datashare -P my-project stage run --stages ENTITIES --mappingFile companies.json",
+                "  datashare -P my-project stage run --stages QRCODES",
                 "  datashare --dataDir /data/docs -P my-project stage run --stages SCAN,INDEX,NLP"})
 public class StageRunCommand implements Runnable, DatashareSubcommand {
     @Option(names = {"--stages"}, required = true,

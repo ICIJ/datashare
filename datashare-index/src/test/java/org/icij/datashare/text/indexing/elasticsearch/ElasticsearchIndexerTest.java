@@ -8,6 +8,9 @@ import co.elastic.clients.elasticsearch.core.UpdateRequest;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.ConnectionClosedException;
 import org.apache.http.util.EntityUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.elasticsearch.client.Response;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RestClient;
 import org.icij.datashare.Entity;
@@ -1025,6 +1028,73 @@ public class ElasticsearchIndexerTest {
 
         assertThat(mapping).contains("dynamic_templates");
         assertThat(mapping).contains("entity_properties");
+    }
+
+    @Test
+    public void test_create_index_adds_the_qr_codes_mapping_to_an_existing_index() throws Exception {
+        String index = ElasticsearchRule.generateIndexName();
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        Request create = new Request("PUT", "/" + index);
+        create.setJsonEntity("{" + FOLDING_SETTINGS + "}");
+        restClient.performRequest(create);
+        try {
+            assertThat(indexer.createIndex(index)).isFalse();
+
+            JsonNode qrCodes = qrCodesMapping(restClient, index);
+            assertThat(qrCodes.at("/type").asText()).isEqualTo("text");
+        } finally {
+            es.delete(index);
+        }
+    }
+
+    @Test
+    public void test_create_index_keeps_an_existing_conflicting_qr_codes_mapping() throws Exception {
+        String index = ElasticsearchRule.generateIndexName();
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        Request create = new Request("PUT", "/" + index);
+        create.setJsonEntity("{" + FOLDING_SETTINGS + ",\"mappings\":{\"properties\":{\"metadata\":" +
+                             "{\"properties\":{\"tika_metadata_qr_codes\":{\"type\":\"date\"}}}}}}");
+        restClient.performRequest(create);
+        try {
+            assertThat(indexer.createIndex(index)).isFalse();
+
+            JsonNode qrCodes = qrCodesMapping(restClient, index);
+            assertThat(qrCodes.at("/type").asText()).isEqualTo("date");
+        } finally {
+            es.delete(index);
+        }
+    }
+
+    @Test
+    public void test_create_index_on_a_read_only_index_is_a_no_op() throws Exception {
+        String index = ElasticsearchRule.generateIndexName();
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        Request create = new Request("PUT", "/" + index);
+        create.setJsonEntity("{" + FOLDING_SETTINGS + "}");
+        restClient.performRequest(create);
+        Request block = new Request("PUT", "/" + index + "/_block/read_only");
+        restClient.performRequest(block);
+        try {
+            assertThat(indexer.createIndex(index)).isFalse();
+
+            assertThat(qrCodesMapping(restClient, index).isMissingNode()).isTrue();
+        } finally {
+            Request unblock = new Request("PUT", "/" + index + "/_settings");
+            unblock.setJsonEntity("{\"index.blocks.read_only\":false}");
+            restClient.performRequest(unblock);
+            es.delete(index);
+        }
+    }
+
+    private static final String FOLDING_SETTINGS =
+            "\"settings\":{\"analysis\":{\"analyzer\":{\"folding\":{\"type\":\"custom\"," +
+            "\"tokenizer\":\"standard\",\"filter\":[\"lowercase\",\"asciifolding\"]}}}}";
+
+    private static JsonNode qrCodesMapping(RestClient restClient, String index) throws IOException {
+        Response response = restClient.performRequest(new Request("GET", "/" + index + "/_mapping"));
+        String body = EntityUtils.toString(response.getEntity());
+        JsonNode mapping = JsonObjectMapper.getMapper().readTree(body);
+        return mapping.at("/" + index + "/mappings/properties/metadata/properties/tika_metadata_qr_codes");
     }
 
     @Test

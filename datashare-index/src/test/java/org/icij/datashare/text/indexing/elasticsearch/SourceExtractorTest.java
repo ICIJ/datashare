@@ -37,10 +37,12 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.nio.file.Paths.get;
@@ -251,6 +253,82 @@ public class SourceExtractorTest {
                .resolve("raw");
         assertThat(cachedArtifact.toFile()).isFile();
         assertThat(cachedArtifact.toFile()).hasSize(49779);
+    }
+
+    @Test
+    public void test_cached_embedded_source_path_is_the_raw_payload() throws Exception {
+        Document document = DocumentBuilder.createDoc("abcdef0123").build();
+        Path artifactDir = ArtifactPath.dir(tmpDir.getRoot().toPath().resolve("prj"), document.getId());
+        Files.createDirectories(artifactDir);
+        Path raw = Files.writeString(artifactDir.resolve(ArtifactPath.RAW_FILE), "bytes");
+        Files.writeString(artifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE), "{}");
+        Map<String, Object> properties = Map.of(ARTIFACT_DIR_OPT, tmpDir.getRoot().toString());
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(properties));
+        Path cached = extractor.cachedEmbeddedSourcePath(project("prj"), document);
+
+        assertThat(cached.toString()).isEqualTo(raw.toString());
+    }
+
+    @Test
+    public void test_cached_embedded_source_path_is_null_for_an_empty_payload() throws Exception {
+        Document document = DocumentBuilder.createDoc("abcdef0123").build();
+        Path artifactDir = ArtifactPath.dir(tmpDir.getRoot().toPath().resolve("prj"), document.getId());
+        Files.createDirectories(artifactDir);
+        Files.writeString(artifactDir.resolve(ArtifactPath.RAW_FILE), "");
+        Files.writeString(artifactDir.resolve(ArtifactPath.RAW_SIDECAR_FILE), "{}");
+        Map<String, Object> properties = Map.of(ARTIFACT_DIR_OPT, tmpDir.getRoot().toString());
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(properties));
+
+        assertThat(extractor.cachedEmbeddedSourcePath(project("prj"), document)).isNull();
+    }
+
+    @Test
+    public void test_cached_embedded_source_path_is_null_without_artifact_dir() {
+        Document document = DocumentBuilder.createDoc("abcdef0123").build();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider());
+
+        assertThat(extractor.cachedEmbeddedSourcePath(project("prj"), document)).isNull();
+    }
+
+    @Test
+    public void test_for_each_embed_yields_the_indexed_embed_id() throws Exception {
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Map<String, Object> stringProperties = Map.of(
+            "digestAlgorithm", Document.DEFAULT_DIGESTER.toString(),
+            "digestProjectName", es.getIndexName(),
+            NO_DIGEST_PROJECT_OPT, "false",
+            "defaultProject", es.getIndexName());
+        ElasticsearchIndexer elasticsearchIndexer = createIndexer(es.getIndexName());
+        TikaDocument doc = indexDocument(elasticsearchIndexer, stringProperties, path, stringProperties);
+        Document attachedPdf = elasticsearchIndexer.get(es.getIndexName(), doc.getEmbeds().get(0).getId(), doc.getId());
+        List<String> visitedIds = new ArrayList<>();
+        SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(stringProperties));
+        Set<String> wanted = Set.of(attachedPdf.getId());
+
+        extractor.forEachEmbed(project(es.getIndexName()), attachedPdf, wanted, (id, bytes) -> visitedIds.add(id));
+
+        assertThat(visitedIds).isEqualTo(List.of(attachedPdf.getId()));
+    }
+
+    @Test
+    public void test_for_each_embed_finds_an_embed_indexed_with_another_digester() throws Exception {
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Map<String, Object> indexProperties = Map.of(
+            "digestAlgorithm", Document.DEFAULT_DIGESTER.toString(),
+            "digestProjectName", es.getIndexName(),
+            NO_DIGEST_PROJECT_OPT, "false",
+            "defaultProject", es.getIndexName());
+        ElasticsearchIndexer elasticsearchIndexer = createIndexer(es.getIndexName());
+        TikaDocument doc = indexDocument(elasticsearchIndexer, indexProperties, path, indexProperties);
+        Document attachedPdf = elasticsearchIndexer.get(es.getIndexName(), doc.getEmbeds().get(0).getId(), doc.getId());
+        List<String> visitedIds = new ArrayList<>();
+        PropertiesProvider walkProperties = new PropertiesProvider(Map.of("defaultProject", es.getIndexName()));
+        SourceExtractor extractor = new SourceExtractor(walkProperties);
+        Set<String> wanted = Set.of(attachedPdf.getId());
+
+        extractor.forEachEmbed(project(es.getIndexName()), attachedPdf, wanted, (id, bytes) -> visitedIds.add(id));
+
+        assertThat(visitedIds).isEqualTo(List.of(attachedPdf.getId()));
     }
 
     @Test

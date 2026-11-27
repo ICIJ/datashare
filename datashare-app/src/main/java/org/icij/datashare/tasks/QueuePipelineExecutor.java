@@ -26,7 +26,8 @@ public class QueuePipelineExecutor implements PipelineExecutor {
                           entry(Stage.CREATENLPBATCHESFROMIDX, CreateNlpBatchesFromIndex.class),
                           entry(Stage.NLP, ExtractNlpTask.class), entry(Stage.ARTIFACT, ArtifactTask.class),
                           entry(Stage.LANGUAGE, LanguageDetectTask.class),
-                          entry(Stage.ENTITIES, StructuredEntityExtractionTask.class));
+                          entry(Stage.ENTITIES, StructuredEntityExtractionTask.class),
+                          entry(Stage.QRCODES, QRCodeTask.class));
     private final TaskManager taskManager;
 
     @Inject
