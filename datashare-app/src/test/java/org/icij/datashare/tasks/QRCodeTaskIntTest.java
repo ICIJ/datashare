@@ -8,6 +8,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.StageRegistry;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskRepositoryMemory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
@@ -16,7 +17,6 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewerFactory;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.extract.parser.QRCodeParserDecorator;
@@ -314,10 +314,10 @@ public class QRCodeTaskIntTest {
         String indexQueueName = new PipelineHelper(props).getQueueNameFor(Stage.INDEX);
         DocumentQueue<Path> indexQueue = pathQueueFactory.createQueue(indexQueueName, Path.class);
         List.of(files).forEach(indexQueue::add);
-        ElasticsearchSpewerFactory spewerFactory = new ElasticsearchSpewerFactory(indexer, stringQueueFactory,
-                text -> Language.ENGLISH, new FieldNames(), props);
+        StageRegistry registry = new StageRegistry().register(new IndexStage(indexer, text -> Language.ENGLISH));
         Task<Long> taskView = new Task<>(IndexTask.class.getName(), User.local(), args);
-        new IndexTask(spewerFactory, pathQueueFactory, new UpstreamGate.Factory(taskRepository), taskView, null).call();
+        new IndexTask(pathQueueFactory, stringQueueFactory, registry, new UpstreamGate.Factory(taskRepository), taskView,
+                      null).call();
     }
 
     private Document documentAt(Path file) throws IOException {

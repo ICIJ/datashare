@@ -4,8 +4,10 @@ import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.apache.tika.exception.TikaException;
 import org.icij.datashare.Entity;
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.asynctasks.Task;
 import org.icij.datashare.asynctasks.TaskGroup;
 import org.icij.datashare.asynctasks.TaskGroupType;
@@ -17,9 +19,13 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
+import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserTask;
 import org.icij.extract.parser.QRCodeParserDecorator;
 import org.icij.extract.qrcode.QRCodeDecoder;
+import org.icij.extract.queue.DocumentQueue;
 import org.icij.spewer.FieldNames;
+import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -33,6 +39,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import static java.lang.Integer.parseInt;
+import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_DURATION;
@@ -46,10 +53,13 @@ import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
  */
 @TemporalSingleActivityWorkflow(name = "qr-codes", activityOptions = @ActivityOpts(timeout = "P7D"))
 @TaskGroup(TaskGroupType.Java)
-public class QRCodeTask extends PipelineTask<String> {
+public class QRCodeTask extends DefaultTask<Long> implements UserTask, CancellableTask {
     private static final List<String> SOURCE_EXCLUDES = List.of("content_translated");
     private static final String QR_KEY = new FieldNames().forMetadata(QRCodeParserDecorator.QR_CODES.getName());
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final User user;
+    private final PropertiesProvider propertiesProvider;
+    private final DocumentQueue<String> inputQueue;
     private final Indexer indexer;
     private final SourceExtractor sourceExtractor;
     private final Function<Double, Void> updateCallback;
@@ -57,6 +67,7 @@ public class QRCodeTask extends PipelineTask<String> {
     private final Project projectRef;
     private final String scrollDuration;
     private final int scrollSize;
+    private volatile Thread taskThread;
 
     record Counters(AtomicLong updated, AtomicLong noCode, AtomicLong alreadyDecoded, AtomicLong failed) {
         Counters() {
@@ -72,7 +83,10 @@ public class QRCodeTask extends PipelineTask<String> {
 
     QRCodeTask(DocumentCollectionFactory<String> factory, Indexer indexer, SourceExtractor sourceExtractor,
                Task<Long> taskView, Function<Double, Void> updateCallback) {
-        super(Stage.QRCODES, taskView.getUser(), factory, new PropertiesProvider(taskView.args), String.class);
+        this.user = taskView.getUser();
+        this.propertiesProvider = new PropertiesProvider(taskView.args);
+        String queueName = new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.QRCODES);
+        this.inputQueue = factory.createQueue(queueName, String.class);
         this.indexer = indexer;
         this.sourceExtractor = sourceExtractor;
         this.updateCallback = updateCallback;
@@ -85,7 +99,7 @@ public class QRCodeTask extends PipelineTask<String> {
 
     @Override
     public Long call() throws Exception {
-        super.call();
+        taskThread = Thread.currentThread();
         if (!indexer.exists(project)) {
             throw new IllegalArgumentException("project %s has no index".formatted(project));
         }
@@ -107,6 +121,16 @@ public class QRCodeTask extends PipelineTask<String> {
         flush(pendingGroup, counters);
         logSummary(counters);
         return counters.updated().get() + counters.noCode().get();
+    }
+
+    @Override
+    public void cancel(boolean requeue) {
+        ofNullable(taskThread).ifPresent(Thread::interrupt);
+    }
+
+    @Override
+    public User getUser() {
+        return user;
     }
 
     // References first, documents later: a root walk can outlast any scroll keep-alive, so no scroll
@@ -131,7 +155,7 @@ public class QRCodeTask extends PipelineTask<String> {
     private void processReference(DocReference reference, List<Document> pendingGroup, Counters counters) {
         Document document;
         try {
-            document = getDocument(indexer, project, reference, SOURCE_EXCLUDES);
+            document = indexer.get(project, reference, SOURCE_EXCLUDES);
         } catch (RuntimeException e) {
             logger.error("cannot read document {} in project {}", reference.id(), project, e);
             counters.failed().incrementAndGet();
