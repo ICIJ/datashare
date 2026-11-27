@@ -42,6 +42,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.nio.file.Paths.get;
@@ -302,10 +303,32 @@ public class SourceExtractorTest {
         Document attachedPdf = elasticsearchIndexer.get(es.getIndexName(), doc.getEmbeds().get(0).getId(), doc.getId());
         List<String> visitedIds = new ArrayList<>();
         SourceExtractor extractor = new SourceExtractor(new PropertiesProvider(stringProperties));
+        Set<String> wanted = Set.of(attachedPdf.getId());
 
-        extractor.forEachEmbed(project(es.getIndexName()), attachedPdf, (id, bytes) -> visitedIds.add(id));
+        extractor.forEachEmbed(project(es.getIndexName()), attachedPdf, wanted, (id, bytes) -> visitedIds.add(id));
 
-        assertThat(visitedIds).contains(attachedPdf.getId());
+        assertThat(visitedIds).isEqualTo(List.of(attachedPdf.getId()));
+    }
+
+    @Test
+    public void test_for_each_embed_finds_an_embed_indexed_with_another_digester() throws Exception {
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Map<String, Object> indexProperties = Map.of(
+            "digestAlgorithm", Document.DEFAULT_DIGESTER.toString(),
+            "digestProjectName", es.getIndexName(),
+            NO_DIGEST_PROJECT_OPT, "false",
+            "defaultProject", es.getIndexName());
+        ElasticsearchIndexer elasticsearchIndexer = createIndexer(es.getIndexName());
+        TikaDocument doc = indexDocument(elasticsearchIndexer, indexProperties, path, indexProperties);
+        Document attachedPdf = elasticsearchIndexer.get(es.getIndexName(), doc.getEmbeds().get(0).getId(), doc.getId());
+        List<String> visitedIds = new ArrayList<>();
+        PropertiesProvider walkProperties = new PropertiesProvider(Map.of("defaultProject", es.getIndexName()));
+        SourceExtractor extractor = new SourceExtractor(walkProperties);
+        Set<String> wanted = Set.of(attachedPdf.getId());
+
+        extractor.forEachEmbed(project(es.getIndexName()), attachedPdf, wanted, (id, bytes) -> visitedIds.add(id));
+
+        assertThat(visitedIds).isEqualTo(List.of(attachedPdf.getId()));
     }
 
     @Test

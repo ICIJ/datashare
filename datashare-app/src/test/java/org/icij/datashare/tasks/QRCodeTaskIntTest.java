@@ -147,7 +147,7 @@ public class QRCodeTaskIntTest {
 
         assertDecoded("one");
         assertDecoded("two");
-        verify(sourceExtractor, times(1)).forEachEmbed(any(), any(), any());
+        verify(sourceExtractor, times(1)).forEachEmbed(any(), any(), any(), any());
     }
 
     @Test(timeout = 120_000)
@@ -160,7 +160,7 @@ public class QRCodeTaskIntTest {
 
         assertDecoded("one");
         assertDecoded("two");
-        verify(sourceExtractor, times(1)).forEachEmbed(any(), any(), any());
+        verify(sourceExtractor, times(1)).forEachEmbed(any(), any(), any(), any());
     }
 
     @Test(timeout = 120_000)
@@ -174,7 +174,7 @@ public class QRCodeTaskIntTest {
 
         assertDecoded("one");
         assertDecoded("two");
-        verify(sourceExtractor, never()).forEachEmbed(any(), any(), any());
+        verify(sourceExtractor, never()).forEachEmbed(any(), any(), any(), any());
     }
 
     @Test(timeout = 120_000)
@@ -196,7 +196,7 @@ public class QRCodeTaskIntTest {
         Path mail = mailWithTwoCodes("mail.eml", "one", "two");
         index(Map.of(), mail);
         SourceExtractor sourceExtractor = spy(new SourceExtractor(new PropertiesProvider()));
-        doNothing().when(sourceExtractor).forEachEmbed(any(), any(), any());
+        doNothing().when(sourceExtractor).forEachEmbed(any(), any(), any(), any());
 
         Long processed = qrCodeTask(Map.of(), sourceExtractor).call();
 
@@ -214,7 +214,7 @@ public class QRCodeTaskIntTest {
         doAnswer(invocation -> {
             openContextsDuringWalk.add(openSearchContexts());
             return invocation.callRealMethod();
-        }).when(sourceExtractor).forEachEmbed(any(), any(), any());
+        }).when(sourceExtractor).forEachEmbed(any(), any(), any(), any());
 
         qrCodeTask(Map.of(), sourceExtractor).call();
 

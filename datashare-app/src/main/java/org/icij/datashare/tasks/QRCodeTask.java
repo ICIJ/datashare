@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import static java.lang.Integer.parseInt;
@@ -223,11 +224,11 @@ public class QRCodeTask extends DefaultTask<Long> implements UserTask, Cancellab
         group.clear();
         try {
             // the spooled bytes are deleted once the visitor returns, so each image is decoded and saved inside it
-            sourceExtractor.forEachEmbed(projectRef, first, (id, bytes) -> {
+            Set<String> ids = Set.copyOf(wanted.keySet());
+            sourceExtractor.forEachEmbed(projectRef, first, ids, (id, bytes) -> {
                 Document document = wanted.remove(id);
-                if (document != null) {
-                    save(document, QRCodeDecoder.decode(bytes), counters);
-                }
+                List<String> values = QRCodeDecoder.decode(bytes);
+                save(document, values, counters);
             });
         } catch (TikaException | IOException | SAXException | RuntimeException e) {
             logger.error("cannot parse root {} of {} image(s) in project {}", first.getRootDocument(), wanted.size(),

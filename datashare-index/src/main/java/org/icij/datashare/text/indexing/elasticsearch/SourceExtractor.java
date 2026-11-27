@@ -31,7 +31,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import static org.icij.datashare.PropertiesProvider.DEFAULT_PROJECT_OPT;
@@ -180,18 +183,37 @@ public class SourceExtractor {
         return tikaDocument;
     }
 
-    public void forEachEmbed(final Project project, final Document embedded,
+    /**
+     * Walks the root of {@code embedded} once per digester until every id in {@code ids} is visited, so an
+     * embed indexed under another digester configuration is still found. Visits only those ids, each once.
+     */
+    public void forEachEmbed(final Project project, final Document embedded, final Set<String> ids,
                              final BiConsumer<String, Path> visitor) throws TikaException, IOException, SAXException {
         Hasher hasher = Hasher.valueOf(embedded.getId().length());
-        DigestingParser.Digester digester = writeDigester(project, hasher);
         Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
         String tikaVersionField = embedded.getField(DocumentMetadataConstants.TIKA_VERSION);
         String tikaVersion = (String) embedded.getMetadata().get(tikaVersionField);
-        TikaDocument rootDocument =
-                new DocumentFactory().withIdentifier(identifier).create(embedded.getPath(), tikaVersion);
-        EmbeddedDocumentExtractor embeddedExtractor =
-                new EmbeddedDocumentExtractor(digester, hasher.toString(), null, useOcr(embedded));
-        embeddedExtractor.forEachEmbed(rootDocument, visitor);
+        List<DigestingParser.Digester> digesters = buildDigesters(project, embedded);
+        // the configured digester first: the other ones only match embeds indexed under another configuration
+        if (!noDigestProject()) {
+            Collections.swap(digesters, 0, 1);
+        }
+        Set<String> missing = new HashSet<>(ids);
+        BiConsumer<String, Path> missingOnly = (id, bytes) -> {
+            if (missing.remove(id)) {
+                visitor.accept(id, bytes);
+            }
+        };
+        for (DigestingParser.Digester digester : digesters) {
+            if (missing.isEmpty()) {
+                return;
+            }
+            TikaDocument rootDocument =
+                    new DocumentFactory().withIdentifier(identifier).create(embedded.getPath(), tikaVersion);
+            EmbeddedDocumentExtractor embeddedExtractor =
+                    new EmbeddedDocumentExtractor(digester, hasher.toString(), null, useOcr(embedded));
+            embeddedExtractor.forEachEmbed(rootDocument, missingOnly);
+        }
     }
 
     private DigestingParser.Digester writeDigester(final Project project, final Hasher hasher) {
